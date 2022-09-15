@@ -1,3 +1,13 @@
+# project specific
+data/
+slurm/
+slurm_zay/
+# old/
+tmp/
+logs/*
+logs_meso/
+logs_zay/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
