@@ -15,16 +15,16 @@ import utils
 #---------------------------------------------------------------------------
 # prediction base fonction
 
-def pred(cfg, bui_dir, dir_in, dir_out):
+def pred(bui_dir, dir_in, dir_out):
     bui_dir=str(bui_dir)
     dir_in=str(dir_in)
     dir_out=str(dir_out)
     LOG_PATH = bui_dir
 
-    builder = Builder(config=cfg,path=LOG_PATH, training=False)
+    builder = Builder(config=None,path=LOG_PATH, training=False)
     builder.run_prediction_folder(dir_in=dir_in, dir_out=dir_out, return_logit=False)
 
-def pred_multiple(cfg, bui_dir, dir_in, dir_out):
+def pred_multiple(bui_dir, dir_in, dir_out):
     """
     predict a folder of folders
     """
@@ -36,7 +36,7 @@ def pred_multiple(cfg, bui_dir, dir_in, dir_out):
         dir_in = list_dir_in[i]
         dir_out = list_dir_out[i]
 
-        builder = Builder(config=cfg,path=LOG_PATH, training=False)
+        builder = Builder(config=None,path=LOG_PATH, training=False)
         builder.run_prediction_folder(dir_in=dir_in, dir_out=dir_out, return_logit=False)
 
 #---------------------------------------------------------------------------
@@ -46,7 +46,7 @@ def pred_multiple(cfg, bui_dir, dir_in, dir_out):
 
 # @magicgui(call_button="predict")
 def pred_seg(bui_dir=pathlib.Path.home(), dir_in=pathlib.Path.home(), dir_out=pathlib.Path.home()):
-    pred(None, bui_dir, dir_in, dir_out)
+    pred(bui_dir, dir_in, dir_out)
 
 def pred_seg_eval(bui_dir=pathlib.Path.home(), dir_in=pathlib.Path.home(), dir_out=pathlib.Path.home(), dir_lab=None, eval_only=False):
     print("Start inference")
