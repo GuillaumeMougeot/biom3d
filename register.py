@@ -74,7 +74,7 @@ metrics = Dict(
     Dice        =Dict(fct=mt.Dice, kwargs=Dict()),
     DiceBCE     =Dict(fct=mt.DiceBCE, kwargs=Dict()),
     IoU         =Dict(fct=mt.IoU, kwargs=Dict()),
-    DeepMSE     =Dict(fct=mt.DeepMetric, kwargs=Dict(metric=mt.MSE)),
+    # DeepMSE     =Dict(fct=mt.DeepMetric, kwargs=Dict(metric=mt.MSE)),
     DeepDiceBCE =Dict(fct=mt.DeepMetric, kwargs=Dict(metric=mt.DiceBCE)),
 )
 
