@@ -1,4 +1,4 @@
-from models.dino import vgg_mlp
+# from models.dino import vgg_mlp
 import torch
 from torch import nn
 
