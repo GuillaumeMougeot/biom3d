@@ -63,7 +63,7 @@ def download_object(cli, obj, target_dir):
 
     print("Downloading to ", target_dir)
 
-    # download_datasets(datasets, target_dir)
+    download_datasets(datasets, target_dir)
 
     return datasets, target_dir
 
