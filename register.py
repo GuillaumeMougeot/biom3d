@@ -13,24 +13,24 @@ from utils import Dict
 
 # import datasets.datasets_old as datasets_old
 # from datasets.arcface import ArcFace
-from datasets.triplet import Triplet
-from datasets.triplet_seg import TripletSeg
-from datasets.semseg import SemSeg3D
+# from datasets.triplet import Triplet
+# from datasets.triplet_seg import TripletSeg
+# from datasets.semseg import SemSeg3D
 # from datasets.semseg_fast import SemSeg3DFast
 # from datasets.semseg_patch import SemSeg3DPatchTrain, SemSeg3DPatchVal
 from datasets.semseg_patch_fast import SemSeg3DPatchFast
 # from datasets.model_genesis import Genesis
 # from datasets.denoiseg import DenoiSeg
 # from datasets.adversarial import Adversarial
-from datasets.dino import Dino
-from datasets.arcface import ArcFace
+# from datasets.dino import Dino
+# from datasets.arcface import ArcFace
 
 datasets = Dict(
-    Seg             =Dict(fct=SemSeg3D, kwargs=Dict()),
+    # Seg             =Dict(fct=SemSeg3D, kwargs=Dict()),
     # SegFast         =Dict(fct=SemSeg3DFast, kwargs=Dict()),
     # SingleNucleus   =Dict(fct=datasets_old.Nucleus3DSingle, kwargs=Dict()),
-    Triplet         =Dict(fct=Triplet, kwargs=Dict()),
-    TripletSeg      =Dict(fct=TripletSeg, kwargs=Dict()),
+    # Triplet         =Dict(fct=Triplet, kwargs=Dict()),
+    # TripletSeg      =Dict(fct=TripletSeg, kwargs=Dict()),
     # ArcFace         =Dict(fct=ArcFace, kwargs=Dict()),
     # CoTrain         =Dict(fct=datasets_old.CoTrain, kwargs=Dict()),
     # SegPatchTrain   =Dict(fct=SemSeg3DPatchTrain, kwargs=Dict()),
@@ -39,18 +39,18 @@ datasets = Dict(
     # Genesis         =Dict(fct=Genesis, kwargs=Dict()),
     # DenoiSeg        =Dict(fct=DenoiSeg, kwargs=Dict()),
     # Adversarial     =Dict(fct=Adversarial, kwargs=Dict()),
-    Dino            =Dict(fct=Dino, kwargs=Dict()),
-    ArcFace         =Dict(fct=ArcFace, kwargs=Dict()),
+    # Dino            =Dict(fct=Dino, kwargs=Dict()),
+    # ArcFace         =Dict(fct=ArcFace, kwargs=Dict()),
 )
 
 
 from utils import (
-    skimage_imread,
+    # skimage_imread,
     sitk_imread,
 )
 
 imread = Dict(
-    Skimage =Dict(fct=skimage_imread, kwargs=Dict()),
+    # Skimage =Dict(fct=skimage_imread, kwargs=Dict()),
     Sitk    =Dict(fct=sitk_imread, kwargs=Dict()),
 )
 
@@ -82,51 +82,51 @@ metrics = Dict(
 # trainer register
 
 from trainers import (
-    denoiseg_train,
-    denoiseg_val,
-    dino_train,
+    # denoiseg_train,
+    # denoiseg_val,
+    # dino_train,
     seg_train, 
     seg_validate,
-    triplet_seg_train, 
-    triplet_train,
-    triplet_val,
-    arcface_train,
-    arcface_val,
-    adverse_train,
-    cotrain_train,
-    cotrain_validate,
-    seg_patch_validate,
-    seg_patch_train,
+    # triplet_seg_train, 
+    # triplet_train,
+    # triplet_val,
+    # arcface_train,
+    # arcface_val,
+    # adverse_train,
+    # cotrain_train,
+    # cotrain_validate,
+    # seg_patch_validate,
+    # seg_patch_train,
 )
 
 trainers = Dict(
     SegTrain        =Dict(fct=seg_train, kwargs=Dict()),
     SegVal          =Dict(fct=seg_validate, kwargs=Dict()),
-    SegPatchTrain   =Dict(fct=seg_patch_train, kwargs=Dict()),
-    SegPatchVal     =Dict(fct=seg_patch_validate, kwargs=Dict()),
-    TripletTrain    =Dict(fct=triplet_train, kwargs=Dict()),
-    TripletVal      =Dict(fct=triplet_val, kwargs=Dict()),
-    TripletSegTrain =Dict(fct=triplet_seg_train, kwargs=Dict()),
-    ArcFaceTrain    =Dict(fct=arcface_train, kwargs=Dict()),
-    ArcFaceVal      =Dict(fct=arcface_val, kwargs=Dict()),
-    AdverseTrain    =Dict(fct=adverse_train, kwargs=Dict()),
-    CoTrainTrain    =Dict(fct=cotrain_train,  kwargs=Dict()),
-    CoTrainVal      =Dict(fct=cotrain_validate,  kwargs=Dict()),
-    DenoiSegTrain   =Dict(fct=denoiseg_train, kwargs=Dict()),
-    DenoiSegVal     =Dict(fct=denoiseg_val, kwargs=Dict()),
-    DinoTrain       =Dict(fct=dino_train, kwargs=Dict()),
+    # SegPatchTrain   =Dict(fct=seg_patch_train, kwargs=Dict()),
+    # SegPatchVal     =Dict(fct=seg_patch_validate, kwargs=Dict()),
+    # TripletTrain    =Dict(fct=triplet_train, kwargs=Dict()),
+    # TripletVal      =Dict(fct=triplet_val, kwargs=Dict()),
+    # TripletSegTrain =Dict(fct=triplet_seg_train, kwargs=Dict()),
+    # ArcFaceTrain    =Dict(fct=arcface_train, kwargs=Dict()),
+    # ArcFaceVal      =Dict(fct=arcface_val, kwargs=Dict()),
+    # AdverseTrain    =Dict(fct=adverse_train, kwargs=Dict()),
+    # CoTrainTrain    =Dict(fct=cotrain_train,  kwargs=Dict()),
+    # CoTrainVal      =Dict(fct=cotrain_validate,  kwargs=Dict()),
+    # DenoiSegTrain   =Dict(fct=denoiseg_train, kwargs=Dict()),
+    # DenoiSegVal     =Dict(fct=denoiseg_val, kwargs=Dict()),
+    # DinoTrain       =Dict(fct=dino_train, kwargs=Dict()),
 )
 
 #---------------------------------------------------------------------------
 # predictor register
 
 from predictors import (
-    seg_predict,
+    # seg_predict,
     seg_predict_patch,
 )
 
 predictors = Dict(
-    Seg = Dict(fct=seg_predict, kwargs=Dict()),
+    # Seg = Dict(fct=seg_predict, kwargs=Dict()),
     SegPatch = Dict(fct=seg_predict_patch, kwargs=Dict()),
 )
 
