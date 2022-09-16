@@ -4,7 +4,7 @@ A simple and unofficial implementation of [nnUNet](https://github.com/MIC-DKFZ/n
 
 The goal of nnUNet is to automatically configured the training of a U-Net deep learning model for 3D semantic segmentation.
 
-For developers, this implementation is more flexible than the original nnUNet implementation: easier to read/understand and easier to edit.
+This implementation is more flexible for developers than the original nnUNet implementation: easier to read/understand and easier to edit.
 
 This implementation does not include ensemble learning and the possibility to use 2D U-Net or 3D-Cascade U-Net. However, these options could easily be adapted for this implementation if needed.
 

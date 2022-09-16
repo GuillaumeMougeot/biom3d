@@ -5,7 +5,7 @@
 
 python pred.py\
  --name seg\
- --bui_dir /home/gumougeot/all/codes/python/3dnucleus/logs/20220909-152755-unet_mine-chromo\
+ --bui_dir logs/20220909-152755-unet_mine-chromo\
  --dir_in /home/gumougeot/all/codes/python/3dnucleus/data/chromo/to_pred/raw\
  --dir_out /home/gumougeot/all/codes/python/3dnucleus/data/chromo/is_pred
 
