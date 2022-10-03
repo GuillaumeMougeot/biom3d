@@ -23,7 +23,7 @@
 #  --config configs.unet_chromo
 
 # run train triplet:
-python train.py\
+python biome3d/train.py\
  --name train\
  --config configs.nnet-triplet_pancreas
 
