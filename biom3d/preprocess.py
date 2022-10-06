@@ -2,7 +2,7 @@
 # Dataset preparation to fasten the training
 #   -normalization
 #   -expand dims and one_hot encoding
-#   -saving to npy file
+#   -saving to tif file
 #---------------------------------------------------------------------------
 
 import numpy as np
@@ -32,16 +32,16 @@ def one_hot(values, num_classes=None):
     out = np.eye(n_values)[values]
     return np.moveaxis(out, -1, 0).astype(np.int64)
 
-class Nifti:
+class Preprocessing:
     """
-    A helper class to transform nifti (.nii.gz) images to tif format and to normalize them.
+    A helper class to transform nifti (.nii.gz) and Tiff (.tif or .tiff) images to .tif format and to normalize them.
     """
     def __init__(
         self,
         img_dir,
-        img_out_dir,
+        img_outdir,
         msk_dir = None, # if None, only images are preprocesses not the masks
-        msk_out_dir = None,
+        msk_outdir = None,
         num_classes = None, # just for debug when empty masks are provided
         remove_bg = True, # keep the background in labels 
         median_spacing=[],
@@ -76,8 +76,8 @@ class Nifti:
         self.msk_dir=msk_dir
         self.img_fnames=os.listdir(self.img_dir)
 
-        self.img_out_dir=img_out_dir 
-        self.msk_out_dir=msk_out_dir
+        self.img_outdir=img_outdir 
+        self.msk_outdir=msk_outdir
 
         self.num_classes = num_classes
 
@@ -141,41 +141,32 @@ class Nifti:
 
             # set image type
             img = img.astype(np.float32)
-            
             if self.msk_dir: msk = msk.astype(np.byte)
 
-            
-
             # save the image and the mask as npy 
-            end = img_path.split('/')[-1][img_path.split('/')[-1].rfind('.'):]
-            if end==".gz": # bug fix, .nii.gz contains two dots
-                img_fname = img_path.split('/')[-1][:img_path.split('/')[-1].rfind('.nii.gz')]
-            else:
-                img_fname = img_path.split('/')[-1][:img_path.split('/')[-1].rfind('.')]
-            
+            img_fname = os.path.basename(img_path).split('.')[0]
             # save image
-            img_out_path = os.path.join(self.img_out_dir, img_fname+'.tif')
+            img_out_path = os.path.join(self.img_outdir, img_fname+'.tif')
             imsave(img_out_path, img)
-
             # save mask
-            if self.msk_out_dir: 
-                msk_out_path = os.path.join(self.msk_out_dir, img_fname+'.tif')
+            if self.msk_outdir: 
+                msk_out_path = os.path.join(self.msk_outdir, img_fname+'.tif')
                 imsave(msk_out_path, msk)
         print("done preprocessing!")
 
-def run_nifti(
+def preprocess(
     img_dir,
     msk_dir,
-    img_out_dir,
-    msk_out_dir,
+    img_outdir,
+    msk_outdir,
     num_classes,
     remove_bg=False,
 ):
-    Nifti(
+    Preprocessing(
         img_dir=img_dir,
         msk_dir=msk_dir,
-        img_out_dir=img_out_dir,
-        msk_out_dir=msk_out_dir,
+        img_outdir=img_outdir,
+        msk_outdir=msk_outdir,
         num_classes=num_classes,
 
         remove_bg=remove_bg,
@@ -189,35 +180,37 @@ def run_nifti(
 
 if __name__=='__main__':
     valid_names = {
-        "nifti": run_nifti,
+        "preprocess": preprocess,
     }
 
     parser = argparse.ArgumentParser(description="Dataset preprocessing for training purpose.")
-    parser.add_argument("-n", "--name", type=str, default="nifti",
-        help="Name of the tested method. Valid names: {}".format(valid_names.keys()))
+    parser.add_argument("-n", "--name", type=str, default="preprocess",
+        help="Name of the tested method. Valid names: {}".format(list(valid_names.keys())))
     parser.add_argument("--img_dir", type=str,
         help="Path of the images directory")
     parser.add_argument("--msk_dir", type=str,
         help="Path to the masks/labels directory")
-    parser.add_argument("--img_out_dir", type=str,
+    parser.add_argument("--img_outdir", type=str,
         help="Path to the directory of the preprocessed images")
-    parser.add_argument("--msk_out_dir", type=str,
+    parser.add_argument("--msk_outdir", type=str,
         help="Path to the directory of the preprocessed masks/labels")
+    parser.add_argument("--num_classes", type=int, default=1,
+        help="Number of classes (types of objects) in the dataset. The background is not included. (default=1)")
     parser.add_argument("--auto_config", default=False,  action='store_true', dest='auto_config',
-        help="Display the information to copy and paste inside the configuration file (patch_size, batch_size and num_pools).") 
+        help="show the information to copy and paste inside the configuration file (patch_size, batch_size and num_pools).") 
     args = parser.parse_args()
 
     valid_names[args.name](
         img_dir=args.img_dir,
         msk_dir=args.msk_dir,
-        img_out_dir=args.img_out_dir,
-        msk_out_dir=args.msk_out_dir,
-        num_classes=args.num_classes,
+        img_outdir=args.img_outdir,
+        msk_outdir=args.msk_outdir,
+        num_classes=args.num_classes+1, # +1 for the background
     )
 
     if args.auto_config:
         import auto_config
-        median = auto_config.compute_median(path=args.img_out_dir)
+        median = auto_config.compute_median(path=args.img_outdir)
         patch, pool, batch = auto_config.find_patch_pool_batch(dims=median, max_dims=(128,128,128))
         auto_config.display_info(patch, pool, batch)
 

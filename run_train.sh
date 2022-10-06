@@ -17,15 +17,20 @@
 #  --dir_lab /home/gumougeot/all/codes/python/3dnucleus/data/lung/labelsTs
 #   --log /home/gumougeot/all/codes/python/3dnucleus/logs/20220819-113730-unet_mine-lung
 
+# run train pancreas 
+python biom3d/train.py\
+ --name train\
+ --config configs.unet_pancreas
+
 # run train chromocenter dataset:
 # python train.py\
 #  --name train\
 #  --config configs.unet_chromo
 
 # run train triplet:
-python biome3d/train.py\
- --name train\
- --config configs.nnet-triplet_pancreas
+# python biome3d/train.py\
+#  --name train\
+#  --config configs.nnet-triplet_pancreas
 
 # run train DINO:
 # python train.py --config configs.vgg-dino_pancreas
