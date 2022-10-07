@@ -4,18 +4,18 @@ An easy-to-use and unofficial implementation of [nnUNet](https://github.com/MIC-
 
 The goal of Biom3d (and of the original nnUNet) is to automatically configured the training of a U-Net deep learning model for 3D semantic segmentation.
 
-Biom3d is more flexible for developers than the original nnUNet implementation: easier to read/understand and easier to edit. Biom3d has also been made easy-to-use for 
+Biom3d is yet more flexible for developers than the original nnUNet implementation: easier to read/understand and easier to edit. Biom3d has also been made easy-to-use for community users.
 
 Biom3d does not include ensemble learning and the possibility to use 2D U-Net or 3D-Cascade U-Net yet. However, these options could easily be adapted if needed.
 
 There two main types of users of Biom3d:
 
 * Community users, who are interested in using the basic features of Biom3d: GUI, predictions with ready-to-use models or basic training.
-* Deep-learning developers, who are insterested in more advanced features: module parameters set-up, Biom3d new modules writing, Biom3d core-code editing etc.
+* Deep-learning developers, who are insterested in more advanced features: configuration of module parameters, writing of new Biom3d modules, Biom3d core editing etc.
 
 In the following documentation, we marked the advanced features with :rocket: symbol.
 
-For Windows user, the paths are here written in "linux-like format". You will have to change '/' symbols to '\' symbols in the command lines. 
+For Windows users, the paths are here written in "linux-like format". You will have to change '/' symbols to '\\' symbols in the command lines. 
 
 ## :hammer: Installation
 
@@ -54,7 +54,7 @@ Two options:
 * If you do not have a trained model, you must train one and, to do so, you must preprocess your data and create a configuration file. 
 
 Three steps to train a new model:
-* [data conversion to tif format (both images and ground truth masks)](#preprocessing)
+* [data preprocessing to tif format (both images and ground truth masks)](#preprocessing)
 * [configuration file definition](#configuration-file-definition)
 * [training](#training)
 
@@ -286,7 +286,7 @@ If you find Biom3d useful in your research, please cite:
 
 ```
 @misc{biom3d,
-  title={{Biom3d} Easy-to-use Tool for 3D Semantic Tegmentation of Volumetric Images using Deep Learning},
+  title={{Biom3d} Easy-to-use Tool for 3D Semantic Segmentation of Volumetric Images using Deep Learning},
   author={Guillaume Mougeot},
   howpublished = {\url{https://github.com/GuillaumeMougeot/biom3d}},
   year={2022}
@@ -295,7 +295,9 @@ If you find Biom3d useful in your research, please cite:
 
 ## :moneybag: Fundings and Acknowledgements 
 
-This project is supported by Oxford Brookes University and the European Regional Development Fund (FEDER). It was carried out between the laboratories of iGReD (France), Institut Pascal (France) and Plant Nuclear Envelop (UK).
+This project has been inspired by the following publication: "nnU-Net: a self-configuring method for deep learning-based biomedical image segmentation", Fabian Isensee et al, Nature Method, 2021.
+
+This project has been supported by Oxford Brookes University and the European Regional Development Fund (FEDER). It was carried out between the laboratories of iGReD (France), Institut Pascal (France) and Plant Nuclear Envelop (UK).
 
 <p align="middle">
   <img src="images/Flag_of_Europe.svg.png" alt="Europe" width="100">
