@@ -284,24 +284,26 @@ The previous command will ask you to provide your omero server name, your omero 
 
 If you find Biom3d useful in your research, please cite:
 
-  @misc{biom3d,
-    title={{Biom3d} Easy-to-use Tool for 3D Semantic Tegmentation of Volumetric Images using Deep Learning},
-    author={Guillaume Mougeot},
-    howpublished = {\url{https://github.com/GuillaumeMougeot/biom3d}},
-    year={2022}
-    }
+```
+@misc{biom3d,
+  title={{Biom3d} Easy-to-use Tool for 3D Semantic Tegmentation of Volumetric Images using Deep Learning},
+  author={Guillaume Mougeot},
+  howpublished = {\url{https://github.com/GuillaumeMougeot/biom3d}},
+  year={2022}
+  }
+```
 
 ## :moneybag: Fundings and Acknowledgements 
 
 This project is supported by Oxford Brookes University and the European Regional Development Fund (FEDER). It was carried out between the laboratories of iGReD (France), Institut Pascal (France) and Plant Nuclear Envelop (UK).
 
 <p float="middle">
-  <img src="images/Flag_of_Europe.svg.png" alt="Europe" style="width:12%">
-  <img src="images/brookes_logo_black.bmp" alt="Brookes" style="width:12%">
-  <img src="images/GReD_color_EN.png" alt="iGReD" style="width:12%">
-  <img src="images/logo_ip.png" alt="IP" style="width:12%">
-  <img src="images/logo_aura.PNG" alt="AURA" style="width:12%">
-  <img src="images/logo_UCA.jpg" alt="UCA" style="width:12%">
+  <img src="images/Flag_of_Europe.svg.png" alt="Europe" width="100">
+  <img src="images/brookes_logo_black.bmp" alt="Brookes" width="100">
+  <img src="images/GReD_color_EN.png" alt="iGReD" width="100">
+  <img src="images/logo_ip.png" alt="IP" width="100">
+  <img src="images/logo_aura.PNG" alt="AURA" width="100">
+  <img src="images/logo_UCA.jpg" alt="UCA" width="100">
 </div>
 
 
