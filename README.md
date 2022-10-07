@@ -297,7 +297,7 @@ If you find Biom3d useful in your research, please cite:
 
 This project is supported by Oxford Brookes University and the European Regional Development Fund (FEDER). It was carried out between the laboratories of iGReD (France), Institut Pascal (France) and Plant Nuclear Envelop (UK).
 
-<p float="middle">
+<p align="middle">
   <img src="images/Flag_of_Europe.svg.png" alt="Europe" width="100">
   <img src="images/brookes_logo_black.bmp" alt="Brookes" width="100">
   <img src="images/GReD_color_EN.png" alt="iGReD" width="100">
