@@ -304,7 +304,7 @@ This project is supported by Oxford Brookes University and the European Regional
   <img src="images/logo_ip.png" alt="IP" width="100">
   <img src="images/logo_aura.PNG" alt="AURA" width="100">
   <img src="images/logo_UCA.jpg" alt="UCA" width="100">
-</div>
+</p>
 
 
 
