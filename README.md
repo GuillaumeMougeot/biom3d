@@ -1,5 +1,7 @@
 # :microscope: Biom3d 
 
+**Warning! This repository is still a work in progress.**
+
 An easy-to-use and unofficial implementation of [nnUNet](https://github.com/MIC-DKFZ/nnUNet).
 
 The goal of Biom3d (and of the original nnUNet) is to automatically configured the training of a U-Net deep learning model for 3D semantic segmentation.
