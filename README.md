@@ -295,4 +295,9 @@ If you find Biom3d useful in your research, please cite:
 
 This project is supported by Oxford Brookes University and the European Regional Development Fund (FEDER). It was carried out between the laboratories of iGReD (France), Institut Pascal (France) and Plant Nuclear Envelop (UK).
 
-
+![alt text](https://github.com/GuillaumeMougeot/biom3d/blob/main/images/Flag_of_Europe.svg.png?raw=true)
+![alt text](https://github.com/GuillaumeMougeot/biom3d/blob/main/images/GReD_color_EN.png?raw=true)
+![alt text](https://github.com/GuillaumeMougeot/biom3d/blob/main/images/brookes_logo_black.bmp?raw=true)
+![alt text](https://github.com/GuillaumeMougeot/biom3d/blob/main/images/logo_UCA.jpg?raw=true)
+![alt text](https://github.com/GuillaumeMougeot/biom3d/blob/main/images/logo_aura.PNG?raw=true)
+![alt text](https://github.com/GuillaumeMougeot/biom3d/blob/main/images/logo_ip.png?raw=true)
