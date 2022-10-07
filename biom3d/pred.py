@@ -92,11 +92,20 @@ if __name__=='__main__':
     valid_names = {
         "seg": pred_seg,
         "seg_eval": pred_seg_eval,
+        "seg_multiple": pred_multiple,
+        # "seg_patch": pred_seg_patch,
+        # "seg_patch_multi": pred_seg_patch_multi,
+        # "single": pred_single,
+        # "triplet": main_triplet,
+        # "arcface": main_arcface,
+        # "unet_triplet": main_unet_triplet,
+        # "cotrain": main_cotrain,
+        # "cotrain_and_single": main_cotrain_and_single
     }
 
     # parser
     parser = argparse.ArgumentParser(description="Main training file.")
-    parser.add_argument("-n", "--name", type=str, default="single",
+    parser.add_argument("-n", "--name", type=str, default="seg",
         help="Name of the tested method. Valid names: {}".format(valid_names.keys()))
     parser.add_argument("-b", "--bui_dir", type=str,
         help="Path of the builder directory")
@@ -111,6 +120,11 @@ if __name__=='__main__':
     args = parser.parse_args()
 
     # run the method
+    # valid_names[args.name](
+    #     bui_dir=args.bui_dir,
+    #     dir_in=args.dir_in,
+    #     dir_out=args.dir_out,
+    # )
     if args.bui_dir is None:
         valid_names[args.name].show(run=True)
     else:

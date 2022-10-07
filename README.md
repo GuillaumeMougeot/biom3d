@@ -1,4 +1,4 @@
-# Biom3d
+# :microscope: Biom3d 
 
 An easy-to-use and unofficial implementation of [nnUNet](https://github.com/MIC-DKFZ/nnUNet).
 
@@ -13,9 +13,11 @@ There two main types of users of Biom3d:
 * Community users, who are interested in using the basic features of Biom3d: GUI, predictions with ready-to-use models or basic training.
 * Deep-learning developers, who are insterested in more advanced features: module parameters set-up, Biom3d new modules writing, Biom3d core-code editing etc.
 
-In the following documentation, we marked the advanced features with :rocket:.
+In the following documentation, we marked the advanced features with :rocket: symbol.
 
-## Installation
+For Windows user, the paths are here written in "linux-like format". You will have to change '/' symbols to '\' symbols in the command lines. 
+
+## :hammer: Installation
 
 Requirements:
 * A NVidia GPUs (at least a Geforce GTX 1080)
@@ -45,7 +47,7 @@ pip3 install omero-py
 
 For Windows users, careful with the previous package: you might need to install [Visual Studio C++ 14.0](https://stackoverflow.com/questions/29846087/error-microsoft-visual-c-14-0-is-required-unable-to-find-vcvarsall-bat) to install `zeroc` dependency.
 
-## Usage
+## :hand: Usage
 
 Two options:
 * If you have a trained model (you can use one of the publicly available one), you can do [predictions](#prediction) directly.
@@ -107,7 +109,11 @@ The `--auto_config` option is recommended. It helps you complete the configurati
 
 All of the hyper-parameters are defined in the configuration file. The configuration files are stored in Python format in the `configs` folder. You can create a new config file by copy/paste one of the existing ones and by adapting the parameters defined below. For instance, copy/paste and rename `unet_pancreas.py` in the same folder and open this Python script with your favourite text editor. 
 
-There are two types of hyper-parameters in the configuration file: builder parameters and modules parameters. Builder parameters are written as follows: `NAME=value`. The dataset builder parameters must be adapted to your own dataset and the Auto-config builder parameters value can be set with the pre-processing values. The rest of the builder parameters is optional. 
+There are two types of hyper-parameters in the configuration file: builder parameters and modules parameters. 
+
+#### Builder parameters
+
+Builder parameters are written as follows: `NAME=value`. The dataset builder parameters must be adapted to your own dataset and the Auto-config builder parameters value can be set with the pre-processing values. The rest of the builder parameters is optional. 
 
 Here is the exhaustive list of builder parameters:
 
@@ -206,7 +212,9 @@ USE_FG_CLBK = True
 
 ```
 
-The modules parameters are written as follows:
+#### :rocket: Module parameters
+
+The modules parameters are written as follows in the configuration file:
 
 ```python
 NAME=Dict(
@@ -217,18 +225,74 @@ NAME=Dict(
 )
 ```
 
+The `fct` argumentation correspond to one of the module name listed in the `register.py` file. The `register.py` file lists all existing modules in Biom3d. To have more details about one specific module, we recommended to read the documentation of the module. There are currently 5 main modules type: dataset, model, metric, trainer and predictor. Each modules are not compatible with all modules, read the documentation for more details.
 
+### :muscle: Training
 
-### Training
+Please create a folder named `logs/` in the current directory. 
 
-Once the configuration file is defined 
+Once the configuration file is defined, the training can start with the following command:
 
+```
+python biom3d/train.py --config configs.your_config_file
+```
 
-### Prediction
+Careful, do not put `.py` in the end of your config file name. 
 
+A new sub-folder, that we dubbed base-folder in this documentation, will be created in the `logs/` folder. The base-folder contains 3 sub-folders:
+* `image`: with the snapshots of the current training results
+* `log`: with the configuration files stored in Yaml format and with Tensorboard event file
+* `model`: with the Pytorch model(s). 
 
+You can plot the training curves during model training with the following command:
 
-## Fundings
+```
+tensorboard --logdir=logs/
+```
 
-## Citation
+#### :rocket: Advanced training/evaluation/prediction
+
+Biom3d has originally been designed to fasten state-of-the-art tools development for 3d bio-medical imaging, that's why it possible to run in a single command: the training, the test prediction and the test metrics computations. Use `python biom3d/train.py --help` to get more details.
+
+### :dart: Prediction
+
+Once your model is trained, it is ready to use for prediction with the following command:
+
+``` 
+python biom3d/pred.py --bui_dir path/to/base-folder --dir_in path/to/raw/data --dir_out path/of/the/future/predictions 
+```
+
+For Omero user, you can use the following command to download a Omero Dataset or a Omero Project and to directly run the prediction over this dataset:
+
+```
+python biom3d/omero_pred.py --obj Dataset:ID
+```
+
+or with a Omero Project
+
+```
+python biom3d/omero_pred.py --obj Project:ID
+```
+
+The previous command will ask you to provide your omero server name, your omero identification and your omero password. 
+
+#### :rocket: Advanced prediction
+
+`pred.py` can also be used to compare the prediction results with existing test annotations. Use `python biom3d/pred.py --help` for more details.
+
+## :bookmark_tabs: Citation
+
+If you find Biom3d useful in your research, please cite:
+
+  @misc{biom3d,
+    title={{Biom3d} Easy-to-use Tool for 3D Semantic Tegmentation of Volumetric Images using Deep Learning},
+    author={Guillaume Mougeot},
+    howpublished = {\url{https://github.com/GuillaumeMougeot/biom3d}},
+    year={2022}
+    }
+
+## :moneybag: Fundings and Acknowledgements 
+
+This project is supported by Oxford Brookes University and the European Regional Development Fund (FEDER). It was carried out between the laboratories of iGReD (France), Institut Pascal (France) and Plant Nuclear Envelop (UK).
+
 
