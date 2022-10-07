@@ -295,25 +295,13 @@ If you find Biom3d useful in your research, please cite:
 
 This project is supported by Oxford Brookes University and the European Regional Development Fund (FEDER). It was carried out between the laboratories of iGReD (France), Institut Pascal (France) and Plant Nuclear Envelop (UK).
 
-<div class="row">
-  <div class="column">
-    <img src="images/Flag_of_Europe.svg.png" alt="Europe" style="width:100%">
-  </div>
-  <div class="column">
-    <img src="images/brookes_logo_black.bmp" alt="Brookes" style="width:100%">
-  </div>
-  <div class="column">
-    <img src="images/GReD_color_EN.png" alt="iGReD" style="width:100%">
-  </div>
-  <div class="column">
-    <img src="images/logo_ip.png" alt="IP" style="width:100%">
-  </div>
-  <div class="column">
-    <img src="images/logo_aura.PNG" alt="AURA" style="width:100%">
-  </div>
-  <div class="column">
-    <img src="images/logo_UCA.jpg" alt="UCA" style="width:100%">
-  </div>
+<p float="middle">
+  <img src="images/Flag_of_Europe.svg.png" alt="Europe" style="width:100%">
+  <img src="images/brookes_logo_black.bmp" alt="Brookes" style="width:100%">
+  <img src="images/GReD_color_EN.png" alt="iGReD" style="width:100%">
+  <img src="images/logo_ip.png" alt="IP" style="width:100%">
+  <img src="images/logo_aura.PNG" alt="AURA" style="width:100%">
+  <img src="images/logo_UCA.jpg" alt="UCA" style="width:100%">
 </div>
 
 
