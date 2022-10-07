@@ -2,11 +2,18 @@
 
 An easy-to-use and unofficial implementation of [nnUNet](https://github.com/MIC-DKFZ/nnUNet).
 
-The goal of biom3d (and of the original nnUNet) is to automatically configured the training of a U-Net deep learning model for 3D semantic segmentation.
+The goal of Biom3d (and of the original nnUNet) is to automatically configured the training of a U-Net deep learning model for 3D semantic segmentation.
 
-This implementation is more flexible for developers than the original nnUNet implementation: easier to read/understand and easier to edit.
+Biom3d is more flexible for developers than the original nnUNet implementation: easier to read/understand and easier to edit. Biom3d has also been made easy-to-use for 
 
-This implementation does not include ensemble learning and the possibility to use 2D U-Net or 3D-Cascade U-Net yet. However, these options could easily be adapted to this implementation if needed.
+Biom3d does not include ensemble learning and the possibility to use 2D U-Net or 3D-Cascade U-Net yet. However, these options could easily be adapted if needed.
+
+There two main types of users of Biom3d:
+
+* Community users, who are interested in using the basic features of Biom3d: GUI, predictions with ready-to-use models or basic training.
+* Deep-learning developers, who are insterested in more advanced features: module parameters set-up, Biom3d new modules writing, Biom3d core-code editing etc.
+
+In the following documentation, we marked the advanced features with :rocket:.
 
 ## Installation
 
