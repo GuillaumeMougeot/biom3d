@@ -147,11 +147,14 @@ class Nifti:
             
 
             # save the image and the mask as npy 
-            end = img_path.split('/')[-1][img_path.split('/')[-1].rfind('.'):]
-            if end==".gz": # bug fix, .nii.gz contains two dots
-                img_fname = img_path.split('/')[-1][:img_path.split('/')[-1].rfind('.nii.gz')]
-            else:
-                img_fname = img_path.split('/')[-1][:img_path.split('/')[-1].rfind('.')]
+            # end = img_path.split('/')[-1][img_path.split('/')[-1].rfind('.'):]
+            # end = os.path.split(img_path)[1][os.path.split(img_path)[1].rfind('.'):]
+            # if end==".gz": # bug fix, .nii.gz contains two dots
+            #     # img_fname = img_path.split('/')[-1][:img_path.split('/')[-1].rfind('.nii.gz')]
+            #     img_fname = os.path.split(img_path)[1][:os.path.split(img_path)[1].rfind('.nii.gz')]
+            # else:
+            #     img_fname = os.path.split(img_path)[1][:os.path.split(img_path)[1].rfind('.')]
+            img_fname = os.path.basename(img_path).split('.')[0]
             
             # save image
             img_out_path = os.path.join(self.img_out_dir, img_fname+'.tif')
@@ -203,6 +206,8 @@ if __name__=='__main__':
         help="Path to the directory of the preprocessed images")
     parser.add_argument("--msk_out_dir", type=str,
         help="Path to the directory of the preprocessed masks/labels")
+    parser.add_argument("--num_classes", type=int,
+        help="Number of classes")
     parser.add_argument("--auto_config", default=False,  action='store_true', dest='auto_config',
         help="Display the information to copy and paste inside the configuration file (patch_size, batch_size and num_pools).") 
     args = parser.parse_args()
