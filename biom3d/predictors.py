@@ -63,7 +63,7 @@ class LoadImgPatch:
 
         # convert to tensor of float
         self.img = torch.from_numpy(img).float()
-        print("plop")
+
     def get_gridsampler(self):
         """
         Prepare image for model prediction and return a tio.data.GridSampler
