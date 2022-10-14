@@ -43,7 +43,7 @@ class LoadImgPatch:
     
         # preprocessing: resampling, clipping, z-normalization
         # resampling if needed
-        if len(self.median_spacing)>0:
+        if median_spacing and len(self.median_spacing)>0:
             resample = (self.median_spacing/self.spacing)[::-1] # transpose the dimension
             if resample.sum() > 0.1: # otherwise no need of spacing 
                 sub = tio.Subject(img=tio.ScalarImage(tensor=img))
@@ -52,11 +52,11 @@ class LoadImgPatch:
                 print("Resampling required! From {} to {}".format(self.img_shape, img.shape))
 
         # clipping if needed
-        if len(self.clipping_bounds)>0:
+        if clipping_bounds and len(self.clipping_bounds)>0:
             img = np.clip(img, self.clipping_bounds[0], self.clipping_bounds[1])
 
         # normalize 
-        if len(self.intensity_moments)>0:
+        if intensity_moments and len(self.intensity_moments)>0:
             img = (img-self.intensity_moments[0])/self.intensity_moments[1]
         else:
             img = (img-img.mean())/img.std()
@@ -82,7 +82,7 @@ class LoadImgPatch:
         """
         resampling back the image after model prediction
         """
-        if len(self.median_spacing)==0:
+        if self.median_spacing and len(self.median_spacing)==0:
             return logit 
         
         resample = (self.spacing/self.median_spacing)[::-1] # transpose the dimension
