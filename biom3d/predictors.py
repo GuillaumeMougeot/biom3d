@@ -12,7 +12,7 @@ from skimage.io import imread
 from tqdm import tqdm
 from scipy.ndimage.filters import gaussian_filter
 
-import utils
+from utils import keep_biggest_volume_centered, sitk_imread
 
 #---------------------------------------------------------------------------
 # model predictor for segmentation
@@ -89,7 +89,7 @@ class LoadImgPatch:
         # prepare image
         # load the image
         # img = imread(fname)
-        img,self.spacing = utils.sitk_imread(self.fname)
+        img,self.spacing = sitk_imread(self.fname)
 
         # store img shape (for post processing)
         self.img_shape = img.shape
@@ -167,7 +167,7 @@ def load_img_seg_patch(fname, patch_size=(64,64,32)):
     """
     # load the image
     # img = imread(fname)
-    img,_ = utils.sitk_imread(fname)
+    img,_ = sitk_imread(fname)
 
     # normalize the image
     # bits = lambda x: ((np.log2(x)>8).astype(int)+(np.log2(x)>16).astype(int)*2+1)*8
@@ -287,12 +287,18 @@ def seg_predict_patch(
     else:
         out = (logit.sigmoid()>0.5).int()
     out = out.numpy()
-    out = out.astype(np.byte)
 
     if keep_biggest_only:
         # out = utils.keep_center_only(out)
-        out = utils.keep_biggest_volume_centered(out)
-        
+        if len(out.shape)==3:
+            out = keep_biggest_volume_centered(out)
+        elif len(out.shape)==4:
+            tmp = []
+            for i in range(out.shape[0]):
+                tmp += [keep_biggest_volume_centered(out[i])]
+            out = np.array(out)
+
+    out = out.astype(np.byte) 
     print("output shape",out.shape)
     return out
 
