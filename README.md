@@ -167,6 +167,7 @@ NUM_POOLS = [3,5,5]
 # median spacing is used only during prediction to normalize the output images
 # it is commented here because we did not noticed any improvemet
 # MEDIAN_SPACING=[0.79492199, 0.79492199, 2.5]
+MEDIAN_SPACING=[]
 
 #---------------------------------------------------------------------------
 # Advanced paramaters (can be left as such) 
@@ -193,7 +194,7 @@ USE_SOFTMAX=False
 
 # training loop parameters
 USE_FP16 = True
-NUM_WORKERS = 6
+NUM_WORKERS = 4
 
 #---------------------------------------------------------------------------
 # callback setup (can be left as such) 

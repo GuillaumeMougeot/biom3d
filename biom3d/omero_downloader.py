@@ -1,3 +1,6 @@
+# adtapted from https://gist.github.com/will-moore/a9f90c97b5b6f1a0da277a5179d62c5a 
+# documentation: https://downloads.openmicroscopy.org/omero/5.3.1/api/python/omero/omero.plugins.html 
+
 import argparse
 import sys
 import os
@@ -18,7 +21,7 @@ python download_pdi.py Project:123 my_project_directory
 def download_datasets(datasets, target_dir):
 
     with cli_login() as cli:
-        cli.register("download", DownloadControl, "download_pdi.py")
+        cli.register("download", DownloadControl, "omero_downloader.py")
 
         for dataset in datasets:
             print("Downloading Dataset", dataset.id, dataset.name)
