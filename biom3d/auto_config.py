@@ -87,7 +87,7 @@ def auto_config(img_dir, max_dims=(128,128,128)):
     return batch, aug_patch, patch, pool
 
 def minimal_display(img_dir, max_dims=(128,128,128)):
-    print(*auto_config(img_dir, max_dims=(128,128,128)))
+    print(*auto_config(img_dir, max_dims=max_dims))
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description="Dataset preprocessing for training purpose.")
@@ -101,7 +101,7 @@ if __name__=='__main__':
 
 
     if args.min_dis:
-        minimal_display(img_dir=args.img_dir, max_dims=args.max_dims)
+        minimal_display(img_dir=args.img_dir, max_dims=(args.max_dim, args.max_dim, args.max_dim))
     else:
         median = compute_median(path=args.img_dir)
         patch, pool, batch = find_patch_pool_batch(dims=median, max_dims=(args.max_dim, args.max_dim, args.max_dim))
