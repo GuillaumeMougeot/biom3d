@@ -19,7 +19,7 @@ def compute_median(path):
         sizes += [list(imread(path_imgs[i]).shape)]
     sizes = np.array(sizes)
     median = np.median(sizes, axis=0).astype(int)
-    print("median:",median)
+    # print("median:",median)
     return median 
 
 def single_patch_pool(dim, size_limit=7):
@@ -80,14 +80,37 @@ def display_info(patch, pool, batch):
     print("AUG_PATCH_SIZE =",list(aug_patch))
     print("NUM_POOLS =", list(pool))
 
+def auto_config(img_dir, max_dims=(128,128,128)):
+    median = compute_median(path=img_dir)
+    patch, pool, batch = find_patch_pool_batch(dims=median, max_dims=max_dims) 
+    aug_patch = np.array(patch)+2**(np.array(pool)+1)
+    return batch, aug_patch, patch, pool
+
+def minimal_display(img_dir, max_dims=(128,128,128)):
+    print(*auto_config(img_dir, max_dims=(128,128,128)))
+
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description="Dataset preprocessing for training purpose.")
     parser.add_argument("--img_dir", type=str,
         help="Path of the images directory")
     parser.add_argument("--max_dim", type=int, default=128,
         help="Maximum size of one dimension of the patch (default: 128)")  
+    parser.add_argument("--min_dis", default=False,  action='store_true', dest='min_dis',
+        help="Minimal display. Display only the raw batch, aug_patch, patch and pool")
     args = parser.parse_args()
 
-    median = compute_median(path=args.img_dir)
-    patch, pool, batch = find_patch_pool_batch(dims=median, max_dims=(args.max_dim, args.max_dim, args.max_dim))
-    display_info(patch, pool, batch)
+
+    if args.min_dis:
+        minimal_display(img_dir=args.img_dir, max_dims=args.max_dims)
+    else:
+        median = compute_median(path=args.img_dir)
+        patch, pool, batch = find_patch_pool_batch(dims=median, max_dims=(args.max_dim, args.max_dim, args.max_dim))
+        display_info(patch, pool, batch)
+
+    # median=compute_median(path='/home/gumougeot/all/codes/python/3dnucleus/data/pancreas/tif_imagesTr_small')
+    # median=compute_median(path='/home/gumougeot/all/codes/python/3dnucleus/data/lung/tif_imagesTr')
+    # median=compute_median(path='/home/gumougeot/all/codes/python/3dnucleus/data/remi/tif_img')
+    # print("patch, pool, batch:", find_patch_pool_batch(dims=median, max_dims=(160,160,160)))
+    # print("patch, pool, batch:", find_patch_pool_batch(dims=median, max_dims=(192,192,192)))
+    # print("patch, pool, batch:", find_patch_pool_batch(dims=median, max_dims=(128,128,128)))
+

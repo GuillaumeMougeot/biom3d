@@ -296,7 +296,7 @@ def seg_predict_patch(
             tmp = []
             for i in range(out.shape[0]):
                 tmp += [keep_biggest_volume_centered(out[i])]
-            out = np.array(out)
+            out = np.array(tmp)
 
     out = out.astype(np.byte) 
     print("output shape",out.shape)

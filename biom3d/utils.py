@@ -647,6 +647,7 @@ def keep_biggest_volume_centered(msk):
     to the center of the image if its volumes is not too small ohterwise returns
     the biggest object (different from the background).
     (too small meaning that its volumes shouldn't smaller than half of the biggest one)
+    the final mask intensities are either 0 or msk.max()
     """
     labels, num = measure.label(msk, background=0, return_num=True)
     close_idx = closest(labels,num)
@@ -655,7 +656,7 @@ def keep_biggest_volume_centered(msk):
     min_rel_vol = np.min(relative_vol)
     if min_rel_vol < 0.5:
         close_idx = np.argmin(relative_vol)+1
-    return (labels==close_idx).astype(msk.dtype)*255
+    return (labels==close_idx).astype(msk.dtype)*msk.max()
 
 # ----------------------------------------------------------------------------
 # test utils
