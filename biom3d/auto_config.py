@@ -87,7 +87,9 @@ def auto_config(img_dir, max_dims=(128,128,128)):
     return batch, aug_patch, patch, pool
 
 def minimal_display(img_dir, max_dims=(128,128,128)):
-    print(*auto_config(img_dir, max_dims=max_dims))
+    out = auto_config(img_dir, max_dims=max_dims)
+    for element in out:
+        print(element)
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description="Dataset preprocessing for training purpose.")
