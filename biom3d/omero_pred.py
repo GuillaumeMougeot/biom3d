@@ -1,17 +1,22 @@
 import argparse
-from genericpath import isdir
 import os
 from omero.cli import cli_login
-
+from omero.gateway import BlitzGateway
 
 import omero_downloader 
 import pred 
 
 
-def run(obj, target, bui_dir, dir_out):
+def run(obj, target, bui_dir, dir_out, host=None, user=None, pwd=None):
     print("Start dataset/project downloading...")
-    with cli_login() as cli:
-        datasets, dir_in = omero_downloader.download_object(cli, obj, target)
+    if host:
+        conn = BlitzGateway(user, pwd, host=host, port=4064)
+        conn.connect()
+        datasets, dir_in = omero_downloader.download_object(conn, obj, target)
+        conn.close()
+    else:
+        with cli_login() as cli:
+            datasets, dir_in = omero_downloader.download_object_cli(cli, obj, target)
     print("Done downloading dataset/project!")
 
     print("Start prediction...")
@@ -43,6 +48,12 @@ if __name__=='__main__':
         help="Path of the builder directory")
     parser.add_argument("--dir_out", type=str, default="data/pred/",
         help="Path to the output prediction directory")
+    parser.add_argument('--hostname', type=str, 
+        help="(optional) Host name for Omero server. If not mentioned use the CLI.")
+    parser.add_argument('--username', type=str, 
+        help="(optional) User name for Omero server")
+    parser.add_argument('--password', type=str, 
+        help="(optional) Password for Omero server")
     # parser.add_argument("-e", "--eval_only", default=False,  action='store_true', dest='eval_only',
     #     help="Do only the evaluation and skip the prediction (predictions must have been done already.)") 
     args = parser.parse_args()
@@ -52,4 +63,7 @@ if __name__=='__main__':
         target=args.target,
         bui_dir=args.bui_dir,
         dir_out=args.dir_out,
+        host=args.hostname,
+        user=args.username,
+        pwd=args.password,
     )
