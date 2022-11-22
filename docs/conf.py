@@ -3,10 +3,6 @@
 # Full list of options can be found in the Sphinx documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
-import os
-import sys
-from typing import Any, Dict
-
 # add the demo python code to the path, so that it can be used to demonstrate
 # source links
 # sys.path.append(os.path.abspath("./kitchen-sink/demo_py"))
@@ -32,10 +28,10 @@ extensions = [
     # Our custom extension, only meant for Furo's own documentation.
     "furo.sphinxext",
     # External stuff
-    "myst_parser",
-    "sphinx_copybutton",
-    "sphinx_design",
-    "sphinx_inline_tabs",
+    # "myst_parser",
+    # "sphinx_copybutton",
+    # "sphinx_design",
+    # "sphinx_inline_tabs",
 ]
 # templates_path = ["_templates"]
 
