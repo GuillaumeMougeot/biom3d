@@ -31,7 +31,6 @@ extensions = [
     "myst_parser",
     "sphinx_copybutton",
     "sphinx_design",
-    "sphinx_inline_tabs",
 ]
 # templates_path = ["_templates"]
 
@@ -74,6 +73,12 @@ language = "en"
 # html_static_path = ["_static"]
 # html_css_files = ["pied-piper-admonition.css"]
 # html_css_files = []
+
+html_css_files = [
+    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/fontawesome.min.css",
+    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/solid.min.css",
+    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/brands.min.css",
+]
 
 # html_theme_options: Dict[str, Any] = {
 #     "footer_icons": [
