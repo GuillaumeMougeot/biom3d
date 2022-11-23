@@ -1,65 +1,17 @@
-.. cellpose master
-
-cellpose
+Biom3d
 ===================================
 
-cellpose is an anatomical segmentation algorithm written in Python 3 
-by Carsen Stringer and Marius Pachitariu. For support, please open 
-an `issue`_.
+Congrats! You've just found Biom3d, a super easy-to-use tool for volumetric image segmentation.
 
-We make pip installable releases of cellpose, here is the `pypi`_. You
-can install it as ``pip install cellpose[gui]``.
+This tool is addressed to three different profiles:
 
-You can try it out without installing at `cellpose.org`_. 
-Also check out these resources:
-
-Cellpose 2.0
-
-- `paper <https://www.biorxiv.org/content/10.1101/2022.04.01.486764v1>`_ on biorxiv
-- `talk <https://www.youtube.com/watch?v=3ydtAhfq6H0`_ 
-- twitter `thread <https://twitter.com/marius10p/status/1511415409047650307?s=20&t=umTVIG1CFKIWHYMrQqFKyQ>`_
-- human-in-the-loop training protocol `video <https://youtu.be/3Y1VKcxjNy4>`_
-
-Cellpose 1.0 
-
-- `paper <https://www.biorxiv.org/content/10.1101/2020.02.02.931238v1>`_ on biorxiv (see figure 1 below) and in `nature methods <https://t.co/kBMXmPp3Yn?amp=1>`_
-- twitter `thread`_
-- Marius's `talk`_
-
-.. image:: _static/fig1.PNG
-    :width: 1200px
-    :align: center
-    :alt: fig1
-
-.. _cellpose.org: http://www.cellpose.org
-.. _thread: https://twitter.com/computingnature/status/1224477812763119617
-.. _issue: https://github.com/MouseLand/cellpose/issues
-.. _talk: https://www.youtube.com/watch?v=7y9d4VIKiS8
-.. _pypi: https://pypi.org/project/cellpose/
+- Non-programmer, who could be interested to use the Graphical User Interface (GUI)
+- Programmer-user, who could be happy with some minimal customization, such as adapting Biom3d to a novel image format or choosing another training loss. 
+- Programmer-developer, who are not scared of digging in some more advanced features of Biom3d, such as customizing the deep learning model or the metrics. 
 
 
 .. toctree::
-   :maxdepth: 3
-   :caption: Basics:
+   :maxdepth: 2
+   :caption: Installation
 
-   installation
-   gui
-   inputs
-   settings
-   outputs
-   models
-   train
-   openvino
-
-.. toctree::
-   :maxdepth: 3
-   :caption: Examples:
-
-   notebook
-   command
-   
-
-.. toctree::
-   :caption: API Reference:
-
-   api
+   installation.md

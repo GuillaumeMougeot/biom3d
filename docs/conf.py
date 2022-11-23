@@ -34,6 +34,9 @@ extensions = [
 ]
 # templates_path = ["_templates"]
 
+# The master toctree document.
+master_doc = 'index'
+
 # -- Options for extlinks ----------------------------------------------------
 #
 
@@ -57,11 +60,11 @@ extensions = [
 # -- Options for Markdown files ----------------------------------------------
 #
 
-# myst_enable_extensions = [
-#     "colon_fence",
-#     "deflist",
-# ]
-# myst_heading_anchors = 3
+myst_enable_extensions = [
+    "colon_fence",
+    "deflist",
+]
+myst_heading_anchors = 3
 
 # -- Options for HTML output -------------------------------------------------
 #
@@ -70,8 +73,8 @@ html_theme = "furo"
 html_title = "Biom3d"
 language = "en"
 
-# html_static_path = ["_static"]
-# html_css_files = ["pied-piper-admonition.css"]
+html_static_path = ["_static"]
+html_css_files = ["css/readthedocs.css"]
 # html_css_files = []
 
 html_css_files = [
@@ -79,6 +82,19 @@ html_css_files = [
     "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/solid.min.css",
     "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/brands.min.css",
 ]
+
+
+html_theme_options = {
+    'menu': [
+        {
+            'name': 'GitHub',
+            'url': 'https://github.com/GuillaumeMougeot/biom3d'
+        },
+    ],
+    # Specify the language of shared menu
+    'menu_lang':
+    'en'
+}
 
 # html_theme_options: Dict[str, Any] = {
 #     "footer_icons": [
@@ -150,3 +166,8 @@ html_css_files = [
 #             "class": "fa-solid fa-github fa-2x",
 #         },
 #     ]
+
+# -- Extension configuration -------------------------------------------------
+# Ignore >>> when copying code
+copybutton_prompt_text = r'>>> |\.\.\. '
+copybutton_prompt_is_regexp = True
