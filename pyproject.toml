@@ -2,6 +2,9 @@
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
+[license]
+file = "LICENSE"
+
 [project]
 name = "example_package_biom3d"
 version = "2022.11.22"
@@ -13,7 +16,6 @@ readme = "README.md"
 requires-python = ">=3.7"
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: Apache-2.0",
     "Operating System :: OS Independent",
 ]
 dependencies = [
