@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "example_package_biom3d"
+version = "2022.11.22"
+authors = [
+  {name="Guillaume Mougeot", email="guillaume.mougeot@laposte.net"},
+]
+description = "Biom3d. Framework for easy-to-use biomedical image segmentation."
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache-2.0",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "torch>1.10.0",
+    "tqdm",
+    "scikit-image>=0.14",
+    "scipy",
+    "numpy",
+    "sklearn",
+    "SimpleITK",
+    "pandas",
+    "tifffile", 
+    "matplotlib",
+    "tensorboard",
+    "PyYAML",
+    "torchio",
+    "protobuf"
+]
+keywords=['deep learning', 'image segmentation', 'medical image analysis',
+            'medical image segmentation', 'biological image segmentation', 'bio-imaging']
+
+[project.optional-dependencies]
+docs = [
+    'sphinx>=3.0',
+    'sphinxcontrib-apidoc',
+    'sphinx_rtd_theme'
+]
+gui = [
+    "paramiko",
+    "omero-py",
+    "netcat"
+]
+
+[project.urls]
+"Homepage" = "https://github.com/GuillaumeMougeot/biom3d"
+"Bug Tracker" = "https://github.com/GuillaumeMougeot/biom3d/issues"
