@@ -3,8 +3,8 @@ import os
 from omero.cli import cli_login
 from omero.gateway import BlitzGateway
 
-import omero_downloader 
-import pred 
+from biom3d import omero_downloader 
+from biom3d import pred 
 
 
 def run(obj, target, bui_dir, dir_out, host=None, user=None, pwd=None):
@@ -24,12 +24,12 @@ def run(obj, target, bui_dir, dir_out, host=None, user=None, pwd=None):
         dir_in = os.path.join(dir_in, datasets[0].name)
         dir_out = os.path.join(dir_out, datasets[0].name)
         if not os.path.isdir(dir_out):
-            os.mkdir(dir_out)
+            os.makedirs(dir_out, exist_ok=True)
         pred.pred(bui_dir, dir_in, dir_out)
     elif 'Project' in obj:
         dir_out = os.path.join(dir_out, os.path.split(dir_in)[-1])
         if not os.path.isdir(dir_out):
-            os.mkdir(dir_out)
+            os.makedirs(dir_out, exist_ok=True)
         pred.pred_multiple(bui_dir, dir_in, dir_out)
     else:
         print("[Error] Type of object unknown {}. It should be 'Dataset' or 'Project'".format(obj))

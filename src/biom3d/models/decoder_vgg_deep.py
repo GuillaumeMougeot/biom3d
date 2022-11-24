@@ -3,13 +3,15 @@
 # with deep supervision: meaning that each decoder level has an output
 #---------------------------------------------------------------------------
 
+from curses import panel
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn.init as init
 import numpy as np
 
-from models.encoder_vgg import EncoderBlock
+from biom3d.models.encoder_vgg import EncoderBlock
+from biom3d.utils import convert_num_pools
 
 #---------------------------------------------------------------------------
 # 3D Resnet decoder
@@ -24,6 +26,7 @@ class DecoderBlock(nn.Module):
     expansion = 1
 
     def __init__(self, 
+        block,
         in_planes_low,  # in_planes is the depth size after the concatenation
         in_planes_high,  # in_planes is the depth size after the concatenation
         planes,     # the depth size of the output 
@@ -38,16 +41,18 @@ class DecoderBlock(nn.Module):
         # elif option == 'B':
         self.up = nn.ConvTranspose3d(in_planes_low, in_planes_high, kernel_size=stride, stride=stride, bias=False)
 
-        self.encoder_block = EncoderBlock(
+        self.encoder_block = block(
             in_planes=in_planes_high*2,
             planes=planes,
             stride=1,
-            option='B',
+            # option='B',
             )
 
     def forward(self, x): # x is a list of two inputs [low_res, high_res]
         low, high = x
         low = self.up(low)
+        # print("low",low.shape)
+        # print("high",high.shape)
         out = torch.cat([low,high],dim=1)
         out = self.encoder_block(out)
         return out
@@ -61,29 +66,51 @@ class VGGDecoder(nn.Module):
         factor_d = 32, # factor decoder
         num_classes=1,
         use_deep=True,      # use deep supervision
+        use_emb=False, # will only output the third level of the decoder
         ):
         super(VGGDecoder, self).__init__()
 
         self.use_deep = use_deep
+        self.use_emb = use_emb
 
+        # encoder pyramid planes/feature maps
         max_num_pools = max(num_pools)+1
-        in_planes = [factor_e * i for i in [10,10,8,4,2,1]][-max_num_pools:]
-        in_planes_low = in_planes[:-1]
+        if type(factor_e)==int:
+            in_planes = [factor_e * i for i in [10,10,8,4,2,1]][-max_num_pools:]
+        elif type(factor_e)==list:
+            in_planes = factor_e[-max_num_pools:]
+        else:
+            print("[Error] factor_e has the wrong type {}".format(type(factor_e)))
+        
+#         in_planes_low = in_planes[:-1]
         in_planes_high = in_planes[1:]
-        planes = [factor_d * i for i in [10,8,4,2,1]][-max_num_pools+1:]
 
+
+        # decoder planes/feature maps
+        if type(factor_d)==int:
+            planes = [factor_d * i for i in [10,8,4,2,1]][-max_num_pools+1:]
+        elif type(factor_d)==list:
+            planes = factor_d
+        else:
+            print("[Error] factor_d has the wrong type {}".format(type(factor_d)))
+
+        in_planes_low = [in_planes[0]]+planes[:-1]
+            
         # computes the strides for the scale factors
-        max_pool = max(num_pools)
-        strides = []
-        for i in range(len(num_pools)):
-            st = np.ones(max_pool)
-            num_zeros = max_pool-num_pools[i]
-            for j in range(num_zeros):
-                st[j]=0
-            st=np.roll(st,-num_zeros//2)
-            strides += [st]
-        strides = np.array(strides).astype(int).T+1
-        self.strides = np.flip(strides, axis=0).tolist()
+        self.strides = convert_num_pools(num_pools=num_pools)
+        self.strides = np.flip(self.strides, axis=0).tolist()
+
+        # max_pool = max(num_pools)
+        # strides = []
+        # for i in range(len(num_pools)):
+        #     st = np.ones(max_pool)
+        #     num_zeros = max_pool-num_pools[i]
+        #     for j in range(num_zeros):
+        #         st[j]=0
+        #     st=np.roll(st,-num_zeros//2)
+        #     strides += [st]
+        # strides = np.array(strides).astype(int).T+1
+        # self.strides = np.flip(strides, axis=0).tolist()
 
         # computes the strides for the scale factors (old)
         # self.strides = []
@@ -123,7 +150,7 @@ class VGGDecoder(nn.Module):
         num_blocks
         ):# number of encoder blocks
         layers = []
-        layers.append(DecoderBlock(in_planes_low, in_planes_high, planes, stride))
+        layers.append(DecoderBlock(block, in_planes_low, in_planes_high, planes, stride))
         # self.in_planes = planes * block.expansion
         for _ in range(num_blocks-1):
             layers.append(block(planes, planes, stride=1))
@@ -138,14 +165,14 @@ class VGGDecoder(nn.Module):
 
             if self.training and self.use_deep: # deep supervision
                 tmp = self.convs[i](out)
-                scale_factor = np.array(self.strides)[i+1:].prod(axis=0).tolist()
-                # if scale_factor > 1:
-                # deep_out += [F.upsample(tmp, scale_factor=self.scale_factors[i], mode='trilinear')]
-                deep_out += [F.interpolate(tmp, scale_factor=scale_factor, mode='trilinear')]
+                # scale_factor = np.array(self.strides)[i+1:].prod(axis=0).tolist()
+                # deep_out += [F.interpolate(tmp, scale_factor=scale_factor, mode='trilinear')]
+                deep_out += [F.interpolate(tmp, size=x[0].shape, mode='trilinear')]
+                # deep_out += [tmp]
+            elif i==2 and self.use_emb:
+                return self.convs[i](out)
         out = self.convs[-1](out)
         if self.training and self.use_deep: out = deep_out+[out]
-        # print(out.shape)
         return out
-
 
 #---------------------------------------------------------------------------

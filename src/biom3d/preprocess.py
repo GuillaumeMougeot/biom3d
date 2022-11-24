@@ -12,7 +12,7 @@ from tqdm import tqdm
 from skimage.io import imsave 
 import argparse
 
-import utils
+from biom3d.utils import adaptive_imread
 
 #---------------------------------------------------------------------------
 # Nifti convertion (Medical segmentation decathlon)
@@ -39,7 +39,7 @@ class Preprocessing:
     def __init__(
         self,
         img_dir,
-        img_outdir,
+        img_outdir = None,
         msk_dir = None, # if None, only images are preprocesses not the masks
         msk_outdir = None,
         num_classes = None, # just for debug when empty masks are provided
@@ -54,11 +54,11 @@ class Preprocessing:
         ----------
         img_dir : str
             Path to the input image folder
-        img_dir_out : str
+        img_outdir : str
             Path to the output image folder
         msk_dir : str, optional
             Path to the input mask folder
-        msk_dir_out : str, optional
+        msk_outdir : str, optional
             Path to the output mask folder
         num_classes : int, optional
             Number of classes (channel) in the masks. Required by the 
@@ -71,13 +71,31 @@ class Preprocessing:
         intensity_moments : list, optional
             Mean and variance of the intensity of the images voxels in the masks regions. This value are used to normalize the image. 
         """
+        assert img_dir!='', "[Error] img_dir must not be empty."
 
+        # fix bug path/folder/ to path/folder
+        if os.path.basename(img_dir)=='':
+            img_dir = os.path.dirname(img_dir)
+        if msk_dir is not None and os.path.basename(msk_dir)=='':
+            msk_dir = os.path.dirname(msk_dir)
+        
         self.img_dir=img_dir
         self.msk_dir=msk_dir
         self.img_fnames=os.listdir(self.img_dir)
 
+        if img_outdir is None: # name the out dir the same way as the input and add the _out suffix
+            img_outdir = img_dir+'_out'
+        if msk_dir is not None and msk_outdir is None:
+            msk_outdir = msk_dir+'_out'
+
         self.img_outdir=img_outdir 
         self.msk_outdir=msk_outdir
+
+        # create output directory if needed
+        if not os.path.exists(self.img_outdir):
+            os.makedirs(self.img_outdir, exist_ok=True)
+        if msk_dir is not None and  not os.path.exists(self.msk_outdir):
+            os.makedirs(self.msk_outdir, exist_ok=True)
 
         self.num_classes = num_classes
 
@@ -98,8 +116,8 @@ class Preprocessing:
             img_path = os.path.join(self.img_dir, img_fname)
             if self.msk_dir: msk_path = os.path.join(self.msk_dir, img_fname)
             # read image and mask
-            img,spacing = utils.adaptive_imread(img_path)
-            if self.msk_dir: msk,_ = utils.adaptive_imread(msk_path)
+            img,spacing = adaptive_imread(img_path)
+            if self.msk_dir: msk,_ = adaptive_imread(msk_path)
 
             # extend dim
             img = np.expand_dims(img, 0)
@@ -143,7 +161,7 @@ class Preprocessing:
             img = img.astype(np.float32)
             if self.msk_dir: msk = msk.astype(np.byte)
 
-            # save the image and the mask as npy 
+            # save the image and the mask as tif
             img_fname = os.path.basename(img_path).split('.')[0]
             # save image
             img_out_path = os.path.join(self.img_outdir, img_fname+'.tif')
@@ -160,7 +178,7 @@ def preprocess(
     img_outdir,
     msk_outdir,
     num_classes,
-    remove_bg=False,
+    remove_bg=True,
 ):
     Preprocessing(
         img_dir=img_dir,
@@ -194,13 +212,8 @@ if __name__=='__main__':
         help="Path to the directory of the preprocessed images")
     parser.add_argument("--msk_outdir", type=str,
         help="Path to the directory of the preprocessed masks/labels")
-<<<<<<< HEAD
-    parser.add_argument("--num_classes", type=int,
-        help="Number of classes")
-=======
     parser.add_argument("--num_classes", type=int, default=1,
         help="Number of classes (types of objects) in the dataset. The background is not included. (default=1)")
->>>>>>> 8979eda981b222160f00fa741f35fa414566e2a4
     parser.add_argument("--auto_config", default=False,  action='store_true', dest='auto_config',
         help="show the information to copy and paste inside the configuration file (patch_size, batch_size and num_pools).") 
     args = parser.parse_args()

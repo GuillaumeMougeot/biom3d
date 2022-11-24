@@ -396,6 +396,9 @@ class LRSchedulerPoly(Callback):
         self.max_epochs = max_epochs
         self.exponent = exponent
         self.optimizer = optimizer
+
+    # def get_last_lr(self):
+    #     return self.optimizer.param_groups[0]['lr']
     
     def on_train_begin(self):
         self.optimizer.param_groups[0]['lr'] = self.initial_lr
@@ -404,6 +407,21 @@ class LRSchedulerPoly(Callback):
     def on_epoch_end(self, epoch):
         self.optimizer.param_groups[0]['lr'] = self.initial_lr * (1 - epoch / self.max_epochs)**self.exponent
         print("Current learning rate: {}".format(self.optimizer.param_groups[0]['lr']))
+
+
+# class LRSchedulerCosine(Callback):
+#     """
+#     Multi-step scheduler only for now
+#     """
+#     def __init__(self, optimizer, T_max):
+#         self.scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=50, T_mult=2, eta_min=1e-6, last_epoch=-1, verbose=False)
+
+#     def get_last_lr(self):
+#         return self.scheduler.get_last_lr()
+    
+#     def on_epoch_end(self, epoch):
+#         self.scheduler.step()
+#         print("Current learning rate: {}".format(self.scheduler.get_last_lr()))
 
 class ForceFGScheduler(Callback):
     """
@@ -419,12 +437,55 @@ class ForceFGScheduler(Callback):
         self.exponent = exponent
 
     def on_train_begin(self):
-        self.dataloader.dataset.fg_rate = self.initial_rate
-        print("Current foreground rate: {}".format(self.dataloader.dataset.fg_rate))
+        self.dataloader.dataset.set_fg_rate(self.initial_rate)
+        print("Current foreground rate: {}".format(self.initial_rate))
     
     def on_epoch_end(self, epoch):
-        self.dataloader.dataset.fg_rate = (self.initial_rate-self.min_rate) * (1 - epoch / self.max_epochs)**self.exponent + self.min_rate
-        print("Current foreground rate: {}".format(self.dataloader.dataset.fg_rate))
+        crt_rate = (self.initial_rate-self.min_rate) * (1 - epoch / self.max_epochs)**self.exponent + self.min_rate
+        self.dataloader.dataset.set_fg_rate(crt_rate) 
+        print("Current foreground rate: {}".format(crt_rate))
+
+class OverlapScheduler(Callback):
+    """
+    Overlap scheduler
+    We progressively reduce the minimum overlap between the global patches and the local patches
+    """
+    def __init__(self, dataloader, initial_rate, min_rate, max_epochs, exponent=0.9):
+        self.dataloader = dataloader
+        self.initial_rate = initial_rate
+        self.min_rate = min_rate
+        self.max_epochs = max_epochs
+        self.exponent = exponent
+
+    def on_train_begin(self):
+        self.dataloader.dataset.set_min_overlap(self.initial_rate)
+        print("Current overlap: {}".format(self.initial_rate))
+    
+    def on_epoch_end(self, epoch):
+        crt_rate = (self.initial_rate-self.min_rate) * (1 - epoch / self.max_epochs)**self.exponent + self.min_rate
+        self.dataloader.dataset.set_min_overlap(crt_rate)
+        print("Current overlap: {}".format(crt_rate))
+
+class GlobalScaleScheduler(Callback):
+    """
+    Global scale scheduler
+    We progressively reduce the scale of the global_crop from image size to patch size
+    """
+    def __init__(self, dataloader, initial_rate, min_rate, max_epochs, exponent=0.9):
+        self.dataloader = dataloader
+        self.initial_rate = initial_rate
+        self.min_rate = min_rate
+        self.max_epochs = max_epochs
+        self.exponent = exponent
+
+    def on_train_begin(self):
+        self.dataloader.dataset.set_global_crop(self.initial_rate)
+        print("Current global crop scale: {}".format(self.initial_rate))
+    
+    def on_epoch_end(self, epoch):
+        crt_rate = (self.initial_rate-self.min_rate) * (1 - epoch / self.max_epochs)**self.exponent + self.min_rate
+        self.dataloader.dataset.set_global_crop(crt_rate)
+        print("Current global crop scale: {}".format(crt_rate))
 
 class WeightDecayScheduler(Callback):
     """
@@ -484,6 +545,23 @@ class MomentumScheduler(Callback):
 
     def on_epoch_end(self, epoch):
         print("Current teacher momentum:", self.crt_momentum)
+
+class DatasetSizeScheduler(Callback):
+    """
+    Dataset size scheduler
+    We progressively increase the size of the dataset to help the arcface training
+    """
+    def __init__(self, dataloader, model, max_dataset_size, min_dataset_size=5):
+        self.dataloader = dataloader
+        self.model = model
+        self.max_dataset_size = max_dataset_size
+        self.min_dataset_size = min_dataset_size
+
+    def on_epoch_begin(self, epoch):
+        dataset_size = min(epoch+self.min_dataset_size, self.max_dataset_size)
+        self.dataloader.dataset.set_dataset_size(dataset_size)
+        self.model.set_num_classes(dataset_size)
+        print("Current dataset size: {}".format(dataset_size))
 
 #----------------------------------------------------------------------------
 # metrics updater

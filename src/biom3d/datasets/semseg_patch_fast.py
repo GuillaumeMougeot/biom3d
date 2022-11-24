@@ -3,16 +3,19 @@
 # solution: patch approach with the whole dataset into memory 
 #---------------------------------------------------------------------------
 
+from json import load
 import os
 import numpy as np 
 import torchio as tio
 import random 
-from torch.utils.data import Dataset
+import torch
+from torch.utils.data import Dataset, DataLoader
 # from monai.data import CacheDataset
 import pandas as pd 
+from tqdm import tqdm 
 from skimage.io import imread
 
-import utils 
+from biom3d.utils import centered_pad, get_folds_train_test_df
 
 #---------------------------------------------------------------------------
 # utilities to random crops
@@ -74,6 +77,51 @@ def random_crop(img, msk, crop_shape):
                     rand_start[2]:rand_end[2]]
     return crop_img, crop_msk
 
+# def centered_pad(img, msk, final_size):
+#     """
+#     centered pad an img and msk to fit the final_size
+#     """
+#     final_size = np.array(final_size)
+#     img_shape = np.array(img.shape[1:])
+    
+#     start = (final_size-np.array(img_shape))//2
+#     end = final_size-(img_shape+start)
+#     end = end * (end > 0)
+    
+#     pad = np.append([[0,0]], np.stack((start,end),axis=1), axis=0)
+#     pad_img = np.pad(img, pad, 'constant', constant_values=0)
+#     pad_msk = np.pad(msk, pad, 'constant', constant_values=0)
+    
+# #     if ((final_size-np.array(pad_img.shape)) < 0).any(): # keeps only the negative values
+# #         pad_img = pad_img[:,:final_size[0],:final_size[1],:final_size[2]]
+# #         pad_msk = pad_msk[:,:final_size[0],:final_size[1],:final_size[2]]
+#     return pad_img, pad_msk
+
+# def random_pad(img, msk, final_size):
+#     """
+#     [CAREFUL!] I THINK THIS FUNCTION HAS SOME BUGS (WITH SMALL IMAGES)
+#     randomly pad an image with zeros to reach the final size. 
+#     if the image is bigger than the expected size, then the image is cropped.
+#     """
+#     img_shape = np.array(img.shape)[1:]
+#     size_range = (final_size-img_shape) * (final_size-img_shape > 0) # needed if the original image is bigger than the final one
+#     # rand_start = np.array([random.randint(0,c) for c in size_range])
+#     rand_start = np.random.randint(0,np.maximum(1,size_range))
+
+#     rand_end = final_size-(img_shape+rand_start)
+#     rand_end = rand_end * (rand_end > 0)
+
+#     pad = np.append([[0,0]],np.vstack((rand_start, rand_end)).T,axis=0)
+#     pad_img = np.pad(img, pad, 'constant', constant_values=0)
+#     pad_msk = np.pad(msk, pad, 'constant', constant_values=0)
+#     # pad_img = torch.nn.functional.pad(img, tuple(pad.flatten().tolist()), 'constant', value=0)
+
+#     # crop the image if needed
+#     if ((final_size-np.array(pad_img.shape)) < 0).any(): # keeps only the negative values
+#         pad_img = pad_img[:,:final_size[0],:final_size[1],:final_size[2]]
+#         pad_msk = pad_msk[:,:final_size[0],:final_size[1],:final_size[2]]
+#     return pad_img, pad_msk
+
 def random_crop_pad(img, msk, final_size, fg_rate=0.33, fg_margin=np.zeros(3), remove_bg=False):
     """
     random crop and pad if needed.
@@ -97,7 +145,7 @@ def random_crop_pad(img, msk, final_size, fg_rate=0.33, fg_margin=np.zeros(3), r
         
     # pad if needed
     if np.any(np.array(img.shape)[1:]-final_size)!=0:
-        img, msk = utils.centered_pad(img=img, msk=msk, final_size=final_size)
+        img, msk = centered_pad(img=img, msk=msk, final_size=final_size)
     return img, msk
 
 def random_crop_resize(img, msk, crop_scale, final_size, fg_rate=0.33, fg_margin=np.zeros(3), remove_bg=False):
@@ -135,7 +183,7 @@ def random_crop_resize(img, msk, crop_scale, final_size, fg_rate=0.33, fg_margin
         sub = tio.Resize(final_size)(sub)
         img, msk = sub.img.tensor, sub.msk.tensor
     elif np.any(np.array(img.shape)[1:]-final_size)<0:
-        img, msk = utils.centered_pad(img, msk, final_size)
+        img, msk = centered_pad(img, msk, final_size)
     return img, msk
 
 #---------------------------------------------------------------------------
@@ -177,7 +225,7 @@ class SemSeg3DPatchFast(Dataset):
         # get the training and validation names 
         if folds_csv is not None:
             df = pd.read_csv(folds_csv)
-            trainset, testset = utils.get_folds_train_test_df(df, verbose=False)
+            trainset, testset = get_folds_train_test_df(df, verbose=False)
 
             self.fold = fold
             
@@ -288,6 +336,12 @@ class SemSeg3DPatchFast(Dataset):
         self.use_softmax = use_softmax
         self.crop_scale = crop_scale 
         assert self.crop_scale >= 1, "[Error] crop_scale must be higher or equalt to 1"
+    
+    def set_fg_rate(self,value):
+        """
+        setter function for the foreground rate class parameter
+        """
+        self.fg_rate = value
     
     def __len__(self):
         # return len(self.train_imgs) if self.training else len(self.val_imgs)

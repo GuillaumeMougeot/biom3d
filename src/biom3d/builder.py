@@ -11,9 +11,9 @@ from torch.utils.data import DataLoader
 import pandas as pd
 # import torch.distributed as dist
 
-import register
-import callbacks as clbk
-import utils
+from biom3d import register
+from biom3d import callbacks as clbk
+from biom3d import utils
 
 #---------------------------------------------------------------------------
 # utils to read config's functions in the function register
@@ -135,12 +135,13 @@ class Builder:
             if torch.cuda.device_count() > 1: 
                 print("Let's use", torch.cuda.device_count(), "GPUs!")
                 # Loop through all key-value pairs of a nested dictionary and change the batch_size 
-                for pairs in utils.nested_dict_pairs_iterator(self.config):
-                    if 'batch_size' in pairs:
-                        save = self.config[pairs[0]]; i=1
-                        while i < len(pairs) and pairs[i]!='batch_size':
-                            save = save[pairs[i]]; i+=1
-                        save['batch_size'] = torch.cuda.device_count()*self.config.BATCH_SIZE
+                # for pairs in utils.nested_dict_pairs_iterator(self.config):
+                #     if 'batch_size' in pairs:
+                #         save = self.config[pairs[0]]; i=1
+                #         while i < len(pairs) and pairs[i]!='batch_size':
+                #             save = save[pairs[i]]; i+=1
+                #         save['batch_size'] = torch.cuda.device_count()*self.config.BATCH_SIZE
+                self.config = utils.nested_dict_change_value(self.config, 'batch_size', torch.cuda.device_count()*self.config.BATCH_SIZE)
                 self.config.BATCH_SIZE *= torch.cuda.device_count()
                 self.config.NB_EPOCHS = self.config.NB_EPOCHS//torch.cuda.device_count()
 
@@ -154,16 +155,24 @@ class Builder:
         if 'TRAIN_DATASET' in self.config.keys():
             self.train_dataset = read_config(self.config.TRAIN_DATASET, register.datasets)
         if 'TRAIN_DATALOADER' in self.config.keys():
+            # [DEPRECATED] imread is a special argument of the train_dataloader
+            # imread values should be replaced by corresponding function indicated in the register
+            # if 'imread' in self.config.TRAIN_DATALOADER.kwargs.keys():
+            #     self.config.TRAIN_DATALOADER.kwargs['imread']=read_config(self.config.TRAIN_DATALOADER.kwargs['imread'], register.imread)
             self.train_dataloader = read_config(self.config.TRAIN_DATALOADER, register.datasets)
         else:
             self.train_dataloader = DataLoader(self.train_dataset,**self.config.TRAIN_DATALOADER_KWARGS)
+            # self.train_dataloader = ThreadDataLoader(self.train_dataset,**self.config.TRAIN_DATALOADER_KWARGS)
 
         if 'VAL_DATASET' in self.config.keys():
             self.val_dataset = read_config(self.config.VAL_DATASET, register.datasets)
         if 'VAL_DATALOADER' in self.config.keys():
+            # if 'imread' in self.config.VAL_DATALOADER.kwargs.keys():
+            #     self.config.VAL_DATALOADER.kwargs['imread']=read_config(self.config.VAL_DATALOADER.kwargs['imread'], register.imread)
             self.val_dataloader = read_config(self.config.VAL_DATALOADER, register.datasets)
         elif 'VAL_DATALOADER_KWARGS' in self.config.keys():
             self.val_dataloader = DataLoader(self.val_dataset,**self.config.VAL_DATALOADER_KWARGS)
+            # self.val_dataloader = ThreadDataLoader(self.val_dataset,**self.config.VAL_DATALOADER_KWARGS)
 
 
     def build_model(self, training=True):
@@ -207,16 +216,18 @@ class Builder:
                 print("Let's use", torch.cuda.device_count(), "GPUs!")
                 self.model = torch.nn.DataParallel(self.model)
 
-            # if torch.cuda.is_available():
-            self.model.cuda()
+            if torch.cuda.is_available():
+                self.model.cuda()
 
             # TODO: use DDP...
             # if rank is not None: 
             #     self.model = torch.nn.parallel.DistributedDataParallel(self.model, device_ids=[rank])
             # else:
             #     self.model.cuda()
-
-            self.model.train()
+            # if training:
+            #     self.model.train()
+            # else:
+            #     self.model.eval()
 
             print(self.model) # TODO: model verbose
 
@@ -327,6 +338,33 @@ class Builder:
                 # exponent=6.0,
             )
             clbk_dict["momentum_scheduler"] = self.clbk_momentum_scheduler
+        
+        if 'USE_OVERLAP_CLBK' in self.config.keys() and self.config.USE_OVERLAP_CLBK:
+            self.clbk_overlap_scheduler = clbk.OverlapScheduler(
+                dataloader=self.train_dataloader,
+                initial_rate=1.0,
+                min_rate=-1.0,
+                max_epochs=self.config.NB_EPOCHS,
+            )
+            clbk_dict["overlap_scheduler"] = self.clbk_overlap_scheduler
+        
+        if 'USE_GLOBAL_SCALE_CLBK' in self.config.keys() and self.config.USE_GLOBAL_SCALE_CLBK:
+            self.clbk_global_scale_scheduler = clbk.GlobalScaleScheduler(
+                dataloader=self.train_dataloader,
+                initial_rate=1.0,
+                min_rate=0.0,
+                max_epochs=self.config.NB_EPOCHS,
+            )
+            clbk_dict["clbk_global_scale_scheduler"] = self.clbk_global_scale_scheduler
+
+        if 'USE_DATASET_SIZE_CLBK' in self.config.keys() and self.config.USE_DATASET_SIZE_CLBK:
+            self.clbk_dataset_size_scheduler = clbk.DatasetSizeScheduler(
+                dataloader=self.train_dataloader,
+                model=self.model,
+                max_dataset_size=len(self.train_dataloader.dataset.train_imgs),
+                min_dataset_size=5,
+            )
+            clbk_dict["clbk_dataset_size_scheduler"] = self.clbk_dataset_size_scheduler
             
         self.clbk_modelsaver = clbk.ModelSaver(
                 model=self.model,
@@ -348,7 +386,7 @@ class Builder:
         #         save_best=self.config.SAVE_BEST,
         #         every_batch=10)
         
-        if "USE_IMAGE_CLBK" in self.config.keys() and self.config.USE_IMAGE_CLBK:
+        if "USE_IMAGE_CLBK" in self.config.keys() and self.config.USE_IMAGE_CLBK and hasattr(self, 'val_dataloader'):
             self.clbk_imagesaver = clbk.ImageSaver(
                     image_dir=self.image_dir,
                     model=self.model,
@@ -441,7 +479,8 @@ class Builder:
                         dataloader=self.val_dataloader,
                         model=self.model,
                         loss_fn=self.val_loss_fn,
-                        metrics=self.val_metrics)
+                        metrics=self.val_metrics,
+                        use_fp16=scaler is not None)
             self.callbacks.on_epoch_end(epoch)
         self.callbacks.on_train_end()
     
@@ -481,15 +520,20 @@ class Builder:
         """
         fnames_in = sorted(utils.abs_listdir(dir_in))
         if not os.path.isdir(dir_out):
-            os.mkdir(dir_out)
+            os.makedirs(dir_out, exist_ok=True)
         
-        fnames_out = utils.abs_path(dir_out,sorted(os.listdir(dir_in)))
         # remove extension
-        fnames_out = [f[:f.rfind('.')] for f in fnames_out]
+        fnames_out = [f[:f.rfind('.')] for f in sorted(os.listdir(dir_in))]
+        # fnames_out = [os.path.basename(f).split('.')[0] for f in sorted(os.listdir(dir_in))]
+
+        # add folder path
+        fnames_out = utils.abs_path(dir_out,fnames_out)
+        
 
         for i, img_path in enumerate(fnames_in):
             print("running prediction for image: ", img_path)
             pred = self.run_prediction_single(img_path=img_path, return_logit=return_logit)
+            print("Saving images in", fnames_out[i]+".tif")
             imsave(fnames_out[i]+".tif", pred)
     
     def load_train(self, 
@@ -517,7 +561,8 @@ class Builder:
         # load the model and the optimizer and the loss if needed
         model_name_full = self.config.DESC + '_best.pth' if load_best else self.config.DESC + '.pth'
         ckpt = torch.load(os.path.join(self.model_dir, model_name_full))
-        self.model.load_state_dict(ckpt['model'])
+        print("Loading model from", os.path.join(self.model_dir, model_name_full))
+        print(self.model.load_state_dict(ckpt['model'], strict=False))
         if 'loss' in ckpt.keys(): self.loss_fn.load_state_dict(ckpt['loss'])
 
         if not 'LR_START' in self.config.keys() or self.config.LR_START is None:
@@ -525,11 +570,11 @@ class Builder:
 
         if 'epoch' in list(ckpt.keys()): # tmp
             self.initial_epoch=ckpt['epoch'] # definitive version 
-        else: # tmp
-            with open(self.log_path, "r") as file:
-                last_line = file.readlines()[-1] # read the last line
-            last_line = last_line.split(',')
-            self.initial_epoch=int(last_line[0])
+        # else: # tmp
+        #     with open(self.log_path, "r") as file:
+        #         last_line = file.readlines()[-1] # read the last line
+        #     last_line = last_line.split(',')
+        #     self.initial_epoch=int(last_line[0])
         print('Restart training at epoch {}'.format(self.initial_epoch))
 
         self.build_dataset()
@@ -564,12 +609,14 @@ class Builder:
 
         # load the model and the optimizer
         model_name_full = self.config.DESC + '_best.pth' if load_best else self.config.DESC + '.pth'
-        ckpt = torch.load(os.path.join(self.model_dir, model_name_full))
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        ckpt = torch.load(os.path.join(self.model_dir, model_name_full), map_location=torch.device(device))
+        print("Loading model from", os.path.join(self.model_dir, model_name_full))
 
         # remove `module.` prefix
         state_dict = {k.replace("module.", ""): v for k, v in ckpt['model'].items()}  
         # remove `backbone.` prefix induced by multicrop wrapper
         state_dict = {k.replace("backbone.", ""): v for k, v in state_dict.items()}
-        self.model.load_state_dict(state_dict, strict=False)
+        print(self.model.load_state_dict(state_dict, strict=False))
 
 #---------------------------------------------------------------------------

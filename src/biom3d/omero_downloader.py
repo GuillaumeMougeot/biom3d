@@ -74,7 +74,6 @@ def download_object_cli(cli, obj, target_dir):
 
     return datasets, target_dir
 
-
 def download_datasets(conn, datasets, target_dir):
 
     for dataset in datasets:

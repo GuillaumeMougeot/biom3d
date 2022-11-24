@@ -135,6 +135,26 @@ def create_save_dirs(log_dir, desc, dir_names=['model', 'logs', 'images'], retur
 # ----------------------------------------------------------------------------
 # image readers
 
+class skimage_imread:
+    """
+    image reader for .tif files
+    """
+    def __call__(self, img_path):
+        return io.imread(img_path)
+# def skimage_imread(img_path):
+#     """
+#     image reader for .tif files
+#     """
+#     return io.imread(img_path)
+
+# class sitk_imread:
+#     """
+#     image reader for nii.gz files
+#     """
+#     def __call__(self, img_path): 
+#         img = sitk.ReadImage(img_path)
+#         img_np = sitk.GetArrayFromImage(img)
+#         return img_np
 def sitk_imread(img_path):
     """
     image reader for nii.gz files
@@ -331,6 +351,25 @@ def find_patch_pool_batch(dims, max_dims=(128,128,128), max_pool=5, epsilon=1e-3
         batch -= 1
     return patch, pool, batch
 
+def convert_num_pools(num_pools):
+    """
+    Set adaptive number of pools
+        for example: convert [3,5,5] into [[1 1 1],[1 2 2],[2 2 2],[2 2 2],[2 2 2],[1 2 2]]
+    """
+    max_pool = max(num_pools)
+    strides = []
+    for i in range(len(num_pools)):
+        st = np.ones(max_pool)
+        num_zeros = max_pool-num_pools[i]
+        for j in range(num_zeros):
+            st[j]=0
+        st=np.roll(st,-num_zeros//2)
+        strides += [st]
+    strides = np.array(strides).astype(int).T+1
+    # kernels = (strides*3//2).tolist()
+    strides = strides.tolist()
+    return strides
+
 # ----------------------------------------------------------------------------
 # data augmentation utils
 
@@ -362,26 +401,31 @@ class RandomCropResize:
     The local_crop_resize method performs a random crop and resize making sure that the crop 
     is overlapping (to a certain extent, defined by the min_overlap parameter) with the global
     crop previously performed. 
-    
-    Args:
-        local_crop_shape, 
-        local_crop_scale, 
-        global_crop_shape, 
-        global_crop_scale, 
-        min_overlap, minimal overlap between local and global crop 
-                     (1:local is fully included inside global, <=0:local can be outside global)
     """
     def __init__(
         self,
         local_crop_shape,
         global_crop_shape,
-        global_crop_scale,
         min_overlap,
+        global_crop_scale=1.0,
+        global_crop_min_shape_scale=1.0,
         ):
+        """
+        Parameters
+        ----------
+        global_crop_shape : list or tuple of size == 3
+            Minimal crop size
+        global_crop_scale : float, default=1.0
+            Value between 0 and 1. Factor multiplying (img_shape - global_crop_min_shape) and added to the global_crop_min_shape. A value of 1 means that the maximum shape of the global crop will be the image shape. A value of 0 means that the maximum value will be the global_crop_min_shape. 
+        global_crop_min_shape_factor : float, default=1.0
+            (DEPRECATED?) Factor multiplying the minimal global_crop_shape, 1.0 is a good default
+        
+        """
         
         self.local_crop_shape = np.array(local_crop_shape)
         self.global_crop_shape = np.array(global_crop_shape)
         self.global_crop_scale = np.array(global_crop_scale)
+        self.global_crop_min_shape_scale = np.array(global_crop_min_shape_scale)
         self.alpha = 1  - min_overlap
         
         # internal arguments
@@ -391,9 +435,9 @@ class RandomCropResize:
         img_shape = np.array(img.shape)[1:]
         
         # determine crop shape
-        min_crop_shape = np.round(self.global_crop_shape * self.global_crop_scale).astype(int)
+        min_crop_shape = np.round(self.global_crop_shape * self.global_crop_min_shape_scale).astype(int)
         min_crop_shape = np.minimum(min_crop_shape, img_shape)
-        crop_shape = np.random.randint(min_crop_shape, img_shape+1)
+        crop_shape = np.random.randint(min_crop_shape, (img_shape-min_crop_shape)*self.global_crop_scale+min_crop_shape+1)
         
         # determine crop coordinates
         rand_start = np.random.randint(0, np.maximum(1,img_shape-crop_shape))
@@ -432,7 +476,7 @@ class RandomCropResize:
         """
         global_crop_resize must be called at least once before calling local_crop_pad
         """
-        assert self.global_crop_center is not None, "Error! self.global_crop_resize must be called once before self.local_crop_resize."
+        assert self.global_crop_center is not None, "Error! self.global_crop_resize must be called once before self.local_crop_pad."
         
         img_shape = np.array(img.shape)[1:]
         crop_shape = self.local_crop_shape
@@ -575,13 +619,13 @@ def load_config(path):
     """
     return dict_to_Dict(yaml.load(open(path),Loader=yaml.FullLoader))
 
-def nested_dict_pairs_iterator(dict_obj):
+def nested_dict_pairs_iterator(dic):
     ''' This function accepts a nested dictionary as argument
         and iterate over all values of nested dictionaries
         stolen from: https://thispointer.com/python-how-to-iterate-over-nested-dictionary-dict-of-dicts/ 
     '''
     # Iterate over all key-value pairs of dict argument
-    for key, value in dict_obj.items():
+    for key, value in dic.items():
         # Check if value is of dict type
         if isinstance(value, dict) or isinstance(value, Dict):
             # If value is dict then iterate over all its values
@@ -590,6 +634,19 @@ def nested_dict_pairs_iterator(dict_obj):
         else:
             # If value is not dict type then yield the value
             yield [key, value]
+
+def nested_dict_change_value(dic, key, value):
+    """
+    Change all value with a given key from a nested dictionary.
+    """
+    # Loop through all key-value pairs of a nested dictionary and change the value 
+    for pairs in nested_dict_pairs_iterator(dic):
+        if key in pairs:
+            save = dic[pairs[0]]; i=1
+            while i < len(pairs) and pairs[i]!=key:
+                save = save[pairs[i]]; i+=1
+            save[key] = value
+    return dic
 
 # ----------------------------------------------------------------------------
 # postprocessing utils

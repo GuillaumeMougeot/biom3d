@@ -9,8 +9,8 @@ import numpy as np
 # from telegram_send import send
 from importlib import import_module
 
-from builder import Builder
-from utils import load_config, abs_listdir, versus_one, dice
+from biom3d.builder import Builder
+from biom3d.utils import load_config, abs_listdir, versus_one, dice
 
 
 #---------------------------------------------------------------------------

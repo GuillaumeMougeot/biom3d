@@ -6,11 +6,11 @@ import os
 import argparse
 import pathlib
 import numpy as np
-from telegram_send import send
+# from telegram_send import send
 # from magicgui import magicgui
 
-from builder import Builder
-import utils
+from biom3d.builder import Builder
+from biom3d.utils import abs_listdir, versus_one, dice
 
 #---------------------------------------------------------------------------
 # prediction base fonction
@@ -65,14 +65,14 @@ def pred_seg_eval(bui_dir=pathlib.Path.home(), dir_in=pathlib.Path.home(), dir_o
         # eval
         print("Start evaluation")
         paths_lab = [dir_lab, dir_out]
-        list_abs = [sorted(utils.abs_listdir(p)) for p in paths_lab]
+        list_abs = [sorted(abs_listdir(p)) for p in paths_lab]
         assert sum([len(t) for t in list_abs])%len(list_abs)==0, "[Error] Not the same number of labels and predictions! {}".format([len(t) for t in list_abs])
 
         results = []
         for idx in range(len(list_abs[0])):
             print("Metric computation for:", list_abs[1][idx])
-            results += [utils.versus_one(
-                fct=utils.dice, 
+            results += [versus_one(
+                fct=dice, 
                 in_path=list_abs[1][idx], 
                 tg_path=list_abs[0][idx], 
                 # num_classes=2, 

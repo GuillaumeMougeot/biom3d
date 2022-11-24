@@ -12,7 +12,7 @@ from skimage.io import imread
 from tqdm import tqdm
 from scipy.ndimage.filters import gaussian_filter
 
-from utils import keep_biggest_volume_centered, sitk_imread
+from biom3d.utils import keep_biggest_volume_centered, sitk_imread
 
 #---------------------------------------------------------------------------
 # model predictor for segmentation

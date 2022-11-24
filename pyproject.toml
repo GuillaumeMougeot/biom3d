@@ -6,8 +6,8 @@ build-backend = "setuptools.build_meta"
 file = "LICENSE"
 
 [project]
-name = "example_package_biom3d"
-version = "2022.11.22"
+name = "biom3d"
+version = "0.0.1"
 authors = [
   {name="Guillaume Mougeot", email="guillaume.mougeot@laposte.net"},
 ]
@@ -20,19 +20,17 @@ classifiers = [
 ]
 dependencies = [
     "torch>1.10.0",
-    "tqdm",
+    "tqdm>=4.62.3",
     "scikit-image>=0.14",
-    "scipy",
-    "numpy",
-    "sklearn",
-    "SimpleITK",
-    "pandas",
-    "tifffile", 
-    "matplotlib",
-    "tensorboard",
-    "PyYAML",
-    "torchio",
-    "protobuf"
+    "scipy>=1.9.1",
+    "numpy>=1.21.2",
+    "SimpleITK>=2.1.1",
+    "pandas>=1.4.0",
+    "matplotlib>=3.5.3",
+    "tensorboard>=2.8.0",
+    "PyYAML>=6.0",
+    "torchio>=0.18.84",
+    "protobuf>=3.19.3"
 ]
 keywords=['deep learning', 'image segmentation', 'medical image analysis',
             'medical image segmentation', 'biological image segmentation', 'bio-imaging']
