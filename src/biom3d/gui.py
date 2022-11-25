@@ -502,7 +502,7 @@ class ConfigFrame(ttk.LabelFrame):
         self.auto_config_finished.config(text="Auto-configuration, please wait...")
 
         if REMOTE:
-            _,stdout,stderr=REMOTE.exec_command("cd {}; python biom3d/auto_config.py --img_dir {} --min_dis".format(MAIN_DIR, self.img_outdir.get()))
+            _,stdout,stderr=REMOTE.exec_command("cd {}; python -m biom3d.auto_config --img_dir {} --min_dis".format(MAIN_DIR, self.img_outdir.get()))
             auto_config_results = stdout.readlines()
             auto_config_results = [e.replace('\n','') for e in auto_config_results]
             
@@ -618,7 +618,7 @@ class TrainTab(ttk.Frame):
 
              # run the training and store the output in an output file 
             # https://askubuntu.com/questions/1336685/how-do-i-save-to-a-file-and-simultaneously-view-terminal-output 
-            _,stdout,stderr=REMOTE.exec_command("cd {}; python biom3d/train.py --config_yaml config.yaml | tee log.out".format(MAIN_DIR))
+            _,stdout,stderr=REMOTE.exec_command("cd {}; python -m biom3d.train --config_yaml config.yaml | tee log.out".format(MAIN_DIR))
             
             # print the stdout continuously
             # from https://stackoverflow.com/questions/55642555/real-time-output-for-paramiko-exec-command  
@@ -897,7 +897,7 @@ class PredictTab(ttk.Frame):
             obj=self.omero_dataset.option.get()+":"+self.omero_dataset.id.get()
             if REMOTE:
                 # TODO: below, still OS dependant 
-                _, stdout, stderr = REMOTE.exec_command("cd {}; python biom3d/omero_pred.py --obj {} --bui_dir {} --username {} --password {} --hostname {}".format(
+                _, stdout, stderr = REMOTE.exec_command("cd {}; python -m biom3d.omero_pred --obj {} --bui_dir {} --username {} --password {} --hostname {}".format(
                     MAIN_DIR,
                     obj,
                     MAIN_DIR+'/logs/'+self.model_selection.logs_dir.get(), 
@@ -936,7 +936,7 @@ class PredictTab(ttk.Frame):
                 )
         else: # if not use Omero
             if REMOTE:
-                _, stdout, stderr = REMOTE.exec_command("cd {}; python biom3d/pred.py --bui_dir {} --dir_in {} --dir_out {}".format(
+                _, stdout, stderr = REMOTE.exec_command("cd {}; python -m biom3d.pred --bui_dir {} --dir_in {} --dir_out {}".format(
                     MAIN_DIR,
                     'logs/'+self.model_selection.logs_dir.get(), 
                     'data/to_pred/'+self.input_dir.data_dir.get(),
