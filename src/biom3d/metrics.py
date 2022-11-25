@@ -652,8 +652,8 @@ class FocalLoss(Metric):
 #---------------------------------------------------------------------------
 # Adversarial metrics
 
-from models.encoder_efficientnet3d import EfficientNet3D
-from models.encoder_vgg import VGGEncoder, SmallEncoderBlock, EncoderBlock
+from biom3d.models.encoder_efficientnet3d import EfficientNet3D
+from biom3d.models.encoder_vgg import VGGEncoder, SmallEncoderBlock, EncoderBlock
 
 class GlobalAvgPool3d(nn.Module):
     def __init__(self):
@@ -737,7 +737,7 @@ def test_adversarial():
     """
     to test the adversarial loss we try here to classify 3d images of nucleus from 3d images of pancreas 
     """
-    from datasets.semseg import SemSeg3D
+    from biom3d.datasets.semseg import SemSeg3D
     from time import time
     loss_fn = Adversarial().cuda()
     data_nucleus = SemSeg3D(

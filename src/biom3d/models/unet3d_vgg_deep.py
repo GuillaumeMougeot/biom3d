@@ -1,13 +1,14 @@
-from models.head import vgg_mlp
+
 import torch
 from torch import nn
 import numpy as np
 
-from models.encoder_vgg import EncoderBlock, VGGEncoder
-from models.decoder_vgg_deep import VGGDecoder
-from models.head import DINOHead, MLPHead
+from biom3d.models.head import vgg_mlp
+from biom3d.models.encoder_vgg import EncoderBlock, VGGEncoder
+from biom3d.models.decoder_vgg_deep import VGGDecoder
+from biom3d.models.head import DINOHead, MLPHead
 
-from utils import convert_num_pools
+from biom3d.utils import convert_num_pools
 
 #---------------------------------------------------------------------------
 # 3D UNet with the previous encoder and decoder

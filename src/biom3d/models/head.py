@@ -2,14 +2,14 @@
 # Dino from: https://github.com/facebookresearch/dino
 #---------------------------------------------------------------------------
 
-from models.encoder_efficientnet3d import EfficientNet3D
-from models.hrnet_2 import HighResolutionNet
 import torch 
 from torch import nn
 import math
 import warnings
 import numpy as np
 
+from biom3d.models.encoder_efficientnet3d import EfficientNet3D
+from biom3d.models.hrnet_2 import HighResolutionNet
 from biom3d.models.encoder_vgg import VGGEncoder, EncoderBlock
 from biom3d.utils import convert_num_pools
 
