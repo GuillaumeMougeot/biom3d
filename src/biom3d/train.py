@@ -17,12 +17,12 @@ from biom3d.utils import load_config, abs_listdir, versus_one, dice
 # utils
 
 def train(config=None, log=None): 
-    if config: cfg = import_module(config).CONFIG
+    cfg = None if not config else import_module(config).CONFIG
     builder = Builder(config=cfg,path=log)
     builder.run_training()
 
 def train_yaml(config=None, log=None): 
-    if config: cfg = load_config(config)
+    cfg = None if not config else load_config(config)
     builder = Builder(config=cfg,path=log)
     builder.run_training()
 
