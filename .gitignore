@@ -7,8 +7,6 @@ tmp/
 logs/*
 logs_meso/*
 logs_zay/*
-run_*.sh
-bash/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
