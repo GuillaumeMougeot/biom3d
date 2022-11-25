@@ -9,10 +9,32 @@ import numpy as np
 import os 
 import torchio as tio
 from tqdm import tqdm
-from skimage.io import imsave 
+from skimage.io import imsave, imread
 import argparse
+import SimpleITK as sitk
 
-from biom3d.utils import adaptive_imread
+#---------------------------------------------------------------------------
+# Nifti imread
+
+def sitk_imread(img_path):
+    """
+    image reader for nii.gz files
+    """
+    img = sitk.ReadImage(img_path)
+    img_np = sitk.GetArrayFromImage(img)
+    return img_np, np.array(img.GetSpacing())
+
+def adaptive_imread(img_path):
+    """
+    use skimage imread or sitk imread depending on the file extension:
+    .tif --> skimage.io.imread
+    .nii.gz --> SimpleITK.imread
+    """
+    extension = img_path[img_path.rfind('.'):]
+    if extension == ".tif":
+        return imread(img_path), []
+    else:
+        return sitk_imread(img_path)
 
 #---------------------------------------------------------------------------
 # Nifti convertion (Medical segmentation decathlon)

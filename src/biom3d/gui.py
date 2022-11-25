@@ -26,11 +26,10 @@ import os
 from biom3d.configs.unet_default import CONFIG
 from biom3d.preprocess import preprocess
 from biom3d.auto_config import auto_config
-from biom3d.utils import nested_dict_change_value, save_config
 
 # the packages below are only needed for the local version of the GUI
-from biom3d.pred import pred
-from biom3d.builder import Builder
+# from biom3d.pred import pred
+# from biom3d.builder import Builder
 
 from sys import platform
 # if platform=='linux': # only import if linux because windows omero plugin requires Visual Studio Install which is too big
@@ -205,6 +204,58 @@ class ParaProxy(paramiko.proxy.ProxyCommand):
         self.stderr.close()
         self.channel.close()        
 
+#----------------------------------------------------------------------------
+# general utils (also in biom3d.utils)
+
+def Dict_to_dict(cfg):
+    """
+    transform a Dict into a dict
+    """
+    ty = type(cfg)
+    cfg = dict(cfg)
+    for k,i in cfg.items():
+        if type(i)==ty:
+            cfg[k] = Dict_to_dict(cfg[k])
+    return cfg
+
+def save_config(path, cfg):
+    """
+    save a configuration in a yaml file.
+    path must thus contains a yaml extension.
+    example: path='logs/test.yaml'
+    """
+    cfg = Dict_to_dict(cfg)
+    with open(path, "w") as f:
+        yaml.dump(cfg, f, sort_keys=False)
+
+def nested_dict_pairs_iterator(dic):
+    ''' This function accepts a nested dictionary as argument
+        and iterate over all values of nested dictionaries
+        stolen from: https://thispointer.com/python-how-to-iterate-over-nested-dictionary-dict-of-dicts/ 
+    '''
+    # Iterate over all key-value pairs of dict argument
+    for key, value in dic.items():
+        # Check if value is of dict type
+        if isinstance(value, dict) or isinstance(value, Dict):
+            # If value is dict then iterate over all its values
+            for pair in  nested_dict_pairs_iterator(value):
+                yield [key, *pair]
+        else:
+            # If value is not dict type then yield the value
+            yield [key, value]
+
+def nested_dict_change_value(dic, key, value):
+    """
+    Change all value with a given key from a nested dictionary.
+    """
+    # Loop through all key-value pairs of a nested dictionary and change the value 
+    for pairs in nested_dict_pairs_iterator(dic):
+        if key in pairs:
+            save = dic[pairs[0]]; i=1
+            while i < len(pairs) and pairs[i]!=key:
+                save = save[pairs[i]]; i+=1
+            save[key] = value
+    return dic
 
 #----------------------------------------------------------------------------
 # File dialog
