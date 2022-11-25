@@ -21,7 +21,7 @@ from tkinter import filedialog
 import paramiko
 from stat import S_ISDIR, S_ISREG # for recursive download
 import os 
-
+import yaml
 
 from biom3d.configs.unet_default import CONFIG
 from biom3d.preprocess import preprocess
@@ -206,6 +206,12 @@ class ParaProxy(paramiko.proxy.ProxyCommand):
 
 #----------------------------------------------------------------------------
 # general utils (also in biom3d.utils)
+
+class Dict(dict):
+    def __init__(self, *args, **kwargs): super().__init__(*args, **kwargs)
+    def __getattr__(self, name): return self[name]
+    def __setattr__(self, name, value): self[name] = value
+    def __delattr__(self, name): del self[name]
 
 def Dict_to_dict(cfg):
     """
