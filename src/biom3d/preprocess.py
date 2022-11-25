@@ -7,7 +7,7 @@
 
 import numpy as np
 import os 
-import torchio as tio
+# import torchio as tio
 from tqdm import tqdm
 from skimage.io import imsave, imread
 import argparse
@@ -128,7 +128,7 @@ class Preprocessing:
         self.intensity_moments = intensity_moments
         self.use_tif = use_tif
 
-        self.one_hot = tio.OneHot()
+        # self.one_hot = tio.OneHot()
     
     def prepare(self):
         print("preprocessing...")
@@ -151,16 +151,17 @@ class Preprocessing:
                     msk = msk[1:]
 
 
+            # TODO: remove torchio dependency! 
             # resample the image if needed
-            if len(self.median_spacing)>0:
-                resample = (self.median_spacing/spacing)[::-1] # transpose the dimension
-                if resample.sum() > 0.1: # otherwise no need of spacing 
-                    if self.msk_dir: 
-                        sub = tio.Subject(img=tio.ScalarImage(tensor=img), msk=tio.LabelMap(tensor=msk))
-                        sub = tio.Resample(resample)(sub)
-                        img, msk = sub.img.numpy(), sub.msk.numpy()
-                    else:
-                        img = tio.Resample(resample)(img)
+            # if len(self.median_spacing)>0:
+            #     resample = (self.median_spacing/spacing)[::-1] # transpose the dimension
+            #     if resample.sum() > 0.1: # otherwise no need of spacing 
+            #         if self.msk_dir: 
+            #             sub = tio.Subject(img=tio.ScalarImage(tensor=img), msk=tio.LabelMap(tensor=msk))
+            #             sub = tio.Resample(resample)(sub)
+            #             img, msk = sub.img.numpy(), sub.msk.numpy()
+            #         else:
+            #             img = tio.Resample(resample)(img)
 
             # clip img
             if len(self.clipping_bounds)>0:
