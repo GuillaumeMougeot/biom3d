@@ -148,7 +148,8 @@ class VGGEncoder(nn.Module):
             # self.bn = nn.BatchNorm1d(emb_dim)
             # self.bn.weight.requires_grad = False
             if use_head:
-                in_dim = (np.array(patch_size)/strides).prod().astype(int)*in_planes
+                strides_ = (strides[:2]).prod(axis=0)
+                in_dim = (np.array(patch_size)/strides_).prod().astype(int)*in_planes
                 last_layer = nn.utils.weight_norm(nn.Linear(256, emb_dim, bias=False))
                 # norm last layer
                 last_layer.weight_g.data.fill_(1)
