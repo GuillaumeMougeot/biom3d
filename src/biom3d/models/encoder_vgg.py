@@ -188,8 +188,9 @@ class VGGEncoder(nn.Module):
             
         if self.use_emb:
             # out = self.last_layer(out[-1])
-            out = self.global_pool(out[-1])
-            out = torch.flatten(out, 1)
+            # out = self.global_pool(out[-1])
+            # out = torch.flatten(out, 1)
+            out = out.view(x.size(0), -1)
             # out = nn.functional.normalize(out, dim=-1, p=2)
             # if self.use_head:
             #     out = nn.functional.normalize(out, dim=-1, p=2)
