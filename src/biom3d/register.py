@@ -70,7 +70,7 @@ models = Dict(
     UNet3DVGGDeep   =Dict(fct=UNet, kwargs=Dict()),
     # BasicUNetMonai  =Dict(fct=nets.BasicUNet, kwargs=Dict(spatial_dims=3, features=(32, 32, 64, 128, 256, 32))),
     # UNetMonai       =Dict(fct=nets.AttentionUnet, kwargs=Dict()),
-    VGG3D           =Dict(fct=VGGEncoder, kwargs=Dict(block=EncoderBlock)),
+    VGG3D           =Dict(fct=VGGEncoder, kwargs=Dict(block=EncoderBlock, use_head=True)),
     Eff3D           =Dict(fct=EfficientNet3D.from_name, kwargs=Dict()),
     EffUNet         =Dict(fct=EffUNet, kwargs=Dict()),
     FPN             =Dict(fct=FPN, kwargs=Dict(

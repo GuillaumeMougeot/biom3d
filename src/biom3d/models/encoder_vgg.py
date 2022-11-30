@@ -100,6 +100,7 @@ class VGGEncoder(nn.Module):
         use_emb=False, # use the embedding output (along with the existing ones)
         emb_dim=320,
         use_head=False,
+        patch_size = None, # only needed when using the head
         in_planes = 1,
         ): 
         super(VGGEncoder, self).__init__()
@@ -147,18 +148,23 @@ class VGGEncoder(nn.Module):
             # self.bn = nn.BatchNorm1d(emb_dim)
             # self.bn.weight.requires_grad = False
             if use_head:
-                # self.fc = nn.utils.weight_norm(nn.Linear(factor, emb_dim, bias=False))
-                # self.fc.weight_g.data.fill_(1)
-                # self.fc.weight_g.requires_grad = False
+                in_dim = (np.array(patch_size)/strides).prod().astype(int)*in_planes
+                last_layer = nn.utils.weight_norm(nn.Linear(256, emb_dim, bias=False))
+                # norm last layer
+                last_layer.weight_g.data.fill_(1)
+                last_layer.weight_g.requires_grad = False
+
                 self.head = nn.Sequential(
-                    nn.Linear(factor * 5 * 5 * 5, 2048),
-                    nn.ReLU(True),
+                    nn.Linear(in_dim, 2048),
+                    nn.GELU(),
                     nn.Dropout(p=0.5),
                     nn.Linear(2048, 2048),
-                    nn.ReLU(True),
+                    nn.GELU(),
                     nn.Dropout(p=0.5),
-                    nn.Linear(2048, emb_dim),
+                    nn.Linear(2048, 256), # bottleneck
+                    last_layer,
                 )
+
             
 
         self.apply(_weights_init)
