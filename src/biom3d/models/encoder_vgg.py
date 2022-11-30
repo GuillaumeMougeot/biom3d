@@ -179,7 +179,7 @@ class VGGEncoder(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def forward(self, x):
+    def forward(self, x, use_encoder=False):
         # stores the intermediate outputs
         out = []
         for i in range(len(self.layers)):
@@ -194,7 +194,7 @@ class VGGEncoder(nn.Module):
             # if self.use_head:
             #     out = nn.functional.normalize(out, dim=-1, p=2)
             #     out = self.fc(out)
-            if self.use_head:
+            if use_encoder:
                 out = self.head(out)
             
         return out
