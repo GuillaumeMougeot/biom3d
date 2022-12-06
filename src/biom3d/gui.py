@@ -770,7 +770,7 @@ class Connect2Omero(ttk.LabelFrame):
         self.username_entry = ttk.Entry(self, textvariable=self.username)
 
         self.password_label = ttk.Label(self, text='Password:')
-        self.password = StringVar(value="biome")
+        self.password = StringVar(value="")
         self.password_entry = ttk.Entry(self, textvariable=self.password, show='*')
 
         # place widgets
@@ -1099,11 +1099,11 @@ class Connect2Remote(ttk.LabelFrame):
         """
         if self.use_proxy_state.get(): # place widgets
             self.proxy_hostname_label = ttk.Label(self, text='Proxy server address:')
-            self.proxy_hostname = StringVar(value="bowser.igred.fr")
+            self.proxy_hostname = StringVar(value="")
             self.proxy_hostname_entry = ttk.Entry(self, textvariable=self.proxy_hostname)
 
             self.proxy_username_label = ttk.Label(self, text='Proxy user name:')
-            self.proxy_username = StringVar(value="mougeotg")
+            self.proxy_username = StringVar(value="")
             self.proxy_username_entry = ttk.Entry(self, textvariable=self.proxy_username)
 
             self.proxy_password_label = ttk.Label(self, text='Proxy password:')
