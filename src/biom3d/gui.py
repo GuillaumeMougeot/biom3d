@@ -1052,7 +1052,7 @@ class Connect2Remote(ttk.LabelFrame):
 
         # widgets definitions
         self.hostname_label = ttk.Label(self, text='Server address:')
-        self.hostname = StringVar(value="MPCRBC-GRED-077")
+        self.hostname = StringVar(value="")
         self.hostname_entry = ttk.Entry(self, textvariable=self.hostname)
 
         self.username_label = ttk.Label(self, text='User name:')
@@ -1060,7 +1060,7 @@ class Connect2Remote(ttk.LabelFrame):
         self.username_entry = ttk.Entry(self, textvariable=self.username)
 
         self.password_label = ttk.Label(self, text='Password:')
-        self.password = StringVar(value="biome")
+        self.password = StringVar(value="")
         self.password_entry = ttk.Entry(self, textvariable=self.password, show='*')
 
         self.main_dir_label = ttk.Label(self, text='Folder of Biom3d repository on remote server:')
