@@ -20,11 +20,13 @@ def train(config=None, log=None):
     cfg = None if not config else import_module(config).CONFIG
     builder = Builder(config=cfg,path=log)
     builder.run_training()
+    print("Training done!")
 
 def train_yaml(config=None, log=None): 
     cfg = None if not config else load_config(config)
     builder = Builder(config=cfg,path=log)
     builder.run_training()
+    print("Training done!")
 
 #---------------------------------------------------------------------------
 # main unet segmentation

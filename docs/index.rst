@@ -1,6 +1,10 @@
 Biom3d
 ===================================
 
+.. image:: _static/image/logo.svg
+    :align: right
+    :height: 300
+
 Congrats! You've just found Biom3d, a super easy-to-use tool for volumetric image segmentation.
 
 This tool is addressed to three different profiles:

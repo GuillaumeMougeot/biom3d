@@ -47,13 +47,15 @@ pip install biom3d
 
 ## Source code
 
-Please follow first the requirements detailed in the API section.
+Please follow first the requirements detailed in the API section before the biom3d installation.
 
 Once pytorch installed, you can download the source code via GitHub by cloning the biom3d repository:
 
 ```
 git clone https://github.com/GuillaumeMougeot/biom3d.git
 ```
+
+or by forking the repository with your GitHub account and cloning it after.
 
 `cd` to your newly downloaded biom3d repository and the installation can be completed with the following command (after activating your pip environment):
 
