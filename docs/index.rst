@@ -14,3 +14,9 @@ This tool is addressed to three different profiles:
    :caption: Installation
 
    installation.md
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Quick Run
+
+   quick_run_gui.md

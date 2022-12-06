@@ -37,9 +37,12 @@ keywords=['deep learning', 'image segmentation', 'medical image analysis',
 
 [project.optional-dependencies]
 docs = [
-    'sphinx>=3.0',
+    'sphinx>=4.1.2',
     'sphinxcontrib-apidoc',
-    'sphinx_rtd_theme'
+    'sphinx_rtd_theme>=0.3.1',
+    'myst_nb',
+    'furo>=2022.06.21',
+    'docutils>=0.17.1',
 ]
 gui = [
     "paramiko",
