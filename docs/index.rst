@@ -1,7 +1,7 @@
 Biom3d
 ===================================
 
-.. image:: _static/image/logo.svg
+.. image:: _static/image/logo.png
     :align: right
     :height: 300
 
