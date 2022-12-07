@@ -822,9 +822,15 @@ class ModelSelection(ttk.LabelFrame):
 
             # define the dropdown menu
             self.logs_dir = StringVar(value=self.logs_list[0])
-            self.logs_dir_option_menu = ttk.OptionMenu(self, self.logs_dir, self.logs_list[0], *self.logs_list, command=self._update_logs_list)
+            self.logs_dir_option_menu = ttk.OptionMenu(self, self.logs_dir, self.logs_list[0], *self.logs_list)
+            self.button_update_list = ttk.Button(self, text="Update", command=self._update_logs_list)
 
             self.logs_dir_option_menu.grid(column=0, row=0, sticky=(W,E))
+            self.button_update_list.grid(column=1, row=0, sticky=(W,E))
+
+            self.columnconfigure(0, weight=10)
+            self.columnconfigure(1, weight=1)
+            self.rowconfigure(0, weight=1)
 
         else: 
             ## build folder
@@ -833,13 +839,13 @@ class ModelSelection(ttk.LabelFrame):
 
             self.logs_dir.grid(column=0, row=0, sticky=(W,E))
 
-        self.columnconfigure(0, weight=1)
-        self.rowconfigure(0, weight=1)
+            self.columnconfigure(0, weight=1)
+            self.rowconfigure(0, weight=1)
         
-    def _update_logs_list(self, value):
+    def _update_logs_list(self):
         _,stdout,_ = REMOTE.exec_command('ls {}/logs'.format(MAIN_DIR))
-        self.logs_dir = [e.replace('\n','') for e in stdout.readlines()]
-        self.logs_dir_option_menu.set_menu(self.logs_dir[0], *self.logs_dir)
+        self.logs_list = [e.replace('\n','') for e in stdout.readlines()]
+        self.logs_dir_option_menu.set_menu(self.logs_list[0], *self.logs_list)
 
 class OutputDirectory(ttk.LabelFrame):
     def __init__(self, *arg, **kw):
@@ -883,20 +889,23 @@ class DownloadPrediction(ttk.LabelFrame):
         _,stdout,_ = REMOTE.exec_command('ls {}/data/pred'.format(MAIN_DIR))
         self.data_list = [e.replace('\n','') for e in stdout.readlines()]
         self.data_dir = StringVar(value=self.data_list[0])
-        self.data_dir_option_menu = ttk.OptionMenu(self, self.data_dir, self.data_list[0], *self.data_list, command=self._update_pred_list)
+        self.data_dir_option_menu = ttk.OptionMenu(self, self.data_dir, self.data_list[0], *self.data_list)
+        self.button_update_list = ttk.Button(self, text="Update", command=self._update_pred_list)
 
         # or send the dataset to server
         self.get_data_label = ttk.Label(self, text="Select local folder to download into:")
         self.get_data_folder = FileDialog(self, mode='folder', textEntry="data/pred")
         self.get_data_button = ttk.Button(self, text="Get data", command=self.get_data)
 
-        self.input_folder_label.grid(column=0, row=0, sticky=(W,E))
+        self.input_folder_label.grid(column=0, row=0, columnspan=2, sticky=(W,E))
         self.data_dir_option_menu.grid(column=0, row=1, sticky=(W,E))
-        self.get_data_label.grid(column=0, row=2, sticky=(W,E))
-        self.get_data_folder.grid(column=0, row=3, sticky=(W,E))
-        self.get_data_button.grid(column=0, row=4, sticky=(W,E))
+        self.button_update_list.grid(column=1, row=1, sticky=(W,E))
+        self.get_data_label.grid(column=0, row=2, columnspan=2, sticky=(W,E))
+        self.get_data_folder.grid(column=0, row=3, columnspan=2, sticky=(W,E))
+        self.get_data_button.grid(column=0, row=4, columnspan=2, sticky=(W,E))
 
-        self.columnconfigure(0, weight=1)
+        self.columnconfigure(0, weight=10)
+        self.columnconfigure(1, weight=1)
         for i in range(5):
             self.rowconfigure(i, weight=1)
     
@@ -917,7 +926,7 @@ class DownloadPrediction(ttk.LabelFrame):
         # copy files from remote to local
         ftp_get_folder(ftp, remotedir, localdir)
     
-    def _update_pred_list(self, value=None):
+    def _update_pred_list(self):
         _,stdout,_ = REMOTE.exec_command('ls {}/data/pred'.format(MAIN_DIR))
         self.data_list = [e.replace('\n','') for e in stdout.readlines()]
         self.data_dir_option_menu.set_menu(self.data_list[0], *self.data_list)
