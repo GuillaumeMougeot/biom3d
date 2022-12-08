@@ -196,7 +196,7 @@ def seg_predict_patch(
     intensity_moments=[],
     use_softmax=False,
     num_workers=4,
-    # enable_autocast=True, 
+    enable_autocast=True, 
     keep_biggest_only=False,
     ):
     """
@@ -204,7 +204,7 @@ def seg_predict_patch(
     """
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    enable_autocast = torch.cuda.is_available() # tmp, autocast seems to work only with gpu for now... 
+    enable_autocast = torch.cuda.is_available() and enable_autocast # tmp, autocast seems to work only with gpu for now... 
     print('AMP {}'.format('enable' if enable_autocast else 'disable'))
 
     # img = load_img_seg_patch(img_path, patch_size)
