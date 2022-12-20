@@ -33,10 +33,11 @@ from biom3d.preprocess import preprocess
 from biom3d.auto_config import auto_config
 
 # the packages below are only needed for the local version of the GUI
-# WARNING! the lines below must be commented when deploying the remote version!
-from biom3d.pred import pred
-from biom3d.builder import Builder
-import omero_pred
+# WARNING! the lines below must be commented when deploying the remote version,
+# and uncommented when installing the local version.
+# from biom3d.pred import pred
+# from biom3d.builder import Builder
+# import omero_pred
 
 #----------------------------------------------------------------------------
 # Constants 
@@ -1302,7 +1303,7 @@ class Root(Tk):
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description="Graphical User Interface of Biom3d")
     parser.add_argument("-L", "--local", default=False,  action='store_true', dest='local',
-        help="Start the GUI with the local version.") 
+        help="Start the GUI with the local version (the remote version is the default version).") 
     args = parser.parse_args()
 
     LOCAL = args.local
