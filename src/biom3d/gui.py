@@ -32,6 +32,12 @@ from biom3d.configs.unet_default import CONFIG
 from biom3d.preprocess import preprocess
 from biom3d.auto_config import auto_config
 
+# the packages below are only needed for the local version of the GUI
+# WARNING! the lines below must be commented when deploying the remote version!
+from biom3d.pred import pred
+from biom3d.builder import Builder
+import omero_pred
+
 #----------------------------------------------------------------------------
 # Constants 
 # remote or local
@@ -39,9 +45,9 @@ from biom3d.auto_config import auto_config
 REMOTE = False
 
 # The option below is made to remove the 'start locally' button in the gui. This is
-# useful for the distribution only in order to reduce the size of the 
+# useful for the deployment only in order to reduce the size of the 
 # distribution we only allow remote access. 
-REMOTE_ONLY = False 
+LOCAL = False 
 
 MAIN_DIR = "/home/biome/biom3d" # folder containing biom3d repository on server computer
 TRANSPORT = False
@@ -1198,7 +1204,7 @@ class Root(Tk):
         self.welcome_message.grid(column=0, row=1, sticky=(W,E), pady=12)
         
         # The local button is displayed only for the local installation 
-        if not REMOTE_ONLY: 
+        if LOCAL: 
             self.start_locally.grid(column=0, row=2, sticky=(W,E), pady=12)
 
         self.start_remotelly_frame.grid(column=0, row=3, sticky=(W,E), pady=12)
@@ -1295,18 +1301,11 @@ class Root(Tk):
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description="Graphical User Interface of Biom3d")
-    parser.add_argument("-R", "--remote_only", default=False,  action='store_true', dest='remote_only',
-        help="Used for deployment to remove 'start locally' options.") 
+    parser.add_argument("-L", "--local", default=False,  action='store_true', dest='local',
+        help="Start the GUI with the local version.") 
     args = parser.parse_args()
 
-    REMOTE_ONLY = args.remote_only
-
-    # Import the following packages only if local 
-    if not REMOTE_ONLY:
-        # the packages below are only needed for the local version of the GUI
-        from biom3d.pred import pred
-        from biom3d.builder import Builder
-        import omero_pred
+    LOCAL = args.local
 
     root = Root()
 
