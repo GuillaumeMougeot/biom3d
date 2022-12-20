@@ -2,6 +2,8 @@
 # Graphical User Interface for Biom3d
 # WARNING: with this current version the remote access mode only work with a
 # linux server.
+# WARNING: this script is only meant to work as main script and not as a
+# module. The imports are not included outside the __main__. 
 # Content:
 #  * Imports
 #  * Constants definition
@@ -22,19 +24,13 @@ import paramiko
 from stat import S_ISDIR, S_ISREG # for recursive download
 import os 
 import yaml
+from sys import platform 
+# if platform=='linux': # only import if linux because windows omero plugin requires Visual Studio Install which is too big
+import argparse
 
 from biom3d.configs.unet_default import CONFIG
 from biom3d.preprocess import preprocess
 from biom3d.auto_config import auto_config
-
-# the packages below are only needed for the local version of the GUI
-# from biom3d.pred import pred
-# from biom3d.builder import Builder
-
-from sys import platform
-# if platform=='linux': # only import if linux because windows omero plugin requires Visual Studio Install which is too big
-# import omero_pred
-
 
 #----------------------------------------------------------------------------
 # Constants 
@@ -1192,6 +1188,7 @@ class Root(Tk):
 
         self.title_label = ttk.Label(self.local_or_remote, text="Biom3d", font=("Montserrat", 18))
         self.welcome_message = ttk.Label(self.local_or_remote, text="Welcome!\n\nBiom3d is an easy-to-use tool to train and use deep learning models for segmenting three dimensional images. You can either start locally, if your computer has a good graphic card (NVIDIA Geforce RTX 1080 or higher) or connect remotelly on a computer with such a graphic card.\n\nIf you need help, check our GitHub repository here: https://github.com/GuillaumeMougeot/biom3d", anchor="w", justify=LEFT, wraplength=450)
+
         self.start_locally = ttk.Button(self.local_or_remote, text="Start locally", command=lambda: self.main(remote=False))
 
         self.start_remotelly_frame = Connect2Remote(self.local_or_remote, text="Connect to remote server", padding=[10,10,10,10])
@@ -1199,7 +1196,10 @@ class Root(Tk):
 
         self.title_label.grid(column=0, row=0, sticky=W)
         self.welcome_message.grid(column=0, row=1, sticky=(W,E), pady=12)
-        self.start_locally.grid(column=0, row=2, sticky=(W,E), pady=12)
+        
+        # The local button is displayed only for the local installation 
+        if not REMOTE_ONLY: 
+            self.start_locally.grid(column=0, row=2, sticky=(W,E), pady=12)
 
         self.start_remotelly_frame.grid(column=0, row=3, sticky=(W,E), pady=12)
         self.start_remotelly_button.grid(column=0, row=4, sticky=(W,E), pady=5)
@@ -1293,12 +1293,28 @@ class Root(Tk):
         self.train_tab.columnconfigure(0, weight=1)
         self.train_tab.rowconfigure(0, weight=1)
 
-root = Root()
+if __name__=='__main__':
+    parser = argparse.ArgumentParser(description="Graphical User Interface of Biom3d")
+    parser.add_argument("-R", "--remote_only", default=False,  action='store_true', dest='remote_only',
+        help="Used for deployment to remove 'start locally' options.") 
+    args = parser.parse_args()
 
+    REMOTE_ONLY = args.remote_only
 
-try: # avoid blury UI on Windows
-    if platform=='win32':
-        from ctypes import windll
-        windll.shcore.SetProcessDpiAwareness(1)
-finally:
-    root.mainloop()
+    # Import the following packages only if local 
+    if not REMOTE_ONLY:
+        # the packages below are only needed for the local version of the GUI
+        from biom3d.pred import pred
+        from biom3d.builder import Builder
+        import omero_pred
+
+    root = Root()
+
+    try: # avoid blury UI on Windows
+        if platform=='win32':
+            from ctypes import windll
+            windll.shcore.SetProcessDpiAwareness(1)
+    finally:
+        root.mainloop()
+
+    
