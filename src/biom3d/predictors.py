@@ -4,13 +4,12 @@
 # TODO: re-structure with classes maybe?
 #---------------------------------------------------------------------------
 
-from cgitb import enable
 import torch 
 import torchio as tio
 import numpy as np
 from skimage.io import imread
 from tqdm import tqdm
-from scipy.ndimage.filters import gaussian_filter
+# from scipy.ndimage.filters import gaussian_filter
 
 from biom3d.utils import keep_biggest_volume_centered, sitk_imread
 
