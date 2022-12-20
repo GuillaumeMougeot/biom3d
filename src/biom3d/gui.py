@@ -41,6 +41,12 @@ from sys import platform
 # remote or local
 
 REMOTE = False
+
+# The option below is made to remove the 'start locally' button in the gui. This is
+# useful for the distribution only in order to reduce the size of the 
+# distribution we only allow remote access. 
+REMOTE_ONLY = False 
+
 MAIN_DIR = "/home/biome/biom3d" # folder containing biom3d repository on server computer
 TRANSPORT = False
 
@@ -54,9 +60,6 @@ BUTTON_STYLE = 'white_style.TButton'
 ROOT_FRAME_STYLE = 'red_style.TFrame'
 NOTEBOOK_STYLE = 'red_style.TNotebook'
 NOTEBOOK_TAB_STYLE = 'red_style.TNotebook.Tab'
-
-# data tab
-# PATH_IMG_SELECT = 'images/select.png'
 
 #----------------------------------------------------------------------------
 # Styles 
