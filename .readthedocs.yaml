@@ -16,6 +16,6 @@ sphinx:
 python:
    version: 3.8
    install:
-      - requirements: docs/requirements.txt
+      - requirements: pytorch_sphinx_theme
       - method: pip
         path: .
