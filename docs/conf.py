@@ -8,14 +8,14 @@
 # sys.path.append(os.path.abspath("./kitchen-sink/demo_py"))
 
 # -- Project information -----------------------------------------------------
-#
+
+import pytorch_sphinx_theme
 
 project = "Biom3d"
 copyright = "2022, Guillaume Mougeot"
 author = "Guillaume Mougeot"
 
 # -- General configuration ---------------------------------------------------
-#
 
 extensions = [
     # Sphinx's own extensions
@@ -69,19 +69,21 @@ myst_heading_anchors = 3
 # -- Options for HTML output -------------------------------------------------
 #
 
-html_theme = "furo"
+# html_theme = "furo"
+html_theme = 'pytorch_sphinx_theme'
+html_theme_path = [pytorch_sphinx_theme.get_html_theme_path()]
+
 html_title = "Biom3d"
 language = "en"
 
 html_static_path = ["_static"]
 html_css_files = ["css/readthedocs.css"]
-# html_css_files = []
 
-html_css_files = [
-    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/fontawesome.min.css",
-    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/solid.min.css",
-    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/brands.min.css",
-]
+# html_css_files = [
+#     "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/fontawesome.min.css",
+#     "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/solid.min.css",
+#     "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/brands.min.css",
+# ]
 
 
 html_theme_options = {
