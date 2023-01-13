@@ -10,6 +10,8 @@ Careful! Biom3d has two modes: a local mode and a remote mode. The local mode me
 
 > Note: for API users who followed the next tutorial, the GUI is included in the API.
 
+> Warning: the version of the GUI on GitHub is remote only, which means that you must also install the API on a server. If you would like to train your deep learning model locally and use the GUI, please follow the next section. 
+
 ## Application Programming Interface
 
 Requirements:
@@ -43,6 +45,12 @@ If the previous requirements are fulfilled, installing the API of biom3d is as s
 
 ```
 pip install biom3d
+```
+
+If you would like to start the GUI, you can run the following command:
+
+```
+python -m biom3d.gui -L
 ```
 
 ## Source code

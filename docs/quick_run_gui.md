@@ -2,7 +2,9 @@
 
 Starting the Graphical User Interface of biom3d depends on the type of installation you followed:
 * If you installed biom3d with the directly link toward the executable file, you can simply double-click on the downloaded file.
-* If you installed biom3d with the API or the source code, you can start the GUI with `python -m biom3d.gui`.
+* If you installed biom3d with the API or the source code, you can start the GUI with `python -m biom3d.gui -L`.
+
+> Warning: the version of the GUI on GitHub is remote only, which means that you must also install the API on a server. If you would like to train your deep learning model locally and use the GUI, please install the API. 
 
 ## Splash screen
 
