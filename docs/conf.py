@@ -9,7 +9,7 @@
 
 # -- Project information -----------------------------------------------------
 
-import pytorch_sphinx_theme
+# import pytorch_sphinx_theme
 
 project = "Biom3d"
 copyright = "2022, Guillaume Mougeot"
@@ -69,9 +69,9 @@ myst_heading_anchors = 3
 # -- Options for HTML output -------------------------------------------------
 #
 
-# html_theme = "furo"
-html_theme = 'pytorch_sphinx_theme'
-html_theme_path = [pytorch_sphinx_theme.get_html_theme_path()]
+html_theme = "furo"
+# html_theme = 'pytorch_sphinx_theme'
+# html_theme_path = [pytorch_sphinx_theme.get_html_theme_path()]
 
 html_title = "Biom3d"
 language = "en"
