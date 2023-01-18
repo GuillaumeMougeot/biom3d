@@ -35,8 +35,8 @@ from biom3d.auto_config import auto_config
 # the packages below are only needed for the local version of the GUI
 # WARNING! the lines below must be commented when deploying the remote version,
 # and uncommented when installing the local version.
-# from biom3d.pred import pred
-# from biom3d.builder import Builder
+from biom3d.pred import pred
+from biom3d.builder import Builder
 # import omero_pred
 
 #----------------------------------------------------------------------------
