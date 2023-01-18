@@ -1302,7 +1302,7 @@ class Root(Tk):
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description="Graphical User Interface of Biom3d")
-    parser.add_argument("-L", "--local", default=False,  action='store_true', dest='local',
+    parser.add_argument("-L", "--local", default=True,  action='store_true', dest='local',
         help="Start the GUI with the local version (the remote version is the default version).") 
     args = parser.parse_args()
 
