@@ -268,6 +268,10 @@ class SemSeg3DPatchFast(Dataset):
         length of the testing set: {}\n \
         is training mode active?: {}".format(fold, len(self.train_imgs), len(self.val_imgs), len(testset), self.train))
 
+        # print train and validation image names
+        print("Training images:", self.train_imgs)
+        print("Validation images:", self.val_imgs)
+
         self.use_aug = use_aug
 
         if self.use_aug:
