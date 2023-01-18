@@ -3,7 +3,6 @@
 # with deep supervision: meaning that each decoder level has an output
 #---------------------------------------------------------------------------
 
-from curses import panel
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
