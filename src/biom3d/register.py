@@ -10,78 +10,21 @@ from biom3d.utils import Dict
 #---------------------------------------------------------------------------
 # dataset register
 
-# import datasets.datasets_old as datasets_old
-# from datasets.arcface import ArcFace
-from biom3d.datasets.triplet import Triplet
-# from biom3d.datasets.triplet_seg import TripletSeg
-# from biom3d.datasets.semseg import SemSeg3D
-# from datasets.semseg_fast import SemSeg3DFast
-# from datasets.semseg_patch import SemSeg3DPatchTrain, SemSeg3DPatchVal
 from biom3d.datasets.semseg_patch_fast import SemSeg3DPatchFast
-# from datasets.model_genesis import Genesis
-# from datasets.denoiseg import DenoiSeg
-# from datasets.adversarial import Adversarial
-from biom3d.datasets.dino import Dino
-from biom3d.datasets.arcface import ArcFace
 
 datasets = Dict(
-    # Seg             =Dict(fct=SemSeg3D, kwargs=Dict()),
-    # SegFast         =Dict(fct=SemSeg3DFast, kwargs=Dict()),
-    # SingleNucleus   =Dict(fct=datasets_old.Nucleus3DSingle, kwargs=Dict()),
-    Triplet         =Dict(fct=Triplet, kwargs=Dict()),
-    # TripletSeg      =Dict(fct=TripletSeg, kwargs=Dict()),
-    # ArcFace         =Dict(fct=ArcFace, kwargs=Dict()),
-    # CoTrain         =Dict(fct=datasets_old.CoTrain, kwargs=Dict()),
-    # SegPatchTrain   =Dict(fct=SemSeg3DPatchTrain, kwargs=Dict()),
-    # SegPatchVal     =Dict(fct=SemSeg3DPatchVal, kwargs=Dict()),
     SegPatchFast    =Dict(fct=SemSeg3DPatchFast, kwargs=Dict()),
-    # Genesis         =Dict(fct=Genesis, kwargs=Dict()),
-    # DenoiSeg        =Dict(fct=DenoiSeg, kwargs=Dict()),
-    # Adversarial     =Dict(fct=Adversarial, kwargs=Dict()),
-    Dino            =Dict(fct=Dino, kwargs=Dict()),
-    ArcFace         =Dict(fct=ArcFace, kwargs=Dict()),
-)
-
-
-from biom3d.utils import (
-    skimage_imread,
-    sitk_imread,
-)
-
-imread = Dict(
-    Skimage =Dict(fct=skimage_imread, kwargs=Dict()),
-    Sitk    =Dict(fct=sitk_imread, kwargs=Dict()),
 )
 
 #---------------------------------------------------------------------------
 # model register
 
-from biom3d.models.unet3d_vgg_deep import CotUNet, NNet, unet3d_vgg_triplet, UNet
+from biom3d.models.unet3d_vgg_deep import UNet
 from biom3d.models.encoder_vgg import VGGEncoder, EncoderBlock
-from biom3d.models.encoder_efficientnet3d import EfficientNet3D
-from biom3d.models.unet3d_eff_2 import FPN
-from biom3d.models.unet3d_eff_3 import EffUNet
-from biom3d.models.head import dino, hrnet_mlp, vgg_mlp
-# from archive.models.unet3d_monai import BasicUNet
-# from monai.networks import nets
-from biom3d.models.hrnet_2 import HighResolutionNet
 
 models = Dict(
     UNet3DVGGDeep   =Dict(fct=UNet, kwargs=Dict()),
-    # BasicUNetMonai  =Dict(fct=nets.BasicUNet, kwargs=Dict(spatial_dims=3, features=(32, 32, 64, 128, 256, 32))),
-    # UNetMonai       =Dict(fct=nets.AttentionUnet, kwargs=Dict()),
     VGG3D           =Dict(fct=VGGEncoder, kwargs=Dict(block=EncoderBlock, use_head=True)),
-    Eff3D           =Dict(fct=EfficientNet3D.from_name, kwargs=Dict()),
-    EffUNet         =Dict(fct=EffUNet, kwargs=Dict()),
-    FPN             =Dict(fct=FPN, kwargs=Dict(
-                        encoder=EfficientNet3D.from_name("efficientnet-b4", override_params={'num_classes': 256}, in_channels=1, num_pools=[3,5,5]),)),
-    TripletUNet     =Dict(fct=unet3d_vgg_triplet, kwargs=Dict()),
-    SelfDino        =Dict(fct=dino, kwargs=Dict()),
-    VGG3DMLP        =Dict(fct=vgg_mlp, kwargs=Dict()),
-    NNet            =Dict(fct=NNet, kwargs=Dict()),
-    CotUNet         =Dict(fct=CotUNet, kwargs=Dict()),
-    HRNet           =Dict(fct=HighResolutionNet, kwargs=Dict()),
-    HRNetMLP        =Dict(fct=hrnet_mlp, kwargs=Dict()),
 )
 
 #---------------------------------------------------------------------------

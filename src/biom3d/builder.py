@@ -155,24 +155,16 @@ class Builder:
         if 'TRAIN_DATASET' in self.config.keys():
             self.train_dataset = read_config(self.config.TRAIN_DATASET, register.datasets)
         if 'TRAIN_DATALOADER' in self.config.keys():
-            # [DEPRECATED] imread is a special argument of the train_dataloader
-            # imread values should be replaced by corresponding function indicated in the register
-            # if 'imread' in self.config.TRAIN_DATALOADER.kwargs.keys():
-            #     self.config.TRAIN_DATALOADER.kwargs['imread']=read_config(self.config.TRAIN_DATALOADER.kwargs['imread'], register.imread)
             self.train_dataloader = read_config(self.config.TRAIN_DATALOADER, register.datasets)
         else:
             self.train_dataloader = DataLoader(self.train_dataset,**self.config.TRAIN_DATALOADER_KWARGS)
-            # self.train_dataloader = ThreadDataLoader(self.train_dataset,**self.config.TRAIN_DATALOADER_KWARGS)
 
         if 'VAL_DATASET' in self.config.keys():
             self.val_dataset = read_config(self.config.VAL_DATASET, register.datasets)
         if 'VAL_DATALOADER' in self.config.keys():
-            # if 'imread' in self.config.VAL_DATALOADER.kwargs.keys():
-            #     self.config.VAL_DATALOADER.kwargs['imread']=read_config(self.config.VAL_DATALOADER.kwargs['imread'], register.imread)
             self.val_dataloader = read_config(self.config.VAL_DATALOADER, register.datasets)
         elif 'VAL_DATALOADER_KWARGS' in self.config.keys():
             self.val_dataloader = DataLoader(self.val_dataset,**self.config.VAL_DATALOADER_KWARGS)
-            # self.val_dataloader = ThreadDataLoader(self.val_dataset,**self.config.VAL_DATALOADER_KWARGS)
 
 
     def build_model(self, training=True):
