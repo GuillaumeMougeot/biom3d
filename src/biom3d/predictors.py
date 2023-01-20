@@ -87,7 +87,6 @@ class LoadImgPatch:
         
         # prepare image
         # load the image
-        # img = imread(fname)
         img,self.spacing = sitk_imread(self.fname)
 
         # store img shape (for post processing)
@@ -165,12 +164,9 @@ def load_img_seg_patch(fname, patch_size=(64,64,32)):
     Prepare image for model prediction
     """
     # load the image
-    # img = imread(fname)
     img,_ = sitk_imread(fname)
 
     # normalize the image
-    # bits = lambda x: ((np.log2(x)>8).astype(int)+(np.log2(x)>16).astype(int)*2+1)*8
-    # img = img / (2**bits(np.max(img)) - 1)
     img = (img-img.mean())/img.std()
     img = np.expand_dims(img, 0)
     img = torch.from_numpy(img).float()
