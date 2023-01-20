@@ -6,6 +6,12 @@
 
 An easy-to-use and unofficial implementation of [nnUNet](https://github.com/MIC-DKFZ/nnUNet).
 
+Biom3d modules             |  nnUNet modules
+:-------------------------:|:-------------------------:
+![](images/biom3d_train.png)  |  ![](images/nnunet_run_run_training.png)
+
+<right>*Illustrations generated with `pydeps` module*</right>
+
 The goal of Biom3d (and of the original nnUNet) is to automatically configured the training of a U-Net deep learning model for 3D semantic segmentation.
 
 Biom3d is yet more flexible for developers than the original nnUNet implementation: easier to read/understand and easier to edit. Biom3d has also been made easy-to-use for community users.

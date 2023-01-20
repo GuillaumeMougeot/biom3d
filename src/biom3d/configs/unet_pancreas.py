@@ -42,7 +42,7 @@ MSK_DIR = 'data/pancreas/tif_labelsTr_small'
 # PT_PATH = 'data/pancreas/data_pancreas.pt'
 LOG_DIR = 'logs/'
 
-DESC = 'unet_mine-pancreas_21'
+DESC = 'unet_mine-pancreas'
 # DESC = 'unet_mine-chromo_21'
 
 #---------------------------------------------------------------------------
