@@ -1,6 +1,6 @@
 # :microscope: Biom3d 
 
-**Please check our documentation for the installation details:** [**Documentation-Installation**](https://biom3d.readthedocs.io/)
+[**Documentation**](https://biom3d.readthedocs.io/)
 
 **Warning! This repository is still a work in progress.**
 
@@ -29,7 +29,7 @@ For Windows users, the paths are here written in "linux-like format". You will h
 
 ## :hammer: Installation
 
-[**Documentation**](https://biom3d.readthedocs.io/en/latest/installation.html)
+**Please check our documentation for the installation details:** [**Documentation-Installation**](https://biom3d.readthedocs.io/en/latest/installation.html)
 
 ## :hand: Usage
 
