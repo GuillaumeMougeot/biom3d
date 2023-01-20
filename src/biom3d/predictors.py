@@ -11,18 +11,16 @@ from skimage.io import imread
 from tqdm import tqdm
 # from scipy.ndimage.filters import gaussian_filter
 
-from biom3d.utils import keep_biggest_volume_centered, sitk_imread
+from biom3d.utils import keep_biggest_volume_centered, adaptive_imread
 
 #---------------------------------------------------------------------------
 # model predictor for segmentation
 
 def load_img_seg(fname):
     img = imread(fname)
-    # img = utils.sitk_imread()(fname)
 
     # normalize
     img = (img - img.min()) / (img.max() - img.min())
-    # img = (img-img.mean())/img.std()
     
     # to tensor
     img = torch.tensor(img, dtype=torch.float)
@@ -87,7 +85,7 @@ class LoadImgPatch:
         
         # prepare image
         # load the image
-        img,self.spacing = sitk_imread(self.fname)
+        img,self.spacing = adaptive_imread(self.fname)
 
         # store img shape (for post processing)
         self.img_shape = img.shape
@@ -164,7 +162,7 @@ def load_img_seg_patch(fname, patch_size=(64,64,32)):
     Prepare image for model prediction
     """
     # load the image
-    img,_ = sitk_imread(fname)
+    img,_ = adaptive_imread(fname)
 
     # normalize the image
     img = (img-img.mean())/img.std()
