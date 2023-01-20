@@ -234,62 +234,54 @@ def seg_predict_patch(
                 X = X.cuda()
             
             if tta: # test time augmentation: flip around each axis
-                # Xs = [X] + [torch.flip(X,dims=[i]) for i in range(2,5)]
-                # with torch.cuda.amp.autocast():
-                #     preds = [model(x).cpu() for x in Xs]
-                # preds = [preds[0]]+[torch.flip(preds[i], dims=[i+1]) for i in range(1,4)]
-                # pred = torch.mean(torch.stack(preds), dim=0)
-
                 with torch.autocast(device, enabled=enable_autocast):
                     pred=model(X).cpu()
-                    # pred+=torch.flip(pred, dims=[1]).cpu()
                 
                 # flipping tta
-                # dims = [[1],[2],[3],[1,2],[1,3],[2,3],[1,2,3]]
                 dims = [[2],[3],[4]]
-                # dims = [[2]]
                 for i in range(len(dims)):
                     X_flip = torch.flip(X,dims=dims[i])
 
-                    # with torch.cuda.amp.autocast():
                     with torch.autocast(device, enabled=enable_autocast):
                         pred_flip = model(X_flip)
                         pred += torch.flip(pred_flip, dims=dims[i]).cpu()
                     
                     del X_flip, pred_flip
-                    # torch.cuda.empty_cache()
                 
                 pred = pred/(len(dims)+1)
-                # pred = pred/3
                 del X
-                # torch.cuda.empty_cache()
             else:
-                # with torch.cuda.amp.autocast():
                 with torch.autocast(device, enabled=enable_autocast):
                     pred=model(X).cpu()
                     del X
-                    # torch.cuda.empty_cache()
+
             pred_aggr.add_batch(pred, patch[tio.LOCATION])
         
+        print("Prediction done!")
+
+        print("Aggregation...")
         logit = pred_aggr.get_output_tensor().float()
+        print("Aggregation done!")
     
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
 
     # post-processing:
+    print("Post-processing...")
     logit = img_loader.post_process(logit)
 
-    if return_logit: return logit.numpy()
+    if return_logit: 
+        print("Post-processing done!")
+        return logit.numpy()
 
     if use_softmax:
-        # out = (logit.softmax(dim=0)>0.5).int()[1:]
         out = (logit.softmax(dim=0).argmax(dim=0)).int()
     else:
         out = (logit.sigmoid()>0.5).int()
     out = out.numpy()
 
+    # TODO: the function below is too slow
     if keep_biggest_only:
-        # out = utils.keep_center_only(out)
         if len(out.shape)==3:
             out = keep_biggest_volume_centered(out)
         elif len(out.shape)==4:
@@ -299,7 +291,8 @@ def seg_predict_patch(
             out = np.array(tmp)
 
     out = out.astype(np.byte) 
-    print("output shape",out.shape)
+    print("Post-processing done!")
+    print("Output shape:",out.shape)
     return out
 
 #---------------------------------------------------------------------------

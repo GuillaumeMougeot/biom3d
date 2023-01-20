@@ -141,20 +141,7 @@ class skimage_imread:
     """
     def __call__(self, img_path):
         return io.imread(img_path)
-# def skimage_imread(img_path):
-#     """
-#     image reader for .tif files
-#     """
-#     return io.imread(img_path)
 
-# class sitk_imread:
-#     """
-#     image reader for nii.gz files
-#     """
-#     def __call__(self, img_path): 
-#         img = sitk.ReadImage(img_path)
-#         img_np = sitk.GetArrayFromImage(img)
-#         return img_np
 def sitk_imread(img_path):
     """
     image reader for nii.gz files
