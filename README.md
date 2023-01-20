@@ -1,6 +1,6 @@
 # :microscope: Biom3d 
 
-[**Documentation!**](https://biom3d.readthedocs.io/)
+**Please check our documentation for the installation details:** [**Documentation-Installation**](https://biom3d.readthedocs.io/)
 
 **Warning! This repository is still a work in progress.**
 
@@ -10,18 +10,18 @@ Biom3d modules             |  nnUNet modules
 :-------------------------:|:-------------------------:
 ![](images/biom3d_train.png)  |  ![](images/nnunet_run_run_training.png)
 
-<right>*Illustrations generated with `pydeps` module*</right>
+*Illustrations generated with `pydeps` module*
 
 The goal of Biom3d (and of the original nnUNet) is to automatically configured the training of a U-Net deep learning model for 3D semantic segmentation.
 
 Biom3d is yet more flexible for developers than the original nnUNet implementation: easier to read/understand and easier to edit. Biom3d has also been made easy-to-use for community users.
 
-Biom3d does not include ensemble learning and the possibility to use 2D U-Net or 3D-Cascade U-Net yet. However, these options could easily be adapted if needed.
+Biom3d does not include ensemble learning, the possibility to use 2D U-Net or 3D-Cascade U-Net or Pytorch parallel computing yet. However, these options could easily be adapted if needed.
 
-There two main types of users of Biom3d:
+There are two main types of users of Biom3d:
 
 * Community users, who are interested in using the basic features of Biom3d: GUI, predictions with ready-to-use models or basic training.
-* Deep-learning developers, who are insterested in more advanced features: configuration of module parameters, writing of new Biom3d modules, Biom3d core editing etc.
+* Deep-learning developers, who are interested in more advanced features: configuration of module parameters, writing of new Biom3d modules, Biom3d core editing etc.
 
 In the following documentation, we marked the advanced features with :rocket: symbol.
 
@@ -29,35 +29,11 @@ For Windows users, the paths are here written in "linux-like format". You will h
 
 ## :hammer: Installation
 
-Requirements:
-* A NVidia GPUs (at least a Geforce GTX 1080)
-* Windows 10 or Ubuntu 18.04 (other OS have not been tested)
-* Python 3.8 or 3.9 or 3.10 (newer or older version have not been tested)
-* CUDA & CuDNN (cf [Nvidia doc](https://docs.nvidia.com/cuda/cuda-installation-guide-microsoft-windows/index.html))
-* (optional but recommended) Use Conda or Pip-env. The later is recommended: use `python3 -m venv env` to create a virtual environment and `source env/bin/activate` to activate it. 
-* pytorch==1.12.1 (please be sure that you have access to your NVidia GPU)
-
-Once pytorch installed, the installation can be completed with the following command:
-
-```
-pip3 install -r requirements.txt
-```
-
-Or with the following:
-
-```
-pip3 install SimpleITK==2.1.1 pandas==1.4.0 scikit-image==0.19.0 tensorboard==2.8.0 tqdm==4.62.3 numpy==1.21.2 matplotlib==3.5.3 PyYAML==6.0 torchio==0.18.83 protobuf==3.19.3
-```
-
-Optional: If planning to use omero_dowloader to download datasets/projects from omero, please install omero-py with the following command:
-
-```
-pip3 install omero-py
-```
-
-For Windows users, careful with the previous package: you might need to install [Visual Studio C++ 14.0](https://stackoverflow.com/questions/29846087/error-microsoft-visual-c-14-0-is-required-unable-to-find-vcvarsall-bat) to install `zeroc` dependency.
+[**Documentation**](https://biom3d.readthedocs.io/en/latest/installation.html)
 
 ## :hand: Usage
+
+**For Graphical User Interface users, check our new documentation!** [**Documentation-GUI**](https://biom3d.readthedocs.io/en/latest/quick_run_gui.html)
 
 Two options:
 * If you have a trained model (you can use one of the publicly available one), you can do [predictions](#prediction) directly.
@@ -86,11 +62,11 @@ The training images and masks must all be placed inside two distinct folders:
         ├── image_01.tif
         └── ...
 
-About the naming, the only constraint is that the images and masks have the exact same name. All the folders can have any name and the folder structure does not matter.
+About the naming, the only constraint is that the images and masks have the exact same name. All the folders can have any name **with no space in it** and the parent folder structure does not matter.
 
 #### Image format
 
-To help formating the images to the correct format, we have written a preprocessing script (preprocess.py). More details are available in [the next section](#helper-function).
+To help formatting the images to the correct format, we have written a preprocessing script (preprocess.py). More details are available in [the next section](#helper-function).
 
 Constraints:
 - The images and masks must be .tif files. 
