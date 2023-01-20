@@ -157,27 +157,6 @@ class LoadImgPatch:
         else:
             return logit
 
-def load_img_seg_patch(fname, patch_size=(64,64,32)):
-    """
-    Prepare image for model prediction
-    """
-    # load the image
-    img,_ = adaptive_imread(fname)
-
-    # normalize the image
-    img = (img-img.mean())/img.std()
-    img = np.expand_dims(img, 0)
-    img = torch.from_numpy(img).float()
-
-    # define the grid sampler 
-    sub = tio.Subject(img=tio.ScalarImage(tensor=img))
-    patch_size = np.array(patch_size)
-    sampler= tio.data.GridSampler(subject=sub, 
-                            patch_size=patch_size, 
-                            patch_overlap=patch_size//2,
-                            padding_mode='constant')
-    return sampler
-
 def seg_predict_patch(
     img_path,
     model,
@@ -200,7 +179,6 @@ def seg_predict_patch(
     enable_autocast = torch.cuda.is_available() and enable_autocast # tmp, autocast seems to work only with gpu for now... 
     print('AMP {}'.format('enable' if enable_autocast else 'disable'))
 
-    # img = load_img_seg_patch(img_path, patch_size)
     img_loader = LoadImgPatch(
         img_path,
         patch_size,
