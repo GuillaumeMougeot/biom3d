@@ -50,7 +50,9 @@ class UNet(nn.Module):
                 # remove `module.` prefix
                 state_dict = {k.replace("module.", ""): v for k, v in ckpt['model'].items()} 
                 # remove `0.` prefix induced by the sequential wrapper
-                state_dict = {k.replace("0.layers", "layers"): v for k, v in state_dict.items()}  
+                state_dict = {k.replace("0.layers", "layers"): v for k, v in state_dict.items()} 
+                # remove `backbone.` prefix induced by pretraining 
+                state_dict = {k.replace("backbone.", ""): v for k, v in state_dict.items()}
                 print(self.encoder.load_state_dict(state_dict, strict=False))
             elif 'teacher' in ckpt.keys():
                 # remove `module.` prefix
