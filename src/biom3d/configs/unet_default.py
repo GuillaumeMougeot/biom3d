@@ -216,7 +216,7 @@ VALIDATER = Dict(
 
 PREDICTOR = Dict(
     fct="SegPatch",
-    kwargs=Dict(patch_size=PATCH_SIZE, tta=True, median_spacing=MEDIAN_SPACING, use_softmax=USE_SOFTMAX, keep_biggest_only=True),
+    kwargs=Dict(patch_size=PATCH_SIZE, tta=True, median_spacing=MEDIAN_SPACING, use_softmax=USE_SOFTMAX, keep_biggest_only=False),
 )
 
 ############################################################################
