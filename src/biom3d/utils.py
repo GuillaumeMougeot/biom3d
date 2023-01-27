@@ -650,15 +650,16 @@ def center(labels, idx):
     """
     return the barycenter of the pixels of label = idx
     """
-    dim = labels.shape
+    # dim = labels.shape
     
     # matrix of coordinate with the same size as labels
-    x, y, z = np.meshgrid(np.arange(dim[1]),np.arange(dim[0]), np.arange(dim[2]))
-    out = np.stack((y,x,z))
-    out = np.transpose(out, axes=(1,2,3,0))
+    # x, y, z = np.meshgrid(np.arange(dim[1]),np.arange(dim[0]), np.arange(dim[2]))
+    # out = np.stack((y,x,z))
+    # out = np.transpose(out, axes=(1,2,3,0))
     
     # extract the barycenter
-    return np.mean(out[labels==idx], axis=0)
+    # return np.mean(out[labels==idx], axis=0)
+    return np.mean(np.argwhere(labels == idx), axis=0)
 
 def closest(labels, num):
     """
@@ -683,7 +684,8 @@ def volumes(labels):
     """
     returns the volumes of all the labels in the image
     """
-    return [((labels==idx).astype(int)).sum() for idx in np.unique(labels)]
+    # return [((labels==idx).astype(int)).sum() for idx in np.unique(labels)]
+    return np.unique(labels, return_counts=True)[1]
 
 def keep_biggest_volume_centered(msk):
     """
