@@ -687,6 +687,37 @@ def volumes(labels):
     # return [((labels==idx).astype(int)).sum() for idx in np.unique(labels)]
     return np.unique(labels, return_counts=True)[1]
 
+def keep_big_volumes(msk, thres_rate=0.1):
+    """
+    Return the mask (msk) with less labels/volumes. Select only the biggest volumes with
+    the following strategy: minimum_volume = thres_rate * np.sum(np.square(vol))/np.sum(vol)
+    This computation could be seen as the expected volume if the variable volume follows the 
+    probability distribution: p(vol) = vol/np.sum(vol) 
+    """
+    # transform image to label
+    labels, num = measure.label(msk, background=0, return_num=True)
+
+    # compute the volume
+    unq_labels,vol = np.unique(labels, return_counts=True)
+
+    # remove bg
+    unq_labels = unq_labels[1:]
+    vol = vol[1:]
+
+    # compute the expected volume
+    expected_vol = np.sum(np.square(vol))/np.sum(vol)
+    min_vol = expected_vol * thres_rate
+
+    # keep only the labels for which the volume is big enough
+    unq_labels = unq_labels[vol > min_vol]
+
+    # compile the selected volumes into 1 image
+    s = (labels==unq_labels[0])
+    for i in range(1,len(unq_labels)):
+        s += (labels==unq_labels[i])
+
+    return s
+
 def keep_biggest_volume_centered(msk):
     """
     return mask (msk) with only the connected component that is the closest 
