@@ -177,7 +177,7 @@ def seg_predict_patch(
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     enable_autocast = torch.cuda.is_available() and enable_autocast # tmp, autocast seems to work only with gpu for now... 
-    print('AMP {}'.format('enable' if enable_autocast else 'disable'))
+    print('AMP {}'.format('enabled' if enable_autocast else 'disabled'))
 
     img_loader = LoadImgPatch(
         img_path,
