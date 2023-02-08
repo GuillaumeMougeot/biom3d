@@ -150,18 +150,6 @@ def sitk_imread(img_path):
     img_np = sitk.GetArrayFromImage(img)
     return img_np, np.array(img.GetSpacing())
 
-def adaptive_imread(img_path):
-    """
-    use skimage imread or sitk imread depending on the file extension:
-    .tif --> skimage.io.imread
-    .nii.gz --> SimpleITK.imread
-    """
-    extension = img_path[img_path.rfind('.'):]
-    if extension == ".tif":
-        return io.imread(img_path)
-    else:
-        return sitk_imread(img_path)
-
 # ----------------------------------------------------------------------------
 # tif metadata reader and writer
 
