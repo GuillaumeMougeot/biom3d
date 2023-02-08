@@ -75,6 +75,10 @@ def one_hot_fast(values, num_classes=None):
     # get unique values
     uni = np.sort(np.unique(values))
     
+    # if the expected number of class is two then apply a threshold
+    if len(uni)>2 and n_values==2:
+        values = (values>uni[0]).astype(np.uint8)
+    
     # add values if uni is incomplete
     while len(uni)<n_values: 
         uni = np.append(uni, np.uint8(uni[-1]+1))
