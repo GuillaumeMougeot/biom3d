@@ -77,7 +77,7 @@ def one_hot_fast(values, num_classes=None):
     
     # add values if uni is incomplete
     while len(uni)<n_values: 
-        uni = np.append(uni, np.uint8(int(uni[-1])+1))
+        uni = np.append(uni, np.uint8(uni[-1]+1))
         
     # create the one-hot encoded matrix
     out = np.empty((n_values, *values.shape), dtype=np.uint8)
