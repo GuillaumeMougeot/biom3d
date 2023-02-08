@@ -12,6 +12,8 @@ from tqdm import tqdm
 from skimage.io import imsave, imread
 import argparse
 import SimpleITK as sitk
+import tifffile
+from numba import njit
 
 #---------------------------------------------------------------------------
 # Nifti imread
@@ -48,11 +50,40 @@ def one_hot(values, num_classes=None):
     """
     if num_classes==None: n_values = np.max(values) + 1
     else: n_values = num_classes
+        
     # WARNING! potential bug if we have 255 label
     # this function normalize the values to 0,1 if it founds that the maximum of the values if 255
     if values.max()==255: values = (values / 255).astype(np.int64) 
+    
+    # re-order values if needed
+    # for examples if unique values are [2,124,178,250] then they will be changed to [0,1,2,3]
+    uni, inv = np.unique(values, return_inverse=True)
+    if np.array_equal(uni, np.arange(len(uni))):
+        values = np.arange(len(uni))[inv].reshape(values.shape)
+        
     out = np.eye(n_values)[values]
     return np.moveaxis(out, -1, 0).astype(np.int64)
+
+@njit
+def one_hot_fast(values, num_classes=None):
+    """
+    transform the 'values' array into a one_hot encoded one
+    """
+    if num_classes==None: n_values = np.max(values) + 1
+    else: n_values = num_classes
+
+    # get unique values
+    uni = np.sort(np.unique(values))
+    
+    # add values if uni is incomplete
+    while len(uni)<n_values: 
+        uni = np.append(uni, np.uint8(int(uni[-1])+1))
+        
+    # create the one-hot encoded matrix
+    out = np.empty((n_values, *values.shape), dtype=np.uint8)
+    for i in range(n_values):
+        out[i] = (values==uni[i]).astype(np.uint8)
+    return out
 
 class Preprocessing:
     """
@@ -70,6 +101,7 @@ class Preprocessing:
         clipping_bounds=[],
         intensity_moments=[],
         use_tif=True, # use tif instead of npy 
+        split_rate_for_single_img=0.2,
         ):
         """
         Parameters
@@ -91,7 +123,11 @@ class Preprocessing:
         clipping_bounds : list, optional
             A list of length 2 containing the intensity clipping boundary. In nnUNet implementation it corresponds to the 0.5 an 99.5 percentile of the intensities of the voxels of the training images located inside the masks regions.
         intensity_moments : list, optional
-            Mean and variance of the intensity of the images voxels in the masks regions. This value are used to normalize the image. 
+            Mean and variance of the intensity of the images voxels in the masks regions. These values are used to normalize the image. 
+        use_tif : bool, default=True
+            Use tif format to save the preprocessed images instead of npy format.
+        split_rate_for_single_img : float, default=0.2
+            If a single image is present in image/mask folders, then the image/mask are split in 2 portions of size split_rate_for_single_img*largest_dimension for validation and split_rate_for_single_img*(1-largest_dimension) for training.
         """
         assert img_dir!='', "[Error] img_dir must not be empty."
 
@@ -129,9 +165,77 @@ class Preprocessing:
         self.use_tif = use_tif
 
         # self.one_hot = tio.OneHot()
+        self.split_rate_for_single_img = split_rate_for_single_img
+        
+    def _split_single(self):
+        """
+        if there is only a single image/mask in each folder, then split them both in two portions with self.split_rate_for_single_img
+        """
+        # set image and mask name
+        img_fname = self.img_fnames[0]
+        img_path = os.path.join(self.img_dir, img_fname)
+        if self.msk_dir: msk_path = os.path.join(self.msk_dir, img_fname)
+
+        # read image and mask
+        img,_ = adaptive_imread(img_path)
+        if self.msk_dir: msk,_ = adaptive_imread(msk_path)
+
+        # determine the slicing indices to crop an image along its maximum dimension
+        idx = lambda start,end,shape: tuple(slice(s) if s!=max(shape) else slice(start,end) for s in shape)
+
+        # slicing indices of the image
+        # validation is cropped along its largest dimension in the interval [0, self.split_rate_for_single_img*largest_dim]
+        # training is cropped along its largest dimension in the interval [self.split_rate_for_single_img*largest_dim, largest_dim]
+        s = max(img.shape)
+        val_img_idx = idx(start=0, end=int(np.floor(self.split_rate_for_single_img*s)), shape=img.shape)
+        train_img_idx = idx(start=int(np.floor(self.split_rate_for_single_img*s)), end=s, shape=img.shape)
+
+        # idem for the mask indices
+        s = max(msk.shape)
+        val_msk_idx = idx(start=0, end=int(np.floor(self.split_rate_for_single_img*s)), shape=msk.shape)
+        train_msk_idx = idx(start=int(np.floor(self.split_rate_for_single_img*s)), end=s, shape=msk.shape)
+
+        # crop the images and masks
+        val_img = img[val_img_idx]
+        train_img = img[train_img_idx]
+        val_msk = msk[val_msk_idx]
+        train_msk = msk[train_msk_idx]
+
+        # save the images and masks 
+        # validation names start with a 0
+        # training names start with a 1
+
+        # validation
+        val_img_name = "0_"+os.path.basename(img_path).split('.')[0]+'.tif'
+
+        val_img_path = os.path.join(self.img_outdir, val_img_name)
+        tifffile.imwrite(val_img_path, val_img, compression=('zlib', 1))
+
+        val_msk_path = os.path.join(self.msk_outdir, val_img_name)
+        tifffile.imwrite(val_msk_path, val_msk, compression=('zlib', 1))
+
+        # training save
+        train_img_name = "1_"+os.path.basename(img_path).split('.')[0]+'.tif'
+
+        train_img_path = os.path.join(self.img_outdir, train_img_name)
+        tifffile.imwrite(train_img_path, train_img, compression=('zlib', 1))
+
+        train_msk_path = os.path.join(self.msk_outdir, train_img_name)
+        tifffile.imwrite(train_msk_path, train_msk, compression=('zlib', 1))
+
+        # replace self.img_fnames and self.img_dir/self.msk_dir
+        self.img_fnames = os.listdir(self.img_outdir)
+        self.img_dir = self.img_outdir
+        self.msk_dir = self.msk_outdir
+
     
     def prepare(self):
         print("preprocessing...")
+        # if there is only a single image/mask, then split them both in two portions
+        if len(self.img_fnames)==1:
+            print("Single image found per folder. Split the images...")
+            self._split_single()
+            
         for i in tqdm(range(len(self.img_fnames))):
             # set image and mask name
             img_fname = self.img_fnames[i]
@@ -144,11 +248,14 @@ class Preprocessing:
             # extend dim
             img = np.expand_dims(img, 0)
 
-            # one hot encoding for the mask
-            if self.msk_dir: 
-                msk = one_hot(msk, self.num_classes)
+            # one hot encoding for the mask if needed
+            if self.msk_dir and len(msk.shape)!=4: 
+                msk = one_hot_fast(msk, self.num_classes)
                 if self.remove_bg:
                     msk = msk[1:]
+            elif self.msk_dir and len(msk.shape)==4:
+                # normalize each channel
+                msk = (msk > 0).astype(np.uint8)
 
 
             # TODO: remove torchio dependency! 
@@ -188,11 +295,14 @@ class Preprocessing:
             img_fname = os.path.basename(img_path).split('.')[0]
             # save image
             img_out_path = os.path.join(self.img_outdir, img_fname+'.tif')
-            imsave(img_out_path, img)
+            # imsave(img_out_path, img)
+            tifffile.imwrite(img_out_path, img, compression=('zlib', 1))
+
             # save mask
             if self.msk_outdir: 
                 msk_out_path = os.path.join(self.msk_outdir, img_fname+'.tif')
-                imsave(msk_out_path, msk)
+                # imsave(msk_out_path, msk)
+                tifffile.imwrite(msk_out_path, msk, compression=('zlib', 1))
         print("done preprocessing!")
 
 def preprocess(
@@ -231,9 +341,9 @@ if __name__=='__main__':
         help="Path of the images directory")
     parser.add_argument("--msk_dir", type=str,
         help="Path to the masks/labels directory")
-    parser.add_argument("--img_outdir", type=str,
+    parser.add_argument("--img_outdir", type=str, default=None,
         help="Path to the directory of the preprocessed images")
-    parser.add_argument("--msk_outdir", type=str,
+    parser.add_argument("--msk_outdir", type=str, default=None,
         help="Path to the directory of the preprocessed masks/labels")
     parser.add_argument("--num_classes", type=int, default=1,
         help="Number of classes (types of objects) in the dataset. The background is not included. (default=1)")
