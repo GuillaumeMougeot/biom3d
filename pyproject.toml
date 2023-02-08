@@ -30,7 +30,8 @@ dependencies = [
     "tensorboard>=2.8.0",
     "PyYAML>=6.0",
     "torchio>=0.18.84",
-    "protobuf>=3.19.3"
+    "protobuf>=3.19.3",
+    "numba>=0.56.4",
 ]
 keywords=['deep learning', 'image segmentation', 'medical image analysis',
             'medical image segmentation', 'biological image segmentation', 'bio-imaging']
