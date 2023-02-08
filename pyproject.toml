@@ -31,6 +31,7 @@ dependencies = [
     "PyYAML>=6.0",
     "torchio>=0.18.84",
     "protobuf>=3.19.3",
+    "appdirs>=1.4.4",
     "numba>=0.56.4",
 ]
 keywords=['deep learning', 'image segmentation', 'medical image analysis',
