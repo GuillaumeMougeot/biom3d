@@ -105,7 +105,7 @@ class Preprocessing:
         clipping_bounds=[],
         intensity_moments=[],
         use_tif=True, # use tif instead of npy 
-        split_rate_for_single_img=0.2,
+        split_rate_for_single_img=0.25,
         ):
         """
         Parameters
