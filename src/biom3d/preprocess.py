@@ -100,7 +100,7 @@ class Preprocessing:
         msk_dir = None, # if None, only images are preprocesses not the masks
         msk_outdir = None,
         num_classes = None, # just for debug when empty masks are provided
-        remove_bg = True, # keep the background in labels 
+        remove_bg = False, # keep the background in labels 
         median_spacing=[],
         clipping_bounds=[],
         intensity_moments=[],
@@ -317,7 +317,7 @@ def preprocess(
     num_classes,
     remove_bg=True,
 ):
-    Preprocessing(
+    p=Preprocessing(
         img_dir=img_dir,
         msk_dir=msk_dir,
         img_outdir=img_outdir,
@@ -330,6 +330,7 @@ def preprocess(
         # intensity_moments=[69.6876,93.93239],
         use_tif=True,
     ).prepare()
+    return p.img_outdir
 
 #---------------------------------------------------------------------------
 
@@ -355,7 +356,7 @@ if __name__=='__main__':
         help="show the information to copy and paste inside the configuration file (patch_size, batch_size and num_pools).") 
     args = parser.parse_args()
 
-    valid_names[args.name](
+    img_outdir = valid_names[args.name](
         img_dir=args.img_dir,
         msk_dir=args.msk_dir,
         img_outdir=args.img_outdir,
@@ -365,7 +366,7 @@ if __name__=='__main__':
 
     if args.auto_config:
         from biom3d import auto_config
-        median = auto_config.compute_median(path=args.img_outdir)
+        median = auto_config.compute_median(path=img_outdir)
         patch, pool, batch = auto_config.find_patch_pool_batch(dims=median, max_dims=(128,128,128))
         auto_config.display_info(patch, pool, batch)
 
