@@ -364,7 +364,7 @@ if __name__=='__main__':
     )
 
     if args.auto_config:
-        import auto_config
+        from biom3d import auto_config
         median = auto_config.compute_median(path=args.img_outdir)
         patch, pool, batch = auto_config.find_patch_pool_batch(dims=median, max_dims=(128,128,128))
         auto_config.display_info(patch, pool, batch)
