@@ -47,7 +47,10 @@ def main_seg_pred_eval(
     """
     # train
     print("Start training")
-    cfg = import_module(config).CONFIG
+    if config is not None:
+        cfg = import_module(config).CONFIG
+    else:
+        cfg = None
     builder_train = Builder(config=cfg,path=log)
     if freeze_encoder:
         builder_train.model.freeze_encoder()
