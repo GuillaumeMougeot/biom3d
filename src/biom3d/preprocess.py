@@ -315,7 +315,7 @@ def preprocess(
     img_outdir,
     msk_outdir,
     num_classes,
-    remove_bg=True,
+    remove_bg=False,
 ):
     p=Preprocessing(
         img_dir=img_dir,
