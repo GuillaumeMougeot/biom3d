@@ -261,7 +261,7 @@ class Preprocessing:
                 # normalize each channel
                 msk = (msk > 0).astype(np.uint8)
 
-
+            assert len(img.shape)==len(msk.shape)==4
             # TODO: remove torchio dependency! 
             # resample the image if needed
             # if len(self.median_spacing)>0:
@@ -329,7 +329,8 @@ def preprocess(
         # clipping_bounds=[-109.0, 232.0],
         # intensity_moments=[69.6876,93.93239],
         use_tif=True,
-    ).prepare()
+    )
+    p.prepare()
     return p.img_outdir
 
 #---------------------------------------------------------------------------
