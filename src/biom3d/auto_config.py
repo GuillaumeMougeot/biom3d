@@ -1,7 +1,11 @@
 from skimage.io import imread
+import SimpleITK as sitk
 import os
 import numpy as np
 import argparse
+
+# ----------------------------------------------------------------------------
+# path utils
 
 def abs_path(root, listdir_):
     listdir = listdir_.copy()
@@ -12,15 +16,56 @@ def abs_path(root, listdir_):
 def abs_listdir(path):
     return abs_path(path, os.listdir(path))
 
-def compute_median(path):
+# ----------------------------------------------------------------------------
+# Imread utils
+
+def sitk_imread(img_path):
+    """
+    image reader for nii.gz files
+    """
+    img = sitk.ReadImage(img_path)
+    img_np = sitk.GetArrayFromImage(img)
+    return img_np, np.array(img.GetSpacing())
+
+def adaptive_imread(img_path):
+    """
+    use skimage imread or sitk imread depending on the file extension:
+    .tif --> skimage.io.imread
+    .nii.gz --> SimpleITK.imread
+    """
+    extension = img_path[img_path.rfind('.'):]
+    if extension == ".gz":
+        return sitk_imread(img_path)
+    else:
+        return imread(img_path), None
+
+# ----------------------------------------------------------------------------
+# Median computation
+
+def compute_median(path, return_spacing=False):
+    """
+    compute the median shape of a folder of images. If return spacing is True, 
+    then also return the median spacing
+    """
     path_imgs = abs_listdir(path)
     sizes = []
+    if return_spacing: spacings = []
     for i in range(len(path_imgs)):
-        sizes += [list(imread(path_imgs[i]).shape)]
+        img,spacing = adaptive_imread(path_imgs[i])
+        sizes += [list(img.shape)]
+        if return_spacing and (spacing is not None): spacings+=[spacing]
     sizes = np.array(sizes)
     median = np.median(sizes, axis=0).astype(int)
-    # print("median:",median)
+    
+    if return_spacing: 
+        spacings = np.array(spacings)
+        median_spacing = np.median(spacings, axis=0)
+        return median, median_spacing
+
     return median 
+
+# ----------------------------------------------------------------------------
+# Patch pool batch computation
 
 def single_patch_pool(dim, size_limit=7):
     """
@@ -43,7 +88,7 @@ def find_patch_pool_batch(dims, max_dims=(128,128,128), max_pool=5, epsilon=1e-3
     assert that the final dimension size is smaller than max_dims.prod().
     """
     # transform tuples into arrays
-    assert len(dims)==3 or len(dims)==4
+    assert len(dims)==3 or len(dims)==4, print("Dims has not the correct number of dimensions: len(dims)=", len(dims))
     if len(dims)==4:
         dims=dims[1:]
     dims = np.array(dims)
@@ -72,6 +117,9 @@ def find_patch_pool_batch(dims, max_dims=(128,128,128), max_pool=5, epsilon=1e-3
         batch -= 1
     return patch, pool, batch
 
+# ----------------------------------------------------------------------------
+# Display 
+
 def display_info(patch, pool, batch):
     print("*"*20,"YOU CAN COPY AND PASTE THE FOLLOWING LINES INSIDE THE CONFIG FILE", "*"*20)
     print("BATCH_SIZE =", batch)
@@ -91,6 +139,9 @@ def minimal_display(img_dir, max_dims=(128,128,128)):
     for element in out:
         print(element)
 
+# ----------------------------------------------------------------------------
+# Main
+
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description="Dataset preprocessing for training purpose.")
     parser.add_argument("--img_dir", type=str,
@@ -99,15 +150,24 @@ if __name__=='__main__':
         help="Maximum size of one dimension of the patch (default: 128)")  
     parser.add_argument("--min_dis", default=False,  action='store_true', dest='min_dis',
         help="Minimal display. Display only the raw batch, aug_patch, patch and pool")
+    parser.add_argument("--spacing", default=False,  action='store_true', dest='spacing',
+        help="Print median spacing if set. Not compatible with minimal display.")
     args = parser.parse_args()
 
 
     if args.min_dis:
         minimal_display(img_dir=args.img_dir, max_dims=(args.max_dim, args.max_dim, args.max_dim))
-    else:
-        median = compute_median(path=args.img_dir)
+    else: 
+        median = compute_median(path=args.img_dir, return_spacing=args.spacing)
+        
+        if args.spacing: 
+            median_spacing = median[1]
+            median = median[0]
         patch, pool, batch = find_patch_pool_batch(dims=median, max_dims=(args.max_dim, args.max_dim, args.max_dim))
+
         display_info(patch, pool, batch)
+        
+        if args.spacing:print("MEDIAN_SPACING =",list(median_spacing))
 
     # median=compute_median(path='/home/gumougeot/all/codes/python/3dnucleus/data/pancreas/tif_imagesTr_small')
     # median=compute_median(path='/home/gumougeot/all/codes/python/3dnucleus/data/lung/tif_imagesTr')
