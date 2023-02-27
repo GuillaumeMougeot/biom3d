@@ -133,7 +133,7 @@ def create_save_dirs(log_dir, desc, dir_names=['model', 'logs', 'images'], retur
         return list_dirs
 
 # ----------------------------------------------------------------------------
-# image readers
+# image readers and savers
 
 class skimage_imread:
     """
@@ -149,6 +149,14 @@ def sitk_imread(img_path):
     img = sitk.ReadImage(img_path)
     img_np = sitk.GetArrayFromImage(img)
     return img_np, np.array(img.GetSpacing())
+
+def sitk_imsave(img_path, img, spacing):
+    """
+    image saver for nii gz files
+    """
+    img_out = sitk.GetImageFromArray(img)
+    img_out.SetSpacing(spacing)
+    sitk.WriteImage(img_out, img_path)
 
 # ----------------------------------------------------------------------------
 # tif metadata reader and writer

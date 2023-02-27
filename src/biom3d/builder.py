@@ -509,6 +509,9 @@ class Builder:
     def run_prediction_folder(self, dir_in, dir_out, return_logit=False):
         """
         compute a prediction for one image, just for visualizing
+
+        Parameters
+        ----------
         """
         fnames_in = sorted(utils.abs_listdir(dir_in))
         if not os.path.isdir(dir_out):
@@ -525,8 +528,17 @@ class Builder:
         for i, img_path in enumerate(fnames_in):
             print("running prediction for image: ", img_path)
             pred = self.run_prediction_single(img_path=img_path, return_logit=return_logit)
-            print("Saving images in", fnames_out[i]+".tif")
-            imsave(fnames_out[i]+".tif", pred)
+
+            # use nifti format?
+            if img_path[img_path.rfind('.'):]=='.gz':
+                print("Saving images in", fnames_out[i]+".nii.gz")
+                spacing = utils.sitk_imread(img_path)[1]
+                utils.sitk_imsave(fnames_out[i]+".nii.gz", pred, spacing)
+            # use tif format by default
+            else:
+                print("Saving images in", fnames_out[i]+".tif")
+                imsave(fnames_out[i]+".tif", pred)
+                
     
     def load_train(self, 
         path, 
