@@ -10,6 +10,8 @@ from torch.utils.data import DataLoader
 # from monai.data import ThreadDataLoader
 import pandas as pd
 # import torch.distributed as dist
+import numpy as np
+from scipy import special
 
 from biom3d import register
 from biom3d import callbacks as clbk
@@ -530,16 +532,18 @@ class Builder:
 
             # use nifti format?
             if img_path[img_path.rfind('.'):]=='.gz':
-                pred = self.run_prediction_single(img_path=img_path, return_logit=True)
+                logit = self.run_prediction_single(img_path=img_path, return_logit=True)
                 print("Saving images in", fnames_out[i]+".nii.gz")
                 
                 # get spacing
                 spacing = utils.sitk_imread(img_path)[1]
 
                 # if prediction has 4 dimensions then must be converted to 3 dimensions
-                # if len(pred.shape)==4:
-
-
+                if len(pred.shape)==4:
+                    sigmoid = 1 / (1 + np.exp(-logit))
+                    softmax = special.softmax(logit, axis=0).argmax(axis=0)+1
+                    where = np.max((sigmoid>0.5).astype(int), axis=0)
+                    pred = np.where(where>0, softmax, 0)
 
                 utils.sitk_imsave(fnames_out[i]+".nii.gz", pred, spacing)
             # use tif format by default
