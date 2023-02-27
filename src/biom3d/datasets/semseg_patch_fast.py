@@ -3,17 +3,14 @@
 # solution: patch approach with the whole dataset into memory 
 #---------------------------------------------------------------------------
 
-from json import load
 import os
 import numpy as np 
 import torchio as tio
 import random 
-import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 # from monai.data import CacheDataset
 import pandas as pd 
-from tqdm import tqdm 
-from skimage.io import imread
+from tifffile import imread
 
 from biom3d.utils import centered_pad, get_folds_train_test_df
 
@@ -97,40 +94,14 @@ def random_crop(img, msk, crop_shape):
 # #         pad_msk = pad_msk[:,:final_size[0],:final_size[1],:final_size[2]]
 #     return pad_img, pad_msk
 
-# def random_pad(img, msk, final_size):
-#     """
-#     [CAREFUL!] I THINK THIS FUNCTION HAS SOME BUGS (WITH SMALL IMAGES)
-#     randomly pad an image with zeros to reach the final size. 
-#     if the image is bigger than the expected size, then the image is cropped.
-#     """
-#     img_shape = np.array(img.shape)[1:]
-#     size_range = (final_size-img_shape) * (final_size-img_shape > 0) # needed if the original image is bigger than the final one
-#     # rand_start = np.array([random.randint(0,c) for c in size_range])
-#     rand_start = np.random.randint(0,np.maximum(1,size_range))
-
-#     rand_end = final_size-(img_shape+rand_start)
-#     rand_end = rand_end * (rand_end > 0)
-
-#     pad = np.append([[0,0]],np.vstack((rand_start, rand_end)).T,axis=0)
-#     pad_img = np.pad(img, pad, 'constant', constant_values=0)
-#     pad_msk = np.pad(msk, pad, 'constant', constant_values=0)
-#     # pad_img = torch.nn.functional.pad(img, tuple(pad.flatten().tolist()), 'constant', value=0)
-
-#     # crop the image if needed
-#     if ((final_size-np.array(pad_img.shape)) < 0).any(): # keeps only the negative values
-#         pad_img = pad_img[:,:final_size[0],:final_size[1],:final_size[2]]
-#         pad_msk = pad_msk[:,:final_size[0],:final_size[1],:final_size[2]]
-#     return pad_img, pad_msk
-
-def random_crop_pad(img, msk, final_size, fg_rate=0.33, fg_margin=np.zeros(3), remove_bg=False):
+def random_crop_pad(img, msk, final_size, fg_rate=0.33, fg_margin=np.zeros(3)):
     """
     random crop and pad if needed.
     """
     # choose if using foreground centrered or random alignement
     force_fg = random.random()
     if fg_rate>0 and force_fg<fg_rate:
-        start_rnd = 1 if remove_bg else 0
-        rnd_label = random.randint(start_rnd,msk.shape[0]-1) # choose a random label
+        rnd_label = random.randint(0,msk.shape[0]-1) # choose a random label
         
         locations = np.argwhere(msk[rnd_label] == 1)
         
@@ -148,7 +119,7 @@ def random_crop_pad(img, msk, final_size, fg_rate=0.33, fg_margin=np.zeros(3), r
         img, msk = centered_pad(img=img, msk=msk, final_size=final_size)
     return img, msk
 
-def random_crop_resize(img, msk, crop_scale, final_size, fg_rate=0.33, fg_margin=np.zeros(3), remove_bg=False):
+def random_crop_resize(img, msk, crop_scale, final_size, fg_rate=0.33, fg_margin=np.zeros(3)):
     """
     random crop and resize if needed.
     Args:
@@ -163,8 +134,7 @@ def random_crop_resize(img, msk, crop_scale, final_size, fg_rate=0.33, fg_margin
     # choose if using foreground centrered or random alignement
     force_fg = random.random()
     if fg_rate>0 and force_fg<fg_rate:
-        start_rnd = 1 if remove_bg else 0
-        rnd_label = random.randint(start_rnd,msk.shape[0]-1) # choose a random label
+        rnd_label = random.randint(0,msk.shape[0]-1) # choose a random label
         
         locations = np.argwhere(msk[rnd_label] == 1)
         
@@ -207,7 +177,6 @@ class SemSeg3DPatchFast(Dataset):
         aug_patch_size = None,
         fg_rate = 0.33, # if > 0, force the use of foreground, needs to run some pre-computations (note: better use the foreground scheduler)
         crop_scale = 1.0, # if > 1, then use random_crop_resize instead of random_crop_pad
-        use_softmax = True, # if true, means that the output is one_hot encoded for softmax use
         load_data = False, # if True, loads the all dataset into computer memory (faster but more memory expensive)
         ):
 
@@ -316,7 +285,7 @@ class SemSeg3DPatchFast(Dataset):
                 tio.RandomAffine(p=0.25, scales=(0.7,1.4), degrees=degrees, translation=0),
                 tio.Crop(p=1, cropping=cropping),
 
-                tio.RandomFlip(p=1, axes=(0,1,2)),
+                tio.RandomFlip(p=0.7, axes=(0,1,2)),
                 # tio.RandomElasticDeformation(p=0.2, num_control_points=4, locked_borders=1),
                 # tio.OneOf({
                 #     tio.RandomAffine(scales=0.1, degrees=10, translation=0): 0.8,
@@ -337,7 +306,6 @@ class SemSeg3DPatchFast(Dataset):
 
         # self.fg_rate = fg_rate if self.train else 1
         self.fg_rate = fg_rate
-        self.use_softmax = use_softmax
         self.crop_scale = crop_scale 
         assert self.crop_scale >= 1, "[Error] crop_scale must be higher or equalt to 1"
     
@@ -373,10 +341,6 @@ class SemSeg3DPatchFast(Dataset):
             img = imread(img_path)
             msk = imread(msk_path)
 
-        # remove bg channel if use_softmax is False
-        if not self.use_softmax:
-            msk = msk[1:]
-
         # random crop and pad
         final_size = self.aug_patch_size if self.use_aug else self.patch_size
         fg_margin = self.fg_margin if self.use_aug else np.zeros(3)
@@ -388,7 +352,6 @@ class SemSeg3DPatchFast(Dataset):
                 final_size=final_size,
                 fg_rate=self.fg_rate,
                 fg_margin=fg_margin,
-                remove_bg=self.use_softmax,
                 )
         else:
             img, msk = random_crop_pad(
@@ -397,7 +360,6 @@ class SemSeg3DPatchFast(Dataset):
                 final_size=final_size,
                 fg_rate=self.fg_rate,
                 fg_margin=fg_margin,
-                remove_bg=self.use_softmax,
                 )
 
         # data augmentation
@@ -408,9 +370,6 @@ class SemSeg3DPatchFast(Dataset):
         
             # to float for msk
             msk = msk.float()
-
-        elif not self.use_softmax:
-            msk = msk.astype(float)
         
         return img, msk
 

@@ -298,76 +298,69 @@ class Preprocessing:
             # save the image and the mask as tif
             img_fname = os.path.basename(img_path).split('.')[0]
             # save image
-            img_out_path = os.path.join(self.img_outdir, img_fname+'.tif')
-            # imsave(img_out_path, img)
-            tifffile.imwrite(img_out_path, img, compression=('zlib', 1))
+
+            # save image as tif
+            if self.use_tif:
+                img_out_path = os.path.join(self.img_outdir, img_fname+'.tif')
+                # tifffile.imwrite(img_out_path, img, compression=('zlib', 1))
+                tifffile.imwrite(img_out_path, img) # no compression --> increased training speed!
+            # save image as npy
+            else:
+                img_out_path = os.path.join(self.img_outdir, img_fname+'.npy')
+                np.save(img_out_path, img)
 
             # save mask
             if self.msk_outdir: 
-                msk_out_path = os.path.join(self.msk_outdir, img_fname+'.tif')
                 # imsave(msk_out_path, msk)
-                tifffile.imwrite(msk_out_path, msk, compression=('zlib', 1))
+                # save image as tif
+                if self.use_tif:
+                    msk_out_path = os.path.join(self.msk_outdir, img_fname+'.tif')
+                    # tifffile.imwrite(msk_out_path, msk, compression=('zlib', 1))
+                    tifffile.imwrite(msk_out_path, msk) # no compression --> increased training spee!
+                # save image as npy
+                else:
+                    msk_out_path = os.path.join(self.msk_outdir, img_fname+'.npy')
+                    np.save(img_out_path, img)
         print("done preprocessing!")
-
-def preprocess(
-    img_dir,
-    msk_dir,
-    img_outdir,
-    msk_outdir,
-    num_classes,
-    remove_bg=False,
-):
-    p=Preprocessing(
-        img_dir=img_dir,
-        msk_dir=msk_dir,
-        img_outdir=img_outdir,
-        msk_outdir=msk_outdir,
-        num_classes=num_classes,
-
-        remove_bg=remove_bg,
-        # median_spacing=[0.79492199, 0.79492199, 2.5],
-        # clipping_bounds=[-109.0, 232.0],
-        # intensity_moments=[69.6876,93.93239],
-        use_tif=True,
-    )
-    p.prepare()
-    return p.img_outdir
 
 #---------------------------------------------------------------------------
 
 if __name__=='__main__':
-    valid_names = {
-        "preprocess": preprocess,
-    }
 
     parser = argparse.ArgumentParser(description="Dataset preprocessing for training purpose.")
-    parser.add_argument("-n", "--name", type=str, default="preprocess",
-        help="Name of the tested method. Valid names: {}".format(list(valid_names.keys())))
     parser.add_argument("--img_dir", type=str,
         help="Path of the images directory")
-    parser.add_argument("--msk_dir", type=str,
-        help="Path to the masks/labels directory")
+    parser.add_argument("--msk_dir", type=str, default=None,
+        help="(default=None) Path to the masks/labels directory")
     parser.add_argument("--img_outdir", type=str, default=None,
-        help="Path to the directory of the preprocessed images")
+        help="(default=None) Path to the directory of the preprocessed images")
     parser.add_argument("--msk_outdir", type=str, default=None,
-        help="Path to the directory of the preprocessed masks/labels")
+        help="(default=None) Path to the directory of the preprocessed masks/labels")
     parser.add_argument("--num_classes", type=int, default=1,
-        help="Number of classes (types of objects) in the dataset. The background is not included. (default=1)")
+        help="(default=1) Number of classes (types of objects) in the dataset. The background is not included.")
+    parser.add_argument("--use_tif", default=True,  action='store_true', dest='use_tif',
+        help="(default=True) Whether to use tif format to save the preprocessed images instead of npy format. Tif files are easily readable with viewers such as Napari and takes fewer disk space but are slower to load and may slow down the training process.") 
+    parser.add_argument("--remove_bg", default=True,  action='store_true', dest='remove_bg',
+        help="(default=True) Remover the background. Defined to be used with sigmoid activation maps (not softmax).") 
     parser.add_argument("--auto_config", default=False,  action='store_true', dest='auto_config',
-        help="show the information to copy and paste inside the configuration file (patch_size, batch_size and num_pools).") 
+        help="(default=False) Show the information to copy and paste inside the configuration file (patch_size, batch_size and num_pools).") 
     args = parser.parse_args()
 
-    img_outdir = valid_names[args.name](
+    p=Preprocessing(
         img_dir=args.img_dir,
         msk_dir=args.msk_dir,
         img_outdir=args.img_outdir,
         msk_outdir=args.msk_outdir,
-        num_classes=args.num_classes+1, # +1 for the background
+        num_classes=args.num_classes+1,
+        remove_bg=args.remove_bg,
+        use_tif=args.use_tif,
     )
+
+    p.prepare()
 
     if args.auto_config:
         from biom3d import auto_config
-        median = auto_config.compute_median(path=img_outdir)
+        median = auto_config.compute_median(path=p.img_outdir)
         patch, pool, batch = auto_config.find_patch_pool_batch(dims=median, max_dims=(128,128,128))
         auto_config.display_info(patch, pool, batch)
 
