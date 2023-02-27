@@ -302,8 +302,8 @@ class Preprocessing:
             # save image as tif
             if self.use_tif:
                 img_out_path = os.path.join(self.img_outdir, img_fname+'.tif')
-                # tifffile.imwrite(img_out_path, img, compression=('zlib', 1))
-                tifffile.imwrite(img_out_path, img) # no compression --> increased training speed!
+                tifffile.imwrite(img_out_path, img, compression=('zlib', 1))
+                # tifffile.imwrite(img_out_path, img) # no compression --> increased training speed!
             # save image as npy
             else:
                 img_out_path = os.path.join(self.img_outdir, img_fname+'.npy')
@@ -315,8 +315,8 @@ class Preprocessing:
                 # save image as tif
                 if self.use_tif:
                     msk_out_path = os.path.join(self.msk_outdir, img_fname+'.tif')
-                    # tifffile.imwrite(msk_out_path, msk, compression=('zlib', 1))
-                    tifffile.imwrite(msk_out_path, msk) # no compression --> increased training spee!
+                    tifffile.imwrite(msk_out_path, msk, compression=('zlib', 1))
+                    # tifffile.imwrite(msk_out_path, msk) # no compression --> increased training spee!
                 # save image as npy
                 else:
                     msk_out_path = os.path.join(self.msk_outdir, img_fname+'.npy')

@@ -370,6 +370,9 @@ class SemSeg3DPatchFast(Dataset):
         
             # to float for msk
             msk = msk.float()
+        else:
+            # convert mask to float for validation
+            msk = msk.astype(float)
         
         return img, msk
 
