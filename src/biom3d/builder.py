@@ -527,15 +527,24 @@ class Builder:
 
         for i, img_path in enumerate(fnames_in):
             print("running prediction for image: ", img_path)
-            pred = self.run_prediction_single(img_path=img_path, return_logit=return_logit)
 
             # use nifti format?
             if img_path[img_path.rfind('.'):]=='.gz':
+                pred = self.run_prediction_single(img_path=img_path, return_logit=True)
                 print("Saving images in", fnames_out[i]+".nii.gz")
+                
+                # get spacing
                 spacing = utils.sitk_imread(img_path)[1]
+
+                # if prediction has 4 dimensions then must be converted to 3 dimensions
+                # if len(pred.shape)==4:
+
+
+
                 utils.sitk_imsave(fnames_out[i]+".nii.gz", pred, spacing)
             # use tif format by default
             else:
+                pred = self.run_prediction_single(img_path=img_path, return_logit=return_logit)
                 print("Saving images in", fnames_out[i]+".tif")
                 imsave(fnames_out[i]+".tif", pred)
                 
