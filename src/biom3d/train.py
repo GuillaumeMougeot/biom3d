@@ -232,11 +232,11 @@ if __name__=='__main__':
         help="Whether the encoder is a model encoder or a simple encoder.") 
     parser.add_argument("-fr", "--freeze_encoder", default=False,  action='store_true', dest='freeze_encoder',
         help="Whether to freeze or not the encoder.") 
-    parser.add_argument("-i", "--dir_in", type=str, default="/home/gumougeot/all/codes/python/3dnucleus/data/pancreas/imagesTs_small",
+    parser.add_argument("-i", "--dir_in", type=str, default=None,
         help="Path to the input image directory")
-    parser.add_argument("-o", "--dir_out", type=str, default="/mnt/52547A99547A8011/data/preds",
+    parser.add_argument("-o", "--dir_out", type=str, default=None,
         help="Path to the output prediction directory")  
-    parser.add_argument("-a", "--dir_lab", type=str, default="/home/gumougeot/all/codes/python/3dnucleus/data/pancreas/labelsTs_small",
+    parser.add_argument("-a", "--dir_lab", type=str, default=None,
         help="Path to the input image directory")  
     args = parser.parse_args()
 
