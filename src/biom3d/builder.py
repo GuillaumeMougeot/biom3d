@@ -532,7 +532,7 @@ class Builder:
             # TODO: to remove the code below, this is just a fix 
             if img_path[img_path.rfind('.'):]=='.gz':
                 logit = self.run_prediction_single(img_path=img_path, return_logit=True)
-                print("Saving images in", fnames_out[i]+".nii.gz")
+                print("Saving images in", fnames_out[i]+".gz")
                 
                 # get spacing
                 spacing = utils.sitk_imread(img_path)[1]
@@ -549,7 +549,7 @@ class Builder:
                     # pred = special.softmax(logit, axis=0).argmax(axis=0)
                     pred = (logit.softmax(dim=0).argmax(dim=0)).int() 
 
-                utils.sitk_imsave(fnames_out[i]+".nii.gz", pred.numpy().astype(np.uint8), spacing)
+                utils.sitk_imsave(fnames_out[i]+".gz", pred.numpy().astype(np.uint8), spacing)
             # use tif format by default
             else:
                 pred = self.run_prediction_single(img_path=img_path, return_logit=return_logit)
