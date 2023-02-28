@@ -244,7 +244,7 @@ def seg_predict_patch(
 
     if return_logit: 
         print("Post-processing done!")
-        return logit.numpy()
+        return logit
 
     if use_softmax:
         out = (logit.softmax(dim=0).argmax(dim=0)).int()

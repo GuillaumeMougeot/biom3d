@@ -4,14 +4,12 @@
 #---------------------------------------------------------------------------
 
 import os
-from skimage.io import imsave
+import tifffile 
 import torch
 from torch.utils.data import DataLoader
 # from monai.data import ThreadDataLoader
-import pandas as pd
 # import torch.distributed as dist
 import numpy as np
-from scipy import special
 
 from biom3d import register
 from biom3d import callbacks as clbk
@@ -530,7 +528,8 @@ class Builder:
         for i, img_path in enumerate(fnames_in):
             print("running prediction for image: ", img_path)
 
-            # use nifti format?
+            # use nifti format
+            # TODO: to remove the code below, this is just a fix 
             if img_path[img_path.rfind('.'):]=='.gz':
                 logit = self.run_prediction_single(img_path=img_path, return_logit=True)
                 print("Saving images in", fnames_out[i]+".nii.gz")
@@ -539,18 +538,23 @@ class Builder:
                 spacing = utils.sitk_imread(img_path)[1]
 
                 # if prediction has 4 dimensions then must be converted to 3 dimensions
-                if len(pred.shape)==4:
-                    sigmoid = 1 / (1 + np.exp(-logit))
-                    softmax = special.softmax(logit, axis=0).argmax(axis=0)+1
-                    where = np.max((sigmoid>0.5).astype(int), axis=0)
-                    pred = np.where(where>0, softmax, 0)
+                if len(logit.shape)==4:
+                    # strategy: for each voxel, if the sigmoid is positive then take 
+                    # the argmax of softmax of the channel dim (dim=0) else 0
+                    sigmoid = (logit.sigmoid()>0.5).int()
+                    softmax = (logit.softmax(dim=0).argmax(dim=0)).int()+1
+                    cond = sigmoid.max(dim=0).values
+                    pred = torch.where(cond>0, softmax, 0)
+                else: 
+                    # pred = special.softmax(logit, axis=0).argmax(axis=0)
+                    pred = (logit.softmax(dim=0).argmax(dim=0)).int() 
 
-                utils.sitk_imsave(fnames_out[i]+".nii.gz", pred, spacing)
+                utils.sitk_imsave(fnames_out[i]+".nii.gz", pred.numpy().astype(np.uint8), spacing)
             # use tif format by default
             else:
                 pred = self.run_prediction_single(img_path=img_path, return_logit=return_logit)
                 print("Saving images in", fnames_out[i]+".tif")
-                imsave(fnames_out[i]+".tif", pred)
+                tifffile.imwrite(fnames_out[i]+".tif", pred, compression=('zlib', 1))
                 
     
     def load_train(self, 
