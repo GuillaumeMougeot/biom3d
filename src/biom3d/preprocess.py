@@ -293,7 +293,7 @@ class Preprocessing:
 
             # set image type
             img = img.astype(np.float32)
-            if self.msk_dir: msk = msk.astype(np.byte)
+            if self.msk_dir: msk = msk.astype(np.uint8)
 
             # save the image and the mask as tif
             img_fname = os.path.basename(img_path).split('.')[0]
@@ -320,7 +320,7 @@ class Preprocessing:
                 # save image as npy
                 else:
                     msk_out_path = os.path.join(self.msk_outdir, img_fname+'.npy')
-                    np.save(img_out_path, img)
+                    np.save(msk_out_path, msk)
         print("done preprocessing!")
 
 #---------------------------------------------------------------------------
@@ -338,8 +338,8 @@ if __name__=='__main__':
         help="(default=None) Path to the directory of the preprocessed masks/labels")
     parser.add_argument("--num_classes", type=int, default=1,
         help="(default=1) Number of classes (types of objects) in the dataset. The background is not included.")
-    parser.add_argument("--use_tif", default=True,  action='store_true', dest='use_tif',
-        help="(default=True) Whether to use tif format to save the preprocessed images instead of npy format. Tif files are easily readable with viewers such as Napari and takes fewer disk space but are slower to load and may slow down the training process.") 
+    parser.add_argument("--use_npy", default=False,  action='store_true', dest='use_npy',
+        help="(default=True) Whether to use npy format to save the preprocessed images instead of tif format. Tif files are easily readable with viewers such as Napari and takes fewer disk space but are slower to load and may slow down the training process.") 
     parser.add_argument("--remove_bg", default=True,  action='store_true', dest='remove_bg',
         help="(default=True) Remover the background. Defined to be used with sigmoid activation maps (not softmax).") 
     parser.add_argument("--auto_config", default=False,  action='store_true', dest='auto_config',
@@ -353,12 +353,12 @@ if __name__=='__main__':
         msk_outdir=args.msk_outdir,
         num_classes=args.num_classes+1,
         remove_bg=args.remove_bg,
-        use_tif=args.use_tif,
+        use_tif=not args.use_npy,
     )
 
     p.prepare()
 
-    if args.auto_config:
+    if args.auto_config and not args.use_npy:
         from biom3d import auto_config
         median = auto_config.compute_median(path=p.img_outdir)
         patch, pool, batch = auto_config.find_patch_pool_batch(dims=median, max_dims=(128,128,128))
