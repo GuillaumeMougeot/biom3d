@@ -293,7 +293,7 @@ class Preprocessing:
 
             # set image type
             img = img.astype(np.float32)
-            if self.msk_dir: msk = msk.astype(np.uint8)
+            if self.msk_dir: msk = msk.astype(np.byte)
 
             # save the image and the mask as tif
             img_fname = os.path.basename(img_path).split('.')[0]
@@ -303,6 +303,7 @@ class Preprocessing:
             if self.use_tif:
                 img_out_path = os.path.join(self.img_outdir, img_fname+'.tif')
                 tifffile.imwrite(img_out_path, img, compression=('zlib', 1))
+                # imsave(img_out_path, img)
                 # tifffile.imwrite(img_out_path, img) # no compression --> increased training speed!
             # save image as npy
             else:
@@ -316,6 +317,7 @@ class Preprocessing:
                 if self.use_tif:
                     msk_out_path = os.path.join(self.msk_outdir, img_fname+'.tif')
                     tifffile.imwrite(msk_out_path, msk, compression=('zlib', 1))
+                    # imsave(msk_out_path, msk)
                     # tifffile.imwrite(msk_out_path, msk) # no compression --> increased training spee!
                 # save image as npy
                 else:

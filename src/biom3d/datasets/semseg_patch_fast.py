@@ -15,8 +15,20 @@ from tifffile import imread
 from biom3d.utils import centered_pad, get_folds_train_test_df
 
 #---------------------------------------------------------------------------
+# imread utilities 
+
+def adaptive_imread(img_path):
+    extension = img_path[img_path.rfind('.'):]
+    if extension == ".tif":
+        return imread(img_path)
+    elif extension == '.npy':
+        return np.load(img_path)
+    else:
+        print('[Error] extension unknown:', extension)
+
+#---------------------------------------------------------------------------
 # utilities to random crops
-    
+
 # create a patch centered on this voxel
 def centered_crop(img, msk, center, crop_shape):
     """
@@ -211,35 +223,35 @@ class SemSeg3DPatchFast(Dataset):
             self.val_imgs = all_set[:val_split]
             testset = []
         
+        self.train = train
+        if self.train:
+            print("current fold: {}\n \
+            length of the training set: {}\n \
+            length of the validation set: {}\n \
+            length of the testing set: {}".format(fold, len(self.train_imgs), len(self.val_imgs), len(testset)))
+
+        self.fnames = self.train_imgs if self.train else self.val_imgs
+
+        # print train and validation image names
+        print("{} images: {}".format("Training" if self.train else "Validation", self.fnames))
+        
         if self.load_data:
             print("Loading the whole dataset into computer memory...")
-            def load_data(imgs_fnames):
+            def load_data(fnames):
                 imgs_data = []
                 msks_data = []
-                for idx in range(len(imgs_fnames)):
+                for idx in range(len(fnames)):
                     # file names
-                    img_path = os.path.join(self.img_dir, imgs_fnames[idx])
-                    msk_path = os.path.join(self.msk_dir, imgs_fnames[idx])
+                    img_path = os.path.join(self.img_dir, fnames[idx])
+                    msk_path = os.path.join(self.msk_dir, fnames[idx])
 
                     # load img and msks
                     imgs_data += [imread(img_path)]
                     msks_data += [imread(msk_path)]
                 return imgs_data, msks_data
 
-            self.train_imgs_data, self.train_msks_data = load_data(self.train_imgs)
-            self.val_imgs_data, self.val_msks_data = load_data(self.val_imgs)
+            self.imgs_data, self.msks_data = load_data(self.fnames)
             print("Done!")
-            
-        self.train = train
-        print("current fold: {}\n \
-        length of the training set: {}\n \
-        length of the validation set: {}\n \
-        length of the testing set: {}\n \
-        is training mode active?: {}".format(fold, len(self.train_imgs), len(self.val_imgs), len(testset), self.train))
-
-        # print train and validation image names
-        print("Training images:", self.train_imgs)
-        print("Validation images:", self.val_imgs)
 
         self.use_aug = use_aug
 
@@ -307,7 +319,7 @@ class SemSeg3DPatchFast(Dataset):
         # self.fg_rate = fg_rate if self.train else 1
         self.fg_rate = fg_rate
         self.crop_scale = crop_scale 
-        assert self.crop_scale >= 1, "[Error] crop_scale must be higher or equalt to 1"
+        assert self.crop_scale >= 1, "[Error] crop_scale must be higher or equal to 1"
     
     def set_fg_rate(self,value):
         """
@@ -322,24 +334,19 @@ class SemSeg3DPatchFast(Dataset):
     def __getitem__(self, idx):
 
         if self.load_data:
-            if self.train:
-                img = self.train_imgs_data[idx%len(self.train_imgs_data)]
-                msk = self.train_msks_data[idx%len(self.train_msks_data)]
-            else: 
-                img = self.val_imgs_data[idx%len(self.val_imgs_data)]
-                msk = self.val_msks_data[idx%len(self.val_msks_data)]
+            img = self.imgs_data[idx%len(self.imgs_data)]
+            msk = self.msks_data[idx%len(self.msks_data)]
         else:
-            fnames = self.train_imgs if self.train else self.val_imgs
             # img_fname = np.random.choice(fnames)
-            img_fname = fnames[idx%len(fnames)]
+            img_fname = self.fnames[idx%len(self.fnames)]
             
             # file names
             img_path = os.path.join(self.img_dir, img_fname)
             msk_path = os.path.join(self.msk_dir, img_fname)
 
             # read the images
-            img = imread(img_path)
-            msk = imread(msk_path)
+            img = adaptive_imread(img_path)
+            msk = adaptive_imread(msk_path)
 
         # random crop and pad
         final_size = self.aug_patch_size if self.use_aug else self.patch_size
