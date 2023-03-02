@@ -166,7 +166,7 @@ MODEL = Dict(
     fct="UNet3DVGGDeep", # from the register
     kwargs = Dict(
         num_pools=NUM_POOLS,
-        num_classes=NUM_CLASSES,
+        num_classes=NUM_CLASSES if not USE_SOFTMAX else NUM_CLASSES+1,
         factor = 32,
         use_deep=USE_DEEP_SUPERVISION,
     )
