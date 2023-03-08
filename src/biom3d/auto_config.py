@@ -148,26 +148,29 @@ if __name__=='__main__':
         help="Path of the images directory")
     parser.add_argument("--max_dim", type=int, default=128,
         help="Maximum size of one dimension of the patch (default: 128)")  
-    parser.add_argument("--min_dis", default=False,  action='store_true', dest='min_dis',
-        help="Minimal display. Display only the raw batch, aug_patch, patch and pool")
+    # parser.add_argument("--min_dis", default=False,  action='store_true', dest='min_dis',
+    #     help="Minimal display. Display only the raw batch, aug_patch, patch and pool")
     parser.add_argument("--spacing", default=False,  action='store_true', dest='spacing',
-        help="Print median spacing if set. Not compatible with minimal display.")
+        help="Print median spacing if set.")
+    parser.add_argument("--median", default=False,  action='store_true', dest='median',
+        help="Print the median.")
     args = parser.parse_args()
 
 
-    if args.min_dis:
-        minimal_display(img_dir=args.img_dir, max_dims=(args.max_dim, args.max_dim, args.max_dim))
-    else: 
-        median = compute_median(path=args.img_dir, return_spacing=args.spacing)
-        
-        if args.spacing: 
-            median_spacing = median[1]
-            median = median[0]
-        patch, pool, batch = find_patch_pool_batch(dims=median, max_dims=(args.max_dim, args.max_dim, args.max_dim))
+    # if args.min_dis:
+    #     minimal_display(img_dir=args.img_dir, max_dims=(args.max_dim, args.max_dim, args.max_dim))
+    # else: 
+    median = compute_median(path=args.img_dir, return_spacing=args.spacing)
+    
+    if args.spacing: 
+        median_spacing = median[1]
+        median = median[0]
+    patch, pool, batch = find_patch_pool_batch(dims=median, max_dims=(args.max_dim, args.max_dim, args.max_dim))
 
-        display_info(patch, pool, batch)
-        
-        if args.spacing:print("MEDIAN_SPACING =",list(median_spacing))
+    display_info(patch, pool, batch)
+    
+    if args.spacing:print("MEDIAN_SPACING =",list(median_spacing))
+    if args.median:print("MEDIAN =", list(median))
 
     # median=compute_median(path='/home/gumougeot/all/codes/python/3dnucleus/data/pancreas/tif_imagesTr_small')
     # median=compute_median(path='/home/gumougeot/all/codes/python/3dnucleus/data/lung/tif_imagesTr')
