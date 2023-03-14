@@ -62,8 +62,8 @@ class Dice(Metric):
         inputs = inputs.reshape(-1)
         targets = targets.reshape(-1)
 
-        intersection = (inputs * targets).sum(self.dim)                            
-        dice = (2.*intersection + smooth)/(inputs.sum(self.dim) + targets.sum(self.dim) + smooth)  
+        intersection = (inputs * targets).sum(dim=self.dim)                            
+        dice = (2.*intersection + smooth)/(inputs.sum(dim=self.dim) + targets.sum(dim=self.dim) + smooth)  
 
         self.val = 1 - dice.mean() if self.training else dice.mean()
         return self.val 
@@ -98,8 +98,8 @@ class DiceBCE(Metric):
             inputs = inputs.sigmoid()
 
 
-        intersection = (inputs * targets).sum(self.dim)                            
-        dice_loss = 1 - (2.*intersection + smooth)/(inputs.sum(self.dim) + targets.sum(self.dim) + smooth)
+        intersection = (inputs * targets).sum(dim=self.dim)                            
+        dice_loss = 1 - (2.*intersection + smooth)/(inputs.sum(dim=self.dim) + targets.sum(dim=self.dim) + smooth)
         Dice_BCE = BCE + dice_loss.mean()
         
         self.val = Dice_BCE
@@ -124,8 +124,8 @@ class IoU(Metric):
         
         #intersection is equivalent to True Positive count
         #union is the mutually inclusive area of all labels & predictions 
-        intersection = (inputs * targets).sum(self.dim)
-        total = (inputs + targets).sum(self.dim)
+        intersection = (inputs * targets).sum(dim=self.dim)
+        total = (inputs + targets).sum(dim=self.dim)
         union = total - intersection 
         
         iou = (intersection + smooth)/(union + smooth)
