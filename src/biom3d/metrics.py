@@ -45,9 +45,10 @@ class Metric(nn.Module):
 # Metrics/losses for semantic segmentation
 
 class Dice(Metric):
-    def __init__(self, use_softmax=False, name=None):
+    def __init__(self, use_softmax=False, dim=None, name=None):
         super(Dice, self).__init__()
         self.name = name
+        self.dim = dim
         self.use_softmax = use_softmax # if use softmax then remove bg
 
     def forward(self, inputs, targets, smooth=1):
@@ -61,20 +62,21 @@ class Dice(Metric):
         inputs = inputs.reshape(-1)
         targets = targets.reshape(-1)
 
-        intersection = (inputs * targets).sum()                            
-        dice = (2.*intersection + smooth)/(inputs.sum() + targets.sum() + smooth)  
+        intersection = (inputs * targets).sum(self.dim)                            
+        dice = (2.*intersection + smooth)/(inputs.sum(self.dim) + targets.sum(self.dim) + smooth)  
 
-        self.val = 1 - dice if self.training else dice
+        self.val = 1 - dice.mean() if self.training else dice.mean()
         return self.val 
     
 class DiceBCE(Metric):
     """
     num_classes should be > 1 only if softmax use is intended!
     """
-    def __init__(self, use_softmax=False, name=None):
+    def __init__(self, use_softmax=False, dim=None, name=None):
         super(DiceBCE, self).__init__()
         self.use_softmax = use_softmax # if use softmax then remove bg for dice computation
         self.name = name
+        self.dim = dim # axis defined for the dice score 
         self.bce = torch.nn.CrossEntropyLoss(reduction='mean')
 
     def forward(self, inputs, targets, smooth=1):
@@ -96,17 +98,18 @@ class DiceBCE(Metric):
             inputs = inputs.sigmoid()
 
 
-        intersection = (inputs * targets).sum()                            
-        dice_loss = 1 - (2.*intersection + smooth)/(inputs.sum() + targets.sum() + smooth)
-        Dice_BCE = BCE + dice_loss
+        intersection = (inputs * targets).sum(self.dim)                            
+        dice_loss = 1 - (2.*intersection + smooth)/(inputs.sum(self.dim) + targets.sum(self.dim) + smooth)
+        Dice_BCE = BCE + dice_loss.mean()
         
         self.val = Dice_BCE
         return self.val 
     
 class IoU(Metric):
-    def __init__(self, use_softmax=False, name=None):
+    def __init__(self, use_softmax=False, dim=None, name=None):
         super(IoU, self).__init__()
         self.use_softmax = use_softmax # if use softmax then remove bg
+        self.dim = dim
         self.name = name 
 
     def forward(self, inputs, targets, smooth=1):
@@ -121,13 +124,13 @@ class IoU(Metric):
         
         #intersection is equivalent to True Positive count
         #union is the mutually inclusive area of all labels & predictions 
-        intersection = (inputs * targets).sum()
-        total = (inputs + targets).sum()
+        intersection = (inputs * targets).sum(self.dim)
+        total = (inputs + targets).sum(self.dim)
         union = total - intersection 
         
         iou = (intersection + smooth)/(union + smooth)
         
-        self.val = 1 - iou if self.training else iou
+        self.val = 1 - iou.mean() if self.training else iou.mean()
         return self.val 
 
 class MSE(Metric):
