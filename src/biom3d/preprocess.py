@@ -344,9 +344,9 @@ if __name__=='__main__':
     parser.add_argument("--num_classes", type=int, default=1,
         help="(default=1) Number of classes (types of objects) in the dataset. The background is not included.")
     parser.add_argument("--use_npy", default=False,  action='store_true', dest='use_npy',
-        help="(default=True) Whether to use npy format to save the preprocessed images instead of tif format. Tif files are easily readable with viewers such as Napari and takes fewer disk space but are slower to load and may slow down the training process.") 
-    parser.add_argument("--remove_bg", default=True,  action='store_true', dest='remove_bg',
-        help="(default=True) Remover the background. Defined to be used with sigmoid activation maps (not softmax).") 
+        help="(default=False) Whether to use npy format to save the preprocessed images instead of tif format. Tif files are easily readable with viewers such as Napari and takes fewer disk space but are slower to load and may slow down the training process.") 
+    parser.add_argument("--add_bg", default=False,  action='store_true', dest='add_bg',
+        help="(default=False) Add the background in masks. Remove the bg to use with sigmoid activation maps (not softmax).") 
     parser.add_argument("--auto_config", default=False,  action='store_true', dest='auto_config',
         help="(default=False) Show the information to copy and paste inside the configuration file (patch_size, batch_size and num_pools).") 
     args = parser.parse_args()
@@ -357,7 +357,7 @@ if __name__=='__main__':
         img_outdir=args.img_outdir,
         msk_outdir=args.msk_outdir,
         num_classes=args.num_classes+1,
-        remove_bg=args.remove_bg,
+        remove_bg=not args.add_bg,
         use_tif=not args.use_npy,
     )
 
