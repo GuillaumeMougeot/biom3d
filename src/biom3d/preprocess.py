@@ -85,8 +85,11 @@ def one_hot_fast(values, num_classes=None):
         
     # create the one-hot encoded matrix
     out = np.empty((n_values, *values.shape), dtype=np.uint8)
+    c = 0
     for i in range(n_values):
-        out[i] = (values==uni[i]).astype(np.uint8)
+        if i in uni:
+            out[i] = (values==uni[c]).astype(np.uint8)
+            c += 1
     return out
 
 class Preprocessing:
