@@ -53,9 +53,10 @@ class Dice(Metric):
 
     def forward(self, inputs, targets, smooth=1):
         if self.use_softmax:
-            inputs = inputs.softmax(dim=1)
-            # inputs = inputs.softmax(dim=1)[:,1:]
-            # targets = targets[:,1:]
+            # inputs = inputs.softmax(dim=1)
+            # for dice computation, remove the background and flatten
+            inputs = inputs.softmax(dim=1)[:,1:]
+            targets = targets[:,1:]
         else:
             inputs = inputs.sigmoid()
 
@@ -90,7 +91,8 @@ class DiceBCE(Metric):
             # for dice computation, remove the background and flatten
             # inputs = inputs.softmax(dim=1)[:,1:].reshape(-1)
             # targets = targets[:,1:].reshape(-1)
-            inputs = inputs.softmax(dim=1)
+            inputs = inputs.softmax(dim=1)[:,1:]
+            targets = targets[:,1:]
 
         else:
             # keep the background and flatten
@@ -116,9 +118,9 @@ class IoU(Metric):
 
     def forward(self, inputs, targets, smooth=1):
         if self.use_softmax:
-            inputs = inputs.softmax(dim=1)
-            # inputs = inputs.softmax(dim=1)[:,1:]
-            # targets = targets[:,1:]
+            # inputs = inputs.softmax(dim=1)
+            inputs = inputs.softmax(dim=1)[:,1:]
+            targets = targets[:,1:]
         else:
             inputs = inputs.sigmoid()
 
