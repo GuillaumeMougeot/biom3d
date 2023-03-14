@@ -45,7 +45,7 @@ class Metric(nn.Module):
 # Metrics/losses for semantic segmentation
 
 class Dice(Metric):
-    def __init__(self, use_softmax=False, dim=None, name=None):
+    def __init__(self, use_softmax=False, dim=(), name=None):
         super(Dice, self).__init__()
         self.name = name
         self.dim = dim
@@ -53,14 +53,15 @@ class Dice(Metric):
 
     def forward(self, inputs, targets, smooth=1):
         if self.use_softmax:
-            inputs = inputs.softmax(dim=1)[:,1:]
-            targets = targets[:,1:]
+            inputs = inputs.softmax(dim=1)
+            # inputs = inputs.softmax(dim=1)[:,1:]
+            # targets = targets[:,1:]
         else:
             inputs = inputs.sigmoid()
 
         #flatten label and prediction tensors
-        inputs = inputs.reshape(-1)
-        targets = targets.reshape(-1)
+        # inputs = inputs.reshape(-1)
+        # targets = targets.reshape(-1)
 
         intersection = (inputs * targets).sum(dim=self.dim)                            
         dice = (2.*intersection + smooth)/(inputs.sum(dim=self.dim) + targets.sum(dim=self.dim) + smooth)  
@@ -72,7 +73,7 @@ class DiceBCE(Metric):
     """
     num_classes should be > 1 only if softmax use is intended!
     """
-    def __init__(self, use_softmax=False, dim=None, name=None):
+    def __init__(self, use_softmax=False, dim=(), name=None):
         super(DiceBCE, self).__init__()
         self.use_softmax = use_softmax # if use softmax then remove bg for dice computation
         self.name = name
@@ -87,13 +88,14 @@ class DiceBCE(Metric):
             BCE = self.bce(inputs, targets_bce)
 
             # for dice computation, remove the background and flatten
-            inputs = inputs.softmax(dim=1)[:,1:].reshape(-1)
-            targets = targets[:,1:].reshape(-1)
+            # inputs = inputs.softmax(dim=1)[:,1:].reshape(-1)
+            # targets = targets[:,1:].reshape(-1)
+            inputs = inputs.softmax(dim=1)
 
         else:
             # keep the background and flatten
-            inputs = inputs.reshape(-1)
-            targets = targets.reshape(-1)
+            # inputs = inputs.reshape(-1)
+            # targets = targets.reshape(-1)
             BCE = F.binary_cross_entropy_with_logits(inputs, targets, reduction='mean')
             inputs = inputs.sigmoid()
 
@@ -106,7 +108,7 @@ class DiceBCE(Metric):
         return self.val 
     
 class IoU(Metric):
-    def __init__(self, use_softmax=False, dim=None, name=None):
+    def __init__(self, use_softmax=False, dim=(), name=None):
         super(IoU, self).__init__()
         self.use_softmax = use_softmax # if use softmax then remove bg
         self.dim = dim
@@ -114,13 +116,14 @@ class IoU(Metric):
 
     def forward(self, inputs, targets, smooth=1):
         if self.use_softmax:
-            inputs = inputs.softmax(dim=1)[:,1:]
-            targets = targets[:,1:]
+            inputs = inputs.softmax(dim=1)
+            # inputs = inputs.softmax(dim=1)[:,1:]
+            # targets = targets[:,1:]
         else:
             inputs = inputs.sigmoid()
 
-        inputs = inputs.reshape(-1)
-        targets = targets.reshape(-1)       
+        # inputs = inputs.reshape(-1)
+        # targets = targets.reshape(-1)       
         
         #intersection is equivalent to True Positive count
         #union is the mutually inclusive area of all labels & predictions 
