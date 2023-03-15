@@ -364,6 +364,7 @@ def centered_pad(img, final_size, msk=None):
     img_shape = np.array(img.shape[1:])
     
     start = (final_size-np.array(img_shape))//2
+    start = start * (start > 0)
     end = final_size-(img_shape+start)
     end = end * (end > 0)
     
