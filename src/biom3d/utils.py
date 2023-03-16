@@ -745,7 +745,7 @@ def adaptive_imread(img_path):
     if extension == ".tif":
         return io.imread(img_path), []
     elif extension == ".npy":
-        return np.load(img_path), None
+        return np.load(img_path), []
     else:
         return sitk_imread(img_path)
 
