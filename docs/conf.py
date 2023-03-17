@@ -20,6 +20,7 @@ author = "Guillaume Mougeot"
 extensions = [
     # Sphinx's own extensions
     "sphinx.ext.autodoc",
+    'sphinx.ext.napoleon', # for Numpy DocString style
     "sphinx.ext.extlinks",
     "sphinx.ext.intersphinx",
     "sphinx.ext.mathjax",
@@ -36,6 +37,11 @@ extensions = [
 
 # The master toctree document.
 master_doc = 'index'
+
+# Napoleon settings
+napoleon_numpy_docstring = True
+napoleon_include_init_with_doc = True
+
 
 # -- Options for extlinks ----------------------------------------------------
 #
