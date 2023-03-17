@@ -538,7 +538,7 @@ class Builder:
                 spacing = utils.sitk_imread(img_path)[1]
 
                 # if prediction has 4 dimensions then must be converted to 3 dimensions
-                if len(logit.shape)==4:
+                if not self.config.USE_SOFTMAX:
                     # strategy: for each voxel, if the sigmoid is positive then take 
                     # the argmax of softmax of the channel dim (dim=0) else 0
                     sigmoid = (logit.sigmoid()>0.5).int()
