@@ -24,3 +24,10 @@ This tool is addressed to three different profiles:
    :caption: Quick Run
 
    quick_run_gui.md
+
+.. toctree::
+   :maxdepth: 2
+   :caption: API 
+
+   preprocess.rst
+
