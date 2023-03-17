@@ -761,16 +761,45 @@ def one_hot(values, num_classes=None):
     out = np.moveaxis(out, -1, 0)
     return out
 
+def one_hot_fast(values, num_classes=None):
+    """
+    transform the 'values' array into a one_hot encoded one
+    """
+    if num_classes==None: n_values = np.max(values) + 1
+    else: n_values = num_classes
+
+    # get unique values
+    uni = np.sort(np.unique(values))
+    
+    # if the expected number of class is two then apply a threshold
+    if len(uni)>2 and n_values==2:
+        values = (values>uni[0]).astype(np.uint8)
+    
+    # add values if uni is incomplete
+    while len(uni)<n_values: 
+        uni = np.append(uni, np.uint8(uni[-1]+1))
+        
+    # create the one-hot encoded matrix
+    out = np.empty((n_values, *values.shape), dtype=np.uint8)
+    c = 0
+    for i in range(n_values):
+        if i in uni:
+            out[i] = (values==uni[c]).astype(np.uint8)
+            c += 1
+    return out
+
 # metric definition
 def iou(inputs, targets, smooth=1):
     inter = (inputs & targets).sum()
     union = (inputs | targets).sum()
     return (inter+smooth)/(union+smooth)
 
-def dice(inputs, targets, smooth=1):   
-    inter = (inputs & targets).sum()                           
-    dice = (2.*inter + smooth)/(inputs.sum() + targets.sum() + smooth)  
-    return dice
+def dice(inputs, targets, smooth=1, axis=(-3,-2,-1)):   
+    """Dice score between inputs and targets.
+    """
+    inter = (inputs & targets).sum(axis=axis)   
+    dice = (2.*inter + smooth)/(inputs.sum(axis=axis) + targets.sum(axis=axis) + smooth)  
+    return dice.mean()
 
 def versus_one(fct, in_path, tg_path, num_classes, single_class=None):
     """
@@ -779,7 +808,7 @@ def versus_one(fct, in_path, tg_path, num_classes, single_class=None):
     img1,_ = adaptive_imread(in_path)
     print("input path",in_path)
     if len(img1.shape)==3:
-        img1 = one_hot(img1, num_classes)[1:,...]
+        img1 = one_hot_fast(img1, num_classes)[1:,...]
     if single_class is not None:
         img1 = img1[single_class,...]
     img1 = (img1 > 0).astype(int)
@@ -787,7 +816,7 @@ def versus_one(fct, in_path, tg_path, num_classes, single_class=None):
     img2,_ = adaptive_imread(tg_path)
     print("target path",tg_path)
     if len(img2.shape)==3:
-        img2 = one_hot(img2, num_classes)[1:,...]
+        img2 = one_hot_fast(img2, num_classes)[1:,...]
     if single_class is not None:
         img2 = img2[single_class,...]
     img2 = (img2 > 0).astype(int)

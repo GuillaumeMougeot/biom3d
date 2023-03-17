@@ -8,6 +8,7 @@ logs/*
 logs_meso/*
 logs_zay/*
 dev/
+bash/run_*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
