@@ -7,3 +7,4 @@ Preprocessing
 ~~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: Preprocessing
+    :members:
