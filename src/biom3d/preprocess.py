@@ -93,8 +93,32 @@ def one_hot_fast(values, num_classes=None):
     return out
 
 class Preprocessing:
-    """
-    A helper class to transform nifti (.nii.gz) and Tiff (.tif or .tiff) images to .tif format and to normalize them.
+    """A helper class to transform nifti (.nii.gz) and Tiff (.tif or .tiff) images to .tif format and to normalize them.
+
+    Parameters
+    ----------
+    img_dir : str
+        Path to the input image folder
+    img_outdir : str
+        Path to the output image folder
+    msk_dir : str, optional
+        Path to the input mask folder
+    msk_outdir : str, optional
+        Path to the output mask folder
+    num_classes : int, optional
+        Number of classes (channel) in the masks. Required by the 
+    remove_bg : bool, default=True
+        Whether to remove the background in the one-hot encoded mask. Remove the background is done when training with sigmoid activations instead of softmax.
+    median_spacing : list, optional
+        A list of length 3 containing the median spacing of the input images. Median_spacing must not be transposed: for example, median_spacing might be [0.8, 0.8, 2.5] if median shape of the training image is [40,224,224].
+    clipping_bounds : list, optional
+        A list of length 2 containing the intensity clipping boundary. In nnUNet implementation it corresponds to the 0.5 an 99.5 percentile of the intensities of the voxels of the training images located inside the masks regions.
+    intensity_moments : list, optional
+        Mean and variance of the intensity of the images voxels in the masks regions. These values are used to normalize the image. 
+    use_tif : bool, default=True
+        Use tif format to save the preprocessed images instead of npy format.
+    split_rate_for_single_img : float, default=0.2
+        If a single image is present in image/mask folders, then the image/mask are split in 2 portions of size split_rate_for_single_img*largest_dimension for validation and split_rate_for_single_img*(1-largest_dimension) for training.
     """
     def __init__(
         self,
@@ -110,32 +134,6 @@ class Preprocessing:
         use_tif=True, # use tif instead of npy 
         split_rate_for_single_img=0.25,
         ):
-        """
-        Parameters
-        ----------
-        img_dir : str
-            Path to the input image folder
-        img_outdir : str
-            Path to the output image folder
-        msk_dir : str, optional
-            Path to the input mask folder
-        msk_outdir : str, optional
-            Path to the output mask folder
-        num_classes : int, optional
-            Number of classes (channel) in the masks. Required by the 
-        remove_bg : bool, default=True
-            Whether to remove the background in the one-hot encoded mask. Remove the background is done when training with sigmoid activations instead of softmax.
-        median_spacing : list, optional
-            A list of length 3 containing the median spacing of the input images. Median_spacing must not be transposed: for example, median_spacing might be [0.8, 0.8, 2.5] if median shape of the training image is [40,224,224].
-        clipping_bounds : list, optional
-            A list of length 2 containing the intensity clipping boundary. In nnUNet implementation it corresponds to the 0.5 an 99.5 percentile of the intensities of the voxels of the training images located inside the masks regions.
-        intensity_moments : list, optional
-            Mean and variance of the intensity of the images voxels in the masks regions. These values are used to normalize the image. 
-        use_tif : bool, default=True
-            Use tif format to save the preprocessed images instead of npy format.
-        split_rate_for_single_img : float, default=0.2
-            If a single image is present in image/mask folders, then the image/mask are split in 2 portions of size split_rate_for_single_img*largest_dimension for validation and split_rate_for_single_img*(1-largest_dimension) for training.
-        """
         assert img_dir!='', "[Error] img_dir must not be empty."
 
         # fix bug path/folder/ to path/folder
@@ -237,6 +235,8 @@ class Preprocessing:
 
     
     def prepare(self):
+        """Start the preprocessing.
+        """
         print("preprocessing...")
         # if there is only a single image/mask, then split them both in two portions
         if len(self.img_fnames)==1:
