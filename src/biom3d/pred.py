@@ -77,7 +77,7 @@ def pred_seg_eval(bui_dir=pathlib.Path.home(), dir_in=pathlib.Path.home(), dir_o
                 tg_path=list_abs[0][idx], 
                 # num_classes=2, 
                 # single_class=-1,
-                num_classes=builder_pred.config.NUM_CLASSES if builder_pred.config.USE_SOFTMAX else (builder_pred.config.NUM_CLASSES+1), 
+                num_classes=(builder_pred.config.NUM_CLASSES+1), 
                 single_class=None,
                 )]
             print("Metric result:", print(results[-1]))

@@ -88,9 +88,9 @@ def main_seg_pred_eval(
                     fct=dice, 
                     in_path=list_abs[1][idx], 
                     tg_path=list_abs[0][idx], 
-                    num_classes=cfg.NUM_CLASSES if cfg.USE_SOFTMAX else (cfg.NUM_CLASSES+1), 
+                    num_classes=(cfg.NUM_CLASSES+1), 
                     single_class=None)]
-                print("Metric result:", print(results[-1]))
+                print("Metric result:", results[-1])
             print("Evaluation done! Average result:", np.mean(results))
             # send(messages=["Evaluation done of model {}! Average result: {}".format(dir_out, np.mean(results))])
         
@@ -179,7 +179,7 @@ def main_pretrain_seg_pred_eval(
                     tg_path=list_abs[0][idx], 
                     num_classes=cfg.NUM_CLASSES if cfg.USE_SOFTMAX else (cfg.NUM_CLASSES+1), 
                     single_class=None)]
-                print("Metric result:", print(results[-1]))
+                print("Metric result:", results[-1])
             print("Evaluation done! Average result:", np.mean(results))
             # send(messages=["Evaluation done of model {}! Average result: {}".format(dir_out, np.mean(results))])
 
@@ -218,9 +218,9 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser(description="Main training file.")
     parser.add_argument("-n", "--name", type=str, default="train",
         help="Name of the tested method. Valid names: {}".format(valid_names.keys()))
-    parser.add_argument("-c", "--config", type=str, default="configs.unet_pancreas",
+    parser.add_argument("-c", "--config", type=str, default=None,
         help="Name of the python configuration file (full path and without the .py)")
-    parser.add_argument("-pc", "--pretrain_config", type=str, default="configs.vgg-dino_pancreas",
+    parser.add_argument("-pc", "--pretrain_config", type=str, default=None,
         help="Name of the python configuration file for the pretraining (full path and without the .py)")
     parser.add_argument("--config_yaml", type=str, default=None,
         help="Name of the configuration file stored in yaml format (full path and without the .py)")
