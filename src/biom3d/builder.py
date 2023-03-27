@@ -424,6 +424,14 @@ class Builder:
         """
         build the method from scratch.
         """
+        # make it deterministic 
+        np.random.seed(12345)
+        torch.manual_seed(12345)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(12345)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+
         # saver configs
         self.base_dir, self.image_dir, self.log_dir, self.model_dir = utils.create_save_dirs(
             self.config.LOG_DIR, self.config.DESC, dir_names=['image', 'log', 'model'], return_base_dir=True) 
