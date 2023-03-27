@@ -35,6 +35,8 @@ def adaptive_imread(img_path):
     extension = img_path[img_path.rfind('.'):]
     if extension == ".tif":
         return imread(img_path), []
+    elif extension == ".npy":
+        return np.load(img_path), []
     else:
         return sitk_imread(img_path)
 
@@ -211,22 +213,36 @@ class Preprocessing:
         # training names start with a 1
 
         # validation
-        val_img_name = "0_"+os.path.basename(img_path).split('.')[0]+'.tif'
+        val_img_name = "0_"+os.path.basename(img_path).split('.')[0]
+        val_img_name += '.tif' if self.use_tif else '.npy'
 
         val_img_path = os.path.join(self.img_outdir, val_img_name)
-        tifffile.imwrite(val_img_path, val_img, compression=('zlib', 1))
+        if self.use_tif:
+            tifffile.imwrite(val_img_path, val_img, compression=('zlib', 1))
+        else:
+            np.save(val_img_path, val_img)
 
         val_msk_path = os.path.join(self.msk_outdir, val_img_name)
-        tifffile.imwrite(val_msk_path, val_msk, compression=('zlib', 1))
+        if self.use_tif:
+            tifffile.imwrite(val_msk_path, val_msk, compression=('zlib', 1))
+        else:
+            np.save(val_msk_path, val_msk)
 
         # training save
-        train_img_name = "1_"+os.path.basename(img_path).split('.')[0]+'.tif'
+        train_img_name = "1_"+os.path.basename(img_path).split('.')[0]
+        train_img_name += '.tif' if self.use_tif else '.npy'
 
         train_img_path = os.path.join(self.img_outdir, train_img_name)
-        tifffile.imwrite(train_img_path, train_img, compression=('zlib', 1))
+        if self.use_tif:
+            tifffile.imwrite(train_img_path, train_img, compression=('zlib', 1))
+        else:
+            np.save(train_img_path, train_img)
 
         train_msk_path = os.path.join(self.msk_outdir, train_img_name)
-        tifffile.imwrite(train_msk_path, train_msk, compression=('zlib', 1))
+        if self.use_tif:
+            tifffile.imwrite(train_msk_path, train_msk, compression=('zlib', 1))
+        else:
+            np.save(train_msk_path, train_msk)
 
         # replace self.img_fnames and self.img_dir/self.msk_dir
         self.img_fnames = os.listdir(self.img_outdir)
