@@ -30,4 +30,5 @@ This tool is addressed to three different profiles:
    :caption: API 
 
    preprocess.rst
+   auto_config.rst
 

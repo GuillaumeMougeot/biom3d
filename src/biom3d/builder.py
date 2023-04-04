@@ -388,7 +388,11 @@ class Builder:
                     )
             clbk_dict["image_saver"] = self.clbk_imagesaver
 
-        
+        self.clbk_metricupdater = clbk.MetricsUpdater(
+        metrics=[self.loss_fn] + self.train_metrics if self.train_metrics else [self.loss_fn], 
+        batch_size=self.config.BATCH_SIZE)
+        clbk_dict["metric_updater"] = self.clbk_metricupdater
+
         self.clbk_tensorboardsaver = clbk.TensorboardSaver(
                 log_dir=self.log_dir,
                 train_loss=self.loss_fn,
@@ -411,11 +415,6 @@ class Builder:
         #         loss=self.loss_fn,
         #         test_loss=self.val_loss_fn)
         # clbk_list += [self.clbk_telegram]
-        
-        self.clbk_metricupdater = clbk.MetricsUpdater(
-                metrics=[self.loss_fn] + self.train_metrics if self.train_metrics else [self.loss_fn], 
-                batch_size=self.config.BATCH_SIZE)
-        clbk_dict["metric_updater"] = self.clbk_metricupdater
 
         self.callbacks = clbk.Callbacks(clbk_dict)
 
