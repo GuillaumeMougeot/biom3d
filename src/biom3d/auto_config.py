@@ -1,3 +1,12 @@
+#---------------------------------------------------------------------------
+# Auto-configuration 
+# This script can be used to compute and display:
+# - the batch size
+# - the patch size
+# - the augmentation patch size
+# - the number of poolings in the 3D U-Net
+#---------------------------------------------------------------------------
+
 from skimage.io import imread
 import SimpleITK as sitk
 import os
@@ -8,30 +17,79 @@ import argparse
 # path utils
 
 def abs_path(root, listdir_):
+    """Add the root path to each element in a list of path.
+
+    Parameters
+    ----------
+    root: str
+        Path to root folder.
+    listdir_: list of str
+        List of file names.
+    
+    Returns
+    -------
+    list of str
+        List of the absolute paths.
+    """
     listdir = listdir_.copy()
     for i in range(len(listdir)):
         listdir[i] = root + '/' + listdir[i]
     return listdir
 
 def abs_listdir(path):
+    """Return a list of absolute paths from a folder. 
+    Equivalent to os.listdir but with absolute path.
+
+    Parameters
+    ----------
+    path: str
+        Path to the folder.
+
+    Returns
+    -------
+    list of str
+        List of the absolute paths.
+    """
     return abs_path(path, os.listdir(path))
 
 # ----------------------------------------------------------------------------
 # Imread utils
 
 def sitk_imread(img_path):
-    """
-    image reader for nii.gz files
+    """SimpleITK image reader. Used for nii.gz files.
+
+    Parameters
+    ----------
+    img_path: str
+        Image path.
+
+    Returns
+    -------
+    numpy.ndarray
+        Images.
+    tuple 
+        Image spacing. 
     """
     img = sitk.ReadImage(img_path)
     img_np = sitk.GetArrayFromImage(img)
     return img_np, np.array(img.GetSpacing())
 
 def adaptive_imread(img_path):
-    """
-    use skimage imread or sitk imread depending on the file extension:
+    """Use skimage imread or sitk imread depending on the file extension:
     .tif --> skimage.io.imread
     .nii.gz --> SimpleITK.imread
+
+    Parameters
+    ----------
+    img_path: str
+        Image path.
+
+    Returns
+    -------
+    numpy.ndarray
+        Images.
+    tuple 
+        Image spacing. Can be None (for non-nifti files).
     """
     extension = img_path[img_path.rfind('.'):]
     if extension == ".gz":
@@ -43,9 +101,20 @@ def adaptive_imread(img_path):
 # Median computation
 
 def compute_median(path, return_spacing=False):
-    """
-    compute the median shape of a folder of images. If return spacing is True, 
-    then also return the median spacing
+    """Compute the median shape of a folder of images. If `return_spacing` is True, 
+    then also return the median spacing.
+
+    Parameters
+    ----------
+    path: str
+        Folder path.
+    return_spacing: bool
+        Whether to return the mean image spacing. Works only for Nifti format.
+
+    Returns
+    -------
+    numpy.ndarray
+        Median shape of the images in the folder. 
     """
     path_imgs = abs_listdir(path)
     sizes = []
@@ -68,10 +137,19 @@ def compute_median(path, return_spacing=False):
 # Patch pool batch computation
 
 def single_patch_pool(dim, size_limit=7):
-    """
-    divide by two the dim number until obtaining a number lower than 7
-    then np.ceil this number
-    then multiply multiple times by two this number to obtain the patch size
+    """Return the patch size with the heuristic proposed by nnUNet.
+    Divide by two the `dim` number until obtaining a number lower than 7.
+    Then np.ceil this number. Then multiply this number multiple times by two to obtain the patch size.
+
+    Parameters
+    ----------
+    dim: int
+        A single dimension.
+
+    Returns
+    -------
+    numpy.ndarray
+        Median shape of the images in the folder.
     """
     pool = 0
     while dim > size_limit:

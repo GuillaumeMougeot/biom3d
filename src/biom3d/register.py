@@ -11,9 +11,11 @@ from biom3d.utils import Dict
 # dataset register
 
 from biom3d.datasets.semseg_patch_fast import SemSeg3DPatchFast
+from biom3d.datasets.semseg_torchio import TorchioDataset
 
 datasets = Dict(
     SegPatchFast    =Dict(fct=SemSeg3DPatchFast, kwargs=Dict()),
+    Torchio         =Dict(fct=TorchioDataset, kwargs=Dict()),
 )
 
 #---------------------------------------------------------------------------
