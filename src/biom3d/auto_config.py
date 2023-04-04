@@ -160,10 +160,30 @@ def single_patch_pool(dim, size_limit=7):
     return patch, pool
 
 def find_patch_pool_batch(dims, max_dims=(128,128,128), max_pool=5, epsilon=1e-3):
-    """
-    take the median size as input, determine the patch size and the number of pool
-    with "single_patch_pool" function for each dimension and 
+    """Given the median image size, compute the patch size, the number of pooling and the batch size.
+    Take the median size of an image dataset as input, 
+    determine the patch size and the number of pool with "single_patch_pool" function for each dimension and 
     assert that the final dimension size is smaller than max_dims.prod().
+
+    Parameters
+    ----------
+    dims: tuple of int or list of int
+        A median size of an image dataset.
+    max_dims: tuple, default=(128,128,128)
+        Maximum patch size. The product of `max_dims` is used to determine the maximum patch size
+    max_pool: int, default=5
+        Maximum pooling size.
+    epsilon: float, default=1e-3
+        Used to have a positive value in the dimension computation.
+
+    Returns
+    -------
+    patch: numpy.ndarray
+        Patch size.
+    pool: numpy.ndarray
+        Number of pooling.
+    batch: numpy.ndarray
+        Batch size.
     """
     # transform tuples into arrays
     assert len(dims)==3 or len(dims)==4, print("Dims has not the correct number of dimensions: len(dims)=", len(dims))
@@ -199,6 +219,8 @@ def find_patch_pool_batch(dims, max_dims=(128,128,128), max_pool=5, epsilon=1e-3
 # Display 
 
 def display_info(patch, pool, batch):
+    """Print in terminal the patch size, the number of pooling and the batch size.
+    """
     print("*"*20,"YOU CAN COPY AND PASTE THE FOLLOWING LINES INSIDE THE CONFIG FILE", "*"*20)
     print("BATCH_SIZE =", batch)
     print("PATCH_SIZE =", list(patch))
@@ -207,27 +229,40 @@ def display_info(patch, pool, batch):
     print("NUM_POOLS =", list(pool))
 
 def auto_config(img_dir, max_dims=(128,128,128)):
+    """Given an image folder, return the batch size, the patch size and the number of pooling.
+
+    Parameters
+    ----------
+    img_dir: str
+        Image folder path.
+    max_dims: tuple, default=(128,128,128)
+        Maximum patch size. The product of `max_dims` is used to determine the maximum patch size
+
+    Returns
+    -------
+    batch: numpy.ndarray
+        Batch size.
+    aug_patch: numpy.ndarray
+        Augmentation patch size.
+    patch: numpy.ndarray
+        Patch size.
+    pool: numpy.ndarray
+        Number of pooling.
+    """
     median = compute_median(path=img_dir)
     patch, pool, batch = find_patch_pool_batch(dims=median, max_dims=max_dims) 
     aug_patch = np.array(patch)+2**(np.array(pool)+1)
     return batch, aug_patch, patch, pool
 
-def minimal_display(img_dir, max_dims=(128,128,128)):
-    out = auto_config(img_dir, max_dims=max_dims)
-    for element in out:
-        print(element)
-
 # ----------------------------------------------------------------------------
 # Main
 
 if __name__=='__main__':
-    parser = argparse.ArgumentParser(description="Dataset preprocessing for training purpose.")
+    parser = argparse.ArgumentParser(description="Auto-configuration of the hyper-parameter for training.")
     parser.add_argument("--img_dir", type=str,
         help="Path of the images directory")
     parser.add_argument("--max_dim", type=int, default=128,
         help="Maximum size of one dimension of the patch (default: 128)")  
-    # parser.add_argument("--min_dis", default=False,  action='store_true', dest='min_dis',
-    #     help="Minimal display. Display only the raw batch, aug_patch, patch and pool")
     parser.add_argument("--spacing", default=False,  action='store_true', dest='spacing',
         help="Print median spacing if set.")
     parser.add_argument("--median", default=False,  action='store_true', dest='median',
@@ -235,9 +270,6 @@ if __name__=='__main__':
     args = parser.parse_args()
 
 
-    # if args.min_dis:
-    #     minimal_display(img_dir=args.img_dir, max_dims=(args.max_dim, args.max_dim, args.max_dim))
-    # else: 
     median = compute_median(path=args.img_dir, return_spacing=args.spacing)
     
     if args.spacing: 
@@ -249,11 +281,4 @@ if __name__=='__main__':
     
     if args.spacing:print("MEDIAN_SPACING =",list(median_spacing))
     if args.median:print("MEDIAN =", list(median))
-
-    # median=compute_median(path='/home/gumougeot/all/codes/python/3dnucleus/data/pancreas/tif_imagesTr_small')
-    # median=compute_median(path='/home/gumougeot/all/codes/python/3dnucleus/data/lung/tif_imagesTr')
-    # median=compute_median(path='/home/gumougeot/all/codes/python/3dnucleus/data/remi/tif_img')
-    # print("patch, pool, batch:", find_patch_pool_batch(dims=median, max_dims=(160,160,160)))
-    # print("patch, pool, batch:", find_patch_pool_batch(dims=median, max_dims=(192,192,192)))
-    # print("patch, pool, batch:", find_patch_pool_batch(dims=median, max_dims=(128,128,128)))
 
