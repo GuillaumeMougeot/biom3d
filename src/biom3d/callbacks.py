@@ -10,8 +10,10 @@ import numpy as np
 # Base classes
 
 class Callback(object):
-    """
-    Abstract base class used to build new callbacks.
+    """Abstract base class used to build new callbacks.
+
+    Each method starting by `on_` can be overridden. This method will be called at a certain time point during the training process.
+    For instance, the `on_epoch_end` method will be called in the end of each epoch. 
     """
 
     def __init__(self):
@@ -41,6 +43,8 @@ class Callback(object):
 # dict based callbacks
 
 class Callbacks(Callback):
+    """Child of biom3d.callbacks.Callback.
+    """
     def __init__(self, callbacks):
         super().__init__()
         if isinstance(callbacks, Callbacks):
