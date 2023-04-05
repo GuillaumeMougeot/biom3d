@@ -274,17 +274,17 @@ class ImageSaver(Callback):
                     # plt.figure(figsize=(15,5))
                     plt.figure(dpi=100)
                     # print original
-                    plt.subplot(plot_size,3,3*i+1)
+                    plt.subplot(self.plot_size,3,3*i+1)
                     plt.imshow(X)
                     plt.title('raw')
                     plt.axis('off')
                     # print prediction
-                    plt.subplot(plot_size,3,3*i+2)
+                    plt.subplot(self.plot_size,3,3*i+2)
                     plt.imshow(pred)
                     plt.title('pred')
                     plt.axis('off')
                     # print ground truth
-                    plt.subplot(plot_size,3,3*i+3)
+                    plt.subplot(self.plot_size,3,3*i+3)
                     plt.imshow(y)
                     plt.title('gt')
                     plt.axis('off')
