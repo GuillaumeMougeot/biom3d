@@ -167,6 +167,7 @@ def seg_predict_patch(
     clipping_bounds=[],
     intensity_moments=[],
     use_softmax=False,
+    force_softmax=False,
     num_workers=4,
     enable_autocast=True, 
     keep_biggest_only=False,
@@ -248,6 +249,13 @@ def seg_predict_patch(
 
     if use_softmax:
         out = (logit.softmax(dim=0).argmax(dim=0)).int()
+    elif force_softmax:
+        # if the training has been done with a sigmoid activation and we want to export a softmax
+        # it is possible to use `force_softmax` argument
+        sigmoid = (logit.sigmoid()>0.5).int()
+        softmax = (logit.softmax(dim=0).argmax(dim=0)).int()+1
+        cond = sigmoid.max(dim=0).values
+        out = torch.where(cond>0, softmax, 0)
     else:
         out = (logit.sigmoid()>0.5).int()
     out = out.numpy()

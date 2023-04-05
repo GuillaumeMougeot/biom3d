@@ -31,4 +31,5 @@ This tool is addressed to three different profiles:
 
    preprocess.rst
    auto_config.rst
+   builder.rst
 

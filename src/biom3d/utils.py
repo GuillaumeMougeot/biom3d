@@ -135,13 +135,6 @@ def create_save_dirs(log_dir, desc, dir_names=['model', 'logs', 'images'], retur
 # ----------------------------------------------------------------------------
 # image readers and savers
 
-class skimage_imread:
-    """
-    image reader for .tif files
-    """
-    def __call__(self, img_path):
-        return io.imread(img_path)
-
 def sitk_imread(img_path):
     """
     image reader for nii.gz files
@@ -150,13 +143,47 @@ def sitk_imread(img_path):
     img_np = sitk.GetArrayFromImage(img)
     return img_np, np.array(img.GetSpacing())
 
-def sitk_imsave(img_path, img, spacing):
+def adaptive_imread(img_path):
+    """
+    use skimage imread or sitk imread depending on the file extension:
+    .tif --> skimage.io.imread
+    .nii.gz --> SimpleITK.imread
+    """
+    extension = img_path[img_path.rfind('.'):]
+    if extension == ".tif":
+        return io.imread(img_path), []
+    elif extension == ".npy":
+        return np.load(img_path), []
+    else:
+        return sitk_imread(img_path)
+
+def sitk_imsave(img_path, img, spacing=(1,1,1)):
     """
     image saver for nii gz files
     """
     img_out = sitk.GetImageFromArray(img)
     img_out.SetSpacing(spacing)
     sitk.WriteImage(img_out, img_path)
+
+def adaptive_imsave(img_path, img, spacing=(1,1,1)):
+    """Adaptive image saving. Use tifffile for `.tif`, use numpy for `.npy` and use SimpleITK for other format. 
+
+    Parameters
+    ----------
+        img_path : str
+            Path to the output file.
+        img : numpy.ndarray
+            Image array.
+        spacing : tuple, default=(1,1,1)
+            Optional spacing of the image. Only used with the SimpleITK library.
+    """
+    extension = img_path[img_path.rfind('.'):]
+    if extension == ".tif":
+        tiff.imwrite(img_path, img, compression=('zlib', 1))
+    elif extension == ".npy":
+        np.save(img_path, img)
+    else:
+        sitk_imsave(img_path, img, spacing)
 
 # ----------------------------------------------------------------------------
 # tif metadata reader and writer
@@ -735,20 +762,6 @@ def keep_biggest_volume_centered(msk):
 # ----------------------------------------------------------------------------
 # test utils
 
-def adaptive_imread(img_path):
-    """
-    use skimage imread or sitk imread depending on the file extension:
-    .tif --> skimage.io.imread
-    .nii.gz --> SimpleITK.imread
-    """
-    extension = img_path[img_path.rfind('.'):]
-    if extension == ".tif":
-        return io.imread(img_path), []
-    elif extension == ".npy":
-        return np.load(img_path), []
-    else:
-        return sitk_imread(img_path)
-
 def one_hot(values, num_classes=None):
     """
     One hot encoding
@@ -834,108 +847,6 @@ def versus_one(fct, in_path, tg_path, num_classes, single_class=None):
         return
     out = fct(img1, img2)
     return out
-
-# def versus(fct, list_abs1,list_abs2, num_classes=None, single_class=None):
-#     """
-#     Computes the function 'fct' over the whole list_abs1 and list_abs2
-#     args:
-#         -num_classes: [int] number of classes in the images (number of channels)
-#         -single_class: [int] if not None, used to select one of the predicted classes.
-#         must be smaller than the number of classes.
-#     """
-#     mean = 0
-#     count = 0
-#     for i in range(len(list_abs1)):
-#         img1 = adaptive_imread(list_abs1[i])
-#         img1 = one_hot(img1, num_classes)[...,1:]
-#         if single_class is not None:
-#             img1 = img1[...,single_class]
-# #         img1 = keep_center_only(img1)
-#         img1 = (img1 > 0).astype(int)
-    
-#         img2 = adaptive_imread(list_abs2[i])
-#         img2 = one_hot(img2, num_classes)[...,1:]
-#         if single_class is not None:
-#             img2 = img2[...,single_class]
-# #         img2 = keep_center_only(img2)
-#         img2 = (img2 > 0).astype(int)
-
-#         if sum(img1.shape)!=sum(img2.shape):
-#             print("bug:sum(img1.shape)!=sum(img2.shape):", list_abs1[i], list_abs2[i])
-#             print("img1.shape", img1.shape)
-#             print("img2.shape", img2.shape)
-#             pass
-#         else:
-#             out = fct(img1,img2)
-# #             if out!=1:
-# #                 print(out)
-# #                 print(i)
-# #                 print(list_abs1[i])
-# #                 print(list_abs2[i])
-#             mean += out
-            
-#             count += 1
-#     return mean / count
-
-# def versus_one(fct, in_path, tg_path, num_classes, single_class=None):
-#     img1 = adaptive_imread(in_path)
-#     img1 = one_hot(img1, num_classes)[...,1:]
-#     if single_class is not None:
-#         img1 = img1[...,single_class]
-#     img1 = (img1 > 0).astype(int)
-    
-#     img2 = adaptive_imread(tg_path)
-#     img2 = one_hot(img2, num_classes)[...,1:]
-#     if single_class is not None:
-#         img2 = img2[...,single_class]
-#     img2 = (img2 > 0).astype(int)
-    
-
-#     print("img1.shape", img1.shape)
-#     print("img2.shape", img2.shape)
-#     if sum(img1.shape)!=sum(img2.shape):
-#         print("bug:sum(img1.shape)!=sum(img2.shape):", list_abs[i])
-#         print("img1.shape", img1.shape)
-#         print("img2.shape", img2.shape)
-#         return
-#     out = fct(img1, img2)
-#     return out
-
-# def versus_all_sophie(versus, fct, list_abs):
-#     """
-#     use the "versus" function to apply the "fct" function over the 
-#     different elements in list "list_abs".
-#     """
-#     print("sophie vs mine", versus(fct, list_abs[0], list_abs[1]))
-#     print("sophie vs gift", versus(fct, list_abs[0], list_abs[2]))
-#     print("sophie vs otsu", versus(fct, list_abs[0], list_abs[3]))
-
-#     print("mine vs gift", versus(fct, list_abs[1], list_abs[2]))
-#     print("mine vs otsu", versus(fct, list_abs[1], list_abs[3]))
-
-#     print("otsu vs gift", versus(fct, list_abs[2], list_abs[3]))
-
-# def versus_all(versus, fct, list_abs, list_names=None):
-#     """
-#     use the "versus" function to apply the "fct" function over the 
-#     different elements in list "list_abs".
-#     """
-#     if list_names is None:
-#         list_names = ['lab_{}'.format(i) for i in range(len(list_abs)-1)]
-#     for i in range(len(list_abs)-1):
-#         for j in range(i):
-#             print("{} vs {}:".format(list_names[i], list_names[j]), versus(fct, list_abs[i], list_abs[j]))
-
-# def one_versus_all(versus, fct, list_abs, list_names=None, num_classes=None, single_class=None):
-#     """
-#     use the "versus" function to apply the "fct" function over the 
-#     different elements in list "list_abs" .
-#     one vs all is the comparison between the label and the rest of the images
-#     """
-# #     if list_names is None:
-# #         list_names = ['lab_{}'.format(i) for i in range(len(list_abs)-1)]
-#     for i in range(1,len(list_abs)-1):
-#         print("{} vs {}:".format(list_names[0], list_names[i]), versus(fct, list_abs[0], list_abs[i], num_classes, single_class))
 
 # ----------------------------------------------------------------------------
 # time utils

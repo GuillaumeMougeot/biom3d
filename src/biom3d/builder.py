@@ -3,8 +3,7 @@
 # The main purpose of this class is to easily reload a training 
 #---------------------------------------------------------------------------
 
-import os
-import tifffile 
+import os 
 import torch
 from torch.utils.data import DataLoader
 # from monai.data import ThreadDataLoader
@@ -14,14 +13,26 @@ import numpy as np
 from biom3d import register
 from biom3d import callbacks as clbk
 from biom3d import utils
+from biom3d.utils import adaptive_imsave
 
 #---------------------------------------------------------------------------
 # utils to read config's functions in the function register
 
 def read_config(config_fct, register_cat, **kwargs):
-    """
-    read the register category at register_cat and run the corresponding function 
-    named in the config file
+    """Read the config function in the register category and run the corresponding function with the keyword arguments which are merged from 1. the register kwargs, 2. the config file kwargs and 3. this function kwargs.
+
+    Parameters
+    ----------
+    config_fct : str
+        Name of the function listed in the register.
+    register_cat : Dict
+        Dictionary defining one category in the register.
+    **kwargs : dict, optional
+        Additional keyword arguments of the function defined by the config_fct
+        
+    Returns
+    -------
+    The eventual outputs of the function.
     """
     # read the corresponding name in the register
     register_fct_ = register_cat[config_fct.fct]
@@ -111,8 +122,39 @@ class LARS(torch.optim.Optimizer):
 # Global routine
 
 class Builder:
-    """
-    the original goal of the builder was to easily save and load a model training.
+    """The Builder is the core of biom3d. 
+
+    The Builder reads a configuration file and builds the components required for training and prediction.
+
+    Please note that in this current version the training and inference can only be done with CUDA.
+
+    Multi-GPUs training is also supported with DataParallel only (Distributed Data Parallel is not).
+
+    Training is currently done with the SGD optimizer. If you would like to change the optimizer, you can edit `self.build_training` method.
+
+    Parameters
+    ----------
+    config : biom3d.utils.Dict
+        A dictionary defining the configuration file. Specific keywords must be defined, others are optional.
+    path : str
+        Path to the log folder. 
+    training : bool, default=True
+        Whether to load the model in training or testing mode.
+
+    Examples
+    --------
+    To run a training from a configuration file do:
+
+    >>> from importlib import import_module
+    >>> cfg = import_module(config).CONFIG
+    >>> builder = Builder(config=cfg)
+    >>> builder.run_training() # start the training
+
+    To run a prediction from a log folder, do:
+
+    >>> path = "path/to/log/folder"
+    >>> builder = Builder(path=path, training=False)
+    >>> builder.run_prediction_folder(dir_in="input/folder", dir_out="output/folder")
     """
     def __init__(self, 
         config=None,         # inherit from Config class, stores the global variables
@@ -134,13 +176,8 @@ class Builder:
             # if there are more than 1 GPU we augment the batch size and reduce the number of epochs
             if torch.cuda.device_count() > 1: 
                 print("Let's use", torch.cuda.device_count(), "GPUs!")
+
                 # Loop through all key-value pairs of a nested dictionary and change the batch_size 
-                # for pairs in utils.nested_dict_pairs_iterator(self.config):
-                #     if 'batch_size' in pairs:
-                #         save = self.config[pairs[0]]; i=1
-                #         while i < len(pairs) and pairs[i]!='batch_size':
-                #             save = save[pairs[i]]; i+=1
-                #         save['batch_size'] = torch.cuda.device_count()*self.config.BATCH_SIZE
                 self.config = utils.nested_dict_change_value(self.config, 'batch_size', torch.cuda.device_count()*self.config.BATCH_SIZE)
                 self.config.BATCH_SIZE *= torch.cuda.device_count()
                 self.config.NB_EPOCHS = self.config.NB_EPOCHS//torch.cuda.device_count()
@@ -149,8 +186,7 @@ class Builder:
             self.build_train()
 
     def build_dataset(self):
-        """
-        build the dataset.
+        """Build the dataset.
         """
         if 'TRAIN_DATASET' in self.config.keys():
             self.train_dataset = read_config(self.config.TRAIN_DATASET, register.datasets)
@@ -168,8 +204,7 @@ class Builder:
 
 
     def build_model(self, training=True):
-        """
-        build the model, the losses and the metrics.
+        """Build the model, the losses and the metrics.
         """
         
         # self-supervised models are special cases
@@ -225,15 +260,12 @@ class Builder:
 
         # losses
         if training:
-            # self.loss_fn = DiceBCE(name='train_loss') # normal supervision
             self.loss_fn = read_config(self.config.TRAIN_LOSS, register.metrics)
             self.loss_fn.cuda().train()
-            # self.loss_fn.train()
 
             if 'VAL_LOSS' in self.config.keys():
                 self.val_loss_fn = read_config(self.config.VAL_LOSS, register.metrics)
                 self.val_loss_fn.cuda().eval()
-                # self.val_loss_fn.eval()
             else: 
                 self.val_loss_fn = None
 
@@ -264,14 +296,13 @@ class Builder:
                 # [{'params': self.model.parameters()}, {'params': self.loss_fn.parameters()}], 
                 params, 
                 lr=lr, momentum=0.99, nesterov=True, weight_decay=weight_decay)
-                # lr=lr, momentum=0.99, nesterov=True)
-
             # self.optim = LARS(params)
 
 
     def build_callbacks(self):
-        """
-        build the callbacks for the training process.
+        """Build the callbacks for the training process. Callback are used to monitor the training process and to update the schedulers.
+
+        As the callbacks are often dependant on the Builder arguments, they are defined directly here.
         """
 
         clbk_dict = {}
@@ -420,8 +451,7 @@ class Builder:
 
 
     def build_train(self):
-        """
-        build the method from scratch.
+        """Successively build the dataset, the model and the callbacks.
         """
         # make it deterministic 
         np.random.seed(12345)
@@ -447,8 +477,7 @@ class Builder:
         self.build_callbacks()
 
     def run_training(self):
-        """
-        run the training and validation routines.
+        """Run the training and validation routines.
         """
         if 'USE_FP16' in self.config.keys() and self.config.USE_FP16:
             scaler = torch.cuda.amp.GradScaler()
@@ -500,9 +529,19 @@ class Builder:
     #     )
 
     def run_prediction_single(self, img_path, return_logit=True):
-        """
-        TODO: this function should be defined in another file 
-        compute a prediction for one image, just for visualizing
+        """Compute a prediction for one image using the predictor defined in the configuration file.
+
+        Parameters
+        ----------
+        img_path : str
+            Path to the image.
+        return_logit : bool, default=True
+            Whether to return the logit, i.e. the model output before the final activation. 
+        
+        Returns
+        -------
+        numpy.ndarray
+            Output images.
         """
 
         return read_config(
@@ -514,62 +553,51 @@ class Builder:
             )
     
     def run_prediction_folder(self, dir_in, dir_out, return_logit=False):
-        """
-        compute a prediction for one image, just for visualizing
+        """Compute predictions for a folder of images.
 
         Parameters
         ----------
+        dir_in : str
+            Path to the input folder of images.
+        dir_out : str
+            Path to the output folder where the predictions will be stored.
+        return_logit : bool, default=False
+            Whether to save the logit, i.e. the model output before the final activation.
         """
         fnames_in = sorted(utils.abs_listdir(dir_in))
         if not os.path.isdir(dir_out):
             os.makedirs(dir_out, exist_ok=True)
         
         # remove extension
-        fnames_out = [f[:f.rfind('.')] for f in sorted(os.listdir(dir_in))]
+        # fnames_out = [f[:f.rfind('.')] for f in sorted(os.listdir(dir_in))]
         # fnames_out = [os.path.basename(f).split('.')[0] for f in sorted(os.listdir(dir_in))]
+
+        fnames_out = os.listdir(dir_in)
 
         # add folder path
         fnames_out = utils.abs_path(dir_out,fnames_out)
-        
 
         for i, img_path in enumerate(fnames_in):
             print("running prediction for image: ", img_path)
+            pred = self.run_prediction_single(img_path=img_path, return_logit=return_logit)
 
-            # use nifti format
-            # TODO: to remove the code below, this is just a fix 
-            if img_path[img_path.rfind('.'):]=='.gz':
-                logit = self.run_prediction_single(img_path=img_path, return_logit=True)
-                print("Saving images in", fnames_out[i]+".gz")
+            print("Saving images in", fnames_out[i])
+            spacing = utils.sitk_imread(img_path)[1]
+            if spacing==[]: spacing = (1,1,1) 
+            adaptive_imsave(fnames_out[i], pred, spacing)
                 
-                # get spacing
-                spacing = utils.sitk_imread(img_path)[1]
-
-                # if prediction has 4 dimensions then must be converted to 3 dimensions
-                if not self.config.USE_SOFTMAX:
-                    # strategy: for each voxel, if the sigmoid is positive then take 
-                    # the argmax of softmax of the channel dim (dim=0) else 0
-                    sigmoid = (logit.sigmoid()>0.5).int()
-                    softmax = (logit.softmax(dim=0).argmax(dim=0)).int()+1
-                    cond = sigmoid.max(dim=0).values
-                    pred = torch.where(cond>0, softmax, 0)
-                else: 
-                    # pred = special.softmax(logit, axis=0).argmax(axis=0)
-                    pred = (logit.softmax(dim=0).argmax(dim=0)).int() 
-
-                utils.sitk_imsave(fnames_out[i]+".gz", pred.numpy().astype(np.uint8), spacing)
-            # use tif format by default
-            else:
-                pred = self.run_prediction_single(img_path=img_path, return_logit=return_logit)
-                print("Saving images in", fnames_out[i]+".tif")
-                tifffile.imwrite(fnames_out[i]+".tif", pred, compression=('zlib', 1))
-                
-    
     def load_train(self, 
         path, 
         load_best=False): # whether to load the best model
-        """
-        load a builder from a folder.
-        the folder should have been created by the self.run_training method.
+        """Load a builder from a folder. The folder should have been created by the `self.build_train` method.
+        Can be use to restart a training. 
+
+        Parameters
+        ----------
+        path : str
+            Path of the log folder.
+        load_best : bool, default=False
+            Whether to load the best model or the final model.
         """
 
         # setup the different paths from the folder
@@ -623,9 +651,15 @@ class Builder:
     def load_test(self, 
         path, 
         load_best=True): # whether to load the best model
-        """
-        load a builder from a folder.
-        the folder should have been created by the self.run_training method.
+        """Load a builder from a folder. The folder should have been created by the `self.build_train` method.
+        Can be used to test the model on unseen data.
+
+        Parameters
+        ----------
+        path : str
+            Path of the log folder.
+        load_best : bool, default=True
+            Whether to load the best model or the final model.
         """
 
         # setup the different paths from the folder
