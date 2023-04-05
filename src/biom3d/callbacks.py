@@ -235,34 +235,39 @@ class ImageSaver(Callback):
         model,
         val_dataloader,
         use_sigmoid=True,
-        every_epoch=1):
+        every_epoch=1,
+        plot_size=1,
+        use_fp16=True,
+        ):
         self.image_dir = image_dir
         self.every_epoch = every_epoch
         self.model = model 
         self.use_sigmoid = use_sigmoid
         self.val_dataloader = val_dataloader
+        self.plot_size = plot_size
+        self.use_fp16 = use_fp16
 
     def on_epoch_end(self, epoch):
         if epoch % self.every_epoch == 0:
             self.model.eval()
             with torch.no_grad():
-                # for _ in range(4): next(iterator) # to start with image number 4
-                plot_size = 1
-                for i in range(plot_size):
+                for i in range(self.plot_size):
                 # make prediction
                     X, y = next(iter(self.val_dataloader))
                     # X, y = self.val_dataloader.get_sample()
                     X, y = X.cuda(), y.cuda()
-                    with torch.cuda.amp.autocast():
-                        pred = self.model(X).detach()
+                    with torch.cuda.amp.autocast(self.use_fp16):
+                        pred = self.model(X)
+                        if type(pred)==list:
+                            pred = pred[-1]
                     if self.use_sigmoid:
                         pred = (torch.sigmoid(pred)>0.5).int()*255
                     else: 
                         pred = (pred.softmax(dim=1)).int()*255
-                    l = [X, y, pred]
+                    l = [X, y, pred.detach()]
                     for j in range(len(l)):
                         _,_,channel,_,_ = l[j].shape
-                        l[j] = l[j][0, 0, channel//2, ...].cpu().numpy().astype(float)
+                        l[j] = l[j][0, -1, channel//2, ...].cpu().numpy().astype(float)
                     X, y, pred = l
 
                     # plot 
@@ -312,13 +317,15 @@ class TensorboardSaver(Callback):
     def on_epoch_begin(self, epoch):
         self.crt_epoch = epoch
     
-    def on_batch_end(self, batch):
-        n_iter = (self.n_batch_per_epoch * self.crt_epoch + batch) * self.batch_size
-        self.writer.add_scalar('Loss/train', self.train_loss.val, n_iter)
+    # def on_batch_end(self, batch):
+    def on_epoch_end(self, epoch):
+        # n_iter = (self.n_batch_per_epoch * self.crt_epoch + batch) * self.batch_size
+        n_iter = (epoch+1) * self.batch_size * self.n_batch_per_epoch
+        self.writer.add_scalar('Loss/train', self.train_loss.avg, n_iter)
         if self.val_loss:
             self.writer.add_scalar('Loss/test', self.val_loss.avg, n_iter)
         if self.train_metrics:
-            for m in self.train_metrics: self.writer.add_scalar('Metrics/'+m.name,m.val,n_iter)
+            for m in self.train_metrics: self.writer.add_scalar('Metrics/'+m.name,m.avg,n_iter)
         if self.val_metrics:
             for m in self.val_metrics: self.writer.add_scalar('Metrics/'+m.name,m.avg,n_iter)
 

@@ -144,14 +144,12 @@ class Builder:
     Examples
     --------
     To run a training from a configuration file do:
-
     >>> from importlib import import_module
-    >>> cfg = import_module(config).CONFIG
+    >>> cfg = import_module("biom3d.configs.unet_default").CONFIG
     >>> builder = Builder(config=cfg)
     >>> builder.run_training() # start the training
 
     To run a prediction from a log folder, do:
-
     >>> path = "path/to/log/folder"
     >>> builder = Builder(path=path, training=False)
     >>> builder.run_prediction_folder(dir_in="input/folder", dir_out="output/folder")
