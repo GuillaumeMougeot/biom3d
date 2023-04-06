@@ -545,7 +545,7 @@ class LRSchedulerPoly(Callback):
 
     .. math::
         \\begin{aligned}
-            new_lr = initial_lr * (1 - \\frac{current_epoch}{max_epochs})^{exponent}
+            lr_{new} = lr_{initial} * (1 - \\frac{epoch_{current}}{epoch_{max}})^{exponent}
         \\end{aligned}
 
     Parameters
