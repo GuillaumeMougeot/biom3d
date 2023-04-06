@@ -541,12 +541,12 @@ class LRSchedulerCosine(Callback):
         print("Current learning rate: {}".format(self.scheduler.get_last_lr()))
 
 class LRSchedulerPoly(Callback):
-    """Polygonal scheduler. Similar to nnU-Net learning rate scheduler.
+    """Polynomial scheduler. Similar to nnU-Net learning rate scheduler.
 
     .. math::
-        \begin{aligned}
-            new_lr = initial_lr * (1 - \frac{current_epoch}{max_epochs})^{exponent}
-        \end{aligned}
+        \\begin{aligned}
+            new_lr = initial_lr * (1 - \\frac{current_epoch}{max_epochs})^{exponent}
+        \\end{aligned}
 
     Parameters
     ----------
