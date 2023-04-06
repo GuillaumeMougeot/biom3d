@@ -1,3 +1,11 @@
+#---------------------------------------------------------------------------
+# Callback are periodically called during training. 
+# There are currently 3 different periods:
+# - training 
+# - epoch
+# - batch
+#---------------------------------------------------------------------------
+
 import torch
 import os
 # from telegram_send import send
@@ -11,6 +19,13 @@ import numpy as np
 
 class Callback(object):
     """Abstract base class used to build new callbacks.
+
+    Callback are periodically called during training. 
+    There are currently 3 different periods:
+    - training 
+    - epoch
+    - batch
+    Callbacks are called either before or after a period. 
 
     Each method starting by `on_` can be overridden. This method will be called at a certain time point during the training process.
     For instance, the `on_epoch_end` method will be called in the end of each epoch. 
@@ -43,7 +58,12 @@ class Callback(object):
 # dict based callbacks
 
 class Callbacks(Callback):
-    """Child of biom3d.callbacks.Callback.
+    """Child of biom3d.callbacks.Callback and used to compile all the callbacks together. 
+
+    Parameters
+    ----------
+    callbacks : list of biom3d.callback.Callback
+        A list of callbacks.
     """
     def __init__(self, callbacks):
         super().__init__()
@@ -87,8 +107,24 @@ class Callbacks(Callback):
 # Savers            
             
 class ModelSaver(Callback): # TODO: save best_only
-    """
-    if model is a list then it is considered as been [student,teacher]
+    """The model saver saves the model, the epoch, the optimizer and the loss in the end of each epoch. It can also save the best model.
+    
+    Parameters
+    ----------
+    model : torch.nn.Module or a list of torch.nn.Module
+        A torch module to store. If the model is a list then it is considered as been [student,teacher]
+    optimizer : torch.optim.Optimizer
+        A torch optimizer.
+    path : str
+        Name of the model to store. The `.pth` extension is automatically added and the best model is stored with `_best.pth` extension.
+    every_epoch : int, default=2
+        Period to save the model.
+    save_best : bool, default=True
+        Whether to save the best model.
+    loss : torch.nn.Module
+        Loss function.
+    saved_loss : torch.nn.Module
+        Loss saved alongside the model.
     """
     def __init__(self,
         model, 
@@ -140,6 +176,29 @@ class ModelSaver(Callback): # TODO: save best_only
                 
 
 class LogSaver(Callback):
+    """Save logs in a CSV file.
+
+    This callback creates a `log.csv` file in the log folder.
+    
+    Parameters
+    ----------
+    log_dir : str
+        Path to the folder where the CSV file will be stored. 
+    train_loss : torch.nn.Module
+        Training loss.
+    val_loss : torch.nn.Module
+        Validation loss.
+    train_metrics : list of torch.nn.Module
+        List of training metrics.
+    val_metrics : list of torch.nn.Module
+        List of validation metrics.
+    scheduler : biom3d.callback.Callback
+        Learning rate callback.
+    save_best : bool, default=True
+        Whether to save the best loss in other CSV file. This will create another CSV file that will be called `log_best.csv` in the log folder.
+    every_batch : int, default=10
+        Batch period when to save the log.
+    """
     def __init__(self, 
         log_dir,            # path to where the csv file will be store
         train_loss,
@@ -172,6 +231,8 @@ class LogSaver(Callback):
         self.f = None
 
     def write_file_head(self, file):
+        """Write the head of the CSV file.
+        """
         # write the head of the log file
         head = "epoch,batch,learning_rate,train_loss,val_loss"
         for m in self.train_metrics+self.val_metrics:
@@ -234,6 +295,25 @@ class LogSaver(Callback):
 # tester()
 
 class ImageSaver(Callback):
+    """The image saver callback saves a small snapshot of the raw image, the prediction and the ground truth. By default, it uses the validation dataloader to load a batch of 3D images, makes a prediction with the model, then uses the first images of the batch and the prediction and, to display a 2D image, uses the first channel of each image (input, prediction, ground truth).
+
+    Parameters
+    ----------
+    image_dir : str
+        Path to the image snapshot folder, where the snapshots will be stored.
+    model : torch.nn.Module
+        A torch module that will be used to make prediction.
+    val_dataloader : torch.utils.data.Dataloader or iter
+        An iterator used to generate a batch of input image and mask.
+    use_sigmoid : bool, default=True
+        Whether to use a sigmoid or a softmax activation on the model predictions.
+    every_epoch : int, default=1
+        Epoch period when the image snapshot will be stored.
+    plot_size : int, default=1
+        Number of images to plot in the snapshot. 
+    use_fp16 : bool, default=True
+        Whether the model has been trained with AMP or not.
+    """
     def __init__(self, 
         image_dir, 
         model,
@@ -299,6 +379,27 @@ class ImageSaver(Callback):
                 plt.close()
 
 class TensorboardSaver(Callback):
+    """The tensorboard callback is used to plot the loss and metrics in the tensorboard interface. To start tensorboard execute the following command in a terminal opened in the biom3d project folder: `tensorboard --logdir=logs/`.
+    
+    This callback labels the loss with `Loss/train` and `Loss/test` and the metrics with `Metrics/name_of_your_metric`.
+
+    Parameters
+    ----------
+    log_dir : str
+        Path to the log folder where the curve will be stored.
+    train_loss : torch.nn.Module
+        Training loss function.
+    val_loss : torch.nn.Module
+        Validation loss function.
+    train_metrics : list of torch.nn.Module
+        List of the training metrics.
+    val_metrics : list of torch.nn.Module
+        List of the validation metrics.
+    batch_size : int
+        Size of the minibatch. Is used to compute the number of iteration so that the x-axis of the curve is the number of image and not the number of batch.
+    n_batch_per_epoch : int
+        Number of the batch per epoch. Is used to compute the number of iteration so that the x-axis of the curve is the number of image and not the number of batch.
+    """
     def __init__(self, 
         log_dir, 
         train_loss, 
@@ -337,7 +438,26 @@ class TensorboardSaver(Callback):
 # Printer
 
 class LogPrinter(Callback):
-    def __init__(self, metrics, nbof_epochs, nbof_batches, every_batch=10):
+    """Print the log in the terminal prompt.
+
+    Parameters
+    ----------
+    metrics : list of torch.nn.Module
+        List of the metrics to display. The loss can be amoung them.
+    nbof_eopchs : int
+        Number of epochs in the training.
+    nbof_batchs : int
+        Number of batches per epoch.
+    every_batch : int, default=10
+        Batch period when to print the log.
+    """
+    def __init__(
+        self,
+        metrics,
+        nbof_epochs,
+        nbof_batches,
+        every_batch=10):
+
         self.nbof_epochs = nbof_epochs
         self.nbof_batches = nbof_batches
 
@@ -371,13 +491,25 @@ class LogPrinter(Callback):
 # schedulers
 
 class LRSchedulerMultiStep(Callback):
-    """
-    Multi-step scheduler only for now
+    """Multi-step learning rate scheduler. Uses torch.optim.lr_scheduler.MultiStepLR
+
+    For more details, see : https://pytorch.org/docs/stable/generated/torch.optim.lr_scheduler.MultiStepLR
+    
+    Parameters
+    ----------
+    optimizer : torch.optim.Optimizer
+        Training optimizer.
+    milestones : list of int
+        List of epoch when to decay the learning rate. Must be increasing. 
+    gamma : float, default=0.1
+        Multiplicative factor of the learning rate decay. 
     """
     def __init__(self, optimizer, milestones, gamma=0.1):
         self.scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones, gamma=gamma, verbose=False)
 
     def get_last_lr(self):
+        """Getter for the last learning rate.
+        """
         return self.scheduler.get_last_lr()
     
     def on_epoch_end(self, epoch):
@@ -385,13 +517,23 @@ class LRSchedulerMultiStep(Callback):
         print("Current learning rate: {}".format(self.scheduler.get_last_lr()))
 
 class LRSchedulerCosine(Callback):
-    """
-    Cosine scheduler
+    """Cosine learning rate scheduler. Uses torch.optim.lr_scheduler.CosineAnnealingLR
+
+    For more details, see : https://pytorch.org/docs/stable/generated/torch.optim.lr_scheduler.CosineAnnealingLR
+    
+    Parameters
+    ----------
+    optimizer : torch.optim.Optimizer
+        Training optimizer.
+    T_max : int
+        Maximum number of iteration. By default, you can set this to the number of epochs. 
     """
     def __init__(self, optimizer, T_max):
         self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max, eta_min=1e-6, verbose=False)
 
     def get_last_lr(self):
+        """Getter for the last learning rate.
+        """
         return self.scheduler.get_last_lr()
     
     def on_epoch_end(self, epoch):
@@ -399,8 +541,23 @@ class LRSchedulerCosine(Callback):
         print("Current learning rate: {}".format(self.scheduler.get_last_lr()))
 
 class LRSchedulerPoly(Callback):
-    """
-    Polygonal scheduler
+    """Polygonal scheduler. Similar to nnU-Net learning rate scheduler.
+
+    .. math::
+        \begin{aligned}
+            new_lr = initial_lr * (1 - \frac{current_epoch}{max_epochs})^{exponent}
+        \end{aligned}
+
+    Parameters
+    ----------
+    optimizer : torch.optim.Optimizer
+        Training optimizer.
+    initial_lr : float
+        Initial learning rate.
+    max_epochs : int
+        Number of epochs in the training.
+    exponent : float, default=0.9
+        Must be between 0 and 1. Exponent of the polynomial decay.
     """
     def __init__(self, optimizer, initial_lr, max_epochs, exponent=0.9):
         self.initial_lr = initial_lr
@@ -435,10 +592,23 @@ class LRSchedulerPoly(Callback):
 #         print("Current learning rate: {}".format(self.scheduler.get_last_lr()))
 
 class ForceFGScheduler(Callback):
-    """
-    Force foreground scheduler
-    We force the model to "see" the foreground more often in the beginning and progressively reduce it
-    This function edits the dataloader.dataset.fg_rate argument --> TODO: improve that
+    """Force foreground scheduler. Uses a polynomial scheduler.
+    We force the model to "see" the foreground more often in the beginning of the training and progressively reduce the foreground rate.
+    The callback calls the dataloader.dataset.set_fg_rate method. The dataset must thus possess a set_fg_rate function.
+    This function does not change directly the way the foreground images are presented to the deep learning model. This should be implemented in the Dataset class.
+
+    Parameters
+    ----------
+    dataloader : torch.utils.data.Dataloader 
+        A dataloader which dataset member possesses a `set_fg_rate` method.
+    initial_rate : float 
+        Initial foreground rate. If the rate is equal to 1, it means that we only present foreground. On the contrary, if the foreground rate is set to 0, then the patch will be random. (Again, this depends on how the foreground forcing is defined in the dataloader.dataset).
+    min_rate : float
+        Minimal/final foreground rate. Can be set to zero but it is not recommended. A good choice could be 0.33 (such as in nnU-Net implementation).
+    max_epochs : int
+        Number of epochs in the training.
+    exponent : float, default=0.9
+        Must be between 0 and 1. Exponent of the polynomial decay.
     """
     def __init__(self, dataloader, initial_rate, min_rate, max_epochs, exponent=0.9):
         self.dataloader = dataloader
@@ -457,9 +627,22 @@ class ForceFGScheduler(Callback):
         print("Current foreground rate: {}".format(crt_rate))
 
 class OverlapScheduler(Callback):
-    """
-    Overlap scheduler
-    We progressively reduce the minimum overlap between the global patches and the local patches
+    """Overlapping rate scheduler. Uses a polynomial scheduler.
+    We progressively reduce the minimum overlap between the global patches and the local patches.
+    An overlap of 1 means that the local patch is completely included in the global patch. An overlap of 0 or less, means that the local patch can be located outside of the global patch. The exact definition of the relationship between the local and the global patch should be defined the dataset.
+    
+    Parameters
+    ----------
+    dataloader : torch.utils.data.Dataloader 
+        A dataloader which dataset member possesses a `set_min_overlap` method.
+    initial_rate : float 
+        Initial overlapping rate. 
+    min_rate : float
+        Minimal/final overlapping rate. 
+    max_epochs : int
+        Number of epochs in the training.
+    exponent : float, default=0.9
+        Must be between 0 and 1. Exponent of the polynomial decay.
     """
     def __init__(self, dataloader, initial_rate, min_rate, max_epochs, exponent=0.9):
         self.dataloader = dataloader
@@ -478,9 +661,21 @@ class OverlapScheduler(Callback):
         print("Current overlap: {}".format(crt_rate))
 
 class GlobalScaleScheduler(Callback):
-    """
-    Global scale scheduler
-    We progressively reduce the scale of the global_crop from image size to patch size
+    """Global scale scheduler. Uses a polynomial scheduler.
+    We progressively reduce the scale of the global_crop from image size to patch/local_crop size.
+
+    Parameters
+    ----------
+    dataloader : torch.utils.data.Dataloader 
+        A dataloader which dataset member possesses a `set_global_crop` method.
+    initial_rate : float 
+        Initial global scale rate. 
+    min_rate : float
+        Minimal/final global scale rate. 
+    max_epochs : int
+        Number of epochs in the training.
+    exponent : float, default=0.9
+        Must be between 0 and 1. Exponent of the polynomial decay.
     """
     def __init__(self, dataloader, initial_rate, min_rate, max_epochs, exponent=0.9):
         self.dataloader = dataloader
@@ -499,9 +694,22 @@ class GlobalScaleScheduler(Callback):
         print("Current global crop scale: {}".format(crt_rate))
 
 class WeightDecayScheduler(Callback):
-    """
-    cosine scheduler of the weight decay
-    if use_poly=True, use polynomial update instead of cosine
+    """Weight decay scheduler. Used for DINO re-implementation.
+    
+    Parameters
+    ----------
+    optimizer : torch.optim.Optimizer
+        Training optimizer.
+    initial_wd : float
+        Initial weight decay.
+    final_wd : float
+        Final weight decay.
+    nb_epochs : int
+        Number of epochs in the training.
+    use_poly : bool, default=True
+        Whether to use polynomial scheduler instead of the default cosine scheduler.
+    exponent : float, default=0.9
+        Must be between 0 and 1. Exponent of the polynomial decay.
     """
     def __init__(self, optimizer, initial_wd, final_wd, nb_epochs, use_poly=False, exponent=0.9):
         self.optimizer = optimizer
@@ -523,9 +731,22 @@ class WeightDecayScheduler(Callback):
         print("Current weight decay:", self.optimizer.param_groups[0]["weight_decay"] )
 
 class MomentumScheduler(Callback):
-    """
-    cosine scheduler for the momentum of the teacher model update
-    if use_poly=True, use polynomial update instead of cosine
+    """Momentum scheduler. Used for DINO re-implementation.
+    
+    Parameters
+    ----------
+    optimizer : torch.optim.Optimizer
+        Training optimizer.
+    initial_momentum : float
+        Initial momentum decay.
+    final_momentum : float
+        Final momentum decay.
+    nb_epochs : int
+        Number of epochs in the training.
+    mode : str, default='poly'
+        Scheduling mode. Can be one of: 'poly', 'exp', 'linear' or None. If None, use cosine scheduler.
+    exponent : float, default=0.9
+        Must be between 0 and 1. Exponent of the polynomial decay.
     """
     def __init__(self, initial_momentum, final_momentum, nb_epochs, mode='poly', exponent=0.9):
         self.initial_momentum = initial_momentum
@@ -558,9 +779,21 @@ class MomentumScheduler(Callback):
         print("Current teacher momentum:", self.crt_momentum)
 
 class DatasetSizeScheduler(Callback):
-    """
-    Dataset size scheduler
-    We progressively increase the size of the dataset to help the arcface training
+    """Dataset size scheduler. 
+    We progressively increase the size of the dataset to help the Arcface training. NO PROOF THAT IT IMPROVES THE FINAL PERFORMANCE.
+    The dataloader must have a dataset that has a `set_num_classes` method.
+    At each epoch the size of the dataset is incremented by 1.
+
+    Parameters
+    ----------
+    dataloader : torch.utils.data.Dataloader
+        Torch dataloader. The dataloader must have a dataset that has a `set_num_classes` method.
+    model : torch.nn.Module
+        Torch module that must have a `set_num_classes` method.
+    max_dataset_size : int
+        Maximum size of the dataset.
+    min_dataset_size : int
+        Minimum size of the dataset. Used in the beginning of the training.
     """
     def __init__(self, dataloader, model, max_dataset_size, min_dataset_size=5):
         self.dataloader = dataloader
@@ -578,8 +811,14 @@ class DatasetSizeScheduler(Callback):
 # metrics updater
 
 class MetricsUpdater(Callback):
-    """
-    Update the metrics averages
+    """Update the metrics averages by calling the `update` method of each metric.
+
+    Parameters
+    ----------
+    metrics : list of torch.nn.Module
+        List of metrics and losses to update.
+    batch_size : int
+        Batch size.
     """
     def __init__(self, metrics, batch_size):
         self.metrics = metrics
