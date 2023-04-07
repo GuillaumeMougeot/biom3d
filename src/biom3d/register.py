@@ -42,9 +42,6 @@ metrics = Dict(
     CE          =Dict(fct=mt.CrossEntropy, kwargs=Dict()),
     DeepMSE     =Dict(fct=mt.DeepMetric, kwargs=Dict(metric=mt.MSE)),
     DeepDiceBCE =Dict(fct=mt.DeepMetric, kwargs=Dict(metric=mt.DiceBCE)),
-    Triplet     =Dict(fct=mt.Triplet, kwargs=Dict()),
-    TripletSeg  =Dict(fct=mt.TripletDiceBCE, kwargs=Dict()),
-    ArcFace     =Dict(fct=mt.ArcFace, kwargs=Dict()),
 )
 
 #---------------------------------------------------------------------------
