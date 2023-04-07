@@ -213,7 +213,18 @@ class CrossEntropy(Metric):
 # Metric adaptation for deep supervision
 
 class DeepMetric(Metric):
-    """Deep supervision.
+    """Deep supervision: a metric applied to several levels of the U-Net model. During the forward pass, this metric supposes that the inputs are a list of torch.Tensor that will be individually compared to the target.
+
+    Parameters
+    ----------
+    metric : biom3d.metrics.Metric
+        A metric that will be applied to each level of the U-Net model.
+    alphas : list of float
+        A list of coefficient applied to each feature map that starts with the deepest one. It must have a len of 6.
+    name : str, default=None
+        Name of the metric. Mainly for display purpose.
+    metric_kwargs : dict, default={}
+        A python dictionary that contains the keyword arguments required to define the metric.
     """
     def __init__(self,
         metric,
@@ -226,6 +237,15 @@ class DeepMetric(Metric):
         self.alphas = alphas 
     
     def forward(self, inputs, targets):
+        """Forward pass.
+
+        Parameters
+        ----------
+        inputs : list of torch.Tensor
+            A list of batch of torch.Tensor that will be passed to the metric.
+        targets : torch.Tensor
+            A batch of torch.Tensor that will be compared to the inputs.
+        """
         # inputs must be a list of network output
         # they are here all compared to the targets
         # the last inputs is supposed to be the final one
