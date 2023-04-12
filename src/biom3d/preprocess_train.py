@@ -11,7 +11,7 @@ from biom3d.auto_config import auto_config, save_auto_config
 from biom3d.utils import load_python_config
 from biom3d.builder import Builder
 
-def preprocess_train(img_dir, msk_dir, num_classes, config_dir):
+def preprocess_train(img_dir, msk_dir, num_classes, config_dir, base_config):
     # preprocessing
     p=Preprocessing(
         img_dir=img_dir,
@@ -25,20 +25,17 @@ def preprocess_train(img_dir, msk_dir, num_classes, config_dir):
     # auto-config
     batch, aug_patch, patch, pool = auto_config(img_dir=p.img_dir)
 
-    # create the config dir if needed
-    if not os.path.exists(config_dir):
-        os.makedirs(config_dir, exist_ok=True)
-
     # save auto-config
     config_path = save_auto_config(
         config_dir=config_dir,
-        img_dir=p.img_outdir,
-        msk_dir=p.msk_outdir,
-        num_classes=num_classes,
-        batch_size=batch,
-        aug_patch_size=aug_patch,
-        patch_size=patch,
-        num_pools=pool
+        base_config=base_config,
+        IMG_DIR=p.img_outdir,
+        MSK_DIR=p.msk_outdir,
+        NUM_CLASSES=num_classes,
+        BATCH_SIZE=batch,
+        AUG_PATCH_SIZE=aug_patch,
+        PATCH_SIZE=patch,
+        NUM_POOLS=pool
     )
 
     # training
@@ -57,11 +54,14 @@ if __name__=='__main__':
         help="(default=1) Number of classes (types of objects) in the dataset. The background is not included.")
     parser.add_argument("--config_dir", type=str, default='configs/',
         help="(default=\'configs/\') Configuration folder to save the auto-configuration.")
+    parser.add_argument("--base_config", type=str, default=None,
+        help="(default=None) Optional. Path to an existing configuration file which will be updated with the preprocessed values.")
     args = parser.parse_args()
 
     preprocess_train(
         img_dir=args.img_dir,
         msk_dir=args.msk_dir,
         num_classes=args.num_classes,
-        config_dir=args.config_dir
+        config_dir=args.config_dir,
+        base_config=args.base_config,
     )

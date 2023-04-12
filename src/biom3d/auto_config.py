@@ -313,37 +313,60 @@ def replace_line_multiple(line, dic):
 
 def save_auto_config(
     config_dir,
-    img_dir,
-    msk_dir,
-    num_classes,
-    batch_size,
-    aug_patch_size,
-    patch_size,
-    num_pools):
+    base_config = None,
+    **kwargs,
+    ):
+    """
+    Save the auto-configuration in a config file. If the path to a base configuration is provided, then update this file with the new auto-configured parameters.
 
-    # copy default config file
-    config_path = shutil.copy(config_default.__file__, config_dir) 
+    Parameters
+    ----------
+    config_dir : str
+        Path to the configuration folder. If the folder does not exist, then create it.
+    base_config : str, default=None
+        Path to an existing configuration file which will be updated with the auto-config values.
+    **kwargs
+        Keyword arguments of the configuration file.
+
+    Returns
+    -------
+    config_path : str
+        Path to the new configuration file.
+    
+    Examples
+    --------
+    >>> config_path = save_auto_config(
+        config_dir="configs/",
+        base_config="configs/pancreas_unet.py",
+        IMG_DIR="/pancreas/imagesTs_tiny_out",
+        MSK_DIR="pancreas/labelsTs_tiny_out",
+        NUM_CLASSES=2,
+        BATCH_SIZE=2,
+        AUG_PATCH_SIZE=[56, 288, 288],
+        PATCH_SIZE=[40, 224, 224],
+        NUM_POOLS=[3, 5, 5])
+    """
+
+    # create the config dir if needed
+    if not os.path.exists(config_dir):
+        os.makedirs(config_dir, exist_ok=True)
+
+    # copy default config file or use the one given by the user
+    if base_config == None:
+        config_path = shutil.copy(config_default.__file__, config_dir) 
+    else: 
+        config_path = base_config
 
     # rename it with date included
     current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
     new_config_name = os.path.join(config_dir, current_time+"-"+os.path.basename(config_path))
     os.rename(config_path, new_config_name)
 
-    dic = {
-        'IMG_DIR':img_dir,
-        'MSK_DIR':msk_dir,
-        'NUM_CLASSES':num_classes,
-        'BATCH_SIZE':batch_size,
-        'AUG_PATCH_SIZE':aug_patch_size,
-        'PATCH_SIZE':patch_size,
-        'NUM_POOLS':num_pools,
-    }
-
     # edit the new config file with the auto-config values
     with fileinput.input(files=(new_config_name), inplace=True) as f:
         for line in f:
             # edit the line
-            line = replace_line_multiple(line, dic)
+            line = replace_line_multiple(line, kwargs)
             # write back in the input file
             print(line, end='') 
     return new_config_name

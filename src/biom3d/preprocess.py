@@ -371,6 +371,8 @@ if __name__=='__main__':
         help="(default=1) Number of classes (types of objects) in the dataset. The background is not included.")
     parser.add_argument("--config_folder", type=str, default='configs/',
         help="(default=\'configs/\') Configuration folder to save the auto-configuration.")
+    parser.add_argument("--base_config", type=str, default=None,
+        help="(default=None) Optional. Path to an existing configuration file which will be updated with the preprocessed values.")
     parser.add_argument("--use_tif", default=False,  action='store_true', dest='use_tif',
         help="(default=False) Whether to use tif format to save the preprocessed images instead of npy format. Tif files are easily readable with viewers such as Napari and takes fewer disk space but are slower to load and may slow down the training process.") 
     parser.add_argument("--remove_bg", default=False,  action='store_true', dest='remove_bg',
@@ -398,19 +400,16 @@ if __name__=='__main__':
 
         batch, aug_patch, patch, pool = auto_config.auto_config(img_dir=p.img_dir)
 
-        # create the config dir if needed
-        if not os.path.exists(args.config_dir):
-            os.makedirs(args.config_dir, exist_ok=True)
-
         config_path = auto_config.save_auto_config(
             config_dir=args.config_dir,
-            img_dir=p.img_outdir,
-            msk_dir=p.msk_outdir,
-            num_classes=args.num_classes,
-            batch_size=batch,
-            aug_patch_size=aug_patch,
-            patch_size=patch,
-            num_pools=pool
+            base_config=args.base_config,
+            IMG_DIR=p.img_outdir,
+            MSK_DIR=p.msk_outdir,
+            NUM_CLASSES=args.num_classes,
+            BATCH_SIZE=batch,
+            AUG_PATCH_SIZE=aug_patch,
+            PATCH_SIZE=patch,
+            NUM_POOLS=pool
         )
 
         print("Auto-config done! Configuration saved in: ", config_path)
