@@ -32,7 +32,7 @@ python -m biom3d.preprocess_train\
  --num_classes 2
 ```
 
-That's it ! Your data will be automatically preprocessed and stored in a folder along the existing ones. Your training pipeline, involving hyper-parameters such as the patch size, will be automatically configured depending on the dataset meta-data, such as the median image shape. And the training should start!
+That's it! Your data will be automatically preprocessed and stored in a folder along the existing ones. Your training pipeline, involving hyper-parameters such as the patch size, will be automatically configured depending on the dataset meta-data, such as the median image shape. And the training should start!
 
 This command should create four new folders: two folders with the same names as your image and label folders with the extension `_out`, a `configs` folder and a `logs` folder. The `_out` folders contain the preprocessed images and labels. The `configs` folder contains a Python script: the configuration file of your training. The `logs` folder contains one folder which contains the saved model and the training logs. 
 

@@ -335,15 +335,15 @@ def save_auto_config(
     
     Examples
     --------
-    >>> config_path = save_auto_config(
-        config_dir="configs/",
-        base_config="configs/pancreas_unet.py",
-        IMG_DIR="/pancreas/imagesTs_tiny_out",
-        MSK_DIR="pancreas/labelsTs_tiny_out",
-        NUM_CLASSES=2,
-        BATCH_SIZE=2,
-        AUG_PATCH_SIZE=[56, 288, 288],
-        PATCH_SIZE=[40, 224, 224],
+    >>> config_path = save_auto_config(\\
+        config_dir="configs/",\\
+        base_config="configs/pancreas_unet.py",\\
+        IMG_DIR="/pancreas/imagesTs_tiny_out",\\
+        MSK_DIR="pancreas/labelsTs_tiny_out",\\
+        NUM_CLASSES=2,\\
+        BATCH_SIZE=2,\\
+        AUG_PATCH_SIZE=[56, 288, 288],\\
+        PATCH_SIZE=[40, 224, 224],\\
         NUM_POOLS=[3, 5, 5])
     """
 
