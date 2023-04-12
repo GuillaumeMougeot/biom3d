@@ -7,23 +7,22 @@ import argparse
 import os
 import numpy as np
 # from telegram_send import send
-from importlib import import_module
 
 from biom3d.builder import Builder
-from biom3d.utils import load_config, abs_listdir, versus_one, dice
+from biom3d.utils import load_yaml_config, load_python_config, abs_listdir, versus_one, dice
 
 
 #---------------------------------------------------------------------------
 # utils
 
 def train(config=None, log=None): 
-    cfg = None if not config else import_module(config).CONFIG
+    cfg = None if not config else load_python_config(config)
     builder = Builder(config=cfg,path=log)
     builder.run_training()
     print("Training done!")
 
 def train_yaml(config=None, log=None): 
-    cfg = None if not config else load_config(config)
+    cfg = None if not config else load_yaml_config(config)
     builder = Builder(config=cfg,path=log)
     builder.run_training()
     print("Training done!")
@@ -48,7 +47,7 @@ def main_seg_pred_eval(
     # train
     print("Start training")
     if config is not None:
-        cfg = import_module(config).CONFIG
+        cfg = load_python_config(config)
     else:
         cfg = None
     builder_train = Builder(config=cfg,path=log)
@@ -121,7 +120,7 @@ def main_pretrain_seg_pred_eval(
     """
     # pretraining
     print("Start pretraining")
-    cfg = import_module(pretrain_config).CONFIG
+    cfg = load_python_config(pretrain_config)
     builder = Builder(config=cfg,path=log)
     if path_encoder is None:
         builder.run_training()
@@ -129,7 +128,7 @@ def main_pretrain_seg_pred_eval(
 
     # train
     print("Start training")
-    cfg = import_module(train_config).CONFIG
+    cfg = load_python_config(train_config)
     # cfg.MODEL.kwargs.encoder_ckpt = os.path.join(builder.model_dir,builder.config.DESC+"_best.pth")
 
     if path_encoder and not model_encoder:

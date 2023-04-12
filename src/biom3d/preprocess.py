@@ -9,11 +9,13 @@ import numpy as np
 import os 
 # import torchio as tio
 from tqdm import tqdm
-from skimage.io import imsave, imread
 import argparse
+from skimage.io import imread
 import SimpleITK as sitk
 import tifffile
 from numba import njit
+
+from biom3d import config_default
 
 #---------------------------------------------------------------------------
 # Nifti imread
@@ -260,10 +262,10 @@ class Preprocessing:
         self.msk_dir = self.msk_outdir
 
     
-    def prepare(self):
+    def run(self):
         """Start the preprocessing.
         """
-        print("preprocessing...")
+        print("Preprocessing...")
         # if there is only a single image/mask, then split them both in two portions
         if len(self.img_fnames)==1:
             print("Single image found per folder. Split the images...")
@@ -352,7 +354,7 @@ class Preprocessing:
                 else:
                     msk_out_path = os.path.join(self.msk_outdir, img_fname+'.npy')
                     np.save(msk_out_path, msk)
-        print("done preprocessing!")
+        print("Done preprocessing!")
 
 #---------------------------------------------------------------------------
 
@@ -369,12 +371,14 @@ if __name__=='__main__':
         help="(default=None) Path to the directory of the preprocessed masks/labels")
     parser.add_argument("--num_classes", type=int, default=1,
         help="(default=1) Number of classes (types of objects) in the dataset. The background is not included.")
-    parser.add_argument("--use_npy", default=False,  action='store_true', dest='use_npy',
-        help="(default=False) Whether to use npy format to save the preprocessed images instead of tif format. Tif files are easily readable with viewers such as Napari and takes fewer disk space but are slower to load and may slow down the training process.") 
-    parser.add_argument("--add_bg", default=False,  action='store_true', dest='add_bg',
-        help="(default=False) Add the background in masks. Remove the bg to use with sigmoid activation maps (not softmax).") 
-    parser.add_argument("--auto_config", default=False,  action='store_true', dest='auto_config',
-        help="(default=False) Show the information to copy and paste inside the configuration file (patch_size, batch_size and num_pools).") 
+    parser.add_argument("--config_folder", type=str, default='configs/',
+        help="(default=\'configs/\') Configuration folder to save the auto-configuration.")
+    parser.add_argument("--use_tif", default=False,  action='store_true', dest='use_tif',
+        help="(default=False) Whether to use tif format to save the preprocessed images instead of npy format. Tif files are easily readable with viewers such as Napari and takes fewer disk space but are slower to load and may slow down the training process.") 
+    parser.add_argument("--remove_bg", default=False,  action='store_true', dest='remove_bg',
+        help="(default=False) Remove the background in masks. Remove the bg to use with sigmoid activation maps (not softmax).") 
+    parser.add_argument("--no_auto_config", default=False,  action='store_true', dest='no_auto_config',
+        help="(default=False) Stop showing the information to copy and paste inside the configuration file (patch_size, batch_size and num_pools).") 
     args = parser.parse_args()
 
     p=Preprocessing(
@@ -383,18 +387,35 @@ if __name__=='__main__':
         img_outdir=args.img_outdir,
         msk_outdir=args.msk_outdir,
         num_classes=args.num_classes+1,
-        remove_bg=not args.add_bg,
-        use_tif=not args.use_npy,
+        remove_bg=args.remove_bg,
+        use_tif=args.use_tif,
         # clipping_bounds=[-928.0,296.0]
     )
 
-    p.prepare()
+    p.run()
 
-    if args.auto_config and not args.use_npy:
+    if not args.no_auto_config:
+        print("Start auto-configuration")
         from biom3d import auto_config
-        median = auto_config.compute_median(path=p.img_outdir)
-        patch, pool, batch = auto_config.find_patch_pool_batch(dims=median, max_dims=(128,128,128))
-        auto_config.display_info(patch, pool, batch)
+
+        batch, aug_patch, patch, pool = auto_config.auto_config(img_dir=p.img_dir)
+
+        config_path = auto_config.save_auto_config(
+            config_dir=args.config_dir,
+            img_dir=p.img_outdir,
+            msk_dir=p.msk_outdir,
+            num_classes=args.num_classes,
+            batch_size=batch,
+            aug_patch_size=aug_patch,
+            patch_size=patch,
+            num_pools=pool
+        )
+
+        print("Auto-config done! Configuration saved in: ", config_path)
+
+        # median = auto_config.compute_median(path=p.img_dir)
+        # patch, pool, batch = auto_config.find_patch_pool_batch(dims=median, max_dims=(128,128,128))
+        # auto_config.display_info(patch, pool, batch)
 
 #---------------------------------------------------------------------------
 

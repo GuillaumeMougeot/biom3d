@@ -4,11 +4,11 @@ slurm/*
 slurm_zay/*
 # old/
 tmp/
-logs/*
+logs
 logs_meso/*
 logs_zay/*
 dev/
-bash/run_*
+configs/2023*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -29,7 +29,7 @@ from sys import platform
 import argparse
 
 from biom3d.configs.unet_default import CONFIG
-from biom3d.preprocess import preprocess
+from biom3d.preprocess import Preprocessing
 from biom3d.auto_config import auto_config
 
 # the packages below are only needed for the local version of the GUI
@@ -396,13 +396,13 @@ class PreprocessTab(ttk.Frame):
         if self.folder_selection.msk_outdir.get()=="":
             self.folder_selection.msk_outdir.set(self.folder_selection.msk_dir.get()+'_out')
 
-        preprocess(
+        Preprocessing(
             img_dir=self.folder_selection.img_dir.get(),
             msk_dir=self.folder_selection.msk_dir.get(),
             img_outdir=self.folder_selection.img_outdir.get(),
             msk_outdir=self.folder_selection.msk_outdir.get(),
             num_classes=self.folder_selection.num_classes.get()+1,
-            remove_bg=False)
+            remove_bg=False).run()
         if REMOTE:
             done_label_text = "Done preprocessing! You can send your dataset to the server before training."
         else:

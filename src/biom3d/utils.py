@@ -11,6 +11,8 @@ import numpy as np
 from datetime import datetime
 from time import time 
 import os 
+import importlib.util
+import sys
 import tifffile as tiff
 import matplotlib.pyplot as plt
 import yaml # pip install pyyaml
@@ -373,7 +375,7 @@ def convert_num_pools(num_pools):
         num_zeros = max_pool-num_pools[i]
         for j in range(num_zeros):
             st[j]=0
-        st=np.roll(st,-num_zeros//2)
+        # st=np.roll(st,-num_zeros//2)
         strides += [st]
     strides = np.array(strides).astype(int).T+1
     # kernels = (strides*3//2).tolist()
@@ -624,7 +626,7 @@ def save_config(path, cfg):
     with open(path, "w") as f:
         yaml.dump(cfg, f, sort_keys=False)
     
-def load_config(path):
+def load_yaml_config(path):
     """
     load a yaml stored with the self.save method.
     """
@@ -658,6 +660,28 @@ def nested_dict_change_value(dic, key, value):
                 save = save[pairs[i]]; i+=1
             save[key] = value
     return dic
+
+def load_python_config(config_path):
+    """Return the configuration dictionary given the path of the configuration file.
+    The configuration file is in Python format.
+    
+    Adapted from: https://stackoverflow.com/questions/67631/how-can-i-import-a-module-dynamically-given-the-full-path 
+    
+    Parameters
+    ----------
+    config_path : str
+        Path of the configuration file. Should have the '.py' extension.
+    
+    Returns
+    -------
+    cfg : biom3d.utils.Dict
+        Dictionary of the config.
+    """
+    spec = importlib.util.spec_from_file_location("config", config_path)
+    config = importlib.util.module_from_spec(spec)
+    sys.modules["config"] = config
+    spec.loader.exec_module(config)
+    return config.CONFIG
 
 # ----------------------------------------------------------------------------
 # postprocessing utils

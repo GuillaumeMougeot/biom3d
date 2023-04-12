@@ -163,7 +163,7 @@ class Builder:
         ):                
 
         if path is not None:
-            self.config = utils.load_config(path + "/log/config.yaml")
+            self.config = utils.load_yaml_config(path + "/log/config.yaml")
             # print(self.config)
             if training:
                 self.load_train(path)
@@ -508,7 +508,8 @@ class Builder:
                         model=self.model,
                         loss_fn=self.val_loss_fn,
                         metrics=self.val_metrics,
-                        use_fp16=scaler is not None)
+                        use_fp16=scaler is not None,
+                        use_deep_supervision=self.config.USE_DEEP_SUPERVISION,)
             self.callbacks.on_epoch_end(epoch)
         self.callbacks.on_train_end()
     
