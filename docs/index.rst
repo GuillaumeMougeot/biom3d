@@ -21,9 +21,10 @@ This tool is addressed to three different profiles:
 
 .. toctree::
    :maxdepth: 2
-   :caption: Quick Run
+   :caption: Tutorials
 
    quick_run_gui.md
+   tuto_cli.md
 
 .. toctree::
    :maxdepth: 2

@@ -398,6 +398,10 @@ if __name__=='__main__':
 
         batch, aug_patch, patch, pool = auto_config.auto_config(img_dir=p.img_dir)
 
+        # create the config dir if needed
+        if not os.path.exists(args.config_dir):
+            os.makedirs(args.config_dir, exist_ok=True)
+
         config_path = auto_config.save_auto_config(
             config_dir=args.config_dir,
             img_dir=p.img_outdir,

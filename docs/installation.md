@@ -4,6 +4,8 @@ As biom3d integrates a Graphical User Interface (GUI), an Application Programmin
 
 ## Graphical User Interface 
 
+[DEPRECATION!] The graphical user interface is currently being updated!
+
 Biom3d has been deployed for Windows. Use the following link to download the latest executable file: [link](https://github.com/GuillaumeMougeot/biom3d/releases/). You will be able to use biom3d directly by clicking on the downloading file.
 
 Careful! Biom3d has two modes: a local mode and a remote mode. The local mode means that all the computation will be executed on the local computer, where biom3d is installed. In this case, a good graphic card will have to be available on the local computer, where "good" means a NVidia GPUs with at least 12Go of VRAM such as: Geforce GTX 1080, RTX 2080Ti, RTX 3090, P100, V100 or A100. The remote mode will avoid the need of a good graphic card on your computer by allowing you to use a remote server where a good graphic card is installed. In this case, no special requirement are needed on the local computer and the API of biom3d will have to be installed on the remote server (follow the next section to learn how to install the API version).

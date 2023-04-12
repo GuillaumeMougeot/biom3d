@@ -1,4 +1,4 @@
-# Quick run with Graphical User Interface
+# Quick run with the Graphical User Interface
 
 Starting the Graphical User Interface of biom3d depends on the type of installation you followed:
 * If you installed biom3d with the directly link toward the executable file, you can simply double-click on the downloaded file.
