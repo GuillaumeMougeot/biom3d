@@ -162,16 +162,17 @@ class VGGDecoder(nn.Module):
             inputs = x[-1] if i==0 else out
             out = self.layers[i]([inputs, x[-2-i]])
 
-            if self.training and self.use_deep: # deep supervision
+            if i>=2 and self.use_deep: # deep supervision
                 tmp = self.convs[i](out)
                 # scale_factor = np.array(self.strides)[i+1:].prod(axis=0).tolist()
                 # deep_out += [F.interpolate(tmp, scale_factor=scale_factor, mode='trilinear')]
-                deep_out += [F.interpolate(tmp, size=x[0].shape, mode='trilinear')]
+                deep_out += [F.interpolate(tmp, size=x[0].shape[2:], mode='trilinear')]
                 # deep_out += [tmp]
-            elif i==2 and self.use_emb:
+            # if i is the antipenultimate layer
+            elif i==(len(self.layers)-3) and self.use_emb: 
                 return self.convs[i](out)
         out = self.convs[-1](out)
-        if self.training and self.use_deep: out = deep_out+[out]
+        if self.use_deep: out = deep_out+[out]
         return out
 
 #---------------------------------------------------------------------------

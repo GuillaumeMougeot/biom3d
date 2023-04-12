@@ -118,7 +118,7 @@ class VGGEncoder(nn.Module):
             num_zeros = max_pool-num_pools[i]
             for j in range(num_zeros):
                 st[j]=0
-            st=np.roll(st,-num_zeros//2)
+            # st=np.roll(st,-num_zeros//2)
             strides += [st]
         strides = np.array(strides).astype(int).T+1
         strides = np.vstack(([first_stride],strides)).tolist()
@@ -139,11 +139,11 @@ class VGGEncoder(nn.Module):
         self.layers = nn.ModuleList(self.layers)
 
         if use_emb:
-            factor = factors[max(num_pools)]
+            # factor = factors[max(num_pools)]
             # emb_size = factor # size of the embedding
             # self.global_pool=GlobalAvgPool3d()
             # self.global_pool=torch.nn.AdaptiveAvgPool3d((1,1,1))
-            self.global_pool=torch.nn.AdaptiveAvgPool3d((5,5,5))
+            # self.global_pool=torch.nn.AdaptiveAvgPool3d((5,5,5))
             # self.fc = nn.Linear(factor, emb_dim, bias=True)
             # self.bn = nn.BatchNorm1d(emb_dim)
             # self.bn.weight.requires_grad = False

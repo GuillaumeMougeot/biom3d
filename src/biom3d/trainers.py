@@ -96,19 +96,23 @@ def seg_validate(
     model,
     loss_fn,
     metrics,
-    use_fp16):
+    use_fp16,
+    use_deep_supervision=False):
     for m in [loss_fn]+metrics: m.reset() # reset metrics
     model.eval() # set the module in evaluation mode (only useful for dropout or batchnorm like layers)
     with torch.no_grad(): # set all the requires_grad flags to zeros
         for X, y in dataloader:
             X, y = X.cuda(), y.cuda()
             with torch.cuda.amp.autocast(use_fp16):
-                pred=model(X).detach()
+                pred=model(X)
                 del X
                 loss_fn(pred, y)
                 loss_fn.update()
                 for m in metrics:
-                    m(pred, y)
+                    if use_deep_supervision:
+                        m(pred[-1],y)
+                    else:
+                        m(pred, y)
                     m.update()
                 del pred, y
     torch.cuda.empty_cache()

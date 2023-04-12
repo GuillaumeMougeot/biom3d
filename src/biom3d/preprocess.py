@@ -15,8 +15,6 @@ import SimpleITK as sitk
 import tifffile
 from numba import njit
 
-from biom3d import config_default
-
 #---------------------------------------------------------------------------
 # Nifti imread
 

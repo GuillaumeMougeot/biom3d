@@ -8,7 +8,7 @@ logs
 logs_meso/*
 logs_zay/*
 dev/
-configs/2023*
+configs/20*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
