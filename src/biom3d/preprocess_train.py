@@ -4,6 +4,8 @@
 #---------------------------------------------------------------------------
 
 import argparse
+import os 
+
 from biom3d.preprocess import Preprocessing
 from biom3d.auto_config import auto_config, save_auto_config
 from biom3d.utils import load_python_config
@@ -22,6 +24,10 @@ def preprocess_train(img_dir, msk_dir, num_classes, config_dir):
 
     # auto-config
     batch, aug_patch, patch, pool = auto_config(img_dir=p.img_dir)
+
+    # create the config dir if needed
+    if not os.path.exists(config_dir):
+        os.makedirs(config_dir, exist_ok=True)
 
     # save auto-config
     config_path = save_auto_config(
