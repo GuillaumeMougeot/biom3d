@@ -4,8 +4,8 @@
 #---------------------------------------------------------------------------
 
 import argparse
-from biom3d.preprocess import Preprocessing, save_auto_config
-from biom3d.auto_config import auto_config
+from biom3d.preprocess import Preprocessing
+from biom3d.auto_config import auto_config, save_auto_config
 from biom3d.utils import load_python_config
 from biom3d.builder import Builder
 
