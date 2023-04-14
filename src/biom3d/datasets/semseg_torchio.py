@@ -283,7 +283,7 @@ class TorchioDataset(SubjectsDataset):
                 # load img and msks
                 if self.load_data:
                     img = torch.from_numpy(adaptive_imread(img_path)[0])
-                    msk = torch.from_numpy(adaptive_imread(msk_path)[0]).bool()
+                    msk = torch.from_numpy(adaptive_imread(msk_path)[0]).long()
                     subjects_list += [
                         tio.Subject(
                             img=tio.ScalarImage(tensor=img),
