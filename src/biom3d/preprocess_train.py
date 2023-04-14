@@ -7,11 +7,20 @@ import argparse
 import os 
 
 from biom3d.preprocess import Preprocessing
-from biom3d.auto_config import auto_config, save_auto_config
+from biom3d.auto_config import auto_config, save_auto_config, data_fingerprint
 from biom3d.utils import load_python_config
 from biom3d.builder import Builder
 
-def preprocess_train(img_dir, msk_dir, num_classes, config_dir, base_config):
+def preprocess_train(img_dir, msk_dir, num_classes, config_dir, base_config, ct_norm):
+    if ct_norm:
+        median_size, median_spacing, mean, std, perc_005, perc_995 = data_fingerprint(args.img_dir, args.msk_dir)
+        clipping_bounds = [perc_005, perc_995]
+        intensity_moments = [mean, std]
+    else:
+        median_spacing = []
+        clipping_bounds = []
+        intensity_moments = []
+
     # preprocessing
     p=Preprocessing(
         img_dir=img_dir,
@@ -19,6 +28,9 @@ def preprocess_train(img_dir, msk_dir, num_classes, config_dir, base_config):
         num_classes=num_classes+1,
         remove_bg=False,
         use_tif=False,
+        median_spacing=median_spacing,
+        clipping_bounds=clipping_bounds,
+        intensity_moments=intensity_moments,
     )
     p.run()
 
@@ -35,7 +47,8 @@ def preprocess_train(img_dir, msk_dir, num_classes, config_dir, base_config):
         BATCH_SIZE=batch,
         AUG_PATCH_SIZE=aug_patch,
         PATCH_SIZE=patch,
-        NUM_POOLS=pool
+        NUM_POOLS=pool,
+        MEDIAN_SPACING=median_spacing,
     )
 
     # training
@@ -56,6 +69,8 @@ if __name__=='__main__':
         help="(default=\'configs/\') Configuration folder to save the auto-configuration.")
     parser.add_argument("--base_config", type=str, default=None,
         help="(default=None) Optional. Path to an existing configuration file which will be updated with the preprocessed values.")
+    parser.add_argument("--ct_norm", default=False,  action='store_true', dest='ct_norm',
+        help="(default=False) Whether to use CT-Scan normalization routine (cf. nnUNet).") 
     args = parser.parse_args()
 
     preprocess_train(
@@ -64,4 +79,5 @@ if __name__=='__main__':
         num_classes=args.num_classes,
         config_dir=args.config_dir,
         base_config=args.base_config,
+        ct_norm=args.ct_norm,
     )

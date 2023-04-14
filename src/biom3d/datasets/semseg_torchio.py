@@ -125,8 +125,14 @@ class RandomCropOrPad(RandomTransform, SpatialTransform):
         force_fg = random.random()
         if self.fg_rate>0 and force_fg<self.fg_rate:
             label = subject[self.label_name].data
-            rnd_label = random.randint(self.start_fg_idx,tuple(label.shape)[0]-1)
-            locations = torch.argwhere(label[rnd_label] == 1)
+            if tuple(label.shape)[0]==1:
+                # then we consider that we don't have a one hot encoded label
+                rnd_label = random.randint(1,label.max())
+                locations = torch.argwhere(label[0] == rnd_label)
+            else:
+                # then we have a one hot encoded label
+                rnd_label = random.randint(self.start_fg_idx,tuple(label.shape)[0]-1)
+                locations = torch.argwhere(label[rnd_label] == 1)
             
             if len(locations)==0: # bug fix when having empty arrays 
                 index_ini = tuple(int(torch.randint(np.maximum(x,0) + 1, (1,)).item()) for x in valid_range)
@@ -166,7 +172,16 @@ class LabelToFloat:
         if self.label_name in subject.keys():
             subject[self.label_name].set_data(subject[self.label_name].data.float())
         return subject
-    
+
+class LabelToLong:
+    def __init__(self, label_name):
+        self.label_name = label_name
+        
+    def __call__(self, subject):
+        if self.label_name in subject.keys():
+            subject[self.label_name].set_data(subject[self.label_name].data.long())
+        return subject
+
 class LabelToBool:
     def __init__(self, label_name):
         self.label_name = label_name
@@ -326,13 +341,13 @@ class TorchioDataset(SubjectsDataset):
                                 #  tio.RandomAffine(scales=(0.7,1.4), degrees=degrees, translation=0),
                                  tio.RandomAffine(scales=0, degrees=degrees, translation=0),
                                  tio.Crop(cropping=cropping),
-                                 LabelToBool(label_name='msk')
+                                 LabelToLong(label_name='msk')
                                 ]): 0.25,
                     RandomCropOrPad(self.patch_size, fg_rate=self.fg_rate, label_name='msk',use_softmax=self.use_softmax): 0.75,
                 }),
 
                 tio.Compose([tio.RandomAffine(scales=(0.7,1.4), degrees=0, translation=0),
-                             LabelToBool(label_name='msk')
+                             LabelToLong(label_name='msk')
                             ], p=0.25),
                 # RandomCropOrPad(AUG_PATCH_SIZE),
 
