@@ -71,9 +71,16 @@ class Dice(Metric):
 
     def forward(self, inputs, targets, smooth=1):
         if self.use_softmax:
-            # inputs = inputs.softmax(dim=1)
             # for dice computation, remove the background and flatten
-            inputs = inputs.softmax(dim=1)[:,1:]
+            inputs = inputs.softmax(dim=1)
+
+            if not all([i == j for i, j in zip(inputs.shape, targets.shape)]):
+                # if this is not the case then gt is probably not already a one hot encoding
+                targets = torch.zeros(inputs.shape, device=inputs.device)
+                targets.scatter_(1, targets.long(), 1)
+
+            # remove background
+            inputs = inputs[:,1:]
             targets = targets[:,1:]
         else:
             inputs = inputs.sigmoid()
@@ -110,14 +117,20 @@ class DiceBCE(Metric):
     def forward(self, inputs, targets, smooth=1):
         #comment out if your model contains a sigmoid or equivalent activation layer
         if self.use_softmax:
-            targets_bce = targets.argmax(dim=1).long()
-        
-            BCE = self.bce(inputs, targets_bce)
+            BCE = self.bce(inputs, targets.argmax(dim=1).long())
 
             # for dice computation, remove the background and flatten
             # inputs = inputs.softmax(dim=1)[:,1:].reshape(-1)
             # targets = targets[:,1:].reshape(-1)
-            inputs = inputs.softmax(dim=1)[:,1:]
+            inputs = inputs.softmax(dim=1)
+
+            if not all([i == j for i, j in zip(inputs.shape, targets.shape)]):
+                # if this is not the case then gt is probably not already a one hot encoding
+                targets = torch.zeros(inputs.shape, device=inputs.device)
+                targets.scatter_(1, targets.long(), 1)
+
+            # remove background
+            inputs = inputs[:,1:]
             targets = targets[:,1:]
 
         else:
@@ -156,7 +169,15 @@ class IoU(Metric):
     def forward(self, inputs, targets, smooth=1):
         if self.use_softmax:
             # inputs = inputs.softmax(dim=1)
-            inputs = inputs.softmax(dim=1)[:,1:]
+            inputs = inputs.softmax(dim=1)
+
+            if not all([i == j for i, j in zip(inputs.shape, targets.shape)]):
+                # if this is not the case then gt is probably not already a one hot encoding
+                targets = torch.zeros(inputs.shape, device=inputs.device)
+                targets.scatter_(1, targets.long(), 1)
+
+            # remove background
+            inputs = inputs[:,1:]
             targets = targets[:,1:]
         else:
             inputs = inputs.sigmoid()
