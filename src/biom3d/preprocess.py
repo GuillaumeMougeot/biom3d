@@ -343,8 +343,19 @@ class Preprocessing:
                 else:
                     img = resample_with_spacing(img, spacing, median_spacing, order=3)
 
-            # extend dim
-            img = np.expand_dims(img, 0)
+            # expand image dim
+            if len(img.shape)==3:
+                img = np.expand_dims(img, 0)
+            elif len(img.shape)==4:
+                # we consider as the channel dimension, the smallest dimension
+                # it should be either the first or the last dim
+                # if it is the last dim, then we move it to the first
+                if np.argmin(img.shape)==3:
+                    img = np.moveaxis(img, -1, 0)
+                elif np.argmin(img.shape)!=0:
+                    print("[Error] Invalid image shape:", img.shape)
+            else:
+                print("[Error] Invalid image shape:", img.shape)
 
             # one hot encoding for the mask if needed
             if self.msk_dir and len(msk.shape)!=4: 
@@ -413,8 +424,10 @@ class Preprocessing:
                 # save the foreground locations
                 # select 10000 random foreground values to avoid storing every foregrounds
                 fg={}
-                for i in range(0 if self.remove_bg else 1,len(msk)):
-                    fgi = np.argwhere(msk[i] == 1)
+                if self.use_one_hot: start = 0 if self.remove_bg else 1
+                else: start = 1
+                for i in range(start,len(msk) if self.use_one_hot else msk.max()+1):
+                    fgi = np.argwhere(msk[i] == 1) if self.use_one_hot else np.argwhere(msk == i)
                     if len(fgi)>0:
                         fgi_idx = np.random.randint(len(fgi), size=10000)
                         fgi = fgi[fgi_idx,:]
