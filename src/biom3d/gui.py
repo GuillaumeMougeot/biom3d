@@ -28,7 +28,7 @@ from sys import platform
 # if platform=='linux': # only import if linux because windows omero plugin requires Visual Studio Install which is too big
 import argparse
 
-from biom3d.configs.unet_default import CONFIG
+from biom3d.config_default import CONFIG
 from biom3d.preprocess import Preprocessing
 from biom3d.auto_config import auto_config
 
@@ -37,7 +37,7 @@ from biom3d.auto_config import auto_config
 # and uncommented when installing the local version.
 from biom3d.pred import pred
 from biom3d.builder import Builder
-# import omero_pred
+import omero_pred
 
 #----------------------------------------------------------------------------
 # Constants 
