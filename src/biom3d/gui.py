@@ -31,7 +31,7 @@ import argparse
 from biom3d.config_default import CONFIG
 from biom3d.preprocess import Preprocessing
 from biom3d.auto_config import auto_config
-
+from biom3d.auto_config import save_auto_config
 # the packages below are only needed for the local version of the GUI
 # WARNING! the lines below must be commented when deploying the remote version,
 # and uncommented when installing the local version.
@@ -430,7 +430,7 @@ class TrainFolderSelection(ttk.LabelFrame):
         # Define elements
         # use preprocessing values
         willy = ttk.Style()
-        willy.configure("Bm.TLabel", background = '#76D7C4', foreground = 'black', width = 40, borderwidth=10, focusthickness=7, focuscolor='none', anchor='c', height= 15)
+        willy.configure("Bm.TLabel", background = '#76D7C4', foreground = 'black', width = 30, borderwidth=10, focusthickness=7, focuscolor='none', anchor='c', height= 15)
         self.use_preprocessing_button = ttk.Button(self, text="Preprocessing & Autoconfig",style="Bm.TLabel",  command=self.preprocess_autoconfig)
         self.preprocess_tab = preprocess_tab
 
@@ -452,9 +452,10 @@ class TrainFolderSelection(ttk.LabelFrame):
             self._update_data_dir()
 
         else:
-            self.img_outdir = FileDialog(self, mode='folder', textEntry='D:/code/python/3dnucleus/data/img_out')        
-            self.msk_outdir = FileDialog(self, mode='folder', textEntry="D:/code/python/3dnucleus/data/msk_out")
-
+            #self.img_outdir = FileDialog(self, mode='folder', textEntry='D:/code/python/3dnucleus/data/img_out')        
+            #self.msk_outdir = FileDialog(self, mode='folder', textEntry="D:/code/python/3dnucleus/data/msk_out")
+            self.img_outdir = FileDialog(self, mode='folder', textEntry='/home/safarbatis/chocolate-factory/data/raw')        
+            self.msk_outdir = FileDialog(self, mode='folder', textEntry="/home/safarbatis/chocolate-factory/data/seg")
         ## number of classes
         self.label3 = ttk.Label(self, text="Enter the number of classes:", anchor="sw", background='white')
         self.num_classes = IntVar(value=1)
@@ -511,15 +512,39 @@ class TrainFolderSelection(ttk.LabelFrame):
     def preprocess_autoconfig(self):
         # set automatically the output directories if empty
         if self.img_outdir.get()=="":
-            self.img_outdir.set(self.img_dir.get()+'_out')
+            self.img_outdir.set(self.img_dir.get()) ###### '_out'
         if self.msk_outdir.get()=="":
-            self.msk_outdir.set(self.msk_dir.get()+'_out')
-
-        Preprocessing(
+            self.msk_outdir.set(self.msk_dir.get())
+       
+        p=Preprocessing(
             img_dir=self.img_outdir.get(),
             msk_dir=self.msk_outdir.get(),
             num_classes=self.num_classes.get()+1,
-            remove_bg=False, use_tif=False).run()
+            remove_bg=False, use_tif=False)
+        p.run()
+        
+        # Run autoconfig
+        batch, aug_patch, patch, pool = auto_config(img_dir=p.img_outdir)
+
+        # Test if config folder exists
+        parent_dir= os.path.dirname(self.img_outdir.get())
+        path = os.path.join(parent_dir, "config")
+        if not os.path.isdir(path):
+            os.mkdir(path)
+        
+        # save the config file in config folder
+        config_path = save_auto_config(
+            config_dir=path,
+            base_config=None,
+            IMG_DIR=p.img_outdir,
+            MSK_DIR=p.msk_outdir,
+            NUM_CLASSES=self.num_classes,
+            BATCH_SIZE=batch,
+            AUG_PATCH_SIZE=aug_patch,
+            PATCH_SIZE=patch,
+            NUM_POOLS=pool
+        )
+        
         if REMOTE:
             done_label_text = "Done preprocessing and autoconfig! You can send your dataset to the server before training."
         else:
@@ -555,8 +580,13 @@ class ConfigFrame(ttk.LabelFrame):
         self.batch_size_entry = ttk.Entry(self, textvariable=self.batch_size)
 
         self.patch_size_label = ttk.Label(self, text='Patch size ([int int int]):')
-        self.patch_size = StringVar(value="[128 128 128]")
-        self.patch_size_entry = ttk.Entry(self, textvariable=self.patch_size)
+        self.patch_size1 = StringVar(value="128")
+        self.patch_size_entry = ttk.Entry(self, width=4,textvariable=self.patch_size1)
+        self.patch_size2 = StringVar(value="128")
+        self.patch_size_entry2 = ttk.Entry(self,width=4, textvariable=self.patch_size2)
+        self.patch_size3 = StringVar(value="128")
+        self.patch_size_entry3 = ttk.Entry(self, width=4,textvariable=self.patch_size3)
+        self.patch_size = "[ " +str(self.patch_size_entry) +" " + str(self.patch_size_entry2)+" " + str(self.patch_size_entry3)+" ]" 
 
         self.aug_patch_size_label = ttk.Label(self, text='Augmentation patch size ([int int int]):')
         self.aug_patch_size = StringVar(value="[160 160 160]")
@@ -577,7 +607,9 @@ class ConfigFrame(ttk.LabelFrame):
         self.batch_size_entry.grid(column=1, row=3, sticky=W)
         
         self.patch_size_label.grid(column=0, row=4, sticky=(W,E))
-        self.patch_size_entry.grid(column=1, row=4, sticky=W)
+        self.patch_size_entry.grid(column=1, row=4,padx= 3, sticky=E)
+        self.patch_size_entry2.grid(column=2, row=4,padx= 3)
+        self.patch_size_entry3.grid(column=3, row=4, padx= 3)
 
         self.aug_patch_size_label.grid(column=0, row=5, sticky=(W,E))
         self.aug_patch_size_entry.grid(column=1, row=5, sticky=W)
@@ -624,7 +656,7 @@ class TrainTab(ttk.Frame):
         super(TrainTab, self).__init__(*arg, **kw)
         #####################################################
         style = ttk.Style()
-        style.configure("BW.TLabel", background = '#76D7C4', foreground = 'black', width = 10, borderwidth=10, focusthickness=7, focuscolor='none', anchor='c', height= 20)
+        style.configure("BW.TLabel", background = '#76D7C4', foreground = 'black', width = 10, borderwidth=6, focusthickness=7, focuscolor='none', anchor='c', height= 105)
         #####################################################
         self.folder_selection = TrainFolderSelection(preprocess_tab=preprocess_tab, master=self, text="Preprocess & autoconfig configurations", padding=[10,10,10,10])
         self.config_selection = ConfigFrame(train_folder_selection=self.folder_selection, master=self, text="Training configuration", padding=[10,10,10,10])
@@ -632,7 +664,7 @@ class TrainTab(ttk.Frame):
         self.builder_name_label = ttk.Label(self, text="Set a name for the builder folder (folder containing your future model):")
         self.builder_name = StringVar(value="unet_example")
         self.builder_name_entry = ttk.Entry(self, textvariable=self.builder_name)
-        self.train_button = ttk.Button(self, text="Start", style="BW.TLabel", command=self.train)
+        self.train_button = ttk.Button(self, text="Start", style="Bm.TLabel", command=self.train)
         self.train_done = ttk.Label(self, text="")
 
         """
@@ -1192,7 +1224,7 @@ class Root(Tk):
         self.title("Biom3d")
 
         # windows dimension and positioning
-        window_width = 700
+        window_width = 600
         window_height = 700
 
         ## get the screen dimension
@@ -1227,23 +1259,27 @@ class Root(Tk):
 
         ## Stage 2 (local_or_remote --> frame)
 
+        #####################################################
+        style = ttk.Style()
+        style.configure("BW.TLabel", background = '#76D7C4', foreground = 'black',height=30, borderwidth=6 ,width = 18, anchor='c',  relief="raised")
+        #####################################################
         self.title_label = ttk.Label(self.local_or_remote, text="Biom3d", font=("Montserrat", 18))
         self.welcome_message = ttk.Label(self.local_or_remote, text="Welcome!\n\nBiom3d is an easy-to-use tool to train and use deep learning models for segmenting three dimensional images. You can either start locally, if your computer has a good graphic card (NVIDIA Geforce RTX 1080 or higher) or connect remotelly on a computer with such a graphic card.\n\nIf you need help, check our GitHub repository here: https://github.com/GuillaumeMougeot/biom3d", anchor="w", justify=LEFT, wraplength=450)
 
-        self.start_locally = ttk.Button(self.local_or_remote, text="Start locally", command=lambda: self.main(remote=False))
+        self.start_locally = ttk.Button(self.local_or_remote, text="Start locally", style='BW.TLabel', command=lambda: self.main(remote=False))
 
         self.start_remotelly_frame = Connect2Remote(self.local_or_remote, text="Connect to remote server", padding=[10,10,10,10])
-        self.start_remotelly_button = ttk.Button(self.local_or_remote, text='Start remotelly', command=lambda: self.main(remote=True))
+        self.start_remotelly_button = ttk.Button(self.local_or_remote, text='Start remotelly',style='BW.TLabel', command=lambda: self.main(remote=True))
 
         self.title_label.grid(column=0, row=0, sticky=W)
         self.welcome_message.grid(column=0, row=1, sticky=(W,E), pady=12)
         
         # The local button is displayed only for the local installation 
         if LOCAL: 
-            self.start_locally.grid(column=0, row=2, sticky=(W,E), pady=12)
+            self.start_locally.grid(column=0, row=2, pady=12)
 
         self.start_remotelly_frame.grid(column=0, row=3, sticky=(W,E), pady=12)
-        self.start_remotelly_button.grid(column=0, row=4, sticky=(W,E), pady=5)
+        self.start_remotelly_button.grid(column=0, row=4, pady=5)
 
         # grid config
         self.local_or_remote.columnconfigure(0, weight=1)
