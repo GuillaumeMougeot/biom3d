@@ -149,7 +149,7 @@ AUG_PATCH_SIZE = [48,263,263]
 NUM_POOLS = [3,5,5]
 
 # median spacing is used only during prediction to normalize the output images
-# it is commented here because we did not noticed any improvemet
+# it is commented here because we did not notice any improvemet
 # MEDIAN_SPACING=[0.79492199, 0.79492199, 2.5]
 MEDIAN_SPACING=[]
 
@@ -164,7 +164,7 @@ SAVE_BEST = True
 # the number of epochs can be reduced for small training set (e.g. a set of 10 images/masks of 128x128x64)
 NB_EPOCHS = 1000
 
-# optimizer paramaters
+# optimizer parameters
 LR_START = 1e-2 # comment if need to reload learning rate after training interruption
 WEIGHT_DECAY = 3e-5
 
