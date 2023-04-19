@@ -37,7 +37,7 @@ from biom3d.auto_config import auto_config
 # and uncommented when installing the local version.
 from biom3d.pred import pred
 from biom3d.builder import Builder
-import omero_pred
+import biom3d.omero_pred
 
 #----------------------------------------------------------------------------
 # Constants 
@@ -284,8 +284,8 @@ class FileDialog(ttk.Frame):
         self.grid_columnconfigure(1, weight=1)
 
         self.command=self.openfolder if mode=='folder' else self.openfile
-        self.button = ttk.Button(self,text="Browse", command=self.command)
-        self.button.grid(column=2,row=1, sticky=(W))
+        self.button = ttk.Button(self,text="Browse", style="BW.TLabel", command=self.command)
+        self.button.grid(column=2,row=1, sticky=(W), padx=5)
 
     def set(self, text):
         # Set text entry
@@ -352,7 +352,7 @@ class PreprocessFolderSelection(ttk.LabelFrame):
 
         for i in range(10):
             self.rowconfigure(i, weight=1)
-
+"""
 class PreprocessTab(ttk.Frame):
     def __init__(self, *arg, **kw):
         super(PreprocessTab, self).__init__(*arg, **kw)
@@ -419,7 +419,7 @@ class PreprocessTab(ttk.Frame):
         ftp_put_folder(ftp, localpath=self.folder_selection.msk_outdir.get(), remotepath=remote_dir_msk)
 
         self.send_data_finish.config(text="Data sent!")
-
+"""
 #----------------------------------------------------------------------------
 # train tab
 
@@ -429,13 +429,15 @@ class TrainFolderSelection(ttk.LabelFrame):
 
         # Define elements
         # use preprocessing values
-        self.use_preprocessing_button = ttk.Button(self, text="Use preprocessing values", command=self.use_preprocessing)
+        willy = ttk.Style()
+        willy.configure("Bm.TLabel", background = '#76D7C4', foreground = 'black', width = 40, borderwidth=10, focusthickness=7, focuscolor='none', anchor='c', height= 15)
+        self.use_preprocessing_button = ttk.Button(self, text="Preprocessing & Autoconfig",style="Bm.TLabel",  command=self.preprocess_autoconfig)
         self.preprocess_tab = preprocess_tab
 
         ## image folder
-        self.label1 = ttk.Label(self, text="Select the folder containing the preprocessed images:", anchor="sw", background='white')
+        self.label1 = ttk.Label(self, text="Select the folder containing the images:", anchor="sw", background='white')
         ## mask folder
-        self.label2 = ttk.Label(self, text="Select a folder containing the preprocessed masks:", anchor="sw", background='white')
+        self.label2 = ttk.Label(self, text="Select a folder containing the  masks:", anchor="sw", background='white')
 
         if REMOTE:
             # get dataset list
@@ -459,18 +461,18 @@ class TrainFolderSelection(ttk.LabelFrame):
         self.classes = ttk.Entry(self, textvariable=self.num_classes)
 
         # Position elements
-        self.use_preprocessing_button.grid(column=0, row=0, sticky=(W,E))
+        self.use_preprocessing_button.grid(column=0, row=7, sticky=(S), pady=4)
 
-        self.label1.grid(column=0, row=1, sticky=W)
+        self.label1.grid(column=0, row=1, sticky=W, pady=5)
         
         if REMOTE:
             self.data_dir_option_menu.grid(column=0, row=2, sticky=(W,E))
         else:
             self.img_outdir.grid(column=0, row=2, sticky=(W,E))
-            self.label2.grid(column=0,row=3, sticky=W)
+            self.label2.grid(column=0,row=3, sticky=W, pady=7)
             self.msk_outdir.grid(column=0,row=4, sticky=(W,E))
 
-        self.label3.grid(column=0,row=5, sticky=W)
+        self.label3.grid(column=0,row=5, sticky=W, pady=7)
         self.classes.grid(column=0,row=6, sticky=(W,E))
 
         
@@ -506,6 +508,34 @@ class TrainFolderSelection(ttk.LabelFrame):
             self.msk_outdir.set(self.preprocess_tab.folder_selection.msk_outdir.get())
 
         self.num_classes.set(self.preprocess_tab.folder_selection.num_classes.get())
+    def preprocess_autoconfig(self):
+        # set automatically the output directories if empty
+        if self.img_outdir.get()=="":
+            self.img_outdir.set(self.img_dir.get()+'_out')
+        if self.msk_outdir.get()=="":
+            self.msk_outdir.set(self.msk_dir.get()+'_out')
+
+        Preprocessing(
+            img_dir=self.img_outdir.get(),
+            msk_dir=self.msk_outdir.get(),
+            num_classes=self.num_classes.get()+1,
+            remove_bg=False, use_tif=False).run()
+        if REMOTE:
+            done_label_text = "Done preprocessing and autoconfig! You can send your dataset to the server before training."
+        else:
+            done_label_text = "Done preprocessing and autoconfig! You can start training."
+        self.done_label.config(text=done_label_text)
+    
+    def send_data(self):
+        ftp = REMOTE.open_sftp()
+
+        # copy folders 
+        remote_dir_img = "{}/data/{}/img_out".format(MAIN_DIR,self.send_data_name.get())
+        remote_dir_msk = "{}/data/{}/msk_out".format(MAIN_DIR,self.send_data_name.get())
+        ftp_put_folder(ftp, localpath=self.folder_selection.img_outdir.get(), remotepath=remote_dir_img)
+        ftp_put_folder(ftp, localpath=self.folder_selection.msk_outdir.get(), remotepath=remote_dir_msk)
+
+        self.send_data_finish.config(text="Data sent!")
 
 class ConfigFrame(ttk.LabelFrame):
     def __init__(self, train_folder_selection=None, *arg, **kw):
@@ -592,16 +622,20 @@ class ConfigFrame(ttk.LabelFrame):
 class TrainTab(ttk.Frame):
     def __init__(self, preprocess_tab=None, *arg, **kw):
         super(TrainTab, self).__init__(*arg, **kw)
-
-        self.folder_selection = TrainFolderSelection(preprocess_tab=preprocess_tab, master=self, text="Folder path configurations", padding=[10,10,10,10])
+        #####################################################
+        style = ttk.Style()
+        style.configure("BW.TLabel", background = '#76D7C4', foreground = 'black', width = 10, borderwidth=10, focusthickness=7, focuscolor='none', anchor='c', height= 20)
+        #####################################################
+        self.folder_selection = TrainFolderSelection(preprocess_tab=preprocess_tab, master=self, text="Preprocess & autoconfig configurations", padding=[10,10,10,10])
         self.config_selection = ConfigFrame(train_folder_selection=self.folder_selection, master=self, text="Training configuration", padding=[10,10,10,10])
 
         self.builder_name_label = ttk.Label(self, text="Set a name for the builder folder (folder containing your future model):")
         self.builder_name = StringVar(value="unet_example")
         self.builder_name_entry = ttk.Entry(self, textvariable=self.builder_name)
-        self.train_button = ttk.Button(self, text="Start", command=self.train)
+        self.train_button = ttk.Button(self, text="Start", style="BW.TLabel", command=self.train)
         self.train_done = ttk.Label(self, text="")
 
+        """
         # set default values of train folders with the ones used for preprocess tab
         if REMOTE:
             self.folder_selection.data_dir.set(preprocess_tab.send_data_name.get())
@@ -609,12 +643,12 @@ class TrainTab(ttk.Frame):
             self.folder_selection.img_outdir.set(preprocess_tab.folder_selection.img_outdir.get())
             self.folder_selection.msk_outdir.set(preprocess_tab.folder_selection.msk_outdir.get())
         self.folder_selection.num_classes.set(preprocess_tab.folder_selection.num_classes.get())
-
+        """
         self.folder_selection.grid(column=0,row=0,sticky=(N,W,E), pady=3)
         self.config_selection.grid(column=0,row=1,sticky=(N,W,E), pady=3)
         self.builder_name_label.grid(column=0, row=2, sticky=(W,E), pady=3)
         self.builder_name_entry.grid(column=0, row=3, sticky=(W,E))
-        self.train_button.grid(column=0, row=4, sticky=(W,E))
+        self.train_button.grid(column=0, row=4, pady= 30)
         self.train_done.grid(column=0, row=5, sticky=W)
 
     
@@ -997,7 +1031,7 @@ class PredictTab(ttk.Frame):
                 if not os.path.isdir(target):
                     os.makedirs(target, exist_ok=True)
                 print("Downloading Omero dataset into", target)
-                omero_pred.run(
+                biom3d.omero_pred.run(
                     obj=obj,
                     target=target,
                     bui_dir=self.model_selection.logs_dir.get(), 
@@ -1158,8 +1192,8 @@ class Root(Tk):
         self.title("Biom3d")
 
         # windows dimension and positioning
-        window_width = 600
-        window_height = 600
+        window_width = 700
+        window_height = 700
 
         ## get the screen dimension
         screen_width = self.winfo_screenwidth()
@@ -1273,21 +1307,21 @@ class Root(Tk):
 
         # Stage 3 (notebook -> preprocess - train - predict - omero)
         
-        self.preprocess_tab = ttk.Frame(self.tab_parent, padding=PADDING)
+        #self.preprocess_tab = ttk.Frame(self.tab_parent, padding=PADDING)
         self.train_tab = ttk.Frame(self.tab_parent, padding=PADDING)
         self.predict_tab = ttk.Frame(self.tab_parent, padding=PADDING)
         # self.omero_tab = ttk.Frame(self.tab_parent, padding=PADDING)
 
-        self.tab_parent.add(self.preprocess_tab, text="Preprocess")
-        self.tab_parent.add(self.train_tab, text="Train")
+        #self.tab_parent.add(self.preprocess_tab, text="Preprocess")
+        self.tab_parent.add(self.train_tab, text="Preprocess & Train")
         self.tab_parent.add(self.predict_tab, text="Predict")
-
+        """"
         # Stage 4 (preprocess_tab -> preprocess_tab_frame)
         self.preprocess_tab_frame = PreprocessTab(self.preprocess_tab)
         self.preprocess_tab_frame.grid(column=0, row=0, sticky=(N,W,E), pady=24, padx=12)
         self.preprocess_tab.columnconfigure(0, weight=1)
         self.preprocess_tab.rowconfigure(0, weight=1)
-
+        """
         # Stage 4 (predict_tab -> predict_tab_frame)
         self.predict_tab_frame = PredictTab(self.predict_tab)
         self.predict_tab_frame.grid(column=0, row=0, sticky=(N,W,E), pady=24, padx=12)
@@ -1295,7 +1329,8 @@ class Root(Tk):
         self.predict_tab.rowconfigure(0, weight=1)
 
         # Stage 4 (train_tab -> train_tab_frame)
-        self.train_tab_frame = TrainTab(master=self.train_tab, preprocess_tab=self.preprocess_tab_frame)
+        #self.train_tab_frame = TrainTab(master=self.train_tab, preprocess_tab=self.preprocess_tab_frame)
+        self.train_tab_frame = TrainTab(master=self.train_tab)
         self.train_tab_frame.grid(column=0, row=0, sticky=(N,W,E), pady=24, padx=12)
         self.train_tab.columnconfigure(0, weight=1)
         self.train_tab.rowconfigure(0, weight=1)
