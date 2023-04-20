@@ -274,13 +274,16 @@ def display_info(patch, pool, batch):
     print("AUG_PATCH_SIZE =",list(aug_patch))
     print("NUM_POOLS =", list(pool))
 
-def auto_config(img_dir, max_dims=(128,128,128)):
+def auto_config(img_dir=None, median=None, max_dims=(128,128,128)):
     """Given an image folder, return the batch size, the patch size and the number of pooling.
+    Provide either an image directory or a median shape. If a median shape is provided it will not be recomputed and the auto-configuration will be much faster.
 
     Parameters
     ----------
     img_dir: str
         Image folder path.
+    median : list or tuple
+        Median size of the images in the image directory.
     max_dims: tuple, default=(128,128,128)
         Maximum patch size. The product of `max_dims` is used to determine the maximum patch size
 
@@ -295,7 +298,8 @@ def auto_config(img_dir, max_dims=(128,128,128)):
     pool: numpy.ndarray
         Number of pooling.
     """
-    median = compute_median(path=img_dir)
+    assert not(img_dir == None and median == None), "[Error] Please provide either an image directory or a median shape."
+    if median == None: median = compute_median(path=img_dir) 
     patch, pool, batch = find_patch_pool_batch(dims=median, max_dims=max_dims) 
     aug_patch = np.array(patch)+2**(np.array(pool)+1)
     return batch, aug_patch, patch, pool

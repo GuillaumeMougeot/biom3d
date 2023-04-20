@@ -127,7 +127,7 @@ class RandomCropOrPad(RandomTransform, SpatialTransform):
             label = subject[self.label_name].data
             if tuple(label.shape)[0]==1:
                 # then we consider that we don't have a one hot encoded label
-                rnd_label = random.randint(1,label.max())
+                rnd_label = random.randint(1,label.max()+1)
                 locations = torch.argwhere(label[0] == rnd_label)
             else:
                 # then we have a one hot encoded label

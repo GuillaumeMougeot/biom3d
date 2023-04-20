@@ -5,6 +5,7 @@
 
 import os
 import random
+import pickle
 import numpy as np
 import pandas as pd
 
@@ -30,6 +31,29 @@ from biom3d.utils import adaptive_imread, get_folds_train_test_df
 
 #---------------------------------------------------------------------------
 # random crop and pad with batchgenerator
+
+def centered_crop(img, msk, center, crop_shape, margin=np.zeros(3)):
+    """Do a crop, forcing the location voxel to be located in the center of the crop.
+    """
+    img_shape = np.array(img.shape)[1:]
+    center = np.array(center)
+    crop_shape = np.array(crop_shape)
+    margin = np.array(margin)
+    
+    # middle of the crop
+    start = np.maximum(0,center-crop_shape//2+margin).astype(int)
+
+    # assert that the end will not be out of the crop
+    start = start - np.maximum(start+crop_shape-img_shape, 0)
+
+    end = crop_shape+start
+    
+    idx = [slice(0,img.shape[0])]+list(slice(s[0], s[1]) for s in zip(start, end))
+    idx = tuple(idx)
+    
+    crop_img = img[idx]
+    crop_msk = msk[idx]
+    return crop_img, crop_msk
 
 def located_crop(img, msk, location, crop_shape, margin=np.zeros(3)):
     """Do a crop, forcing the location voxel to be located in the crop.
@@ -83,7 +107,7 @@ def centered_pad(img, final_size, msk=None):
     pad_img = np.pad(img, pad, 'constant', constant_values=0)
     
     if msk is not None:
-        pad_msk = np.pad(msk, pad, 'constant', constant_values=0)
+        pad_msk = np.pad(msk, pad, 'constant', constant_values=-1)
         return pad_img, pad_msk
     else: 
         return pad_img
@@ -91,15 +115,16 @@ def centered_pad(img, final_size, msk=None):
 def foreground_crop(img, msk, final_size, fg_margin):
     """Do a foreground crop.
     """
-    rnd_label = random.randint(0,msk.shape[0]-1) # choose a random label
+    # rnd_label = random.randint(0,msk.shape[0]-1) # choose a random label
+    rnd_label = random.randint(1,msk[0].max()) # choose a random label
 
-    locations = np.argwhere(msk[rnd_label] == 1)
+    locations = np.argwhere(msk[0] == rnd_label)
 
     if locations.size==0: # bug fix when having empty arrays 
         img, msk = random_crop(img, msk, final_size)
     else:
         center=random.choice(locations) # choose a random voxel of this label
-        img, msk = located_crop(img, msk, center, final_size, fg_margin)
+        img, msk = centered_crop(img, msk, center, final_size, fg_margin)
     return img, msk
     
 def random_crop_pad(img, msk, final_size, fg_rate=0.33, fg_margin=np.zeros(3)):
@@ -141,8 +166,7 @@ class RandomCropAndPadTransform(AbstractTransform):
         data, seg = random_crop_pad(data, seg, self.crop_size, self.fg_rate)
 
         data_dict[self.data_key] = data
-        if seg is not None:
-            data_dict[self.label_key] = seg
+        data_dict[self.label_key] = seg
 
         return data_dict
 
@@ -188,6 +212,150 @@ class DataReader(AbstractTransform):
 #---------------------------------------------------------------------------
 # training and validation augmentations
 
+def get_bbox(patch_size,
+             final_patch_size,
+             annotated_classes_key,
+             data_shape: np.ndarray, 
+             force_fg: bool, 
+             class_locations: Union[dict, None],
+             overwrite_class: Union[int, Tuple[int, ...]] = None, 
+             verbose: bool = False
+            ):
+        # in dataloader 2d we need to select the slice prior to this and also modify the class_locations to only have
+        # locations for the given slice
+        need_to_pad = (np.array(patch_size) - np.array(final_patch_size)).astype(int)
+        dim = len(data_shape)
+
+        for d in range(dim):
+            # if case_all_data.shape + need_to_pad is still < patch size we need to pad more! We pad on both sides
+            # always
+            if need_to_pad[d] + data_shape[d] < patch_size[d]:
+                need_to_pad[d] = patch_size[d] - data_shape[d]
+
+        # we can now choose the bbox from -need_to_pad // 2 to shape - patch_size + need_to_pad // 2. Here we
+        # define what the upper and lower bound can be to then sample form them with np.random.randint
+        lbs = [- need_to_pad[i] // 2 for i in range(dim)]
+        ubs = [data_shape[i] + need_to_pad[i] // 2 + need_to_pad[i] % 2 - patch_size[i] for i in range(dim)]
+
+        # if not force_fg then we can just sample the bbox randomly from lb and ub. Else we need to make sure we get
+        # at least one of the foreground classes in the patch
+        if not force_fg:
+            bbox_lbs = [np.random.randint(lbs[i], ubs[i] + 1) for i in range(dim)]
+            # print('I want a random location')
+        else:
+            assert class_locations is not None, 'if force_fg is set class_locations cannot be None'
+            if overwrite_class is not None:
+                assert overwrite_class in class_locations.keys(), 'desired class ("overwrite_class") does not ' \
+                                                                  'have class_locations (missing key)'
+            # this saves us a np.unique. Preprocessing already did that for all cases. Neat.
+            # class_locations keys can also be tuple
+            eligible_classes_or_regions = [i for i in class_locations.keys() if len(class_locations[i]) > 0]
+
+            # if we have annotated_classes_key locations and other classes are present, remove the annotated_classes_key from the list
+            # strange formulation needed to circumvent
+            # ValueError: The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()
+            tmp = [i == annotated_classes_key if isinstance(i, tuple) else False for i in eligible_classes_or_regions]
+            if any(tmp):
+                if len(eligible_classes_or_regions) > 1:
+                    eligible_classes_or_regions.pop(np.where(tmp)[0][0])
+
+            if len(eligible_classes_or_regions) == 0:
+                # this only happens if some image does not contain foreground voxels at all
+                selected_class = None
+                if verbose:
+                    print('case does not contain any foreground classes')
+            else:
+                # I hate myself. Future me aint gonna be happy to read this
+                # 2022_11_25: had to read it today. Wasn't too bad
+                selected_class = eligible_classes_or_regions[np.random.choice(len(eligible_classes_or_regions))] if \
+                    (overwrite_class is None or (overwrite_class not in eligible_classes_or_regions)) else overwrite_class
+            # print(f'I want to have foreground, selected class: {selected_class}')
+
+            voxels_of_that_class = class_locations[selected_class] if selected_class is not None else None
+
+            if voxels_of_that_class is not None and len(voxels_of_that_class) > 0:
+                selected_voxel = voxels_of_that_class[np.random.choice(len(voxels_of_that_class))]
+                # selected voxel is center voxel. Subtract half the patch size to get lower bbox voxel.
+                # Make sure it is within the bounds of lb and ub
+                # i + 1 because we have first dimension 0!
+                bbox_lbs = [max(lbs[i], selected_voxel[i] - patch_size[i] // 2) for i in range(dim)]
+            else:
+                # If the image does not contain any foreground classes, we fall back to random cropping
+                bbox_lbs = [np.random.randint(lbs[i], ubs[i] + 1) for i in range(dim)]
+
+        bbox_ubs = [bbox_lbs[i] + patch_size[i] for i in range(dim)]
+
+        return bbox_lbs, bbox_ubs
+    
+class nnUNetRandomCropAndPadTransform(AbstractTransform):
+    def __init__(self,
+                 aug_crop_size, 
+                 crop_size, 
+                 fg_rate=0.33,
+                 data_key="data", 
+                 label_key="seg",
+                 class_loc_key="loc",
+                ):
+        self.data_key = data_key
+        self.label_key = label_key
+        self.class_loc_key = class_loc_key
+        self.fg_rate = fg_rate
+        self.crop_size = crop_size
+        self.aug_crop_size = aug_crop_size
+
+    def __call__(self, **data_dict):
+        data = data_dict.get(self.data_key)
+        seg = data_dict.get(self.label_key)
+        loc = data_dict.get(self.class_loc_key)
+        
+        dim=len(data[0].shape[1:])
+        
+        data_channel = data[0].shape[0]
+        seg_channel = seg[0].shape[0]
+        
+        data_all = np.zeros([len(data), data_channel]+list(self.aug_crop_size), dtype=np.float32)
+        seg_all = np.zeros([len(seg), seg_channel]+list(self.aug_crop_size), dtype=np.int16)
+        
+        for j,(d,s,l) in enumerate(zip(data,seg,loc)):
+            shape = np.array(d.shape[1:])
+
+            bbox_lbs, bbox_ubs = get_bbox(
+                final_patch_size=self.crop_size,
+                patch_size=self.aug_crop_size,
+                annotated_classes_key=list(l.keys()),
+                data_shape=shape, 
+                force_fg=random.random()<self.fg_rate, 
+                class_locations=l,
+                overwrite_class = None, 
+                verbose = False
+            )
+            
+            # whoever wrote this knew what he was doing (hint: it was me). We first crop the data to the region of the
+            # bbox that actually lies within the data. This will result in a smaller array which is then faster to pad.
+            # valid_bbox is just the coord that lied within the data cube. It will be padded to match the patch size
+            # later
+            valid_bbox_lbs = [max(0, bbox_lbs[i]) for i in range(dim)]
+            valid_bbox_ubs = [min(shape[i], bbox_ubs[i]) for i in range(dim)]
+
+            # At this point you might ask yourself why we would treat seg differently from seg_from_previous_stage.
+            # Why not just concatenate them here and forget about the if statements? Well that's because segneeds to
+            # be padded with -1 constant whereas seg_from_previous_stage needs to be padded with 0s (we could also
+            # remove label -1 in the data augmentation but this way it is less error prone)
+            this_slice = tuple([slice(0, data_channel)] + [slice(i, j) for i, j in zip(valid_bbox_lbs, valid_bbox_ubs)])
+            d = d[this_slice]
+
+            this_slice = tuple([slice(0, seg_channel)] + [slice(i, j) for i, j in zip(valid_bbox_lbs, valid_bbox_ubs)])
+            s = s[this_slice]
+
+            padding = [(-min(0, bbox_lbs[i]), max(bbox_ubs[i] - shape[i], 0)) for i in range(dim)]
+            # print(data_all[j].shape, np.pad(d, ((0, 0), *padding), 'constant', constant_values=0).shape)
+            data_all[j] = np.pad(d, ((0, 0), *padding), 'constant', constant_values=0)
+            seg_all[j] = np.pad(s, ((0, 0), *padding), 'constant', constant_values=-1)
+
+        data_dict[self.data_key] = data_all
+        data_dict[self.label_key] = seg_all
+
+        return data_dict
 
 class Convert2DTo3DTransform(AbstractTransform):
     def __init__(self, apply_to_keys: Union[List[str], Tuple[str]] = ('data', 'seg')):
@@ -308,7 +476,13 @@ def get_training_transforms(aug_patch_size: Union[np.ndarray, Tuple[int]],
     if use_data_reader:
         tr_transforms.append(DataReader())
     
-    tr_transforms.append(RandomCropAndPadTransform(aug_patch_size, fg_rate))
+#     tr_transforms.append(RandomCropAndPadTransform(aug_patch_size, fg_rate))
+    tr_transforms.append(nnUNetRandomCropAndPadTransform(aug_patch_size, 
+                 patch_size, 
+                 fg_rate,
+                 data_key="data", 
+                 label_key="seg",
+                 class_loc_key="loc",))
     
     if do_dummy_2d_data_aug:
         ignore_axes = (0,)
@@ -373,7 +547,13 @@ def get_validation_transforms(patch_size: Union[np.ndarray, Tuple[int]],
     if use_data_reader:
         val_transforms.append(DataReader())
 
-    val_transforms.append(RandomCropAndPadTransform(patch_size, fg_rate))
+#     val_transforms.append(RandomCropAndPadTransform(patch_size, fg_rate))
+    val_transforms.append(nnUNetRandomCropAndPadTransform(patch_size, 
+                 patch_size, 
+                 fg_rate,
+                 data_key="data", 
+                 label_key="seg",
+                 class_loc_key="loc",))
     
     val_transforms.append(RemoveLabelTransform(-1, 0))
 
@@ -403,6 +583,7 @@ class BatchGenDataLoader(SlimDataLoaderBase):
         msk_dir,
         batch_size, 
         nbof_steps,
+        fg_dir     = None,
         folds_csv  = None, 
         fold       = 0, 
         val_split  = 0.25,
@@ -420,6 +601,7 @@ class BatchGenDataLoader(SlimDataLoaderBase):
         """
         self.img_dir = img_dir
         self.msk_dir = msk_dir
+        self.fg_dir = fg_dir
 
         self.batch_size = batch_size
 
@@ -465,12 +647,16 @@ class BatchGenDataLoader(SlimDataLoaderBase):
                 # file names
                 img = os.path.join(self.img_dir, fnames[idx])
                 msk = os.path.join(self.msk_dir, fnames[idx])
+                if self.fg_dir is not None:
+                    fg  = os.path.join(self.fg_dir, os.path.basename(fnames[idx]).split('.')[0]+'.pkl')
 
                 # load img and msks
                 if self.load_data:
                     img = adaptive_imread(img)[0]
                     msk = adaptive_imread(msk)[0]
-                data += [{'data': img, 'seg': msk}]
+                if self.fg_dir is not None: fg = pickle.load(open(fg, 'rb'))
+                else: fg = None
+                data += [{'data': img, 'seg': msk, 'loc': fg}]
                 
             return data
 
@@ -511,7 +697,8 @@ class BatchGenDataLoader(SlimDataLoaderBase):
         batch_list = [self._data[i] for i in indices]
         batch = {
             'data':[data['data'] for data in batch_list],
-            'seg': [data['seg'] for data in batch_list]
+            'seg': [data['seg'] for data in batch_list],
+            'loc': [data['loc'] for data in batch_list],
         }
 
         return batch
@@ -604,6 +791,7 @@ class MTBatchGenDataLoader(MultiThreadedAugmenter):
         patch_size,
         batch_size, 
         nbof_steps,
+        fg_dir     = None,
         folds_csv  = None, 
         fold       = 0, 
         val_split  = 0.25,
@@ -618,6 +806,7 @@ class MTBatchGenDataLoader(MultiThreadedAugmenter):
             msk_dir,
             batch_size,
             nbof_steps,
+            fg_dir,
             folds_csv, 
             fold,
             val_split,  

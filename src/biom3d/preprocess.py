@@ -336,13 +336,6 @@ class Preprocessing:
             img,spacing = adaptive_imread(img_path)
             if self.msk_dir: msk,_ = adaptive_imread(msk_path)
 
-            # resample the image and mask if needed
-            if len(self.median_spacing)>0:
-                if self.msk_dir:
-                    img, msk = resample_img_msk(img, msk, spacing, median_spacing)
-                else:
-                    img = resample_with_spacing(img, spacing, median_spacing, order=3)
-
             # expand image dim
             if len(img.shape)==3:
                 img = np.expand_dims(img, 0)
@@ -388,9 +381,16 @@ class Preprocessing:
             # range image in [-1, 1]
             # img = (img - img.min())/(img.max()-img.min()) * 2 - 1
 
+            # resample the image and mask if needed
+            if len(self.median_spacing)>0:
+                if self.msk_dir:
+                    img, msk = resample_img_msk(img, msk, spacing, median_spacing)
+                else:
+                    img = resample_with_spacing(img, spacing, median_spacing, order=3)
+
             # set image type
             img = img.astype(np.float32)
-            if self.msk_dir: msk = msk.astype(np.byte)
+            if self.msk_dir: msk = msk.astype(np.uint8)
 
             # save the image and the mask as tif
             img_fname = os.path.basename(img_path).split('.')[0]
@@ -427,13 +427,17 @@ class Preprocessing:
                 if self.use_one_hot: start = 0 if self.remove_bg else 1
                 else: start = 1
                 for i in range(start,len(msk) if self.use_one_hot else msk.max()+1):
-                    fgi = np.argwhere(msk[i] == 1) if self.use_one_hot else np.argwhere(msk == i)
+                    fgi = np.argwhere(msk[i] == 1) if self.use_one_hot else np.argwhere(msk[0] == i)
                     if len(fgi)>0:
-                        fgi_idx = np.random.randint(len(fgi), size=10000)
+                        num_samples = min(len(fgi), 10000)
+                        fgi_idx = np.random.choice(np.arange(len(fgi)), size=num_samples, replace=False)
                         fgi = fgi[fgi_idx,:]
                     else:
                         fgi = []
                     fg[i] = fgi
+
+                if len(fg)==0:
+                    print("[Warning] Empty foreground!")
 
                 # store it in a pickle format
                 fg_file = os.path.join(self.fg_outdir, img_fname+'.pkl')
@@ -505,7 +509,7 @@ if __name__=='__main__':
         print("Start auto-configuration")
         
 
-        batch, aug_patch, patch, pool = auto_config.auto_config(img_dir=p.img_dir)
+        batch, aug_patch, patch, pool = auto_config.auto_config(median=median_size)
 
         config_path = auto_config.save_auto_config(
             config_dir=args.config_dir,
