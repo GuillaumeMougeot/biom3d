@@ -140,10 +140,11 @@ class RandomCropOrPad(RandomTransform, SpatialTransform):
                 # crop the img and msk so that the foreground voxel is located somewhere (random) in the cropped patch
                 # the margin argument adds a margin to force the foreground voxel to be located nearer the middle of the patch 
                 center=random.choice(locations.numpy()) # choose a random voxel of this label
-                margin=np.zeros(3) # TODO: make this a parameter
-                lower_bound = np.clip(center-np.array(self.patch_size)+margin, 0., valid_range)
-                higher_bound = np.clip(center-margin, lower_bound+1, valid_range)
-                index_ini = tuple(np.random.randint(low=lower_bound, high=higher_bound))
+                # margin=np.zeros(3) # TODO: make this a parameter
+                # lower_bound = np.clip(center-np.array(self.patch_size)+margin, 0., valid_range)
+                # higher_bound = np.clip(center-margin, lower_bound+1, valid_range)
+                # index_ini = tuple(np.random.randint(low=lower_bound, high=higher_bound))
+                index_ini = np.maximum(center-np.array(self.patch_size)//2, 0).astype(int)
         else:
             index_ini = tuple(int(torch.randint(np.maximum(x,0) + 1, (1,)).item()) for x in valid_range)
         transformed = self.extract_patch(subject, index_ini)
@@ -352,7 +353,7 @@ class TorchioDataset(SubjectsDataset):
                 # RandomCropOrPad(AUG_PATCH_SIZE),
 
                 # spatial augmentations
-                # tio.RandomAnisotropy(p=0.2, axes=anisotropy_axes, downsampling=(1,2)),
+                tio.RandomAnisotropy(p=0.2, axes=anisotropy_axes, downsampling=(1,2)),
                 # tio.RandomAffine(p=0.25, scales=(0.7,1.4), degrees=degrees, translation=0),
                 # tio.Crop(cropping=cropping),
                 tio.RandomFlip(p=1, axes=(0,1,2)),
