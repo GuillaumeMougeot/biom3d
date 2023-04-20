@@ -76,12 +76,14 @@ class Dice(Metric):
 
             if not all([i == j for i, j in zip(inputs.shape, targets.shape)]):
                 # if this is not the case then gt is probably not already a one hot encoding
-                targets = torch.zeros(inputs.shape, device=inputs.device)
-                targets.scatter_(1, targets.long(), 1)
+                targets_oh = torch.zeros(inputs.shape, device=inputs.device)
+                targets_oh.scatter_(1, targets.long(), 1)
+            else:
+                targets_oh = targets
 
             # remove background
             inputs = inputs[:,1:]
-            targets = targets[:,1:]
+            targets = targets_oh[:,1:]
         else:
             inputs = inputs.sigmoid()
 
@@ -126,12 +128,14 @@ class DiceBCE(Metric):
 
             if not all([i == j for i, j in zip(inputs.shape, targets.shape)]):
                 # if this is not the case then gt is probably not already a one hot encoding
-                targets = torch.zeros(inputs.shape, device=inputs.device)
-                targets.scatter_(1, targets.long(), 1)
+                targets_oh = torch.zeros(inputs.shape, device=inputs.device)
+                targets_oh.scatter_(1, targets.long(), 1)
+            else:
+                targets_oh = targets
 
             # remove background
             inputs = inputs[:,1:]
-            targets = targets[:,1:]
+            targets = targets_oh[:,1:]
 
         else:
             # keep the background and flatten
@@ -173,12 +177,14 @@ class IoU(Metric):
 
             if not all([i == j for i, j in zip(inputs.shape, targets.shape)]):
                 # if this is not the case then gt is probably not already a one hot encoding
-                targets = torch.zeros(inputs.shape, device=inputs.device)
-                targets.scatter_(1, targets.long(), 1)
+                targets_oh = torch.zeros(inputs.shape, device=inputs.device)
+                targets_oh.scatter_(1, targets.long(), 1)
+            else:
+                targets_oh = targets
 
             # remove background
             inputs = inputs[:,1:]
-            targets = targets[:,1:]
+            targets = targets_oh[:,1:]
         else:
             inputs = inputs.sigmoid()
 
