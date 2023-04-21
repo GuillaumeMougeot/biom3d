@@ -347,7 +347,7 @@ class ImageSaver(Callback):
                     if self.use_sigmoid:
                         pred = (torch.sigmoid(pred)>0.5).int()*255
                     else: 
-                        pred = (pred.softmax(dim=1)).int()*255
+                        pred = (pred.softmax(dim=1).argmax(dim=1).unsqueeze(dim=1)).int()*255
                     l = [X, y, pred.detach()]
                     for j in range(len(l)):
                         _,_,channel,_,_ = l[j].shape
@@ -370,7 +370,7 @@ class ImageSaver(Callback):
                     # print ground truth
                     plt.subplot(self.plot_size,3,3*i+3)
                     plt.imshow(y)
-                    plt.title('gt')
+                    plt.title('ground_truth')
                     plt.axis('off')
                     del X, y, pred
                 im_path = os.path.join(self.image_dir,'image_' + str(epoch) + '.png')

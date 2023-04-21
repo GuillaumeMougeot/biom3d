@@ -91,8 +91,19 @@ class LoadImgPatch:
         self.img_shape = img.shape
         print("image shape: ",self.img_shape)
         
-        # expand dims
-        img = np.expand_dims(img, 0)
+        # expand image dim
+        if len(img.shape)==3:
+            img = np.expand_dims(img, 0)
+        elif len(img.shape)==4:
+            # we consider as the channel dimension, the smallest dimension
+            # it should be either the first or the last dim
+            # if it is the last dim, then we move it to the first
+            if np.argmin(img.shape)==3:
+                img = np.moveaxis(img, -1, 0)
+            elif np.argmin(img.shape)!=0:
+                print("[Error] Invalid image shape:", img.shape)
+        else:
+            print("[Error] Invalid image shape:", img.shape)
     
         # preprocessing: resampling, clipping, z-normalization
         # resampling if needed

@@ -140,6 +140,45 @@ def compute_median(path, return_spacing=False):
 
     return median 
 
+def data_fingerprint(img_dir, msk_dir=None, num_samples=10000):
+    """Compute the data fingerprint. 
+    """ 
+    path_imgs = abs_listdir(img_dir)
+    if msk_dir is not None:
+        path_msks = abs_listdir(msk_dir)
+        
+    sizes = []
+    spacings = []
+    samples = []
+        
+    for i in range(len(path_imgs)):
+        img,spacing = adaptive_imread(path_imgs[i])
+        sizes += [list(img.shape)]
+        if spacing is not None or spacing!=[]: 
+            spacings+=[spacing]
+        if msk_dir is not None:
+            # read msk
+            msk,_ = adaptive_imread(path_msks[i])
+            
+            # extract only useful voxels
+            img = img[msk > 0]
+    
+            # to get a global sample of all the images, 
+            # we use random sampling on the image voxels inside the mask
+            samples.append(np.random.choice(img, num_samples, replace=True) if len(img)>0 else [])
+            
+    # median computation
+    median_size = np.median(np.array(sizes), axis=0).astype(int)
+    median_spacing = np.median(np.array(spacings), axis=0)
+    
+    # compute fingerprints
+    mean = float(np.mean(samples)) if samples!=[] else 0
+    std = float(np.std(samples)) if samples!=[] else 0
+    perc_005 = float(np.percentile(samples, 0.5)) if samples!=[] else 0
+    perc_995 = float(np.percentile(samples, 99.5)) if samples!=[] else 0
+
+    return median_size, median_spacing, mean, std, perc_005, perc_995 
+
 # ----------------------------------------------------------------------------
 # Patch pool batch computation
 
@@ -235,13 +274,16 @@ def display_info(patch, pool, batch):
     print("AUG_PATCH_SIZE =",list(aug_patch))
     print("NUM_POOLS =", list(pool))
 
-def auto_config(img_dir, max_dims=(128,128,128)):
+def auto_config(img_dir=None, median=None, max_dims=(128,128,128)):
     """Given an image folder, return the batch size, the patch size and the number of pooling.
+    Provide either an image directory or a median shape. If a median shape is provided it will not be recomputed and the auto-configuration will be much faster.
 
     Parameters
     ----------
     img_dir: str
         Image folder path.
+    median : list or tuple
+        Median size of the images in the image directory.
     max_dims: tuple, default=(128,128,128)
         Maximum patch size. The product of `max_dims` is used to determine the maximum patch size
 
@@ -256,7 +298,8 @@ def auto_config(img_dir, max_dims=(128,128,128)):
     pool: numpy.ndarray
         Number of pooling.
     """
-    median = compute_median(path=img_dir)
+    assert not(img_dir == None and median == None), "[Error] Please provide either an image directory or a median shape."
+    if median == None: median = compute_median(path=img_dir) 
     patch, pool, batch = find_patch_pool_batch(dims=median, max_dims=max_dims) 
     aug_patch = np.array(patch)+2**(np.array(pool)+1)
     return batch, aug_patch, patch, pool
@@ -384,6 +427,12 @@ if __name__=='__main__':
         help="Print median spacing if set.")
     parser.add_argument("--median", default=False,  action='store_true', dest='median',
         help="Print the median.")
+    parser.add_argument("--save_config", default=False,  action='store_true', dest='save_config',
+        help="(default=False) Whether to save the configuration.")
+    parser.add_argument("--config_dir", type=str, default='configs/',
+        help="(default=\'configs/\') Configuration folder to save the auto-configuration.")
+    parser.add_argument("--base_config", type=str, default=None,
+        help="(default=None) Optional. Path to an existing configuration file which will be updated with the preprocessed values.")
     args = parser.parse_args()
 
 
@@ -392,11 +441,24 @@ if __name__=='__main__':
     if args.spacing: 
         median_spacing = median[1]
         median = median[0]
+
     patch, pool, batch = find_patch_pool_batch(dims=median, max_dims=(args.max_dim, args.max_dim, args.max_dim))
+    aug_patch = np.array(patch)+2**(np.array(pool)+1)
 
     display_info(patch, pool, batch)
     
     if args.spacing:print("MEDIAN_SPACING =",list(median_spacing))
     if args.median:print("MEDIAN =", list(median))
+
+    if args.save_config:
+        config_path = save_auto_config(
+            config_dir=args.config_dir,
+            base_config=args.base_config,
+            BATCH_SIZE=batch,
+            AUG_PATCH_SIZE=aug_patch,
+            PATCH_SIZE=patch,
+            NUM_POOLS=pool,
+            MEDIAN_SPACING=median_spacing,
+        )
 
 # ----------------------------------------------------------------------------

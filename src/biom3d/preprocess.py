@@ -7,13 +7,18 @@
 
 import numpy as np
 import os 
-# import torchio as tio
+import pickle # for foreground storage
+import scipy # for resampling
 from tqdm import tqdm
 import argparse
 from skimage.io import imread
 import SimpleITK as sitk
 import tifffile
 from numba import njit
+
+from biom3d import auto_config
+
+np.random.seed(42)
 
 #---------------------------------------------------------------------------
 # Nifti imread
@@ -104,6 +109,48 @@ def one_hot_fast(values, num_classes=None):
         out[i] = (values==uni[i]).astype(np.uint8)
     return out
 
+# use scipy affine_transform to resample the image
+def resample_with_spacing(img, spacing, median_spacing, order=3):
+    """
+    Resample a 3D image given its spacing and a median spacing from a dataset.  
+    Rely on scipy Python package.
+    
+    Parameters
+    ----------
+    img : numpy.ndarray
+        3D image to resample.
+    spacing : tuple, list or numpy.ndarray
+        Spacing of the input image. Should have a lenght of 3.
+    median_spacing : tuple, list or numpy.ndarray
+        Median spacing of the image dataset. Should have a lenght of 3.
+    order : int
+        The order of the spline interpolation. For images use 3, for mask/label use 0.
+    
+    Returns
+    -------
+    new_img : numpy.ndarray
+        Resampled image.
+    """
+    # convert inputs to array
+    spacing = np.array(spacing)
+    median_spacing = np.array(median_spacing)
+    
+    # compute zoom parameter
+    zoom = (spacing/median_spacing)[::-1] # transpose the dimension
+    
+    # if img has 4 dimensions
+    if len(img.shape)==4: 
+        zoom = [1]+zoom.tolist()
+    
+    # do the transformation
+    new_img = scipy.ndimage.zoom(img, zoom, order=order)
+    return new_img
+
+def resample_img_msk(img, msk, spacing, median_spacing):
+    new_img = resample_with_spacing(img, spacing, median_spacing, order=3)
+    new_msk = resample_with_spacing(msk, spacing, median_spacing, order=0)
+    return new_img, new_msk
+
 class Preprocessing:
     """A helper class to transform nifti (.nii.gz) and Tiff (.tif or .tiff) images to .tif format and to normalize them.
 
@@ -117,6 +164,8 @@ class Preprocessing:
         Path to the input mask folder
     msk_outdir : str, optional
         Path to the output mask folder
+    fg_outdir : str, optional
+        Foreground location, eventually later used by the dataloader.
     num_classes : int, optional
         Number of classes (channel) in the masks. Required by the 
     remove_bg : bool, default=True
@@ -138,7 +187,9 @@ class Preprocessing:
         img_outdir = None,
         msk_dir = None, # if None, only images are preprocesses not the masks
         msk_outdir = None,
+        fg_outdir = None, # foreground location, eventually used by the dataloader
         num_classes = None, # just for debug when empty masks are provided
+        use_one_hot = False,
         remove_bg = False, # keep the background in labels 
         median_spacing=[],
         clipping_bounds=[],
@@ -162,15 +213,21 @@ class Preprocessing:
             img_outdir = img_dir+'_out'
         if msk_dir is not None and msk_outdir is None:
             msk_outdir = msk_dir+'_out'
+            if fg_outdir is None:
+                # get parent directory of mask dir
+                fg_outdir = os.path.join(os.path.dirname(msk_dir), 'fg_out')
 
         self.img_outdir=img_outdir 
         self.msk_outdir=msk_outdir
+        self.fg_outdir =fg_outdir
 
         # create output directory if needed
         if not os.path.exists(self.img_outdir):
             os.makedirs(self.img_outdir, exist_ok=True)
-        if msk_dir is not None and  not os.path.exists(self.msk_outdir):
+        if msk_dir is not None and not os.path.exists(self.msk_outdir):
             os.makedirs(self.msk_outdir, exist_ok=True)
+        if msk_dir is not None and not os.path.exists(self.fg_outdir):
+            os.makedirs(self.fg_outdir, exist_ok=True)
 
         self.num_classes = num_classes
 
@@ -181,8 +238,9 @@ class Preprocessing:
         self.intensity_moments = intensity_moments
         self.use_tif = use_tif
 
-        # self.one_hot = tio.OneHot()
         self.split_rate_for_single_img = split_rate_for_single_img
+
+        self.use_one_hot = use_one_hot
         
     def _split_single(self):
         """
@@ -278,30 +336,33 @@ class Preprocessing:
             img,spacing = adaptive_imread(img_path)
             if self.msk_dir: msk,_ = adaptive_imread(msk_path)
 
-            # extend dim
-            img = np.expand_dims(img, 0)
+            # expand image dim
+            if len(img.shape)==3:
+                img = np.expand_dims(img, 0)
+            elif len(img.shape)==4:
+                # we consider as the channel dimension, the smallest dimension
+                # it should be either the first or the last dim
+                # if it is the last dim, then we move it to the first
+                if np.argmin(img.shape)==3:
+                    img = np.moveaxis(img, -1, 0)
+                elif np.argmin(img.shape)!=0:
+                    print("[Error] Invalid image shape:", img.shape)
+            else:
+                print("[Error] Invalid image shape:", img.shape)
 
             # one hot encoding for the mask if needed
             if self.msk_dir and len(msk.shape)!=4: 
-                msk = one_hot_fast(msk, self.num_classes)
-                if self.remove_bg:
-                    msk = msk[1:]
+                if self.use_one_hot:
+                    msk = one_hot_fast(msk, self.num_classes)
+                    if self.remove_bg:
+                        msk = msk[1:]
+                else:
+                    msk = np.expand_dims(msk, 0)
             elif self.msk_dir and len(msk.shape)==4:
                 # normalize each channel
                 msk = (msk > 0).astype(np.uint8)
 
             assert len(img.shape)==len(msk.shape)==4
-            # TODO: remove torchio dependency! 
-            # resample the image if needed
-            # if len(self.median_spacing)>0:
-            #     resample = (self.median_spacing/spacing)[::-1] # transpose the dimension
-            #     if resample.sum() > 0.1: # otherwise no need of spacing 
-            #         if self.msk_dir: 
-            #             sub = tio.Subject(img=tio.ScalarImage(tensor=img), msk=tio.LabelMap(tensor=msk))
-            #             sub = tio.Resample(resample)(sub)
-            #             img, msk = sub.img.numpy(), sub.msk.numpy()
-            #         else:
-            #             img = tio.Resample(resample)(img)
 
             # clip img
             if len(self.clipping_bounds)>0:
@@ -320,9 +381,16 @@ class Preprocessing:
             # range image in [-1, 1]
             # img = (img - img.min())/(img.max()-img.min()) * 2 - 1
 
+            # resample the image and mask if needed
+            if len(self.median_spacing)>0:
+                if self.msk_dir:
+                    img, msk = resample_img_msk(img, msk, spacing, median_spacing)
+                else:
+                    img = resample_with_spacing(img, spacing, median_spacing, order=3)
+
             # set image type
             img = img.astype(np.float32)
-            if self.msk_dir: msk = msk.astype(np.byte)
+            if self.msk_dir: msk = msk.astype(np.uint8)
 
             # save the image and the mask as tif
             img_fname = os.path.basename(img_path).split('.')[0]
@@ -347,11 +415,36 @@ class Preprocessing:
                     msk_out_path = os.path.join(self.msk_outdir, img_fname+'.tif')
                     tifffile.imwrite(msk_out_path, msk, compression=('zlib', 1))
                     # imsave(msk_out_path, msk)
-                    # tifffile.imwrite(msk_out_path, msk) # no compression --> increased training spee!
+                    # tifffile.imwrite(msk_out_path, msk) # no compression --> increased training speed!
                 # save image as npy
                 else:
                     msk_out_path = os.path.join(self.msk_outdir, img_fname+'.npy')
                     np.save(msk_out_path, msk)
+
+                # save the foreground locations
+                # select 10000 random foreground values to avoid storing every foregrounds
+                fg={}
+                if self.use_one_hot: start = 0 if self.remove_bg else 1
+                else: start = 1
+                for i in range(start,len(msk) if self.use_one_hot else msk.max()+1):
+                    fgi = np.argwhere(msk[i] == 1) if self.use_one_hot else np.argwhere(msk[0] == i)
+                    if len(fgi)>0:
+                        num_samples = min(len(fgi), 10000)
+                        fgi_idx = np.random.choice(np.arange(len(fgi)), size=num_samples, replace=False)
+                        fgi = fgi[fgi_idx,:]
+                    else:
+                        fgi = []
+                    fg[i] = fgi
+
+                if len(fg)==0:
+                    print("[Warning] Empty foreground!")
+
+                # store it in a pickle format
+                fg_file = os.path.join(self.fg_outdir, img_fname+'.pkl')
+                with open(fg_file, 'wb') as handle:
+                    pickle.dump(fg, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+                
         print("Done preprocessing!")
 
 #---------------------------------------------------------------------------
@@ -369,17 +462,32 @@ if __name__=='__main__':
         help="(default=None) Path to the directory of the preprocessed masks/labels")
     parser.add_argument("--num_classes", type=int, default=1,
         help="(default=1) Number of classes (types of objects) in the dataset. The background is not included.")
-    parser.add_argument("--config_folder", type=str, default='configs/',
+    parser.add_argument("--config_dir", type=str, default='configs/',
         help="(default=\'configs/\') Configuration folder to save the auto-configuration.")
     parser.add_argument("--base_config", type=str, default=None,
         help="(default=None) Optional. Path to an existing configuration file which will be updated with the preprocessed values.")
     parser.add_argument("--use_tif", default=False,  action='store_true', dest='use_tif',
         help="(default=False) Whether to use tif format to save the preprocessed images instead of npy format. Tif files are easily readable with viewers such as Napari and takes fewer disk space but are slower to load and may slow down the training process.") 
+    parser.add_argument("--use_one_hot", default=False,  action='store_true', dest='use_one_hot',
+        help="(default=False) Whether to use one hot encoding of the mask. Can slow down the training.") 
     parser.add_argument("--remove_bg", default=False,  action='store_true', dest='remove_bg',
-        help="(default=False) Remove the background in masks. Remove the bg to use with sigmoid activation maps (not softmax).") 
+        help="(default=False) If use one hot, remove the background in masks. Remove the bg to use with sigmoid activation maps (not softmax).") 
     parser.add_argument("--no_auto_config", default=False,  action='store_true', dest='no_auto_config',
         help="(default=False) Stop showing the information to copy and paste inside the configuration file (patch_size, batch_size and num_pools).") 
+    parser.add_argument("--ct_norm", default=False,  action='store_true', dest='ct_norm',
+        help="(default=False) Whether to use CT-Scan normalization routine (cf. nnUNet).") 
     args = parser.parse_args()
+
+    if args.ct_norm:
+        print("Computing data fingerprint for CT normalization...")
+        median_size, median_spacing, mean, std, perc_005, perc_995 = auto_config.data_fingerprint(args.img_dir, args.msk_dir)
+        clipping_bounds = [perc_005, perc_995]
+        intensity_moments = [mean, std]
+        print("Done!")
+    else:
+        median_spacing = []
+        clipping_bounds = []
+        intensity_moments = []
 
     p=Preprocessing(
         img_dir=args.img_dir,
@@ -387,18 +495,21 @@ if __name__=='__main__':
         img_outdir=args.img_outdir,
         msk_outdir=args.msk_outdir,
         num_classes=args.num_classes+1,
+        use_one_hot=args.use_one_hot,
         remove_bg=args.remove_bg,
         use_tif=args.use_tif,
-        # clipping_bounds=[-928.0,296.0]
+        median_spacing=median_spacing,
+        clipping_bounds=clipping_bounds,
+        intensity_moments=intensity_moments,
     )
 
     p.run()
 
     if not args.no_auto_config:
         print("Start auto-configuration")
-        from biom3d import auto_config
+        
 
-        batch, aug_patch, patch, pool = auto_config.auto_config(img_dir=p.img_dir)
+        batch, aug_patch, patch, pool = auto_config.auto_config(median=median_size)
 
         config_path = auto_config.save_auto_config(
             config_dir=args.config_dir,
@@ -409,7 +520,8 @@ if __name__=='__main__':
             BATCH_SIZE=batch,
             AUG_PATCH_SIZE=aug_patch,
             PATCH_SIZE=patch,
-            NUM_POOLS=pool
+            NUM_POOLS=pool,
+            MEDIAN_SPACING=median_spacing,
         )
 
         print("Auto-config done! Configuration saved in: ", config_path)

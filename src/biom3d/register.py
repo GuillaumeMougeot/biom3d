@@ -12,10 +12,12 @@ from biom3d.utils import Dict
 
 from biom3d.datasets.semseg_patch_fast import SemSeg3DPatchFast
 from biom3d.datasets.semseg_torchio import TorchioDataset
+from biom3d.datasets.semseg_batchgen import MTBatchGenDataLoader
 
 datasets = Dict(
     SegPatchFast    =Dict(fct=SemSeg3DPatchFast, kwargs=Dict()),
     Torchio         =Dict(fct=TorchioDataset, kwargs=Dict()),
+    BatchGen        =Dict(fct=MTBatchGenDataLoader, kwargs=Dict()),
 )
 
 #---------------------------------------------------------------------------
@@ -37,6 +39,7 @@ import biom3d.metrics as mt
 metrics = Dict(
     Dice        =Dict(fct=mt.Dice, kwargs=Dict()),
     DiceBCE     =Dict(fct=mt.DiceBCE, kwargs=Dict()),
+    DiceCEnnUNet=Dict(fct=mt.DC_and_CE_loss, kwargs=Dict(soft_dice_kwargs={'batch_dice': True, 'smooth': 1e-5, 'do_bg': False}, ce_kwargs={})),
     IoU         =Dict(fct=mt.IoU, kwargs=Dict()),
     MSE         =Dict(fct=mt.MSE, kwargs=Dict()),
     CE          =Dict(fct=mt.CrossEntropy, kwargs=Dict()),
