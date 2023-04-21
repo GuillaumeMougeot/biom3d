@@ -139,12 +139,14 @@ class RandomCropOrPad(RandomTransform, SpatialTransform):
             else:
                 # crop the img and msk so that the foreground voxel is located somewhere (random) in the cropped patch
                 # the margin argument adds a margin to force the foreground voxel to be located nearer the middle of the patch 
-                center=random.choice(locations.numpy()) # choose a random voxel of this label
+                # center=random.choice(locations.numpy()) # choose a random voxel of this label
+                center=locations[torch.randint(locations.size(0), (1,)).item()]
                 # margin=np.zeros(3) # TODO: make this a parameter
                 # lower_bound = np.clip(center-np.array(self.patch_size)+margin, 0., valid_range)
                 # higher_bound = np.clip(center-margin, lower_bound+1, valid_range)
                 # index_ini = tuple(np.random.randint(low=lower_bound, high=higher_bound))
-                index_ini = np.maximum(center-np.array(self.patch_size)//2, 0).astype(int)
+                # index_ini = tuple(np.maximum(center-np.array(self.patch_size)//2, 0).astype(int))
+                index_ini = tuple(int(np.maximum(x,0)) for x in (center.numpy()-self.patch_size//2))
         else:
             index_ini = tuple(int(torch.randint(np.maximum(x,0) + 1, (1,)).item()) for x in valid_range)
         transformed = self.extract_patch(subject, index_ini)
