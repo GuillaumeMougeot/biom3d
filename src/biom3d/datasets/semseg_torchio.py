@@ -313,6 +313,8 @@ class TorchioDataset(SubjectsDataset):
             ps = np.array(self.patch_size)
 
             anisotropy_axes=tuple(np.arange(3)[ps/ps.min()>3].tolist())
+            # if anisotropy is empty, it means that all axes could be use for anisotropy augmentation
+            if len(anisotropy_axes)==0: anisotropy_axes=tuple(i for i in range(len(ps)))
 
             # [aug] 'degrees' for tio.RandomAffine
             if np.any(ps/ps.min()>3): # then use dummy_2d
