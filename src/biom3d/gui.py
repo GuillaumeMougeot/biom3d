@@ -38,7 +38,7 @@ from biom3d.auto_config import save_auto_config
 from biom3d.pred import pred
 from biom3d.builder import Builder
 import biom3d.omero_pred
-
+from biom3d.utils import load_python_config
 #----------------------------------------------------------------------------
 # Constants 
 # remote or local
@@ -284,8 +284,8 @@ class FileDialog(ttk.Frame):
         self.grid_columnconfigure(1, weight=1)
 
         self.command=self.openfolder if mode=='folder' else self.openfile
-        self.button = ttk.Button(self,text="Browse", style="BW.TLabel", command=self.command)
-        self.button.grid(column=2,row=1, sticky=(W), padx=5)
+        self.button = ttk.Button(self,text="Browse", style="BW.TLabel", width=8, command=self.command)
+        self.button.grid(column=2,row=1, sticky=(W), ipady=6, padx=5)
 
     def set(self, text):
         # Set text entry
@@ -429,9 +429,9 @@ class TrainFolderSelection(ttk.LabelFrame):
 
         # Define elements
         # use preprocessing values
-        willy = ttk.Style()
-        willy.configure("Bm.TLabel", background = '#76D7C4', foreground = 'black', width = 30, borderwidth=10, focusthickness=7, focuscolor='none', anchor='c', height= 15)
-        self.use_preprocessing_button = ttk.Button(self, text="Preprocessing & Autoconfig",style="Bm.TLabel",  command=self.preprocess_autoconfig)
+        train_button_css = ttk.Style()
+        train_button_css.configure("train_button.TLabel", background = '#CD5C5C', foreground = 'white', font=('Helvetica', 9), width = 30, borderwidth=3, focusthickness=7, relief='raised', focuscolor='none', anchor='c', height= 15)
+        #self.use_preprocessing_button = ttk.Button(self, text="Preprocessing & Autoconfig",style="train_button.TLabel",  command=ConfigFrame().auto_config)
         self.preprocess_tab = preprocess_tab
 
         ## image folder
@@ -462,7 +462,7 @@ class TrainFolderSelection(ttk.LabelFrame):
         self.classes = ttk.Entry(self, textvariable=self.num_classes)
 
         # Position elements
-        self.use_preprocessing_button.grid(column=0, row=7, sticky=(S), pady=4)
+        #self.use_preprocessing_button.grid(column=0, row=7, sticky=(S), ipady=8, pady=4)
 
         self.label1.grid(column=0, row=1, sticky=W, pady=5)
         
@@ -516,6 +516,7 @@ class TrainFolderSelection(ttk.LabelFrame):
         if self.msk_outdir.get()=="":
             self.msk_outdir.set(self.msk_dir.get())
        
+        # Preprocessing
         p=Preprocessing(
             img_dir=self.img_outdir.get(),
             msk_dir=self.msk_outdir.get(),
@@ -545,11 +546,29 @@ class TrainFolderSelection(ttk.LabelFrame):
             NUM_POOLS=pool
         )
         
+        # change values in training tab
+        
+        ConfigFrame().batch_size.set(batch)
+        ConfigFrame().aug_patch_size[:]= aug_patch
+        ConfigFrame().aug_patch_size1.set(aug_patch[0])
+        ConfigFrame().aug_patch_size2.set(aug_patch[1])
+        ConfigFrame().aug_patch_size3.set(aug_patch[2])
+    
+        ConfigFrame().patch_size[:] = patch
+        ConfigFrame().patch_size1.set(patch[0])
+        ConfigFrame().patch_size2.set(patch[1])
+        ConfigFrame().patch_size3.set(patch[2])
+        
+        ConfigFrame().num_pools[:] = pool
+        ConfigFrame().num_pools1.set(pool[0])
+        ConfigFrame().num_pools2.set(pool[1])
+        ConfigFrame().num_pools3.set(pool[2])
+        
         if REMOTE:
             done_label_text = "Done preprocessing and autoconfig! You can send your dataset to the server before training."
         else:
             done_label_text = "Done preprocessing and autoconfig! You can start training."
-        self.done_label.config(text=done_label_text)
+        #self.done_label.config(text=done_label_text)
     
     def send_data(self):
         ftp = REMOTE.open_sftp()
@@ -567,55 +586,72 @@ class ConfigFrame(ttk.LabelFrame):
         super(ConfigFrame, self).__init__(*arg, **kw)
 
         # widgets definitions
-        self.auto_config_button = ttk.Button(self, text="Auto-configuration", command=self.auto_config)
-        self.img_outdir = train_folder_selection.img_outdir
+        willy1 = ttk.Style()
+        willy1.configure("auto_confing_button.TLabel", background = '#76D7C4', foreground = 'black', width = 45, borderwidth=3, focusthickness=7, focuscolor='red', relief="raised" , anchor='c')
+        self.auto_config_button = ttk.Button(self, text="Working Preprocessing & Auto-configuration", style='train_button.TLabel',width = 45,command=self.auto_config)
+        #self.img_outdir = train_folder_selection.img_outdir
         self.auto_config_finished = ttk.Label(self, text="")
 
         self.num_epochs_label = ttk.Label(self, text='Number of epochs:')
         self.num_epochs = IntVar(value=10)
-        self.num_epochs_entry = ttk.Entry(self, textvariable=self.num_epochs)
+        self.num_epochs_entry = ttk.Entry(self, width=4, textvariable=self.num_epochs)
 
         self.batch_size_label = ttk.Label(self, text='Batch size (int):')
         self.batch_size = IntVar(value=2)
-        self.batch_size_entry = ttk.Entry(self, textvariable=self.batch_size)
+        self.batch_size_entry = ttk.Entry(self, width=4, textvariable=self.batch_size)
 
         self.patch_size_label = ttk.Label(self, text='Patch size ([int int int]):')
         self.patch_size1 = StringVar(value="128")
-        self.patch_size_entry = ttk.Entry(self, width=4,textvariable=self.patch_size1)
+        self.patch_size_entry1 = ttk.Entry(self, width=4, textvariable=self.patch_size1)
         self.patch_size2 = StringVar(value="128")
-        self.patch_size_entry2 = ttk.Entry(self,width=4, textvariable=self.patch_size2)
+        self.patch_size_entry2 = ttk.Entry(self, width=4, textvariable=self.patch_size2)
         self.patch_size3 = StringVar(value="128")
-        self.patch_size_entry3 = ttk.Entry(self, width=4,textvariable=self.patch_size3)
-        self.patch_size = "[ " +str(self.patch_size_entry) +" " + str(self.patch_size_entry2)+" " + str(self.patch_size_entry3)+" ]" 
+        self.patch_size_entry3 = ttk.Entry(self, width=4, textvariable=self.patch_size3)
+        self.patch_size = [int(self.patch_size1.get()), int(self.patch_size2.get()), int(self.patch_size3.get())]
+       
 
         self.aug_patch_size_label = ttk.Label(self, text='Augmentation patch size ([int int int]):')
-        self.aug_patch_size = StringVar(value="[160 160 160]")
-        self.aug_patch_size_entry = ttk.Entry(self, textvariable=self.aug_patch_size)
-
+        self.aug_patch_size1 = StringVar(value="160")
+        self.aug_patch_size_entry1 = ttk.Entry(self, width=4, textvariable=self.aug_patch_size1)
+        self.aug_patch_size2 = StringVar(value="120")
+        self.aug_patch_size_entry2 = ttk.Entry(self, width=4, textvariable=self.aug_patch_size2)
+        self.aug_patch_size3 = StringVar(value="160")
+        self.aug_patch_size_entry3 = ttk.Entry(self, width=4, textvariable=self.aug_patch_size3)
+        self.aug_patch_size = [int(self.aug_patch_size1.get()), int(self.aug_patch_size2.get()), int(self.aug_patch_size3.get())]
+        
         self.num_pools_label = ttk.Label(self, text='Number of pool in the U-Net model ([int int int]):')
-        self.num_pools = StringVar(value="[5 5 5]")
-        self.num_pools_entry = ttk.Entry(self, textvariable=self.num_pools)
+        self.num_pools1 = StringVar(value="5")
+        self.num_pools_entry1 = ttk.Entry(self, width=4, textvariable=self.num_pools1)
+        self.num_pools2 = StringVar(value="5")
+        self.num_pools_entry2 = ttk.Entry(self, width=4, textvariable=self.num_pools2)
+        self.num_pools3 = StringVar(value="5")
+        self.num_pools_entry3 = ttk.Entry(self, width=4, textvariable=self.num_pools3)
+        self.num_pools = [int(self.num_pools1.get()), int(self.num_pools2.get()), int(self.num_pools3.get())]
 
         # place widgets
-        self.auto_config_button.grid(column=0, row=0, columnspan=2, sticky=(W,E))
+        self.auto_config_button.grid(column=0, row=0, columnspan=3 ,ipady=6, pady=2)
         self.auto_config_finished.grid(column=0, row=1, columnspan=2, sticky=(W,E))
 
         self.num_epochs_label.grid(column=0, row=2, sticky=(W,E))
-        self.num_epochs_entry.grid(column=1, row=2, sticky=W)
+        self.num_epochs_entry.grid(column=1, row=2, padx= 3, sticky=E)
 
         self.batch_size_label.grid(column=0, row=3, sticky=(W,E))
-        self.batch_size_entry.grid(column=1, row=3, sticky=W)
+        self.batch_size_entry.grid(column=1, row=3, padx= 3, sticky=E)
         
         self.patch_size_label.grid(column=0, row=4, sticky=(W,E))
-        self.patch_size_entry.grid(column=1, row=4,padx= 3, sticky=E)
+        self.patch_size_entry1.grid(column=1, row=4,padx= 3, sticky=E)
         self.patch_size_entry2.grid(column=2, row=4,padx= 3)
         self.patch_size_entry3.grid(column=3, row=4, padx= 3)
 
         self.aug_patch_size_label.grid(column=0, row=5, sticky=(W,E))
-        self.aug_patch_size_entry.grid(column=1, row=5, sticky=W)
+        self.aug_patch_size_entry1.grid(column=1, row=5,padx= 3, sticky=E)
+        self.aug_patch_size_entry2.grid(column=2, row=5, padx= 3,sticky=W)
+        self.aug_patch_size_entry3.grid(column=3, row=5,padx= 3, sticky=W)
 
         self.num_pools_label.grid(column=0, row=6, sticky=(W,E))
-        self.num_pools_entry.grid(column=1, row=6, sticky=W)
+        self.num_pools_entry1.grid(column=1, row=6,padx= 3, sticky=E)
+        self.num_pools_entry2.grid(column=2, row=6, padx= 3,sticky=W)
+        self.num_pools_entry3.grid(column=3, row=6,padx= 3, sticky=W)
 
         # grid config
         self.columnconfigure(0, weight=1)
@@ -642,21 +678,72 @@ class ConfigFrame(ttk.LabelFrame):
 
             batch, aug_patch, patch, pool = auto_config_results
         else: 
-            batch, aug_patch, patch, pool = auto_config(self.img_outdir.get())
+            #batch, aug_patch, patch, pool = auto_config(self.img_outdir.get())
+            
+            
+            
+            
+            # ################################################################################
+            
+            # Preprocessing    
+            p=Preprocessing(
+            img_dir=TrainFolderSelection().img_outdir.get(),
+            msk_dir=TrainFolderSelection().msk_outdir.get(),
+            num_classes=TrainFolderSelection().num_classes.get()+1,
+            remove_bg=False, use_tif=False)
+            p.run()
+            
+            # Run autoconfig
+            batch, aug_patch, patch, pool = auto_config(img_dir=p.img_outdir)
+            
+            # Test if config folder exists
+            parent_dir= os.path.dirname(TrainFolderSelection().img_outdir.get())
+            path = os.path.join(parent_dir, "config")
+            if not os.path.isdir(path):
+                os.mkdir(path)
+                
+            # save the config file in config folder 
+            global config_path 
+            config_path = save_auto_config(
+            config_dir=path,
+            base_config=None,
+            IMG_DIR=p.img_outdir,
+            MSK_DIR=p.msk_outdir,
+            NUM_CLASSES=TrainFolderSelection().num_classes.get(),
+            BATCH_SIZE=batch,
+            AUG_PATCH_SIZE=aug_patch,
+            PATCH_SIZE=patch,
+            NUM_POOLS=pool
+            )    
+         
+            ####################################################################################
+        
+    
 
         self.batch_size.set(batch)
-        self.aug_patch_size.set(aug_patch)
-        self.patch_size.set(patch)
-        self.num_pools.set(pool)
+        self.aug_patch_size[:]= aug_patch
+        self.aug_patch_size1.set(aug_patch[0])
+        self.aug_patch_size2.set(aug_patch[1])
+        self.aug_patch_size3.set(aug_patch[2])
+    
+        self.patch_size[:] = patch
+        self.patch_size1.set(patch[0])
+        self.patch_size2.set(patch[1])
+        self.patch_size3.set(patch[2])
+        
+        self.num_pools[:] = pool
+        self.num_pools1.set(pool[0])
+        self.num_pools2.set(pool[1])
+        self.num_pools3.set(pool[2])
 
-        self.auto_config_finished.config(text="Auto-configuration done!")
+        self.auto_config_finished.config(text="Auto-configuration done! and saved in config folder : \n" +config_path)
 
 class TrainTab(ttk.Frame):
     def __init__(self, preprocess_tab=None, *arg, **kw):
         super(TrainTab, self).__init__(*arg, **kw)
         #####################################################
         style = ttk.Style()
-        style.configure("BW.TLabel", background = '#76D7C4', foreground = 'black', width = 10, borderwidth=6, focusthickness=7, focuscolor='none', anchor='c', height= 105)
+        style.configure("BW.TLabel", background = '#76D7C4', foreground = 'black', width = 10, borderwidth=3, focusthickness=7, focuscolor='none', anchor='c', height= 105)
         #####################################################
         self.folder_selection = TrainFolderSelection(preprocess_tab=preprocess_tab, master=self, text="Preprocess & autoconfig configurations", padding=[10,10,10,10])
         self.config_selection = ConfigFrame(train_folder_selection=self.folder_selection, master=self, text="Training configuration", padding=[10,10,10,10])
@@ -664,7 +751,7 @@ class TrainTab(ttk.Frame):
         self.builder_name_label = ttk.Label(self, text="Set a name for the builder folder (folder containing your future model):")
         self.builder_name = StringVar(value="unet_example")
         self.builder_name_entry = ttk.Entry(self, textvariable=self.builder_name)
-        self.train_button = ttk.Button(self, text="Start", style="Bm.TLabel", command=self.train)
+        self.train_button = ttk.Button(self, text="Start", style="train_button.TLabel", width=10, command=self.train)
         self.train_done = ttk.Label(self, text="")
 
         """
@@ -680,7 +767,7 @@ class TrainTab(ttk.Frame):
         self.config_selection.grid(column=0,row=1,sticky=(N,W,E), pady=3)
         self.builder_name_label.grid(column=0, row=2, sticky=(W,E), pady=3)
         self.builder_name_entry.grid(column=0, row=3, sticky=(W,E))
-        self.train_button.grid(column=0, row=4, pady= 30)
+        self.train_button.grid(column=0, row=4, ipady=6, pady= 30)
         self.train_done.grid(column=0, row=5, sticky=W)
 
     
@@ -707,7 +794,8 @@ class TrainTab(ttk.Frame):
     def train(self):
         self.train_done.config(text="Training, please wait...")
 
-        cfg = CONFIG
+        #cfg = CONFIG
+        cfg = load_python_config(config_path)
 
         # set the configuration
         cfg.IMG_DIR = self.folder_selection.img_outdir.get()
@@ -725,14 +813,23 @@ class TrainTab(ttk.Frame):
 
         cfg.BATCH_SIZE = self.config_selection.batch_size.get()
         cfg = nested_dict_change_value(cfg, 'batch_size', cfg.BATCH_SIZE)
+        
+        #cfg.PATCH_SIZE = self.str2list(self.config_selection.patch_size.get())
+        #cfg = nested_dict_change_value(cfg, 'patch_size', cfg.PATCH_SIZE)
 
-        cfg.PATCH_SIZE = self.str2list(self.config_selection.patch_size.get())
+        #cfg.AUG_PATCH_SIZE = self.str2list(self.config_selection.aug_patch_size.get())
+        #cfg = nested_dict_change_value(cfg, 'aug_patch_size', cfg.AUG_PATCH_SIZE)
+        
+        #cfg.NUM_POOLS = self.str2list(self.config_selection.num_pools.get())
+        #cfg = nested_dict_change_value(cfg, 'num_pools', cfg.NUM_POOLS)
+        
+        cfg.PATCH_SIZE = self.config_selection.patch_size
         cfg = nested_dict_change_value(cfg, 'patch_size', cfg.PATCH_SIZE)
-
-        cfg.AUG_PATCH_SIZE = self.str2list(self.config_selection.aug_patch_size.get())
+        
+        cfg.AUG_PATCH_SIZE = self.config_selection.aug_patch_size
         cfg = nested_dict_change_value(cfg, 'aug_patch_size', cfg.AUG_PATCH_SIZE)
 
-        cfg.NUM_POOLS = self.str2list(self.config_selection.num_pools.get())
+        cfg.NUM_POOLS = self.config_selection.num_pools
         cfg = nested_dict_change_value(cfg, 'num_pools', cfg.NUM_POOLS)
 
         if REMOTE:
@@ -1224,7 +1321,7 @@ class Root(Tk):
         self.title("Biom3d")
 
         # windows dimension and positioning
-        window_width = 600
+        window_width = 711
         window_height = 700
 
         ## get the screen dimension
@@ -1261,7 +1358,7 @@ class Root(Tk):
 
         #####################################################
         style = ttk.Style()
-        style.configure("BW.TLabel", background = '#76D7C4', foreground = 'black',height=30, borderwidth=6 ,width = 18, anchor='c',  relief="raised")
+        style.configure("BW.TLabel",background = '#CD5C5C', foreground = 'white', font=('Helvetica', 9), width = 18, borderwidth=3, focusthickness=7, relief='raised', focuscolor='none', anchor='c', height= 15)
         #####################################################
         self.title_label = ttk.Label(self.local_or_remote, text="Biom3d", font=("Montserrat", 18))
         self.welcome_message = ttk.Label(self.local_or_remote, text="Welcome!\n\nBiom3d is an easy-to-use tool to train and use deep learning models for segmenting three dimensional images. You can either start locally, if your computer has a good graphic card (NVIDIA Geforce RTX 1080 or higher) or connect remotelly on a computer with such a graphic card.\n\nIf you need help, check our GitHub repository here: https://github.com/GuillaumeMougeot/biom3d", anchor="w", justify=LEFT, wraplength=450)
@@ -1276,10 +1373,10 @@ class Root(Tk):
         
         # The local button is displayed only for the local installation 
         if LOCAL: 
-            self.start_locally.grid(column=0, row=2, pady=12)
+            self.start_locally.grid(column=0, row=2, ipady=5, pady=12)
 
         self.start_remotelly_frame.grid(column=0, row=3, sticky=(W,E), pady=12)
-        self.start_remotelly_button.grid(column=0, row=4, pady=5)
+        self.start_remotelly_button.grid(column=0, row=4, ipady=5, pady=5)
 
         # grid config
         self.local_or_remote.columnconfigure(0, weight=1)
