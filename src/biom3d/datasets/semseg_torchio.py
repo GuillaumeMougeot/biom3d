@@ -344,16 +344,16 @@ class TorchioDataset(SubjectsDataset):
                 tio.OneOf({
                     tio.Compose([RandomCropOrPad(self.aug_patch_size, fg_rate=self.fg_rate, label_name='msk', use_softmax=self.use_softmax),
                                 #  tio.RandomAffine(scales=(0.7,1.4), degrees=degrees, translation=0),
-                                 tio.RandomAffine(scales=0, degrees=degrees, translation=0),
+                                 tio.RandomAffine(scales=0, degrees=degrees, translation=0, default_pad_value=0),
                                  tio.Crop(cropping=cropping),
                                  LabelToLong(label_name='msk')
-                                ]): 0.25,
-                    RandomCropOrPad(self.patch_size, fg_rate=self.fg_rate, label_name='msk',use_softmax=self.use_softmax): 0.75,
+                                ]): 0.2,
+                    RandomCropOrPad(self.patch_size, fg_rate=self.fg_rate, label_name='msk',use_softmax=self.use_softmax): 0.8,
                 }),
 
                 tio.Compose([tio.RandomAffine(scales=(0.7,1.4), degrees=0, translation=0),
                              LabelToLong(label_name='msk')
-                            ], p=0.25),
+                            ], p=0.2),
                 # RandomCropOrPad(AUG_PATCH_SIZE),
 
                 # spatial augmentations
