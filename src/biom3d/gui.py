@@ -39,6 +39,8 @@ from biom3d.pred import pred
 from biom3d.builder import Builder
 import biom3d.omero_pred
 from biom3d.utils import load_python_config
+from biom3d.train import train
+import numpy as np
 #----------------------------------------------------------------------------
 # Constants 
 # remote or local
@@ -454,6 +456,7 @@ class TrainFolderSelection(ttk.LabelFrame):
         else:
             #self.img_outdir = FileDialog(self, mode='folder', textEntry='D:/code/python/3dnucleus/data/img_out')        
             #self.msk_outdir = FileDialog(self, mode='folder', textEntry="D:/code/python/3dnucleus/data/msk_out")
+            # TODO: change this
             self.img_outdir = FileDialog(self, mode='folder', textEntry='/home/safarbatis/chocolate-factory/data/raw')        
             self.msk_outdir = FileDialog(self, mode='folder', textEntry="/home/safarbatis/chocolate-factory/data/seg")
         ## number of classes
@@ -509,66 +512,6 @@ class TrainFolderSelection(ttk.LabelFrame):
             self.msk_outdir.set(self.preprocess_tab.folder_selection.msk_outdir.get())
 
         self.num_classes.set(self.preprocess_tab.folder_selection.num_classes.get())
-    def preprocess_autoconfig(self):
-        # set automatically the output directories if empty
-        if self.img_outdir.get()=="":
-            self.img_outdir.set(self.img_dir.get()) ###### '_out'
-        if self.msk_outdir.get()=="":
-            self.msk_outdir.set(self.msk_dir.get())
-       
-        # Preprocessing
-        p=Preprocessing(
-            img_dir=self.img_outdir.get(),
-            msk_dir=self.msk_outdir.get(),
-            num_classes=self.num_classes.get()+1,
-            remove_bg=False, use_tif=False)
-        p.run()
-        
-        # Run autoconfig
-        batch, aug_patch, patch, pool = auto_config(img_dir=p.img_outdir)
-
-        # Test if config folder exists
-        parent_dir= os.path.dirname(self.img_outdir.get())
-        path = os.path.join(parent_dir, "config")
-        if not os.path.isdir(path):
-            os.mkdir(path)
-        
-        # save the config file in config folder
-        config_path = save_auto_config(
-            config_dir=path,
-            base_config=None,
-            IMG_DIR=p.img_outdir,
-            MSK_DIR=p.msk_outdir,
-            NUM_CLASSES=self.num_classes,
-            BATCH_SIZE=batch,
-            AUG_PATCH_SIZE=aug_patch,
-            PATCH_SIZE=patch,
-            NUM_POOLS=pool
-        )
-        
-        # change values in training tab
-        
-        ConfigFrame().batch_size.set(batch)
-        ConfigFrame().aug_patch_size[:]= aug_patch
-        ConfigFrame().aug_patch_size1.set(aug_patch[0])
-        ConfigFrame().aug_patch_size2.set(aug_patch[1])
-        ConfigFrame().aug_patch_size3.set(aug_patch[2])
-    
-        ConfigFrame().patch_size[:] = patch
-        ConfigFrame().patch_size1.set(patch[0])
-        ConfigFrame().patch_size2.set(patch[1])
-        ConfigFrame().patch_size3.set(patch[2])
-        
-        ConfigFrame().num_pools[:] = pool
-        ConfigFrame().num_pools1.set(pool[0])
-        ConfigFrame().num_pools2.set(pool[1])
-        ConfigFrame().num_pools3.set(pool[2])
-        
-        if REMOTE:
-            done_label_text = "Done preprocessing and autoconfig! You can send your dataset to the server before training."
-        else:
-            done_label_text = "Done preprocessing and autoconfig! You can start training."
-        #self.done_label.config(text=done_label_text)
     
     def send_data(self):
         ftp = REMOTE.open_sftp()
@@ -678,13 +621,6 @@ class ConfigFrame(ttk.LabelFrame):
 
             batch, aug_patch, patch, pool = auto_config_results
         else: 
-            #batch, aug_patch, patch, pool = auto_config(self.img_outdir.get())
-            
-            
-            
-            
-            # ################################################################################
-            
             # Preprocessing    
             p=Preprocessing(
             img_dir=TrainFolderSelection().img_outdir.get(),
@@ -692,6 +628,12 @@ class ConfigFrame(ttk.LabelFrame):
             num_classes=TrainFolderSelection().num_classes.get()+1,
             remove_bg=False, use_tif=False)
             p.run()
+            
+            # img and mask output folders for the train section
+            global img_dir_train
+            img_dir_train = p.img_outdir
+            global msk_dir_train
+            msk_dir_train = p.msk_outdir
             
             # Run autoconfig
             batch, aug_patch, patch, pool = auto_config(img_dir=p.img_outdir)
@@ -715,27 +657,24 @@ class ConfigFrame(ttk.LabelFrame):
             PATCH_SIZE=patch,
             NUM_POOLS=pool
             )    
-         
-            ####################################################################################
-        
-    
-
+        # Update Config Cells in Gui
         self.batch_size.set(batch)
-        self.aug_patch_size[:]= aug_patch
+        
+        self.aug_patch_size= aug_patch
         self.aug_patch_size1.set(aug_patch[0])
         self.aug_patch_size2.set(aug_patch[1])
         self.aug_patch_size3.set(aug_patch[2])
-    
-        self.patch_size[:] = patch
+        
+        self.patch_size = patch
         self.patch_size1.set(patch[0])
         self.patch_size2.set(patch[1])
         self.patch_size3.set(patch[2])
         
-        self.num_pools[:] = pool
+        self.num_pools = pool
         self.num_pools1.set(pool[0])
         self.num_pools2.set(pool[1])
         self.num_pools3.set(pool[2])
-
+       
         self.auto_config_finished.config(text="Auto-configuration done! and saved in config folder : \n" +config_path)
 
 class TrainTab(ttk.Frame):
@@ -796,12 +735,12 @@ class TrainTab(ttk.Frame):
 
         #cfg = CONFIG
         cfg = load_python_config(config_path)
-
+        
         # set the configuration
-        cfg.IMG_DIR = self.folder_selection.img_outdir.get()
+        cfg.IMG_DIR = img_dir_train
         cfg = nested_dict_change_value(cfg, 'img_dir', cfg.IMG_DIR)
 
-        cfg.MSK_DIR = self.folder_selection.msk_outdir.get()
+        cfg.MSK_DIR = msk_dir_train
         cfg = nested_dict_change_value(cfg, 'msk_dir', cfg.MSK_DIR)
 
         cfg.DESC = self.builder_name.get()
@@ -810,26 +749,23 @@ class TrainTab(ttk.Frame):
         cfg = nested_dict_change_value(cfg, 'num_classes', cfg.NUM_CLASSES)
 
         cfg.NB_EPOCHS = self.config_selection.num_epochs.get()
-
+        print("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",cfg.NB_EPOCHS )
+        cfg = nested_dict_change_value(cfg, 'nb_epochs', cfg.NB_EPOCHS)
+        
+        # Pourquoi on change pas la valeur dans le dictionnaire ici ? 
         cfg.BATCH_SIZE = self.config_selection.batch_size.get()
         cfg = nested_dict_change_value(cfg, 'batch_size', cfg.BATCH_SIZE)
-        
-        #cfg.PATCH_SIZE = self.str2list(self.config_selection.patch_size.get())
-        #cfg = nested_dict_change_value(cfg, 'patch_size', cfg.PATCH_SIZE)
-
-        #cfg.AUG_PATCH_SIZE = self.str2list(self.config_selection.aug_patch_size.get())
-        #cfg = nested_dict_change_value(cfg, 'aug_patch_size', cfg.AUG_PATCH_SIZE)
-        
-        #cfg.NUM_POOLS = self.str2list(self.config_selection.num_pools.get())
-        #cfg = nested_dict_change_value(cfg, 'num_pools', cfg.NUM_POOLS)
-        
-        cfg.PATCH_SIZE = self.config_selection.patch_size
+       
+        self.config_selection.patch_size = [int(self.config_selection.patch_size1.get()), int(self.config_selection.patch_size2.get()), int(self.config_selection.patch_size3.get())]
+        cfg.PATCH_SIZE = np.array(self.config_selection.patch_size)
         cfg = nested_dict_change_value(cfg, 'patch_size', cfg.PATCH_SIZE)
         
-        cfg.AUG_PATCH_SIZE = self.config_selection.aug_patch_size
+        self.config_selection.aug_patch_size = [int(self.config_selection.aug_patch_size1.get()), int(self.config_selection.aug_patch_size2.get()), int(self.config_selection.aug_patch_size3.get())]
+        cfg.AUG_PATCH_SIZE = np.array(self.config_selection.aug_patch_size)
         cfg = nested_dict_change_value(cfg, 'aug_patch_size', cfg.AUG_PATCH_SIZE)
 
-        cfg.NUM_POOLS = self.config_selection.num_pools
+        self.config_selection.num_pools = [int(self.config_selection.num_pools1.get()), int(self.config_selection.num_pools2.get()), int(self.config_selection.num_pools3.get())]
+        cfg.NUM_POOLS = np.array(self.config_selection.num_pools)
         cfg = nested_dict_change_value(cfg, 'num_pools', cfg.NUM_POOLS)
 
         if REMOTE:
@@ -861,13 +797,32 @@ class TrainTab(ttk.Frame):
 
                 # TODO: copy the event file to local
 
-        else:
+        else:  
+            
+            # get path to config file
+            parent_dir= os.path.dirname(TrainFolderSelection().img_outdir.get())
+            path = os.path.join(parent_dir, "config")
+            # save the new config file
+            global new_config_path
+            new_config_path = save_auto_config(
+            config_dir=path,
+            base_config=config_path,
+            IMG_DIR=cfg.IMG_DIR,
+            MSK_DIR=cfg.MSK_DIR,
+            NUM_CLASSES=TrainFolderSelection().num_classes.get(),
+            BATCH_SIZE=cfg.BATCH_SIZE,
+            AUG_PATCH_SIZE=cfg.AUG_PATCH_SIZE,
+            PATCH_SIZE=cfg.PATCH_SIZE,
+            NUM_POOLS=cfg.NUM_POOLS,
+            NB_EPOCHS=cfg.NB_EPOCHS
+            
+            )
+         
             # run the training
-            builder = Builder(config=cfg,path=None)
-            builder.run_training()
+            train(config=new_config_path,log=None)
+            
 
         self.train_done.config(text="Training done!")
-
 
         
 
