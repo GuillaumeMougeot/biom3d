@@ -114,7 +114,7 @@ SAVE_MODEL_EVERY_EPOCH = 1
 USE_IMAGE_CLBK = True
 VAL_EVERY_EPOCH = SAVE_MODEL_EVERY_EPOCH
 SAVE_IMAGE_EVERY_EPOCH = SAVE_MODEL_EVERY_EPOCH
-USE_FG_CLBK = True
+USE_FG_CLBK = False
 
 #---------------------------------------------------------------------------
 # dataset configs

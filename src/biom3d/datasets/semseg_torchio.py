@@ -8,6 +8,7 @@ import os
 import numpy as np 
 import torchio as tio
 import random 
+import pickle
 # from monai.data import CacheDataset
 import pandas as pd 
 from tifffile import imread
