@@ -298,8 +298,8 @@ def auto_config(img_dir=None, median=None, max_dims=(128,128,128)):
     pool: numpy.ndarray
         Number of pooling.
     """
-    assert not(img_dir == None and median == None), "[Error] Please provide either an image directory or a median shape."
-    if median == None: median = compute_median(path=img_dir) 
+    assert not(img_dir is None and median is None), "[Error] Please provide either an image directory or a median shape."
+    if median is None: median = compute_median(path=img_dir) 
     patch, pool, batch = find_patch_pool_batch(dims=median, max_dims=max_dims) 
     aug_patch = np.array(patch)+2**(np.array(pool)+1)
     return batch, aug_patch, patch, pool

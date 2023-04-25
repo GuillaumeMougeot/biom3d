@@ -12,6 +12,7 @@ import scipy # for resampling
 from tqdm import tqdm
 import argparse
 from skimage.io import imread
+from skimage.transform import resize
 import SimpleITK as sitk
 import tifffile
 from numba import njit
@@ -110,46 +111,160 @@ def one_hot_fast(values, num_classes=None):
     return out
 
 # use scipy affine_transform to resample the image
-def resample_with_spacing(img, spacing, median_spacing, order=3):
+# def resample_with_spacing(img, spacing, median_spacing, order=3):
+#     """
+#     Resample a 3D image given its spacing and a median spacing from a dataset.  
+#     Rely on scipy Python package.
+    
+#     Parameters
+#     ----------
+#     img : numpy.ndarray
+#         3D image to resample.
+#     spacing : tuple, list or numpy.ndarray
+#         Spacing of the input image. Should have a lenght of 3.
+#     median_spacing : tuple, list or numpy.ndarray
+#         Median spacing of the image dataset. Should have a lenght of 3.
+#     order : int
+#         The order of the spline interpolation. For images use 3, for mask/label use 0.
+    
+#     Returns
+#     -------
+#     new_img : numpy.ndarray
+#         Resampled image.
+#     """
+#     # convert inputs to array
+#     spacing = np.array(spacing)
+#     median_spacing = np.array(median_spacing)
+    
+#     # compute zoom parameter
+#     zoom = (spacing/median_spacing)[::-1] # transpose the dimension
+    
+#     # if img has 4 dimensions
+#     if len(img.shape)==4: 
+#         zoom = [1]+zoom.tolist()
+    
+#     # do the transformation
+#     new_img = scipy.ndimage.zoom(img, zoom, order=order)
+#     return new_img
+
+# def resample_img_msk(img, msk, spacing, median_spacing):
+#     new_img = resample_with_spacing(img, spacing, median_spacing, order=3)
+#     new_msk = resample_with_spacing(msk, spacing, median_spacing, order=0)
+#     return new_img, new_msk
+
+
+def resize_segmentation(segmentation, new_shape, order=3):
+    '''
+    Resizes a segmentation map. Supports all orders (see skimage documentation). Will transform segmentation map to one
+    hot encoding which is resized and transformed back to a segmentation map.
+    This prevents interpolation artifacts ([0, 0, 2] -> [0, 1, 2])
+    :param segmentation:
+    :param new_shape:
+    :param order:
+    :return:
+    '''
+    tpe = segmentation.dtype
+    unique_labels = np.unique(segmentation)
+    assert len(segmentation.shape) == len(new_shape), "new shape must have same dimensionality as segmentation"
+    if order == 0:
+        return resize(segmentation.astype(float), new_shape, order, mode="edge", clip=True, anti_aliasing=False).astype(tpe)
+    else:
+        reshaped = np.zeros(new_shape, dtype=segmentation.dtype)
+
+        for i, c in enumerate(unique_labels):
+            mask = segmentation == c
+            reshaped_multihot = resize(mask.astype(float), new_shape, order, mode="edge", clip=True, anti_aliasing=False)
+            reshaped[reshaped_multihot >= 0.5] = c
+        return reshaped
+
+def resize_3d(img, output_shape, order=3, is_seg=False, monitor_anisotropy=True):
     """
-    Resample a 3D image given its spacing and a median spacing from a dataset.  
-    Rely on scipy Python package.
+    Resize a 3D image given an output shape.
     
     Parameters
     ----------
     img : numpy.ndarray
         3D image to resample.
-    spacing : tuple, list or numpy.ndarray
-        Spacing of the input image. Should have a lenght of 3.
-    median_spacing : tuple, list or numpy.ndarray
-        Median spacing of the image dataset. Should have a lenght of 3.
+    output_shape : tuple, list or numpy.ndarray
+        The output shape. Must have an exact length of 3.
     order : int
         The order of the spline interpolation. For images use 3, for mask/label use 0.
-    
+
     Returns
     -------
     new_img : numpy.ndarray
-        Resampled image.
+        Resized image.
     """
-    # convert inputs to array
-    spacing = np.array(spacing)
-    median_spacing = np.array(median_spacing)
+    assert len(img.shape)==4, '[Error] Please provided a 3D image with "CWHD" format'
+    assert len(output_shape)==3 or len(output_shape)==4, '[Error] Output shape must be "CWHD" or "WHD"'
     
-    # compute zoom parameter
-    zoom = (spacing/median_spacing)[::-1] # transpose the dimension
+    # convert shape to array
+    input_shape = np.array(img.shape)
+    output_shape = np.array(output_shape)
+    if len(output_shape)==3:
+        output_shape = np.append(input_shape[0],output_shape)
+        
+    # resize function definition
+    resize_fct = resize_segmentation if is_seg else resize
+    resize_kwargs = {} if is_seg else {'mode': 'edge', 'anti_aliasing': False}
+        
+    # separate axis --> [Guillaume] I am not sure about the interest of that... 
+    # we only consider the following case: [147,512,513] where the anisotropic axis is undersampled
+    # and not: [147,151,512] where the anisotropic axis is oversampled
+    anistropy_axes = np.array(output_shape[1:]) / output_shape[1:].min()
+    do_anisotropy = monitor_anisotropy and len(anistropy_axes[anistropy_axes<1.1])==1
+    do_additional_resize = False
+    if do_anisotropy: 
+        axis = np.argmin(anistropy_axes)
+        print("[resize] Anisotropy monitor triggered! Anisotropic axis:", axis)
+        
+        # as the output_shape and the input_shape might have different dimension
+        # along the selected axis, we must use a temporary image.
+        tmp_shape = output_shape.copy()
+        tmp_shape[axis+1] = input_shape[axis+1]
+        
+        tmp_img = np.empty(tmp_shape)
+        
+        length = tmp_shape[axis+1]
+        tmp_shape = np.delete(tmp_shape,axis+1)
+        
+        for c in range(input_shape[0]):
+            coord  = [c]+[slice(None)]*len(input_shape[1:])
+
+            for i in range(length):
+                coord[axis+1] = i
+                tmp_img[tuple(coord)] = resize_fct(img[tuple(coord)], tmp_shape[1:], order=order, **resize_kwargs)
+            
+        # if output_shape[axis] is different from input_shape[axis]
+        # we must resize it again. We do it with order = 0
+        if np.any(output_shape!=tmp_img.shape):
+            do_additional_resize = True
+            order = 0
+            img = tmp_img
+        else:
+            new_img = tmp_img
     
-    # if img has 4 dimensions
-    if len(img.shape)==4: 
-        zoom = [1]+zoom.tolist()
-    
-    # do the transformation
-    new_img = scipy.ndimage.zoom(img, zoom, order=order)
+    # normal resizing
+    if not do_anisotropy or do_additional_resize:
+        new_img = np.empty(output_shape)
+        for c in range(input_shape[0]):
+            new_img[c] = resize_fct(img[c], output_shape[1:], order=order, **resize_kwargs)
+            
     return new_img
 
-def resample_img_msk(img, msk, spacing, median_spacing):
-    new_img = resample_with_spacing(img, spacing, median_spacing, order=3)
-    new_msk = resample_with_spacing(msk, spacing, median_spacing, order=0)
-    return new_img, new_msk
+def resize_img_msk(img, output_shape, msk=None):
+    new_img = resize_3d(img, output_shape, order=3)
+    if msk is not None:
+        new_msk = resize_3d(msk, output_shape, is_seg=True, order=1)
+        return new_img, new_msk
+    else: 
+        return new_img
+
+def get_resample_shape(input_shape, spacing, median_spacing):
+    if len(input_shape)==4:
+        input_shape=input_shape[1:]
+    return np.round(((spacing/median_spacing)[::-1]*input_shape)).astype(int)
+   
 
 class Preprocessing:
     """A helper class to transform nifti (.nii.gz) and Tiff (.tif or .tiff) images to .tif format and to normalize them.
@@ -194,7 +309,7 @@ class Preprocessing:
         median_spacing=[],
         clipping_bounds=[],
         intensity_moments=[],
-        use_tif=True, # use tif instead of npy 
+        use_tif=False, # use tif instead of npy 
         split_rate_for_single_img=0.25,
         ):
         assert img_dir!='', "[Error] img_dir must not be empty."
@@ -323,7 +438,7 @@ class Preprocessing:
         """
         print("Preprocessing...")
         # if there is only a single image/mask, then split them both in two portions
-        if len(self.img_fnames)==1:
+        if len(self.img_fnames)==1 and self.msk_dir is not None:
             print("Single image found per folder. Split the images...")
             self._split_single()
             
@@ -331,10 +446,10 @@ class Preprocessing:
             # set image and mask name
             img_fname = self.img_fnames[i]
             img_path = os.path.join(self.img_dir, img_fname)
-            if self.msk_dir: msk_path = os.path.join(self.msk_dir, img_fname)
+            if self.msk_dir is not None: msk_path = os.path.join(self.msk_dir, img_fname)
             # read image and mask
             img,spacing = adaptive_imread(img_path)
-            if self.msk_dir: msk,_ = adaptive_imread(msk_path)
+            if self.msk_dir is not None: msk,_ = adaptive_imread(msk_path)
 
             # expand image dim
             if len(img.shape)==3:
@@ -351,7 +466,7 @@ class Preprocessing:
                 print("[Error] Invalid image shape:", img.shape)
 
             # one hot encoding for the mask if needed
-            if self.msk_dir and len(msk.shape)!=4: 
+            if self.msk_dir is not None and len(msk.shape)!=4: 
                 if self.use_one_hot:
                     msk = one_hot_fast(msk, self.num_classes)
                     if self.remove_bg:
@@ -383,10 +498,13 @@ class Preprocessing:
 
             # resample the image and mask if needed
             if len(self.median_spacing)>0:
-                if self.msk_dir:
-                    img, msk = resample_img_msk(img, msk, spacing, median_spacing)
+                output_shape = get_resample_shape(img.shape, spacing, median_spacing)
+                if self.msk_dir is not None:
+                    # img, msk = resample_img_msk(img, msk, spacing, median_spacing)
+                    img, msk = resize_img_msk(img, msk=msk, output_shape=output_shape)
                 else:
-                    img = resample_with_spacing(img, spacing, median_spacing, order=3)
+                    # img = resample_with_spacing(img, spacing, median_spacing, order=3)
+                    img = resize_3d(img, output_shape)
 
             # set image type
             img = img.astype(np.float32)
@@ -408,7 +526,7 @@ class Preprocessing:
                 np.save(img_out_path, img)
 
             # save mask
-            if self.msk_outdir: 
+            if self.msk_outdir is not None: 
                 # imsave(msk_out_path, msk)
                 # save image as tif
                 if self.use_tif:
