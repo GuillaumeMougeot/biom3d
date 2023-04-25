@@ -283,11 +283,14 @@ class Preprocessing:
 
         if img_outdir is None: # name the out dir the same way as the input and add the _out suffix
             img_outdir = img_dir+'_out'
+            print("Image output path:", img_outdir)
         if msk_dir is not None and msk_outdir is None:
             msk_outdir = msk_dir+'_out'
+            print("Mask output path:", msk_outdir)
             if fg_outdir is None:
                 # get parent directory of mask dir
                 fg_outdir = os.path.join(os.path.dirname(msk_dir), 'fg_out')
+                print("Foreground output path:", fg_outdir)
 
         self.img_outdir=img_outdir 
         self.msk_outdir=msk_outdir
