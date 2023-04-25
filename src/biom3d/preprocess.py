@@ -110,49 +110,6 @@ def one_hot_fast(values, num_classes=None):
         out[i] = (values==uni[i]).astype(np.uint8)
     return out
 
-# use scipy affine_transform to resample the image
-# def resample_with_spacing(img, spacing, median_spacing, order=3):
-#     """
-#     Resample a 3D image given its spacing and a median spacing from a dataset.  
-#     Rely on scipy Python package.
-    
-#     Parameters
-#     ----------
-#     img : numpy.ndarray
-#         3D image to resample.
-#     spacing : tuple, list or numpy.ndarray
-#         Spacing of the input image. Should have a lenght of 3.
-#     median_spacing : tuple, list or numpy.ndarray
-#         Median spacing of the image dataset. Should have a lenght of 3.
-#     order : int
-#         The order of the spline interpolation. For images use 3, for mask/label use 0.
-    
-#     Returns
-#     -------
-#     new_img : numpy.ndarray
-#         Resampled image.
-#     """
-#     # convert inputs to array
-#     spacing = np.array(spacing)
-#     median_spacing = np.array(median_spacing)
-    
-#     # compute zoom parameter
-#     zoom = (spacing/median_spacing)[::-1] # transpose the dimension
-    
-#     # if img has 4 dimensions
-#     if len(img.shape)==4: 
-#         zoom = [1]+zoom.tolist()
-    
-#     # do the transformation
-#     new_img = scipy.ndimage.zoom(img, zoom, order=order)
-#     return new_img
-
-# def resample_img_msk(img, msk, spacing, median_spacing):
-#     new_img = resample_with_spacing(img, spacing, median_spacing, order=3)
-#     new_msk = resample_with_spacing(msk, spacing, median_spacing, order=0)
-#     return new_img, new_msk
-
-
 def resize_segmentation(segmentation, new_shape, order=3):
     '''
     Resizes a segmentation map. Supports all orders (see skimage documentation). Will transform segmentation map to one
@@ -364,11 +321,11 @@ class Preprocessing:
         # set image and mask name
         img_fname = self.img_fnames[0]
         img_path = os.path.join(self.img_dir, img_fname)
-        if self.msk_dir: msk_path = os.path.join(self.msk_dir, img_fname)
+        msk_path = os.path.join(self.msk_dir, img_fname) # mask must be present
 
         # read image and mask
         img,_ = adaptive_imread(img_path)
-        if self.msk_dir: msk,_ = adaptive_imread(msk_path)
+        msk,_ = adaptive_imread(msk_path)
 
         # determine the slicing indices to crop an image along its maximum dimension
         idx = lambda start,end,shape: tuple(slice(s) if s!=max(shape) else slice(start,end) for s in shape)
