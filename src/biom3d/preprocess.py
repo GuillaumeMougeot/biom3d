@@ -47,10 +47,12 @@ def adaptive_imread(img_path):
         return sitk_imread(img_path)
 
 #---------------------------------------------------------------------------
+# 3D segmentation preprocessing
 # Nifti convertion (Medical segmentation decathlon)
 # normalization: z-score
+# resampling
+# intensity normalization
 # one_hot encoding
-# no resampling yet
 
 def one_hot(values, num_classes=None):
     """
@@ -221,7 +223,6 @@ def get_resample_shape(input_shape, spacing, median_spacing):
     if len(input_shape)==4:
         input_shape=input_shape[1:]
     return np.round(((spacing/median_spacing)[::-1]*input_shape)).astype(int)
-   
 
 class Preprocessing:
     """A helper class to transform nifti (.nii.gz) and Tiff (.tif or .tiff) images to .tif format and to normalize them.
@@ -392,6 +393,107 @@ class Preprocessing:
         self.img_dir = self.img_outdir
         self.msk_dir = self.msk_outdir
 
+    @staticmethod
+    def run_single(
+        img_path, 
+        msk_path=None,
+        spacing=[],
+        num_classes=None,
+        use_one_hot = False,
+        remove_bg = False, 
+        median_spacing=[],
+        clipping_bounds=[],
+        intensity_moments=[],
+        ):
+
+        do_msk = msk_path is not None
+
+        # read image and mask
+        img,spacing = adaptive_imread(img_path)
+        if do_msk: msk,_ = adaptive_imread(msk_path)
+        
+        # expand image dim
+        if len(img.shape)==3:
+            img = np.expand_dims(img, 0)
+        elif len(img.shape)==4:
+            # we consider as the channel dimension, the smallest dimension
+            # it should be either the first or the last dim
+            # if it is the last dim, then we move it to the first
+            if np.argmin(img.shape)==3:
+                img = np.moveaxis(img, -1, 0)
+            elif np.argmin(img.shape)!=0:
+                print("[Error] Invalid image shape:", img.shape)
+        else:
+            print("[Error] Invalid image shape:", img.shape)
+
+        # one hot encoding for the mask if needed
+        if do_msk and len(msk.shape)!=4: 
+            if use_one_hot:
+                msk = one_hot_fast(msk, num_classes)
+                if remove_bg:
+                    msk = msk[1:]
+            else:
+                msk = np.expand_dims(msk, 0)
+        elif do_msk and len(msk.shape)==4:
+            # normalize each channel
+            msk = (msk > 0).astype(np.uint8)
+
+        assert len(img.shape)==len(msk.shape)==4
+
+        # clip img
+        if len(clipping_bounds)>0:
+            img = np.clip(img, clipping_bounds[0], clipping_bounds[1])
+
+        # normalize the image and msk
+        # z-score normalization for the image
+        if len(intensity_moments)>0:
+            img = (img-intensity_moments[0])/intensity_moments[1]
+        else:
+            img = (img-img.mean())/img.std()
+        
+        # enhance contrast
+        # img = exposure.equalize_hist(img)
+
+        # range image in [-1, 1]
+        # img = (img - img.min())/(img.max()-img.min()) * 2 - 1
+
+        # resample the image and mask if needed
+        if len(median_spacing)>0:
+            output_shape = get_resample_shape(img.shape, spacing, median_spacing)
+            if do_msk:
+                # img, msk = resample_img_msk(img, msk, spacing, median_spacing)
+                img, msk = resize_img_msk(img, msk=msk, output_shape=output_shape)
+            else:
+                # img = resample_with_spacing(img, spacing, median_spacing, order=3)
+                img = resize_3d(img, output_shape)
+
+        # set image type
+        img = img.astype(np.float32)
+        if do_msk: msk = msk.astype(np.uint16)
+        
+        # foreground computation
+        if do_msk:
+            fg={}
+            if use_one_hot: start = 0 if remove_bg else 1
+            else: start = 1
+            for i in range(start,len(msk) if use_one_hot else msk.max()+1):
+                fgi = np.argwhere(msk[i] == 1) if use_one_hot else np.argwhere(msk[0] == i)
+                if len(fgi)>0:
+                    num_samples = min(len(fgi), 10000)
+                    fgi_idx = np.random.choice(np.arange(len(fgi)), size=num_samples, replace=False)
+                    fgi = fgi[fgi_idx,:]
+                else:
+                    fgi = []
+                fg[i] = fgi
+
+            if len(fg)==0:
+                print("[Warning] Empty foreground!")
+
+        # return
+        if do_msk:
+            return img, msk, fg 
+        else:
+            return img 
     
     def run(self):
         """Start the preprocessing.
@@ -407,68 +509,24 @@ class Preprocessing:
             img_fname = self.img_fnames[i]
             img_path = os.path.join(self.img_dir, img_fname)
             if self.msk_dir is not None: msk_path = os.path.join(self.msk_dir, img_fname)
-            # read image and mask
-            img,spacing = adaptive_imread(img_path)
-            if self.msk_dir is not None: msk,_ = adaptive_imread(msk_path)
 
-            # expand image dim
-            if len(img.shape)==3:
-                img = np.expand_dims(img, 0)
-            elif len(img.shape)==4:
-                # we consider as the channel dimension, the smallest dimension
-                # it should be either the first or the last dim
-                # if it is the last dim, then we move it to the first
-                if np.argmin(img.shape)==3:
-                    img = np.moveaxis(img, -1, 0)
-                elif np.argmin(img.shape)!=0:
-                    print("[Error] Invalid image shape:", img.shape)
+            if self.msk_dir is not None:
+                img, msk, fg = self.run_single(
+                    img_path            =img_path, 
+                    msk_path            =msk_path,
+                    num_classes         =self.num_classes,
+                    use_one_hot         =self.use_one_hot,
+                    remove_bg           =self.remove_bg, 
+                    median_spacing      =self.median_spacing,
+                    clipping_bounds     =self.clipping_bounds,
+                    intensity_moments   =self.intensity_moments,)
             else:
-                print("[Error] Invalid image shape:", img.shape)
-
-            # one hot encoding for the mask if needed
-            if self.msk_dir is not None and len(msk.shape)!=4: 
-                if self.use_one_hot:
-                    msk = one_hot_fast(msk, self.num_classes)
-                    if self.remove_bg:
-                        msk = msk[1:]
-                else:
-                    msk = np.expand_dims(msk, 0)
-            elif self.msk_dir and len(msk.shape)==4:
-                # normalize each channel
-                msk = (msk > 0).astype(np.uint8)
-
-            assert len(img.shape)==len(msk.shape)==4
-
-            # clip img
-            if len(self.clipping_bounds)>0:
-                img = np.clip(img, self.clipping_bounds[0], self.clipping_bounds[1])
-
-            # normalize the image and msk
-            # z-score normalization for the image
-            if len(self.intensity_moments)>0:
-                img = (img-self.intensity_moments[0])/self.intensity_moments[1]
-            else:
-                img = (img-img.mean())/img.std()
-            
-            # enhance contrast
-            # img = exposure.equalize_hist(img)
-
-            # range image in [-1, 1]
-            # img = (img - img.min())/(img.max()-img.min()) * 2 - 1
-
-            # resample the image and mask if needed
-            if len(self.median_spacing)>0:
-                output_shape = get_resample_shape(img.shape, spacing, median_spacing)
-                if self.msk_dir is not None:
-                    # img, msk = resample_img_msk(img, msk, spacing, median_spacing)
-                    img, msk = resize_img_msk(img, msk=msk, output_shape=output_shape)
-                else:
-                    # img = resample_with_spacing(img, spacing, median_spacing, order=3)
-                    img = resize_3d(img, output_shape)
-
-            # set image type
-            img = img.astype(np.float32)
-            if self.msk_dir: msk = msk.astype(np.uint8)
+                img = self.run_single(
+                    img_path            =img_path, 
+                    msk_path            =None,
+                    median_spacing      =self.median_spacing,
+                    clipping_bounds     =self.clipping_bounds,
+                    intensity_moments   =self.intensity_moments,)
 
             # save the image and the mask as tif
             img_fname = os.path.basename(img_path).split('.')[0]
@@ -501,21 +559,21 @@ class Preprocessing:
 
                 # save the foreground locations
                 # select 10000 random foreground values to avoid storing every foregrounds
-                fg={}
-                if self.use_one_hot: start = 0 if self.remove_bg else 1
-                else: start = 1
-                for i in range(start,len(msk) if self.use_one_hot else msk.max()+1):
-                    fgi = np.argwhere(msk[i] == 1) if self.use_one_hot else np.argwhere(msk[0] == i)
-                    if len(fgi)>0:
-                        num_samples = min(len(fgi), 10000)
-                        fgi_idx = np.random.choice(np.arange(len(fgi)), size=num_samples, replace=False)
-                        fgi = fgi[fgi_idx,:]
-                    else:
-                        fgi = []
-                    fg[i] = fgi
+                # fg={}
+                # if self.use_one_hot: start = 0 if self.remove_bg else 1
+                # else: start = 1
+                # for i in range(start,len(msk) if self.use_one_hot else msk.max()+1):
+                #     fgi = np.argwhere(msk[i] == 1) if self.use_one_hot else np.argwhere(msk[0] == i)
+                #     if len(fgi)>0:
+                #         num_samples = min(len(fgi), 10000)
+                #         fgi_idx = np.random.choice(np.arange(len(fgi)), size=num_samples, replace=False)
+                #         fgi = fgi[fgi_idx,:]
+                #     else:
+                #         fgi = []
+                #     fg[i] = fgi
 
-                if len(fg)==0:
-                    print("[Warning] Empty foreground!")
+                # if len(fg)==0:
+                #     print("[Warning] Empty foreground!")
 
                 # store it in a pickle format
                 fg_file = os.path.join(self.fg_outdir, img_fname+'.pkl')
