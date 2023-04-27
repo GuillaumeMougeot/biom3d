@@ -433,26 +433,40 @@ class TrainFolderSelection(ttk.LabelFrame):
         # use preprocessing values
         train_button_css = ttk.Style()
         train_button_css.configure("train_button.TLabel", background = '#CD5C5C', foreground = 'white', font=('Helvetica', 9), width = 30, borderwidth=3, focusthickness=7, relief='raised', focuscolor='none', anchor='c', height= 15)
-        #self.use_preprocessing_button = ttk.Button(self, text="Preprocessing & Autoconfig",style="train_button.TLabel",  command=ConfigFrame().auto_config)
+        self.send_data_button = ttk.Button(self, text="Send Dataset",width=14,style="train_button.TLabel",  command=self.send_data)
         self.preprocess_tab = preprocess_tab
 
         ## image folder
         self.label1 = ttk.Label(self, text="Select the folder containing the images:", anchor="sw", background='white')
         ## mask folder
-        self.label2 = ttk.Label(self, text="Select a folder containing the  masks:", anchor="sw", background='white')
+        self.label2 = ttk.Label(self, text="Select the folder containing the masks:", anchor="sw", background='white')
 
         if REMOTE:
+
+            self.label0 = ttk.Label(self, text="Send a new Dataset :", anchor="sw", background='white')
+            self.img_outdir = FileDialog(self, mode='folder', textEntry='/home/safarbatis/chocolate-factory/data/raw')        
+            self.msk_outdir = FileDialog(self, mode='folder', textEntry="/home/safarbatis/chocolate-factory/data/seg")
+            self.send_data_label = ttk.Label(self, text="Define a unique name below to your Dataset")
+            self.send_data_name = StringVar(value="nucleus_0001")
+            self.send_data_entry = ttk.Entry(self, textvariable=self.send_data_name)
+            
             # get dataset list
             _,stdout,_ = REMOTE.exec_command('ls {}/data'.format(MAIN_DIR))
             self.data_list = [e.replace('\n','') for e in stdout.readlines()]
-
             # define the dropdown menu
             self.data_dir = StringVar(value=self.data_list[0])
-            self.data_dir_option_menu = ttk.OptionMenu(self, self.data_dir, self.data_list[0], *self.data_list)
+            self.data_dir_option_menu = ttk.OptionMenu(self, self.data_dir, *self.data_list, command= self.option_selected)
+            
+            
+            """
             self.img_outdir = StringVar("")
             self.msk_outdir = StringVar("")
-            self._update_data_dir()
-
+            """
+            self.label4 = ttk.Label(self, text="Select the Dataset to preprocess :", anchor="sw", background='white')
+            self.data_dir.trace("w", self.option_selected)
+            self.heheNotanUpdate()
+    
+          
         else:
             #self.img_outdir = FileDialog(self, mode='folder', textEntry='D:/code/python/3dnucleus/data/img_out')        
             #self.msk_outdir = FileDialog(self, mode='folder', textEntry="D:/code/python/3dnucleus/data/msk_out")
@@ -462,22 +476,29 @@ class TrainFolderSelection(ttk.LabelFrame):
         ## number of classes
         self.label3 = ttk.Label(self, text="Enter the number of classes:", anchor="sw", background='white')
         self.num_classes = IntVar(value=1)
-        self.classes = ttk.Entry(self, textvariable=self.num_classes)
+        self.classes = ttk.Entry(self, width=5,textvariable=self.num_classes)
 
         # Position elements
-        #self.use_preprocessing_button.grid(column=0, row=7, sticky=(S), ipady=8, pady=4)
 
         self.label1.grid(column=0, row=1, sticky=W, pady=5)
+        self.send_data_button.grid(column=0, row=9, sticky=(E), ipady=5, pady=4)
         
         if REMOTE:
-            self.data_dir_option_menu.grid(column=0, row=2, sticky=(W,E))
+            self.label0.grid(column=0,row=0, sticky=W, pady=2)
+            self.img_outdir.grid(column=0, row=2, sticky=(W,E))
+            self.label2.grid(column=0,row=3, sticky=W, pady=2)
+            self.msk_outdir.grid(column=0,row=4, sticky=(W,E))
+            self.send_data_label.grid(column=0, row=7, sticky=(W,E), pady=2)
+            self.send_data_entry.grid(column=0, row=8, sticky=(W,E))
+            self.data_dir_option_menu.grid(column=0, row=10, pady=2)
+            self.label4.grid(column=0,row=10, sticky=W, pady=2)
         else:
             self.img_outdir.grid(column=0, row=2, sticky=(W,E))
             self.label2.grid(column=0,row=3, sticky=W, pady=7)
             self.msk_outdir.grid(column=0,row=4, sticky=(W,E))
 
-        self.label3.grid(column=0,row=5, sticky=W, pady=7)
-        self.classes.grid(column=0,row=6, sticky=(W,E))
+        self.label3.grid(column=0,row=5, sticky=W, pady=2)
+        self.classes.grid(column=0,row=5)
 
         
         # Configure columns
@@ -485,14 +506,31 @@ class TrainFolderSelection(ttk.LabelFrame):
 
         for i in range(7):
             self.rowconfigure(i, weight=1)
-    
+    def option_selected(self, *args):
+        global selected_dataset
+        selected_dataset = self.data_dir.get()
+        print("Selected option:", selected_dataset)
+        return selected_dataset
+        """
     def _update_data_dir(self):
-        """
         update the names of image and mask directories
-        """
         base_name = "{}/data/{}/".format(MAIN_DIR, self.data_dir.get())
-        self.img_outdir.set(base_name + "img_out")
-        self.msk_outdir.set(base_name + "msk_out")
+        #self.img_outdir.set(base_name + "img_out")
+        #self.msk_outdir.set(base_name + "msk_out")
+        """
+    def heheNotanUpdate(self):
+        # get updated dataset list from remote
+        _, stdout, _ = REMOTE.exec_command('ls {}/data'.format(MAIN_DIR))
+        self.data_list = [e.replace('\n','') for e in stdout.readlines()]
+
+        # clear existing menu
+        self.data_dir_option_menu['menu'].delete(0, 'end')
+
+        # add new options to menu
+        for option in self.data_list:
+            self.data_dir_option_menu['menu'].add_command(
+                label=option,
+                command=lambda opt=option: self.data_dir.set(opt))
 
     def use_preprocessing(self):
         if REMOTE:
@@ -517,11 +555,11 @@ class TrainFolderSelection(ttk.LabelFrame):
         ftp = REMOTE.open_sftp()
 
         # copy folders 
-        remote_dir_img = "{}/data/{}/img_out".format(MAIN_DIR,self.send_data_name.get())
-        remote_dir_msk = "{}/data/{}/msk_out".format(MAIN_DIR,self.send_data_name.get())
-        ftp_put_folder(ftp, localpath=self.folder_selection.img_outdir.get(), remotepath=remote_dir_img)
-        ftp_put_folder(ftp, localpath=self.folder_selection.msk_outdir.get(), remotepath=remote_dir_msk)
-
+        remote_dir_img = "{}/data/{}/img".format(MAIN_DIR,self.send_data_name.get())
+        remote_dir_msk = "{}/data/{}/msk".format(MAIN_DIR,self.send_data_name.get())
+        ftp_put_folder(ftp, localpath=self.img_outdir.get(), remotepath=remote_dir_img)
+        ftp_put_folder(ftp, localpath=self.msk_outdir.get(), remotepath=remote_dir_msk)
+        self.heheNotanUpdate()
         self.send_data_finish.config(text="Data sent!")
 
 class ConfigFrame(ttk.LabelFrame):
@@ -572,7 +610,7 @@ class ConfigFrame(ttk.LabelFrame):
         self.num_pools = [int(self.num_pools1.get()), int(self.num_pools2.get()), int(self.num_pools3.get())]
 
         # place widgets
-        self.auto_config_button.grid(column=0, row=0, columnspan=3 ,ipady=6, pady=2)
+        self.auto_config_button.grid(column=0, row=0, columnspan=3 ,ipady=5, pady=2)
         self.auto_config_finished.grid(column=0, row=1, columnspan=2, sticky=(W,E))
 
         self.num_epochs_label.grid(column=0, row=2, sticky=(W,E))
@@ -606,7 +644,10 @@ class ConfigFrame(ttk.LabelFrame):
         self.auto_config_finished.config(text="Auto-configuration, please wait...")
 
         if REMOTE:
-            _,stdout,stderr=REMOTE.exec_command("cd {}; python -m biom3d.auto_config --img_dir {} --min_dis".format(MAIN_DIR, self.img_outdir.get()))
+            # preprocessing
+            print("------------------------------------------------------------------",TrainFolderSelection().classes.get())
+            REMOTE.exec_command("cd {}; python -m biom3d.preprocess --img_dir data/{}/img --msk_dir data/{}/msk --num_classes {} ".format(MAIN_DIR, selected_dataset, selected_dataset,TrainFolderSelection().classes.get()))
+            _,stdout,stderr=REMOTE.exec_command("cd {}; python -m biom3d.auto_config --img_dir data/{}/img_out ".format(MAIN_DIR, selected_dataset))
             auto_config_results = stdout.readlines()
             auto_config_results = [e.replace('\n','') for e in auto_config_results]
             
@@ -693,8 +734,8 @@ class TrainTab(ttk.Frame):
         self.train_button = ttk.Button(self, text="Start", style="train_button.TLabel", width=10, command=self.train)
         self.train_done = ttk.Label(self, text="")
 
-        """
         # set default values of train folders with the ones used for preprocess tab
+        """
         if REMOTE:
             self.folder_selection.data_dir.set(preprocess_tab.send_data_name.get())
         else: 
@@ -706,7 +747,7 @@ class TrainTab(ttk.Frame):
         self.config_selection.grid(column=0,row=1,sticky=(N,W,E), pady=3)
         self.builder_name_label.grid(column=0, row=2, sticky=(W,E), pady=3)
         self.builder_name_entry.grid(column=0, row=3, sticky=(W,E))
-        self.train_button.grid(column=0, row=4, ipady=6, pady= 30)
+        self.train_button.grid(column=0, row=4, ipady=5, pady= 30)
         self.train_done.grid(column=0, row=5, sticky=W)
 
     
@@ -840,21 +881,22 @@ class InputDirectory(ttk.LabelFrame):
             # if remote, print the list of available dataset or offer the option to send a local one on the server.
 
             # define the dropdown menu
-            _,stdout,_ = REMOTE.exec_command('ls {}/data/to_pred'.format(MAIN_DIR))
+            _,stdout,_ = REMOTE.exec_command('ls {}/data/to_pred'.format(MAIN_DIR))     # Where should i search ??
             self.data_list = [e.replace('\n','') for e in stdout.readlines()]
+            #self.data_list = stdout.readlines()
             self.data_dir = StringVar(value=self.data_list[0])
             self.data_dir_option_menu = ttk.OptionMenu(self, self.data_dir, self.data_list[0], *self.data_list)
 
             # or send the dataset to server
             self.send_data_label = ttk.Label(self, text="Or send a new dataset of raw images to the server:")
             self.send_data_folder = FileDialog(self, mode='folder', textEntry="data/to_pred")
-            self.send_data_button = ttk.Button(self, text="Send data", command=self.send_data)
+            self.send_data_button = ttk.Button(self, width=10, style="train_button.TLabel", text="Send data", command=self.send_data)
 
 
             self.data_dir_option_menu.grid(column=0, row=1, sticky=(W,E))
             self.send_data_label.grid(column=0, row=2, sticky=(W,E))
             self.send_data_folder.grid(column=0, row=3, sticky=(W,E))
-            self.send_data_button.grid(column=0, row=4, sticky=(W,E))
+            self.send_data_button.grid(column=0, row=4, ipady=5)
 
             self.columnconfigure(0, weight=1)
             for i in range(5):
@@ -942,7 +984,8 @@ class ModelSelection(ttk.LabelFrame):
         # get model list
         if REMOTE:
             _,stdout,_ = REMOTE.exec_command('ls {}/logs'.format(MAIN_DIR))
-            self.logs_list = [e.replace('\n','') for e in stdout.readlines()]
+            #self.logs_list = [e.replace('\n','') for e in stdout.readlines()]
+            self.logs_list = [stdout.readlines()]
 
             # define the dropdown menu
             self.logs_dir = StringVar(value=self.logs_list[0])
@@ -1011,7 +1054,8 @@ class DownloadPrediction(ttk.LabelFrame):
 
         # define the dropdown menu
         _,stdout,_ = REMOTE.exec_command('ls {}/data/pred'.format(MAIN_DIR))
-        self.data_list = [e.replace('\n','') for e in stdout.readlines()]
+        #self.data_list = [e.replace('\n','') for e in stdout.readlines()]
+        self.data_list = [stdout.readlines()]
         self.data_dir = StringVar(value=self.data_list[0])
         self.data_dir_option_menu = ttk.OptionMenu(self, self.data_dir, self.data_list[0], *self.data_list)
         self.button_update_list = ttk.Button(self, text="Update", command=self._update_pred_list)
@@ -1019,14 +1063,14 @@ class DownloadPrediction(ttk.LabelFrame):
         # or send the dataset to server
         self.get_data_label = ttk.Label(self, text="Select local folder to download into:")
         self.get_data_folder = FileDialog(self, mode='folder', textEntry="data/pred")
-        self.get_data_button = ttk.Button(self, text="Get data", command=self.get_data)
+        self.get_data_button = ttk.Button(self,width=10,style="train_button.TLabel", text="Get data", command=self.get_data)
 
         self.input_folder_label.grid(column=0, row=0, columnspan=2, sticky=(W,E))
         self.data_dir_option_menu.grid(column=0, row=1, sticky=(W,E))
         self.button_update_list.grid(column=1, row=1, sticky=(W,E))
         self.get_data_label.grid(column=0, row=2, columnspan=2, sticky=(W,E))
         self.get_data_folder.grid(column=0, row=3, columnspan=2, sticky=(W,E))
-        self.get_data_button.grid(column=0, row=4, columnspan=2, sticky=(W,E))
+        self.get_data_button.grid(column=0, row=4, columnspan=2, ipady=5)
 
         self.columnconfigure(0, weight=10)
         self.columnconfigure(1, weight=1)
@@ -1066,7 +1110,7 @@ class PredictTab(ttk.Frame):
         self.input_dir = InputDirectory(self, text="Input directory", padding=[10,10,10,10])
         self.model_selection = ModelSelection(self, text="Model selection", padding=[10,10,10,10])
         if not REMOTE: self.output_dir = OutputDirectory(self, text="Output directory", padding=[10,10,10,10])
-        self.button = ttk.Button(self, text="Start", command=self.predict)
+        self.button = ttk.Button(self, width=10,style="train_button.TLabel", text="Start", command=self.predict)
         if REMOTE: self.download_prediction = DownloadPrediction(self, text="Download predictions to local", padding=[10,10,10,10])
 
         # if platform=='linux' or REMOTE: # local Omero for linux only
@@ -1074,7 +1118,7 @@ class PredictTab(ttk.Frame):
         self.input_dir.grid(column=0,row=1,sticky=(W,E), pady=6)
         self.model_selection.grid(column=0,row=3,sticky=(W,E), pady=6)
         if not REMOTE: self.output_dir.grid(column=0,row=4,sticky=(W,E), pady=6)
-        self.button.grid(column=0,row=5,sticky=(W,E), pady=6)
+        self.button.grid(column=0,row=5,ipady=5, pady=6)
         if REMOTE: self.download_prediction.grid(column=0, row=6, sticky=(W,E), pady=6)
     
         self.columnconfigure(0, weight=1)
@@ -1277,7 +1321,7 @@ class Root(Tk):
 
         # windows dimension and positioning
         window_width = 711
-        window_height = 700
+        window_height = 710
 
         ## get the screen dimension
         screen_width = self.winfo_screenwidth()

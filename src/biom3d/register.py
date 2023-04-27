@@ -12,13 +12,17 @@ from biom3d.utils import Dict
 
 from biom3d.datasets.semseg_patch_fast import SemSeg3DPatchFast
 from biom3d.datasets.semseg_torchio import TorchioDataset
-from biom3d.datasets.semseg_batchgen import MTBatchGenDataLoader
 
 datasets = Dict(
     SegPatchFast    =Dict(fct=SemSeg3DPatchFast, kwargs=Dict()),
     Torchio         =Dict(fct=TorchioDataset, kwargs=Dict()),
-    BatchGen        =Dict(fct=MTBatchGenDataLoader, kwargs=Dict()),
 )
+
+try:
+    from biom3d.datasets.semseg_batchgen import MTBatchGenDataLoader
+    datasets.BatchGen = Dict(fct=MTBatchGenDataLoader, kwargs=Dict())
+except:
+    pass
 
 #---------------------------------------------------------------------------
 # model register
