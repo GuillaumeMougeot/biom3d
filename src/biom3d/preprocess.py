@@ -652,6 +652,7 @@ if __name__=='__main__':
             base_config=args.base_config,
             IMG_DIR=p.img_outdir,
             MSK_DIR=p.msk_outdir,
+            FG_DIR=p.fg_outdir,
             NUM_CLASSES=args.num_classes,
             BATCH_SIZE=batch,
             AUG_PATCH_SIZE=aug_patch,

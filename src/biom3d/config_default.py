@@ -97,7 +97,7 @@ USE_SOFTMAX = True
 
 # training loop parameters
 USE_FP16 = True
-NUM_WORKERS = 6
+NUM_WORKERS = 10
 PIN_MEMORY = True
 
 #---------------------------------------------------------------------------
@@ -167,7 +167,7 @@ VAL_DATALOADER_KWARGS = Dict(
     batch_size  = BATCH_SIZE, # TODO: change it in the final version
     drop_last   = False, 
     shuffle     = False, 
-    num_workers = NUM_WORKERS, 
+    num_workers = NUM_WORKERS//2, # less worker needed for validation 
     pin_memory  = PIN_MEMORY,
 )
 
@@ -188,13 +188,15 @@ MODEL = Dict(
 # loss configs
 
 TRAIN_LOSS = Dict(
-    fct="DiceBCE",
-    kwargs = Dict(name="train_loss", use_softmax=USE_SOFTMAX)
+    fct="DiceCEnnUNet",
+    # kwargs = Dict(name="train_loss", use_softmax=USE_SOFTMAX)
+    kwargs = Dict(name="train_loss")
 )
 
 VAL_LOSS = Dict(
-    fct="DiceBCE",
-    kwargs = Dict(name="val_loss", use_softmax=USE_SOFTMAX)
+    fct="DiceCEnnUNet",
+    # kwargs = Dict(name="val_loss", use_softmax=USE_SOFTMAX)
+    kwargs = Dict(name="val_loss")
 )
 
 #---------------------------------------------------------------------------

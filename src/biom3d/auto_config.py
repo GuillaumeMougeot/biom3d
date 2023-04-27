@@ -250,7 +250,7 @@ def find_patch_pool_batch(dims, max_dims=(128,128,128), max_pool=5, epsilon=1e-3
     
     # assert the final size is smaller than max_dims
     while patch.prod()>max_dims.prod():
-        patch = patch - np.array([32,32,32])*(patch>max_dims) # removing multiples of 32
+        patch = patch - np.array([2**max_pool]*3)*(patch>max_dims) # removing multiples of 32
     pool = np.where(pool > max_pool, max_pool, pool)
     
     # batch_size
@@ -261,6 +261,29 @@ def find_patch_pool_batch(dims, max_dims=(128,128,128), max_pool=5, epsilon=1e-3
         batch -= 1
     return patch, pool, batch
 
+def get_aug_patch(patch_size):
+    """Return augmentation patch size.
+    The current solution is to increase the size of each dimension by 17% except for the eventual anisotropic dimension (meaning that this dimension is at least three time smaller than the others)... All of this sounds arbitrary... yes but it is pretty close to the original nnUNet solution.
+
+    Parameters
+    ----------
+    patch_size : tuple, list or numpy.ndarray
+        Patch size.
+
+    Returns
+    -------
+    aug_patch : numpy.ndarray
+        Augmentation patch size.
+    """
+    ps = np.array(patch_size)
+    aug_patch = np.round(1.17*ps).astype(int)
+    dummy_2d = ps/ps.min()
+    if np.any(dummy_2d>3): # then use dummy_2d
+        axis = np.argmin(dummy_2d)
+        aug_patch[axis] = patch_size[axis]
+    return aug_patch
+        
+
 # ----------------------------------------------------------------------------
 # Display 
 
@@ -270,7 +293,7 @@ def display_info(patch, pool, batch):
     print("*"*20,"YOU CAN COPY AND PASTE THE FOLLOWING LINES INSIDE THE CONFIG FILE", "*"*20)
     print("BATCH_SIZE =", batch)
     print("PATCH_SIZE =", list(patch))
-    aug_patch = np.array(patch)+2**(np.array(pool)+1)
+    aug_patch = get_aug_patch(patch)
     print("AUG_PATCH_SIZE =",list(aug_patch))
     print("NUM_POOLS =", list(pool))
 
@@ -301,7 +324,7 @@ def auto_config(img_dir=None, median=None, max_dims=(128,128,128)):
     assert not(img_dir is None and median is None), "[Error] Please provide either an image directory or a median shape."
     if median is None: median = compute_median(path=img_dir) 
     patch, pool, batch = find_patch_pool_batch(dims=median, max_dims=max_dims) 
-    aug_patch = np.array(patch)+2**(np.array(pool)+1)
+    aug_patch = get_aug_patch(patch)
     return batch, aug_patch, patch, pool
 
 # ----------------------------------------------------------------------------
