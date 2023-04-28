@@ -287,3 +287,125 @@ def seg_predict_patch(
     return out
 
 #---------------------------------------------------------------------------
+# new predictor
+
+from biom3d.preprocess import resize_3d
+
+def seg_predict_patch_2(
+    img,
+    model,
+    original_shape,
+    return_logit=False,
+    patch_size=None,
+    tta=False,          # test time augmentation 
+    use_softmax=False,
+    force_softmax=False,
+    num_workers=4,
+    enable_autocast=True, 
+    keep_biggest_only=False,
+    ):
+    """
+    for one image path, load the image, compute the model prediction, return the prediction
+    """
+
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    enable_autocast = torch.cuda.is_available() and enable_autocast # tmp, autocast seems to work only with gpu for now... 
+    print('AMP {}'.format('enabled' if enable_autocast else 'disabled'))
+
+    # get grid sampler
+    patch_size = np.array(patch_size)
+    patch_overlap = np.maximum(patch_size//2, patch_size-np.array(shape))
+    patch_overlap = np.ceil(patch_overlap/2).astype(int)*2
+    sub = tio.Subject(img=tio.ScalarImage(tensor=img))
+    sampler= tio.data.GridSampler(subject=sub, 
+                            patch_size=patch_size, 
+                            patch_overlap=patch_overlap,
+                            padding_mode='constant')
+
+    model.eval()
+    with torch.no_grad():
+        pred_aggr = tio.inference.GridAggregator(sampler, overlap_mode='hann')
+        patch_loader = torch.utils.data.DataLoader(
+            sampler, 
+            batch_size=2, 
+            drop_last=False, 
+            shuffle  =False, 
+            num_workers=num_workers, 
+            pin_memory =True)
+
+        for patch in tqdm(patch_loader):
+            X = patch['img'][tio.DATA]
+            if torch.cuda.is_available():
+                X = X.cuda()
+            
+            if tta: # test time augmentation: flip around each axis
+                with torch.autocast(device, enabled=enable_autocast):
+                    pred=model(X).cpu()
+                
+                # flipping tta
+                dims = [[2],[3],[4]]
+                for i in range(len(dims)):
+                    X_flip = torch.flip(X,dims=dims[i])
+
+                    with torch.autocast(device, enabled=enable_autocast):
+                        pred_flip = model(X_flip)
+                        pred += torch.flip(pred_flip, dims=dims[i]).cpu()
+                    
+                    del X_flip, pred_flip
+                
+                pred = pred/(len(dims)+1)
+                del X
+            else:
+                with torch.autocast(device, enabled=enable_autocast):
+                    pred=model(X).cpu()
+                    del X
+
+            pred_aggr.add_batch(pred, patch[tio.LOCATION])
+        
+        print("Prediction done!")
+
+        print("Aggregation...")
+        logit = pred_aggr.get_output_tensor().float()
+        print("Aggregation done!")
+    
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+    # post-processing:
+    print("Post-processing...")
+    logit = resize_3d(logit, original_shape, order=3)
+
+    if return_logit: 
+        print("Post-processing done!")
+        return logit
+
+    if use_softmax:
+        out = (logit.softmax(dim=0).argmax(dim=0)).int()
+    elif force_softmax:
+        # if the training has been done with a sigmoid activation and we want to export a softmax
+        # it is possible to use `force_softmax` argument
+        sigmoid = (logit.sigmoid()>0.5).int()
+        softmax = (logit.softmax(dim=0).argmax(dim=0)).int()+1
+        cond = sigmoid.max(dim=0).values
+        out = torch.where(cond>0, softmax, 0)
+    else:
+        out = (logit.sigmoid()>0.5).int()
+    out = out.numpy()
+
+    # TODO: the function below is too slow
+    if keep_biggest_only:
+        if len(out.shape)==3:
+            out = keep_biggest_volume_centered(out)
+        elif len(out.shape)==4:
+            tmp = []
+            for i in range(out.shape[0]):
+                tmp += [keep_biggest_volume_centered(out[i])]
+            out = np.array(tmp)
+
+    out = out.astype(np.byte) 
+    print("Post-processing done!")
+    print("Output shape:",out.shape)
+    return out
+
+
+#---------------------------------------------------------------------------

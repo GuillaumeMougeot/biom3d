@@ -544,13 +544,16 @@ class Builder:
         numpy.ndarray
             Output images.
         """
+        # load image with the preprocessor
+        img, img_metadata = read_config(self.config.PREPROCESSOR, register.preprocessors, img_path=img_path)
 
         return read_config(
             self.config.PREDICTOR, 
             register.predictors,
-            img_path = img_path,
+            img = img,
             model = self.model,
             return_logit = return_logit,
+            **img_metadata
             )
     
     def run_prediction_folder(self, dir_in, dir_out, return_logit=False):

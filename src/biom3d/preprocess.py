@@ -411,6 +411,9 @@ class Preprocessing:
         # read image and mask
         img,spacing = adaptive_imread(img_path)
         if do_msk: msk,_ = adaptive_imread(msk_path)
+
+        # keep the input shape, used for preprocessing before prediction
+        original_shape = img.shape
         
         # expand image dim
         if len(img.shape)==3:
@@ -493,7 +496,7 @@ class Preprocessing:
         if do_msk:
             return img, msk, fg 
         else:
-            return img 
+            return img, {'original_shape': original_shape}
     
     def run(self):
         """Start the preprocessing.
@@ -521,7 +524,7 @@ class Preprocessing:
                     clipping_bounds     =self.clipping_bounds,
                     intensity_moments   =self.intensity_moments,)
             else:
-                img = self.run_single(
+                img, _ = self.run_single(
                     img_path            =img_path, 
                     msk_path            =None,
                     median_spacing      =self.median_spacing,

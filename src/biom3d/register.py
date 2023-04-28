@@ -69,7 +69,17 @@ trainers = Dict(
 )
 
 #---------------------------------------------------------------------------
-# predictor register
+# Preprocessor and predictor register
+# We register preprocessors here because they are needed to preprocess
+# data before prediction.
+# Preprocessor must correspond to the one used to preprocess data
+# before training.
+
+from biom3d.preprocess import Preprocessing
+
+preprocessors = Dict(
+    Seg = Dict(fct=Preprocessing.run_single, kwargs=Dict())
+)
 
 from biom3d.predictors import (
     seg_predict,
