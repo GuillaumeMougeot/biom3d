@@ -314,7 +314,7 @@ def seg_predict_patch_2(
 
     # get grid sampler
     patch_size = np.array(patch_size)
-    patch_overlap = np.maximum(patch_size//2, patch_size-np.array(shape))
+    patch_overlap = np.maximum(patch_size//2, patch_size-np.array(original_shape))
     patch_overlap = np.ceil(patch_overlap/2).astype(int)*2
     sub = tio.Subject(img=tio.ScalarImage(tensor=img))
     sampler= tio.data.GridSampler(subject=sub, 

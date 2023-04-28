@@ -397,7 +397,6 @@ class Preprocessing:
     def run_single(
         img_path, 
         msk_path=None,
-        spacing=[],
         num_classes=None,
         use_one_hot = False,
         remove_bg = False, 
@@ -441,7 +440,8 @@ class Preprocessing:
             # normalize each channel
             msk = (msk > 0).astype(np.uint8)
 
-        assert len(img.shape)==len(msk.shape)==4
+        assert len(img.shape)==4
+        if do_msk: assert len(msk.shape)==4
 
         # clip img
         if len(clipping_bounds)>0:
@@ -653,6 +653,8 @@ if __name__=='__main__':
         config_path = auto_config.save_auto_config(
             config_dir=args.config_dir,
             base_config=args.base_config,
+
+            # store hyper-parameters in the config file:
             IMG_DIR=p.img_outdir,
             MSK_DIR=p.msk_outdir,
             FG_DIR=p.fg_outdir,
@@ -662,6 +664,8 @@ if __name__=='__main__':
             PATCH_SIZE=patch,
             NUM_POOLS=pool,
             MEDIAN_SPACING=median_spacing,
+            CLIPPING_BOUNDS=clipping_bounds,
+            INTENSITY_MOMENTS=intensity_moments,
         )
 
         print("Auto-config done! Configuration saved in: ", config_path)

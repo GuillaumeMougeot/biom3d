@@ -83,12 +83,12 @@ preprocessors = Dict(
 
 from biom3d.predictors import (
     seg_predict,
-    seg_predict_patch,
+    seg_predict_patch_2,
 )
 
 predictors = Dict(
     Seg = Dict(fct=seg_predict, kwargs=Dict()),
-    SegPatch = Dict(fct=seg_predict_patch, kwargs=Dict()),
+    SegPatch = Dict(fct=seg_predict_patch_2, kwargs=Dict()),
 )
 
 #---------------------------------------------------------------------------

@@ -439,6 +439,7 @@ def save_auto_config(
 
 # ----------------------------------------------------------------------------
 # Main
+# Note 2023/04/28, Guillaume: I think that the main is now a bit outdated... still works tho
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description="Auto-configuration of the hyper-parameter for training.")
@@ -457,7 +458,6 @@ if __name__=='__main__':
     parser.add_argument("--base_config", type=str, default=None,
         help="(default=None) Optional. Path to an existing configuration file which will be updated with the preprocessed values.")
     args = parser.parse_args()
-
 
     median = compute_median(path=args.img_dir, return_spacing=args.spacing)
     

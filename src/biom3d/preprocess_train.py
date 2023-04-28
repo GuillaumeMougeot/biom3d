@@ -50,6 +50,8 @@ def preprocess_train(img_dir, msk_dir, num_classes, config_dir, base_config, ct_
         PATCH_SIZE=patch,
         NUM_POOLS=pool,
         MEDIAN_SPACING=median_spacing,
+        CLIPPING_BOUNDS=clipping_bounds,
+        INTENSITY_MOMENTS=intensity_moments,
     )
 
     # training

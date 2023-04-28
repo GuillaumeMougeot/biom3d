@@ -67,10 +67,18 @@ AUG_PATCH_SIZE = [160,160,160]
 # number of pooling done in the UNet
 NUM_POOLS = [5,5,5]
 
+# the parameters below are here to be used by the predictor to 
+# perform image pre-processing
 # median spacing is used only during prediction to normalize the output images
 # it is commented here because we did not noticed any improvement yet
 # MEDIAN_SPACING=[0.79492199, 0.79492199, 2.5]
 MEDIAN_SPACING = []
+
+# clipping bounds
+CLIPPING_BOUNDS = []
+
+# intensity moments
+INTENSITY_MOMENTS = []
 
 #---------------------------------------------------------------------------
 # Advanced paramaters (can be left as such) 
@@ -228,12 +236,23 @@ VALIDATER = Dict(
 #---------------------------------------------------------------------------
 # predictors configs
 
+PREPROCESSOR = Dict(
+    fct="Seg",
+    kwargs=Dict(
+        num_classes=NUM_CLASSES,
+        use_one_hot = False,
+        remove_bg = False, 
+        median_spacing=MEDIAN_SPACING,
+        clipping_bounds=CLIPPING_BOUNDS,
+        intensity_moments=INTENSITY_MOMENTS,
+    )
+)
+
 PREDICTOR = Dict(
     fct="SegPatch",
     kwargs=Dict(
         patch_size=PATCH_SIZE,
         tta=True,
-        median_spacing=MEDIAN_SPACING,
         use_softmax=USE_SOFTMAX,
         keep_biggest_only=False),
 )
