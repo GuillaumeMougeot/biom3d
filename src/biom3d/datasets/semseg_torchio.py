@@ -303,12 +303,12 @@ class TorchioDataset(SubjectsDataset):
                     subjects_list += [
                         tio.Subject(
                             img=tio.ScalarImage(tensor=img),
-                            msk=tio.LabelMap(tensor=msk, fg=fg))]    
+                            msk=tio.LabelMap(tensor=msk) if fg is None else tio.LabelMap(tensor=msk, fg=fg))]    
                 else:
                     subjects_list += [
                         tio.Subject(
                             img=tio.ScalarImage(img_path, reader=reader),
-                            msk=tio.LabelMap(msk_path, reader=reader, fg=fg))] 
+                            msk=tio.LabelMap(msk_path, reader=reader) if fg is None else tio.LabelMap(tensor=msk, reader=reader, fg=fg))] 
             return subjects_list
 
         self.subjects_list = load_subjects(self.fnames)
