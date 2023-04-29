@@ -17,9 +17,14 @@ import tifffile as tiff
 import matplotlib.pyplot as plt
 import yaml # pip install pyyaml
 from skimage import io
+from skimage.transform import resize
+from skimage import measure
 import SimpleITK as sitk
 import torchio as tio
 from numba import njit
+
+try: import napari
+except: pass
 
 # ----------------------------------------------------------------------------
 # read folds from a csv file
@@ -294,7 +299,6 @@ def display_mesh(mesh, xlim, ylim, zlim, save=False):
     plt.savefig('mesh.png') if save else plt.show() 
 
 def napari_viewer(img, pred):
-    import napari
     viewer = napari.view_image(img, name='original')
     viewer.add_image(pred, name='pred')
     viewer.layers['pred'].opacity=0.5
@@ -317,6 +321,64 @@ def abs_listdir(path):
 # preprocess utils
 # from the median image shape predict the size of the patch, the pool, the batch 
 
+
+def one_hot(values, num_classes=None):
+    """
+    transform the values np.array into a one_hot encoded
+    """
+    if num_classes==None: n_values = np.max(values) + 1
+    else: n_values = num_classes
+        
+    # WARNING! potential bug if we have 255 label
+    # this function normalize the values to 0,1 if it founds that the maximum of the values if 255
+    if values.max()==255: values = (values / 255).astype(np.int64) 
+    
+    # re-order values if needed
+    # for examples if unique values are [2,124,178,250] then they will be changed to [0,1,2,3]
+    uni, inv = np.unique(values, return_inverse=True)
+    if np.array_equal(uni, np.arange(len(uni))):
+        values = np.arange(len(uni))[inv].reshape(values.shape)
+        
+    out = np.eye(n_values)[values]
+    return np.moveaxis(out, -1, 0).astype(np.int64)
+
+@njit
+def one_hot_fast(values, num_classes=None):
+    """
+    transform the 'values' array into a one_hot encoded one
+
+    Warning ! If the number of unique values in the input array is lower than the number of classes, then it will consider that the array values are all between zero and `num_classes`. If one value is greater than `num_classes`, then it will add missing values systematically after the maximum value, which could not be the expected behavior. 
+    """
+    # get unique values
+    uni = np.sort(np.unique(values)).astype(np.uint8)
+
+    if num_classes==None: 
+        n_values = len(uni)
+    else: 
+        n_values = num_classes
+    
+        # if the expected number of class is two then apply a threshold
+        if n_values==2 and (len(uni)>2 or uni.max()>1):
+            print("[Warning] The number of expected values is 2 but the maximum value is higher than 1. Threshold will be applied.")
+            values = (values>uni[0]).astype(np.uint8)
+            uni = np.array([0,1]).astype(np.uint8)
+        
+        # add values if uni is incomplete
+        if len(uni)<n_values: 
+            # if the maximum value of the array is greater than n_value, it might be an error but still, we add values in the end.
+            if values.max() >= n_values:
+                print("[Warning] The maximum values in the array is greater than the provided number of classes, this might be unexpected and might cause issues.")
+                while len(uni)<n_values:
+                    uni = np.append(uni, np.uint8(uni[-1]+1))
+            # add missing values in the array by considering that each values are in 0 and n_value
+            else:
+                uni = np.arange(0,n_values).astype(np.uint8)
+        
+    # create the one-hot encoded matrix
+    out = np.zeros((n_values, *values.shape), dtype=np.uint8)
+    for i in range(n_values):
+        out[i] = (values==uni[i]).astype(np.uint8)
+    return out
 
 def resize_segmentation(segmentation, new_shape, order=3):
     '''
@@ -442,6 +504,7 @@ def convert_num_pools(num_pools):
 
 # ----------------------------------------------------------------------------
 # data augmentation utils
+# not used yet...
 
 def centered_pad(img, final_size, msk=None):
     """
@@ -464,9 +527,8 @@ def centered_pad(img, final_size, msk=None):
     else: 
         return pad_img
 
-class RandomCropResize:
+class SmartPatch:
     """
-    SmartPatch
     Randomly crop and resize the images to a certain crop_shape.
     The global_crop_resize method performs a random crop and resize.
     The local_crop_resize method performs a random crop and resize making sure that the crop 
@@ -744,7 +806,6 @@ def load_python_config(config_path):
 # ----------------------------------------------------------------------------
 # postprocessing utils
 
-from skimage import measure
 def dist_vec(v1,v2):
     """
     euclidean distance between two vectors (np.array)
@@ -756,15 +817,6 @@ def center(labels, idx):
     """
     return the barycenter of the pixels of label = idx
     """
-    # dim = labels.shape
-    
-    # matrix of coordinate with the same size as labels
-    # x, y, z = np.meshgrid(np.arange(dim[1]),np.arange(dim[0]), np.arange(dim[2]))
-    # out = np.stack((y,x,z))
-    # out = np.transpose(out, axes=(1,2,3,0))
-    
-    # extract the barycenter
-    # return np.mean(out[labels==idx], axis=0)
     return np.mean(np.argwhere(labels == idx), axis=0)
 
 def closest(labels, num):
@@ -843,64 +895,6 @@ def keep_biggest_volume_centered(msk):
 
 # ----------------------------------------------------------------------------
 # test utils
-
-def one_hot(values, num_classes=None):
-    """
-    transform the values np.array into a one_hot encoded
-    """
-    if num_classes==None: n_values = np.max(values) + 1
-    else: n_values = num_classes
-        
-    # WARNING! potential bug if we have 255 label
-    # this function normalize the values to 0,1 if it founds that the maximum of the values if 255
-    if values.max()==255: values = (values / 255).astype(np.int64) 
-    
-    # re-order values if needed
-    # for examples if unique values are [2,124,178,250] then they will be changed to [0,1,2,3]
-    uni, inv = np.unique(values, return_inverse=True)
-    if np.array_equal(uni, np.arange(len(uni))):
-        values = np.arange(len(uni))[inv].reshape(values.shape)
-        
-    out = np.eye(n_values)[values]
-    return np.moveaxis(out, -1, 0).astype(np.int64)
-
-@njit
-def one_hot_fast(values, num_classes=None):
-    """
-    transform the 'values' array into a one_hot encoded one
-
-    Warning ! If the number of unique values in the input array is lower than the number of classes, then it will consider that the array values are all between zero and `num_classes`. If one value is greater than `num_classes`, then it will add missing values systematically after the maximum value, which could not be the expected behavior. 
-    """
-    # get unique values
-    uni = np.sort(np.unique(values)).astype(np.uint8)
-
-    if num_classes==None: 
-        n_values = len(uni)
-    else: 
-        n_values = num_classes
-    
-        # if the expected number of class is two then apply a threshold
-        if n_values==2 and (len(uni)>2 or uni.max()>1):
-            print("[Warning] The number of expected values is 2 but the maximum value is higher than 1. Threshold will be applied.")
-            values = (values>uni[0]).astype(np.uint8)
-            uni = np.array([0,1]).astype(np.uint8)
-        
-        # add values if uni is incomplete
-        if len(uni)<n_values: 
-            # if the maximum value of the array is greater than n_value, it might be an error but still, we add values in the end.
-            if values.max() >= n_values:
-                print("[Warning] The maximum values in the array is greater than the provided number of classes, this might be unexpected and might cause issues.")
-                while len(uni)<n_values:
-                    uni = np.append(uni, np.uint8(uni[-1]+1))
-            # add missing values in the array by considering that each values are in 0 and n_value
-            else:
-                uni = np.arange(0,n_values).astype(np.uint8)
-        
-    # create the one-hot encoded matrix
-    out = np.zeros((n_values, *values.shape), dtype=np.uint8)
-    for i in range(n_values):
-        out[i] = (values==uni[i]).astype(np.uint8)
-    return out
 
 # metric definition
 def iou(inputs, targets, smooth=1):

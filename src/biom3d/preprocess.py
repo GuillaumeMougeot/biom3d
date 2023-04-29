@@ -12,7 +12,6 @@ from tqdm import tqdm
 import argparse
 from skimage.transform import resize
 import tifffile
-from numba import njit
 
 from biom3d.auto_config import auto_config, save_auto_config
 from biom3d.utils import adaptive_imread, one_hot_fast, resize_3d
@@ -375,24 +374,6 @@ class Preprocessing:
                 else:
                     msk_out_path = os.path.join(self.msk_outdir, img_fname+'.npy')
                     np.save(msk_out_path, msk)
-
-                # save the foreground locations
-                # select 10000 random foreground values to avoid storing every foregrounds
-                # fg={}
-                # if self.use_one_hot: start = 0 if self.remove_bg else 1
-                # else: start = 1
-                # for i in range(start,len(msk) if self.use_one_hot else msk.max()+1):
-                #     fgi = np.argwhere(msk[i] == 1) if self.use_one_hot else np.argwhere(msk[0] == i)
-                #     if len(fgi)>0:
-                #         num_samples = min(len(fgi), 10000)
-                #         fgi_idx = np.random.choice(np.arange(len(fgi)), size=num_samples, replace=False)
-                #         fgi = fgi[fgi_idx,:]
-                #     else:
-                #         fgi = []
-                #     fg[i] = fgi
-
-                # if len(fg)==0:
-                #     print("[Warning] Empty foreground!")
 
                 # store it in a pickle format
                 fg_file = os.path.join(self.fg_outdir, img_fname+'.pkl')
