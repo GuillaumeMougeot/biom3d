@@ -136,7 +136,7 @@ def resize_segmentation(segmentation, new_shape, order=3):
             reshaped[reshaped_multihot >= 0.5] = c
         return reshaped
 
-def resize_3d(img, output_shape, order=3, is_seg=False, monitor_anisotropy=True):
+def resize_3d(img, output_shape, order=3, is_msk=False, monitor_anisotropy=True):
     """
     Resize a 3D image given an output shape.
     
@@ -164,8 +164,8 @@ def resize_3d(img, output_shape, order=3, is_seg=False, monitor_anisotropy=True)
         output_shape = np.append(input_shape[0],output_shape)
         
     # resize function definition
-    resize_fct = resize_segmentation if is_seg else resize
-    resize_kwargs = {} if is_seg else {'mode': 'edge', 'anti_aliasing': False}
+    resize_fct = resize_segmentation if is_msk else resize
+    resize_kwargs = {} if is_msk else {'mode': 'edge', 'anti_aliasing': False}
         
     # separate axis --> [Guillaume] I am not sure about the interest of that... 
     # we only consider the following case: [147,512,513] where the anisotropic axis is undersampled
@@ -214,7 +214,7 @@ def resize_3d(img, output_shape, order=3, is_seg=False, monitor_anisotropy=True)
 def resize_img_msk(img, output_shape, msk=None):
     new_img = resize_3d(img, output_shape, order=3)
     if msk is not None:
-        new_msk = resize_3d(msk, output_shape, is_seg=True, order=1)
+        new_msk = resize_3d(msk, output_shape, is_msk=True, order=1)
         return new_img, new_msk
     else: 
         return new_img

@@ -393,9 +393,9 @@ def seg_predict_patch_2(
         
     # resampling
     if use_softmax or force_softmax:
-        out = resize_3d(np.expand_dims(out,0), original_shape, order=1, is_seg=True).squeeze()
+        out = resize_3d(np.expand_dims(out,0), original_shape, order=1, is_msk=True).squeeze()
     else: 
-        out = resize_3d(out, original_shape, order=1, is_seg=True)
+        out = resize_3d(out, original_shape, order=1, is_msk=True)
     
 
     # TODO: the function below is too slow
