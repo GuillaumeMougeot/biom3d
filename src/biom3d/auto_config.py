@@ -142,6 +142,30 @@ def compute_median(path, return_spacing=False):
 
 def data_fingerprint(img_dir, msk_dir=None, num_samples=10000):
     """Compute the data fingerprint. 
+
+    Parameters 
+    ----------
+    img_dir : str
+        Path to the directory of images.
+    msk_dir : str, default=None
+        (Optional) Path to the corresponding directory of masks. If provided the function will compute the mean, the standard deviation, the 0.5% percentile and the 99.5% percentile of the intensity values of the images located inside the masks. If not provide, the function returns zeros for each of these values.
+    num_samples : int, default=10000
+        We compute the intensity characteristic on only a sample of the candidate voxels.
+    
+    Returns
+    -------
+    median_size : numpy.ndarray
+        Median size of the images in the image folder.
+    median_spacing : numpy.ndarray
+        Median spacing of the images in the image folder.
+    mean : float
+        Mean of the intensities.
+    std : float
+        Standard deviation of the intensities.
+    perc_005 : float
+        0.5% percentile of the intensities.
+    perc_995 : float
+        99.5% percentile of the intensities.
     """ 
     path_imgs = abs_listdir(img_dir)
     if msk_dir is not None:
