@@ -21,6 +21,7 @@ def pred(bui_dir, dir_in, dir_out):
     dir_out=str(dir_out)
     LOG_PATH = bui_dir
 
+    dir_out = os.path.join(dir_out,os.path.split(bui_dir)[-1]) # name the prediction folder with the model folder name
     builder = Builder(config=None,path=LOG_PATH, training=False)
     builder.run_prediction_folder(dir_in=dir_in, dir_out=dir_out, return_logit=False)
 

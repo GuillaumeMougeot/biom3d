@@ -9,6 +9,7 @@ logs_meso/*
 logs_zay/*
 dev/
 configs/20*
+bash/submit_*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
