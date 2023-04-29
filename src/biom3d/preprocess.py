@@ -8,43 +8,16 @@
 import numpy as np
 import os 
 import pickle # for foreground storage
-import scipy # for resampling
 from tqdm import tqdm
 import argparse
-from skimage.io import imread
 from skimage.transform import resize
-import SimpleITK as sitk
 import tifffile
 from numba import njit
 
-from biom3d import auto_config
+from biom3d.auto_config import auto_config, save_auto_config
+from biom3d.utils import adaptive_imread, one_hot_fast, resize_3d
 
 np.random.seed(42)
-
-#---------------------------------------------------------------------------
-# Nifti imread
-
-def sitk_imread(img_path):
-    """
-    image reader for nii.gz files
-    """
-    img = sitk.ReadImage(img_path)
-    img_np = sitk.GetArrayFromImage(img)
-    return img_np, np.array(img.GetSpacing())
-
-def adaptive_imread(img_path):
-    """
-    use skimage imread or sitk imread depending on the file extension:
-    .tif --> skimage.io.imread
-    .nii.gz --> SimpleITK.imread
-    """
-    extension = img_path[img_path.rfind('.'):]
-    if extension == ".tif":
-        return imread(img_path), []
-    elif extension == ".npy":
-        return np.load(img_path), []
-    else:
-        return sitk_imread(img_path)
 
 #---------------------------------------------------------------------------
 # 3D segmentation preprocessing
@@ -53,163 +26,6 @@ def adaptive_imread(img_path):
 # resampling
 # intensity normalization
 # one_hot encoding
-
-def one_hot(values, num_classes=None):
-    """
-    transform the values np.array into a one_hot encoded
-    """
-    if num_classes==None: n_values = np.max(values) + 1
-    else: n_values = num_classes
-        
-    # WARNING! potential bug if we have 255 label
-    # this function normalize the values to 0,1 if it founds that the maximum of the values if 255
-    if values.max()==255: values = (values / 255).astype(np.int64) 
-    
-    # re-order values if needed
-    # for examples if unique values are [2,124,178,250] then they will be changed to [0,1,2,3]
-    uni, inv = np.unique(values, return_inverse=True)
-    if np.array_equal(uni, np.arange(len(uni))):
-        values = np.arange(len(uni))[inv].reshape(values.shape)
-        
-    out = np.eye(n_values)[values]
-    return np.moveaxis(out, -1, 0).astype(np.int64)
-
-@njit
-def one_hot_fast(values, num_classes=None):
-    """
-    transform the 'values' array into a one_hot encoded one
-
-    Warning ! If the number of unique values in the input array is lower than the number of classes, then it will consider that the array values are all between zero and `num_classes`. If one value is greater than `num_classes`, then it will add missing values systematically after the maximum value, which could not be the expected behavior. 
-    """
-    # get unique values
-    uni = np.sort(np.unique(values)).astype(np.uint8)
-
-    if num_classes==None: 
-        n_values = len(uni)
-    else: 
-        n_values = num_classes
-    
-        # if the expected number of class is two then apply a threshold
-        if n_values==2 and (len(uni)>2 or uni.max()>1):
-            print("[Warning] The number of expected values is 2 but the maximum value is higher than 1. Threshold will be applied.")
-            values = (values>uni[0]).astype(np.uint8)
-            uni = np.array([0,1]).astype(np.uint8)
-        
-        # add values if uni is incomplete
-        if len(uni)<n_values: 
-            # if the maximum value of the array is greater than n_value, it might be an error but still, we add values in the end.
-            if values.max() >= n_values:
-                print("[Warning] The maximum values in the array is greater than the provided number of classes, this might be unexpected and might cause issues.")
-                while len(uni)<n_values:
-                    uni = np.append(uni, np.uint8(uni[-1]+1))
-            # add missing values in the array by considering that each values are in 0 and n_value
-            else:
-                uni = np.arange(0,n_values).astype(np.uint8)
-        
-    # create the one-hot encoded matrix
-    out = np.zeros((n_values, *values.shape), dtype=np.uint8)
-    for i in range(n_values):
-        out[i] = (values==uni[i]).astype(np.uint8)
-    return out
-
-def resize_segmentation(segmentation, new_shape, order=3):
-    '''
-    Resizes a segmentation map. Supports all orders (see skimage documentation). Will transform segmentation map to one
-    hot encoding which is resized and transformed back to a segmentation map.
-    This prevents interpolation artifacts ([0, 0, 2] -> [0, 1, 2])
-    :param segmentation:
-    :param new_shape:
-    :param order:
-    :return:
-    '''
-    tpe = segmentation.dtype
-    unique_labels = np.unique(segmentation)
-    assert len(segmentation.shape) == len(new_shape), "new shape must have same dimensionality as segmentation"
-    if order == 0:
-        return resize(segmentation.astype(float), new_shape, order, mode="edge", clip=True, anti_aliasing=False).astype(tpe)
-    else:
-        reshaped = np.zeros(new_shape, dtype=segmentation.dtype)
-
-        for i, c in enumerate(unique_labels):
-            mask = segmentation == c
-            reshaped_multihot = resize(mask.astype(float), new_shape, order, mode="edge", clip=True, anti_aliasing=False)
-            reshaped[reshaped_multihot >= 0.5] = c
-        return reshaped
-
-def resize_3d(img, output_shape, order=3, is_msk=False, monitor_anisotropy=True):
-    """
-    Resize a 3D image given an output shape.
-    
-    Parameters
-    ----------
-    img : numpy.ndarray
-        3D image to resample.
-    output_shape : tuple, list or numpy.ndarray
-        The output shape. Must have an exact length of 3.
-    order : int
-        The order of the spline interpolation. For images use 3, for mask/label use 0.
-
-    Returns
-    -------
-    new_img : numpy.ndarray
-        Resized image.
-    """
-    assert len(img.shape)==4, '[Error] Please provided a 3D image with "CWHD" format'
-    assert len(output_shape)==3 or len(output_shape)==4, '[Error] Output shape must be "CWHD" or "WHD"'
-    
-    # convert shape to array
-    input_shape = np.array(img.shape)
-    output_shape = np.array(output_shape)
-    if len(output_shape)==3:
-        output_shape = np.append(input_shape[0],output_shape)
-        
-    # resize function definition
-    resize_fct = resize_segmentation if is_msk else resize
-    resize_kwargs = {} if is_msk else {'mode': 'edge', 'anti_aliasing': False}
-        
-    # separate axis --> [Guillaume] I am not sure about the interest of that... 
-    # we only consider the following case: [147,512,513] where the anisotropic axis is undersampled
-    # and not: [147,151,512] where the anisotropic axis is oversampled
-    anistropy_axes = np.array(output_shape[1:]) / output_shape[1:].min()
-    do_anisotropy = monitor_anisotropy and len(anistropy_axes[anistropy_axes<1.1])==1
-    do_additional_resize = False
-    if do_anisotropy: 
-        axis = np.argmin(anistropy_axes)
-        print("[resize] Anisotropy monitor triggered! Anisotropic axis:", axis)
-        
-        # as the output_shape and the input_shape might have different dimension
-        # along the selected axis, we must use a temporary image.
-        tmp_shape = output_shape.copy()
-        tmp_shape[axis+1] = input_shape[axis+1]
-        
-        tmp_img = np.empty(tmp_shape)
-        
-        length = tmp_shape[axis+1]
-        tmp_shape = np.delete(tmp_shape,axis+1)
-        
-        for c in range(input_shape[0]):
-            coord  = [c]+[slice(None)]*len(input_shape[1:])
-
-            for i in range(length):
-                coord[axis+1] = i
-                tmp_img[tuple(coord)] = resize_fct(img[tuple(coord)], tmp_shape[1:], order=order, **resize_kwargs)
-            
-        # if output_shape[axis] is different from input_shape[axis]
-        # we must resize it again. We do it with order = 0
-        if np.any(output_shape!=tmp_img.shape):
-            do_additional_resize = True
-            order = 0
-            img = tmp_img
-        else:
-            new_img = tmp_img
-    
-    # normal resizing
-    if not do_anisotropy or do_additional_resize:
-        new_img = np.empty(output_shape)
-        for c in range(input_shape[0]):
-            new_img[c] = resize_fct(img[c], output_shape[1:], order=order, **resize_kwargs)
-            
-    return new_img
 
 def resize_img_msk(img, output_shape, msk=None):
     new_img = resize_3d(img, output_shape, order=3)
@@ -648,9 +464,9 @@ if __name__=='__main__':
         print("Start auto-configuration")
         
 
-        batch, aug_patch, patch, pool = auto_config.auto_config(median=median_size)
+        batch, aug_patch, patch, pool = auto_config(median=median_size)
 
-        config_path = auto_config.save_auto_config(
+        config_path = save_auto_config(
             config_dir=args.config_dir,
             base_config=args.base_config,
 
@@ -669,10 +485,6 @@ if __name__=='__main__':
         )
 
         print("Auto-config done! Configuration saved in: ", config_path)
-
-        # median = auto_config.compute_median(path=p.img_dir)
-        # patch, pool, batch = auto_config.find_patch_pool_batch(dims=median, max_dims=(128,128,128))
-        # auto_config.display_info(patch, pool, batch)
 
 #---------------------------------------------------------------------------
 

@@ -19,6 +19,7 @@ import yaml # pip install pyyaml
 from skimage import io
 import SimpleITK as sitk
 import torchio as tio
+from numba import njit
 
 # ----------------------------------------------------------------------------
 # read folds from a csv file
@@ -316,52 +317,109 @@ def abs_listdir(path):
 # preprocess utils
 # from the median image shape predict the size of the patch, the pool, the batch 
 
-def single_patch_pool(dim, size_limit=7):
-    """
-    divide by two the dim number until obtaining a number lower than 7
-    then np.ceil this number
-    then multiply multiple times by two this number to obtain the patch size
-    """
-    pool = 0
-    while dim > size_limit:
-        dim /= 2
-        pool += 1
-    patch = np.round(dim)
-    patch = patch.astype(int)*(2**pool)
-    return patch, pool
 
-def find_patch_pool_batch(dims, max_dims=(128,128,128), max_pool=5, epsilon=1e-3):
+def resize_segmentation(segmentation, new_shape, order=3):
+    '''
+    Copied from batch_generator library. Copyright Fabian Insensee.
+    Resizes a segmentation map. Supports all orders (see skimage documentation). Will transform segmentation map to one
+    hot encoding which is resized and transformed back to a segmentation map.
+    This prevents interpolation artifacts ([0, 0, 2] -> [0, 1, 2])
+    :param segmentation:
+    :param new_shape:
+    :param order:
+    :return:
+    '''
+    tpe = segmentation.dtype
+    unique_labels = np.unique(segmentation)
+    assert len(segmentation.shape) == len(new_shape), "new shape must have same dimensionality as segmentation"
+    if order == 0:
+        return resize(segmentation.astype(float), new_shape, order, mode="edge", clip=True, anti_aliasing=False).astype(tpe)
+    else:
+        reshaped = np.zeros(new_shape, dtype=segmentation.dtype)
+
+        for i, c in enumerate(unique_labels):
+            mask = segmentation == c
+            reshaped_multihot = resize(mask.astype(float), new_shape, order, mode="edge", clip=True, anti_aliasing=False)
+            reshaped[reshaped_multihot >= 0.5] = c
+        return reshaped
+
+def resize_3d(img, output_shape, order=3, is_msk=False, monitor_anisotropy=True):
     """
-    take the median size as input, determine the patch size and the number of pool
-    with "single_patch_pool" function for each dimension and 
-    assert that the final dimension size is smaller than max_dims.prod().
+    Resize a 3D image given an output shape.
+    
+    Parameters
+    ----------
+    img : numpy.ndarray
+        3D image to resample.
+    output_shape : tuple, list or numpy.ndarray
+        The output shape. Must have an exact length of 3.
+    order : int
+        The order of the spline interpolation. For images use 3, for mask/label use 0.
+
+    Returns
+    -------
+    new_img : numpy.ndarray
+        Resized image.
     """
-    # transform tuples into arrays
-    dims = np.array(dims)
-    max_dims = np.array(max_dims)
+    assert len(img.shape)==4, '[Error] Please provided a 3D image with "CWHD" format'
+    assert len(output_shape)==3 or len(output_shape)==4, '[Error] Output shape must be "CWHD" or "WHD"'
     
-    # divides by a 1+epsilon until reaching a sufficiently small resolution
-    while dims.prod() > max_dims.prod():
-        dims = dims / (1+epsilon)
-    dims = dims.astype(int)
+    # convert shape to array
+    input_shape = np.array(img.shape)
+    output_shape = np.array(output_shape)
+    if len(output_shape)==3:
+        output_shape = np.append(input_shape[0],output_shape)
+        
+    # resize function definition
+    resize_fct = resize_segmentation if is_msk else resize
+    resize_kwargs = {} if is_msk else {'mode': 'edge', 'anti_aliasing': False}
+        
+    # separate axis --> [Guillaume] I am not sure about the interest of that... 
+    # we only consider the following case: [147,512,513] where the anisotropic axis is undersampled
+    # and not: [147,151,512] where the anisotropic axis is oversampled
+    anistropy_axes = np.array(output_shape[1:]) / output_shape[1:].min()
+    do_anisotropy = monitor_anisotropy and len(anistropy_axes[anistropy_axes<1.1])==1
+    do_additional_resize = False
+    if do_anisotropy: 
+        axis = np.argmin(anistropy_axes)
+        print("[resize] Anisotropy monitor triggered! Anisotropic axis:", axis)
+        
+        # as the output_shape and the input_shape might have different dimension
+        # along the selected axis, we must use a temporary image.
+        tmp_shape = output_shape.copy()
+        tmp_shape[axis+1] = input_shape[axis+1]
+        
+        tmp_img = np.empty(tmp_shape)
+        
+        length = tmp_shape[axis+1]
+        tmp_shape = np.delete(tmp_shape,axis+1)
+        
+        for c in range(input_shape[0]):
+            coord  = [c]+[slice(None)]*len(input_shape[1:])
+
+            for i in range(length):
+                coord[axis+1] = i
+                tmp_img[tuple(coord)] = resize_fct(img[tuple(coord)], tmp_shape[1:], order=order, **resize_kwargs)
+            
+        # if output_shape[axis] is different from input_shape[axis]
+        # we must resize it again. We do it with order = 0
+        if np.any(output_shape!=tmp_img.shape):
+            do_additional_resize = True
+            order = 0
+            img = tmp_img
+        else:
+            new_img = tmp_img
     
-    # compute patch and pool for all dims
-    patch_pool = np.array([single_patch_pool(m) for m in dims])
-    patch = patch_pool[:,0]
-    pool = patch_pool[:,1]
-    
-    # assert the final size is smaller than max_dims
-    while patch.prod()>max_dims.prod():
-        patch = patch - np.array([32,32,32])*(patch>max_dims) # removing multiples of 32
-    pool = np.where(pool > max_pool, max_pool, pool)
-    
-    # batch_size
-    batch = 2
-    while batch*patch.prod() <= 2*max_dims.prod():
-        batch += 1
-    if batch*patch.prod() > 2*max_dims.prod():
-        batch -= 1
-    return patch, pool, batch
+    # normal resizing
+    if not do_anisotropy or do_additional_resize:
+        new_img = np.empty(output_shape)
+        for c in range(input_shape[0]):
+            new_img[c] = resize_fct(img[c], output_shape[1:], order=order, **resize_kwargs)
+            
+    return new_img
+
+# ----------------------------------------------------------------------------
+# determine network dynamic architecture
 
 def convert_num_pools(num_pools):
     """
@@ -806,6 +864,7 @@ def one_hot(values, num_classes=None):
     out = np.eye(n_values)[values]
     return np.moveaxis(out, -1, 0).astype(np.int64)
 
+@njit
 def one_hot_fast(values, num_classes=None):
     """
     transform the 'values' array into a one_hot encoded one

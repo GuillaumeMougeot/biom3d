@@ -11,7 +11,7 @@ from skimage.io import imread
 from tqdm import tqdm
 # from scipy.ndimage.filters import gaussian_filter
 
-from biom3d.utils import keep_biggest_volume_centered, adaptive_imread
+from biom3d.utils import keep_biggest_volume_centered, adaptive_imread, resize_3d
 
 #---------------------------------------------------------------------------
 # model predictor for segmentation
@@ -288,8 +288,6 @@ def seg_predict_patch(
 
 #---------------------------------------------------------------------------
 # new predictor
-
-from biom3d.preprocess import resize_3d
 
 def seg_predict_patch_2(
     img,
