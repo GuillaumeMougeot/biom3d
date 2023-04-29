@@ -343,7 +343,7 @@ def seg_predict_patch_2(
                     pred=model(X).cpu()
                 
                 # flipping tta
-                dims = [[2],[3],[4]]
+                dims = [[2],[3],[4],[3,2],[4,2],[4,3],[4,3,2]]
                 for i in range(len(dims)):
                     X_flip = torch.flip(X,dims=dims[i])
 
@@ -373,24 +373,30 @@ def seg_predict_patch_2(
 
     # post-processing:
     print("Post-processing...")
-    logit = resize_3d(logit, original_shape, order=3)
 
     if return_logit: 
+        logit = resize_3d(logit, original_shape, order=3)
         print("Post-processing done!")
         return logit
 
     if use_softmax:
-        out = (logit.softmax(dim=0).argmax(dim=0)).int()
+        out = (logit.softmax(dim=0).argmax(dim=0)).int().numpy()        
     elif force_softmax:
         # if the training has been done with a sigmoid activation and we want to export a softmax
         # it is possible to use `force_softmax` argument
         sigmoid = (logit.sigmoid()>0.5).int()
         softmax = (logit.softmax(dim=0).argmax(dim=0)).int()+1
         cond = sigmoid.max(dim=0).values
-        out = torch.where(cond>0, softmax, 0)
+        out = torch.where(cond>0, softmax, 0).numpy()        
     else:
-        out = (logit.sigmoid()>0.5).int()
-    out = out.numpy()
+        out = (logit.sigmoid()>0.5).int().numpy()
+        
+    # resampling
+    if use_softmax or force_softmax:
+        out = resize_3d(np.expand_dims(out,0), original_shape, order=1, is_seg=True).squeeze()
+    else: 
+        out = resize_3d(out, original_shape, order=1, is_seg=True)
+    
 
     # TODO: the function below is too slow
     if keep_biggest_only:
@@ -402,7 +408,9 @@ def seg_predict_patch_2(
                 tmp += [keep_biggest_volume_centered(out[i])]
             out = np.array(tmp)
 
-    out = out.astype(np.byte) 
+    out = out.astype(np.uint16) 
+    
+    
     print("Post-processing done!")
     print("Output shape:",out.shape)
     return out
