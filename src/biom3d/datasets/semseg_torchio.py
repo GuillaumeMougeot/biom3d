@@ -261,9 +261,11 @@ class TorchioDataset(SubjectsDataset):
             self.train_imgs = []
             for i in trainset: self.train_imgs += i
 
-        else: # tmp: validation split = 50% by default
+        else: 
             all_set = os.listdir(img_dir)
             val_split = np.round(val_split * len(all_set)).astype(int)
+
+            # force validation to contain at least one image
             if val_split == 0: val_split=1
             self.train_imgs = all_set[val_split:]
             self.val_imgs = all_set[:val_split]
@@ -277,6 +279,8 @@ class TorchioDataset(SubjectsDataset):
             length of the testing set: {}".format(fold, len(self.train_imgs), len(self.val_imgs), len(testset)))
 
         self.fnames = self.train_imgs if self.train else self.val_imgs
+
+        if len(self.fnames)==1: self.load_data=True # we force dataloading for single images.
 
         # print train and validation image names
         print("{} images: {}".format("Training" if self.train else "Validation", self.fnames))

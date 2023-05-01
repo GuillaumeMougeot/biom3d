@@ -39,6 +39,55 @@ def get_resample_shape(input_shape, spacing, median_spacing):
         input_shape=input_shape[1:]
     return np.round(((spacing/median_spacing)[::-1]*input_shape)).astype(int)
 
+
+def sanity_check(msk, num_classes=None):
+    """Check if the mask is correctly annotated.
+    """
+    uni = np.sort(np.unique(msk))
+    if num_classes is None:
+        num_classes = len(uni)
+        
+    assert type(num_classes)==int
+    assert num_classes >= 2
+    
+    if len(msk.shape)==4:
+        # if we have 4 dimensions in the mask, we consider it one-hot encoded
+        # and thus we perform a sanity check for each channel
+        for i in range(msk.shape[0]):
+            sanity_check(msk[i], num_classes=2)
+            
+    cls = np.arange(num_classes)
+    if np.all(uni==cls):
+        # the mask is correctly annotated
+        return msk
+    else:
+        # there is something wrong with the annotations
+        # depending on the case we make automatic adjustments
+        # or we through an error message
+        print("[Warning] There is something abnormal with the annotations. Each voxel value must be in range {} but is in range {}.".format(cls, uni))
+        if num_classes==2:
+            print("[Warning] Applying a thresholding.")
+            # then we apply a threshold to the data
+            # for instance: unique [2,127,232] becomes [0,1], 0 being 2 and 1 being 127 and 232
+            return (msk > msk.min()).astype(np.uint8)
+        elif np.all(np.isin(uni, cls)):
+            # then one label is missing in the current mask... but it should work
+            print("[Warning] One or more labels are missing.")
+            return msk
+        elif len(uni)==num_classes:
+            # then we re-annotate the unique values in the mask
+            # for instance: unique [2,127,232] becomes [0,1,2]
+            print("[Warning] Annotation are wrong in the mask, we will re-annotate the mask.")
+            new_msk = np.zeros(msk.shape, dtype=msk.dtype)
+            for i,c in enumerate(uni):
+                new_msk[msk == c] = i
+            return new_msk
+        else:
+            # case like [2,18,128,254] where the number of classes should be 3 are impossible to decide...
+            print("[Error] There is an error in the labels that could not be solved automatically.")
+            raise RuntimeError
+        
+
 class Preprocessing:
     """A helper class to transform nifti (.nii.gz) and Tiff (.tif or .tiff) images to .tif format and to normalize them.
 
@@ -224,7 +273,10 @@ class Preprocessing:
 
         # read image and mask
         img,spacing = adaptive_imread(img_path)
-        if do_msk: msk,_ = adaptive_imread(msk_path)
+        if do_msk: 
+            msk,_ = adaptive_imread(msk_path)
+            # sanity check
+            msk = sanity_check(msk, num_classes)
 
         # keep the input shape, used for preprocessing before prediction
         original_shape = img.shape
@@ -253,7 +305,7 @@ class Preprocessing:
                 msk = np.expand_dims(msk, 0)
         elif do_msk and len(msk.shape)==4:
             # normalize each channel
-            msk = (msk > 0).astype(np.uint8)
+            msk = (msk > msk.min()).astype(np.uint8)
 
         assert len(img.shape)==4
         if do_msk: assert len(msk.shape)==4
