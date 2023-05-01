@@ -454,6 +454,8 @@ if __name__=='__main__':
         help="(default=\'configs/\') Configuration folder to save the auto-configuration.")
     parser.add_argument("--base_config", type=str, default=None,
         help="(default=None) Optional. Path to an existing configuration file which will be updated with the preprocessed values.")
+    parser.add_argument("--desc", type=str, default='unet_default',
+        help="(default=unet_default) Optional. A name used to describe the model.")
     parser.add_argument("--use_tif", default=False,  action='store_true', dest='use_tif',
         help="(default=False) Whether to use tif format to save the preprocessed images instead of npy format. Tif files are easily readable with viewers such as Napari and takes fewer disk space but are slower to load and may slow down the training process.") 
     parser.add_argument("--use_one_hot", default=False,  action='store_true', dest='use_one_hot',
@@ -515,6 +517,7 @@ if __name__=='__main__':
             MEDIAN_SPACING=median_spacing,
             CLIPPING_BOUNDS=clipping_bounds,
             INTENSITY_MOMENTS=intensity_moments,
+            DESC=args.desc,
         )
 
         print("Auto-config done! Configuration saved in: ", config_path)

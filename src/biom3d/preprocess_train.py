@@ -11,7 +11,7 @@ from biom3d.auto_config import auto_config, save_auto_config, data_fingerprint
 from biom3d.utils import load_python_config
 from biom3d.builder import Builder
 
-def preprocess_train(img_dir, msk_dir, num_classes, config_dir, base_config, ct_norm):
+def preprocess_train(img_dir, msk_dir, num_classes, config_dir, base_config, ct_norm, desc=None):
     if ct_norm:
         median_size, median_spacing, mean, std, perc_005, perc_995 = data_fingerprint(args.img_dir, args.msk_dir)
         clipping_bounds = [perc_005, perc_995]
@@ -52,6 +52,7 @@ def preprocess_train(img_dir, msk_dir, num_classes, config_dir, base_config, ct_
         MEDIAN_SPACING=median_spacing,
         CLIPPING_BOUNDS=clipping_bounds,
         INTENSITY_MOMENTS=intensity_moments,
+        DESC=desc if desc is not None else 'unet_default',
     )
 
     # training
@@ -72,6 +73,8 @@ if __name__=='__main__':
         help="(default=\'configs/\') Configuration folder to save the auto-configuration.")
     parser.add_argument("--base_config", type=str, default=None,
         help="(default=None) Optional. Path to an existing configuration file which will be updated with the preprocessed values.")
+    parser.add_argument("--desc", type=str, default='unet_default',
+        help="(default=unet_default) Optional. A name used to describe the model.")
     parser.add_argument("--ct_norm", default=False,  action='store_true', dest='ct_norm',
         help="(default=False) Whether to use CT-Scan normalization routine (cf. nnUNet).") 
     args = parser.parse_args()
@@ -83,4 +86,5 @@ if __name__=='__main__':
         config_dir=args.config_dir,
         base_config=args.base_config,
         ct_norm=args.ct_norm,
+        desc=args.desc,
     )
