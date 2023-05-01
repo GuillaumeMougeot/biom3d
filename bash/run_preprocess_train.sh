@@ -11,13 +11,18 @@
 #  --msk_dir data/msd/Task02_Heart/labelsTr\
 #  --num_classes 1
 
-python -m biom3d.preprocess_train\
- --img_dir data/btcv/Training_official/img\
- --msk_dir data/btcv/Training_official/label\
- --num_classes 13\
- --ct_norm
+# python -m biom3d.preprocess_train\
+#  --img_dir data/btcv/Training_official/img\
+#  --msk_dir data/btcv/Training_official/label\
+#  --num_classes 13\
+#  --ct_norm
 
 # python -m biom3d.preprocess_train\
 #  --img_dir data/nucleus/nucleus_tiny/img\
 #  --msk_dir data/nucleus/nucleus_tiny/msk\
 #  --num_classes 1
+
+python -m biom3d.preprocess_train\
+ --img_dir data/mito/train/img\
+ --msk_dir data/mito/train/msk\
+ --num_classes 1

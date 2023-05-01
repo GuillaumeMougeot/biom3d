@@ -32,7 +32,7 @@ def preprocess_train(img_dir, msk_dir, num_classes, config_dir, base_config, ct_
         clipping_bounds=clipping_bounds,
         intensity_moments=intensity_moments,
     )
-    # p.run()
+    p.run()
 
     # auto-config
     batch, aug_patch, patch, pool = auto_config(img_dir=p.img_dir)
