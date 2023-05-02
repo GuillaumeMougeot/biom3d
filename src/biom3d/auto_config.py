@@ -170,16 +170,21 @@ def data_fingerprint(img_dir, msk_dir=None, num_samples=10000):
     path_imgs = abs_listdir(img_dir)
     if msk_dir is not None:
         path_msks = abs_listdir(msk_dir)
-        
+    
     sizes = []
     spacings = []
     samples = []
         
     for i in range(len(path_imgs)):
         img,spacing = adaptive_imread(path_imgs[i])
+
+        # store the size
         sizes += [list(img.shape)]
+
+        # store the spacing
         if spacing is not None or spacing!=[]: 
             spacings+=[spacing]
+
         if msk_dir is not None:
             # read msk
             msk,_ = adaptive_imread(path_msks[i])
@@ -190,7 +195,7 @@ def data_fingerprint(img_dir, msk_dir=None, num_samples=10000):
             # to get a global sample of all the images, 
             # we use random sampling on the image voxels inside the mask
             samples.append(np.random.choice(img, num_samples, replace=True) if len(img)>0 else [])
-            
+
     # median computation
     median_size = np.median(np.array(sizes), axis=0).astype(int)
     median_spacing = np.median(np.array(spacings), axis=0)

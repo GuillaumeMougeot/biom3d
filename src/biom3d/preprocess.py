@@ -10,10 +10,9 @@ import os
 import pickle # for foreground storage
 from tqdm import tqdm
 import argparse
-from skimage.transform import resize
 import tifffile
 
-from biom3d.auto_config import auto_config, save_auto_config
+from biom3d.auto_config import auto_config, save_auto_config, data_fingerprint
 from biom3d.utils import adaptive_imread, one_hot_fast, resize_3d
 
 np.random.seed(42)
@@ -170,6 +169,7 @@ class Preprocessing:
             os.makedirs(self.fg_outdir, exist_ok=True)
 
         self.num_classes = num_classes
+        self.num_channels = 1
 
         self.remove_bg = remove_bg
 
@@ -398,6 +398,12 @@ class Preprocessing:
                     clipping_bounds     =self.clipping_bounds,
                     intensity_moments   =self.intensity_moments,)
 
+            # sanity check to be sure that all images have the save number of channel
+            s = img.shape
+            if len(s)==4: # only for images with 4 dimensionalities
+                if i==0: self.num_channels = s[0]
+                else: assert len(s)==4 and self.num_channels==s[0], "[Error] Not all images have {} channels. Problematic image: {}".format(self.num_channels, img_path)
+
             # save the image and the mask as tif
             img_fname = os.path.basename(img_path).split('.')[0]
             # save image
@@ -470,7 +476,7 @@ if __name__=='__main__':
 
     if args.ct_norm:
         print("Computing data fingerprint for CT normalization...")
-        median_size, median_spacing, mean, std, perc_005, perc_995 = auto_config.data_fingerprint(args.img_dir, args.msk_dir)
+        median_size, median_spacing, mean, std, perc_005, perc_995 = data_fingerprint(args.img_dir, args.msk_dir)
         clipping_bounds = [perc_005, perc_995]
         intensity_moments = [mean, std]
         print("Done!")
@@ -510,6 +516,7 @@ if __name__=='__main__':
             MSK_DIR=p.msk_outdir,
             FG_DIR=p.fg_outdir,
             NUM_CLASSES=args.num_classes,
+            NUM_CHANNELS=p.num_channels,
             BATCH_SIZE=batch,
             AUG_PATCH_SIZE=aug_patch,
             PATCH_SIZE=patch,

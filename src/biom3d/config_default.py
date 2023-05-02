@@ -51,6 +51,9 @@ DESC = 'unet_default'
 # the background does not count, so the minimum is 1 (the max is 255)
 NUM_CLASSES = 1
 
+# number of channels in the input images
+NUM_CHANNELS = 1
+
 #---------------------------------------------------------------------------
 # Auto-config builder-parameters
 # PASTE AUTO-CONFIG RESULTS HERE
@@ -189,6 +192,7 @@ MODEL = Dict(
         num_classes=NUM_CLASSES if not USE_SOFTMAX else NUM_CLASSES+1,
         factor = 32,
         use_deep=USE_DEEP_SUPERVISION,
+        in_planes=NUM_CHANNELS,
     )
 )
 

@@ -45,6 +45,7 @@ def preprocess_train(img_dir, msk_dir, num_classes, config_dir, base_config, ct_
         MSK_DIR=p.msk_outdir,
         FG_DIR=p.fg_outdir,
         NUM_CLASSES=num_classes,
+        NUM_CHANNELS=p.num_channels,
         BATCH_SIZE=batch,
         AUG_PATCH_SIZE=aug_patch,
         PATCH_SIZE=patch,
