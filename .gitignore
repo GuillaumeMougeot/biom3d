@@ -10,6 +10,7 @@ logs_zay/*
 dev/
 configs/20*
 bash/submit_*
+bash/zay_*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
