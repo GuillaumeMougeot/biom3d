@@ -12,8 +12,8 @@ from tqdm import tqdm
 import argparse
 import tifffile
 
-from biom3d.auto_config import auto_config, save_auto_config, data_fingerprint
-from biom3d.utils import adaptive_imread, one_hot_fast, resize_3d
+from biom3d.auto_config import auto_config, data_fingerprint
+from biom3d.utils import adaptive_imread, one_hot_fast, resize_3d, save_python_config
 
 np.random.seed(42)
 
@@ -507,7 +507,7 @@ if __name__=='__main__':
 
         batch, aug_patch, patch, pool = auto_config(median=median_size)
 
-        config_path = save_auto_config(
+        config_path = save_python_config(
             config_dir=args.config_dir,
             base_config=args.base_config,
 

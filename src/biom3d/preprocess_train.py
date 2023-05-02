@@ -7,8 +7,8 @@ import argparse
 import os 
 
 from biom3d.preprocess import Preprocessing
-from biom3d.auto_config import auto_config, save_auto_config, data_fingerprint
-from biom3d.utils import load_python_config
+from biom3d.auto_config import auto_config, data_fingerprint
+from biom3d.utils import load_python_config, save_python_config
 from biom3d.builder import Builder
 
 def preprocess_train(img_dir, msk_dir, num_classes, config_dir, base_config, ct_norm, desc=None):
@@ -38,7 +38,7 @@ def preprocess_train(img_dir, msk_dir, num_classes, config_dir, base_config, ct_
     batch, aug_patch, patch, pool = auto_config(img_dir=p.img_dir)
 
     # save auto-config
-    config_path = save_auto_config(
+    config_path = save_python_config(
         config_dir=config_dir,
         base_config=base_config,
         IMG_DIR=p.img_outdir,

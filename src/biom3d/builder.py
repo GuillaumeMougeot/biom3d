@@ -134,10 +134,10 @@ class Builder:
 
     Parameters
     ----------
-    config : biom3d.utils.Dict
-        A dictionary defining the configuration file. Specific keywords must be defined, others are optional.
-    path : str
-        Path to the log folder. 
+    config : str, dict or biom3d.utils.Dict
+        Path to a Python configuration file (in either .py or .yaml format) or dictionary of a configuration file. Please refer to biom3d.config_default.py to see the default configuration file format.
+    builder_path : str
+        Path to a builder folder which contains the model, the model configuration and the training logs.
     training : bool, default=True
         Whether to load the model in training or testing mode.
 
@@ -158,20 +158,29 @@ class Builder:
     """
     def __init__(self, 
         config=None,         # inherit from Config class, stores the global variables
-        path=None,      # path to a training folder
+        builder_path=None,      # path to a training folder
         training=True,  # use training mode or testing?
         ):                
 
-        if path is not None:
-            self.config = utils.load_yaml_config(path + "/log/config.yaml")
+        # if path is not None and config is not None:
+        #     # fine-tuning mode
+            
+        if builder_path is not None:
+            self.config = utils.load_yaml_config(builder_path + "/log/config.yaml")
             # print(self.config)
             if training:
-                self.load_train(path)
+                self.load_train(builder_path)
             else:
-                self.load_test(path)
+                self.load_test(builder_path)
         else:
             assert config is not None, "[Error] config file not defined."
-            self.config = config
+            assert type(config)==str or type(config)==dict or type(config)==utils.Dict, "[Error] Config has the wrong type."
+            if type(config)==str:
+                self.config_path = config
+                self.config = utils.adaptive_load_config(config)
+            else:
+                self.config_path = None
+                self.config = config
 
             # if there are more than 1 GPU we augment the batch size and reduce the number of epochs
             if torch.cuda.device_count() > 1: 
@@ -628,13 +637,8 @@ class Builder:
         if not 'LR_START' in self.config.keys() or self.config.LR_START is None:
             self.optim.load_state_dict(ckpt['opt'])
 
-        if 'epoch' in list(ckpt.keys()): # tmp
+        if 'epoch' in list(ckpt.keys()): 
             self.initial_epoch=ckpt['epoch'] # definitive version 
-        # else: # tmp
-        #     with open(self.log_path, "r") as file:
-        #         last_line = file.readlines()[-1] # read the last line
-        #     last_line = last_line.split(',')
-        #     self.initial_epoch=int(last_line[0])
         print('Restart training at epoch {}'.format(self.initial_epoch))
 
         self.build_dataset()

@@ -13,6 +13,8 @@ from time import time
 import os 
 import importlib.util
 import sys
+import shutil
+import fileinput
 import tifffile as tiff
 import matplotlib.pyplot as plt
 import yaml # pip install pyyaml
@@ -736,7 +738,7 @@ def dict_to_Dict(cfg):
             cfg[k] = dict_to_Dict(cfg[k])
     return cfg
 
-def save_config(path, cfg):
+def save_yaml_config(path, cfg):
     """
     save a configuration in a yaml file.
     path must thus contains a yaml extension.
@@ -781,6 +783,118 @@ def nested_dict_change_value(dic, key, value):
             save[key] = value
     return dic
 
+def replace_line_single(line, key, value):
+    """Given a line, replace the value if the key is in the line. This function follows the following format:
+    \'key = value\'. The line must follow this format and the output will respect this format. 
+    
+    Parameters
+    ----------
+    line : str
+        The input line that follows the format: \'key = value\'.
+    key : str
+        The key to look for in the line.
+    value : str
+        The new value that will replace the previous one.
+    
+    Returns
+    -------
+    line : str
+        The modified line.
+    
+    Examples
+    --------
+    >>> line = "IMG_DIR = None"
+    >>> key = "IMG_DIR"
+    >>> value = "path/img"
+    >>> replace_line_single(line, key, value)
+    IMG_DIR = 'path/img'
+    """
+    if key==line[:len(key)]:
+        assert line[len(key):len(key)+3]==" = ", "[Error] Invalid line. A valid line must contains \' = \'. Line:"+line
+        line = line[:len(key)]
+        
+        # if value is string then we add brackets
+        line += " = "
+        if type(value)==str: 
+            line += "\'" + value + "\'"
+        elif type(value)==np.ndarray:
+            line += str(value.tolist())
+        else:
+            line += str(value)
+    return line
+
+def replace_line_multiple(line, dic):
+    """Similar to replace_line_single but with a dictionary of keys and values.
+    """
+    for key, value in dic.items():
+        line = replace_line_single(line, key, value)
+    return line
+
+def save_python_config(
+    config_dir,
+    base_config = None,
+    **kwargs,
+    ):
+    """
+    Save the configuration in a config file. If the path to a base configuration is provided, then update this file with the new auto-configured parameters else use biom3d.config_default file.
+
+    Parameters
+    ----------
+    config_dir : str
+        Path to the configuration folder. If the folder does not exist, then create it.
+    base_config : str, default=None
+        Path to an existing configuration file which will be updated with the auto-config values.
+    **kwargs
+        Keyword arguments of the configuration file.
+
+    Returns
+    -------
+    config_path : str
+        Path to the new configuration file.
+    
+    Examples
+    --------
+    >>> config_path = save_config_python(\\
+        config_dir="configs/",\\
+        base_config="configs/pancreas_unet.py",\\
+        IMG_DIR="/pancreas/imagesTs_tiny_out",\\
+        MSK_DIR="pancreas/labelsTs_tiny_out",\\
+        NUM_CLASSES=2,\\
+        BATCH_SIZE=2,\\
+        AUG_PATCH_SIZE=[56, 288, 288],\\
+        PATCH_SIZE=[40, 224, 224],\\
+        NUM_POOLS=[3, 5, 5])
+    """
+
+    # create the config dir if needed
+    if not os.path.exists(config_dir):
+        os.makedirs(config_dir, exist_ok=True)
+
+    # copy default config file or use the one given by the user
+    if base_config == None:
+        try:
+            from biom3d import config_default
+            config_path = shutil.copy(config_default.__file__, config_dir) 
+        except:
+            print("[Error] Please provide a base config file or install biom3d.")
+            raise RuntimeError
+    else: 
+        config_path = base_config
+
+    # rename it with date included
+    current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
+    new_config_name = os.path.join(config_dir, current_time+"-"+os.path.basename(config_path))
+    os.rename(config_path, new_config_name)
+
+    # edit the new config file with the auto-config values
+    with fileinput.input(files=(new_config_name), inplace=True) as f:
+        for line in f:
+            # edit the line
+            line = replace_line_multiple(line, kwargs)
+            # write back in the input file
+            print(line, end='') 
+    return new_config_name
+
 def load_python_config(config_path):
     """Return the configuration dictionary given the path of the configuration file.
     The configuration file is in Python format.
@@ -802,6 +916,28 @@ def load_python_config(config_path):
     sys.modules["config"] = config
     spec.loader.exec_module(config)
     return config.CONFIG
+
+def adaptive_load_config(config_path):
+    """Return the configuration dictionary given the path of the configuration file.
+    The configuration file is in Python or YAML format.
+
+    Parameters
+    ----------
+    config_path : str
+        Path of the configuration file. Should have the '.py' or '.yaml' extension.
+    
+    Returns
+    -------
+    cfg : biom3d.utils.Dict
+        Dictionary of the config.
+    """
+    extension = config_path[config_path.rfind('.'):]
+    if extension=='.py':
+        return load_python_config(config_path=config_path)
+    elif extension=='.yaml':
+        return load_yaml_config(config_path=config_path)
+    else:
+        print("[Error] Unknow format for config file.")
 
 # ----------------------------------------------------------------------------
 # postprocessing utils
