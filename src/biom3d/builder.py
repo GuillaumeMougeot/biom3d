@@ -4,6 +4,7 @@
 #---------------------------------------------------------------------------
 
 import os 
+import shutil
 import torch
 from torch.utils.data import DataLoader
 # from monai.data import ThreadDataLoader
@@ -162,19 +163,10 @@ class Builder:
         training=True,  # use training mode or testing?
         ):                
 
-        # if path is not None and config is not None:
-        #     # fine-tuning mode
-            
-        if builder_path is not None:
-            self.config = utils.load_yaml_config(builder_path + "/log/config.yaml")
-            # print(self.config)
-            if training:
-                self.load_train(builder_path)
-            else:
-                self.load_test(builder_path)
-        else:
-            assert config is not None, "[Error] config file not defined."
-            assert type(config)==str or type(config)==dict or type(config)==utils.Dict, "[Error] Config has the wrong type."
+        # for training or fine-tuning:
+        # load the config file and change some parameters if multi-gpus training
+        if config is not None: 
+            assert type(config)==str or type(config)==dict or type(config)==utils.Dict, "[Error] Config has the wrong type {}".format(type(config))
             if type(config)==str:
                 self.config_path = config
                 self.config = utils.adaptive_load_config(config)
@@ -191,6 +183,33 @@ class Builder:
                 self.config.BATCH_SIZE *= torch.cuda.device_count()
                 self.config.NB_EPOCHS = self.config.NB_EPOCHS//torch.cuda.device_count()
 
+        # fine-tuning  
+        if builder_path is not None and config is not None:
+            print("Fine-tuning mode! The path to a builder folder and a configuration file have been input.")
+            
+            # build the training folder
+            self.build_train()
+
+            # load the model weights
+            model_dir = os.path.join(builder_path, 'model')
+            model_name = utils.load_yaml_config(os.path.join(builder_path,"log","config.yaml")).DESC+'.pth'
+            ckpt_path = os.path.join(model_dir, model_name)
+            ckpt = torch.load(ckpt_path)
+            print("Loading model from", ckpt_path)
+            print(self.model.load_state_dict(ckpt['model'], strict=False))
+        
+        # training restart or prediction
+        elif builder_path is not None:
+            self.config = utils.load_yaml_config(os.path.join(builder_path,"log","config.yaml"))
+            # print(self.config)
+            if training:
+                self.load_train(builder_path)
+            else:
+                self.load_test(builder_path)
+        
+        # standard training
+        else:
+            assert config is not None, "[Error] config file not defined."
             # print(self.config)
             self.build_train()
 
@@ -470,10 +489,15 @@ class Builder:
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
 
-        # saver configs
+        # saver folder configuration
         self.base_dir, self.image_dir, self.log_dir, self.model_dir = utils.create_save_dirs(
             self.config.LOG_DIR, self.config.DESC, dir_names=['image', 'log', 'model'], return_base_dir=True) 
-        utils.save_config(os.path.join(self.log_dir, 'config.yaml'), self.config) # save the config file
+    
+        # save the config file
+        if self.config_path is not None:
+            basename = os.path.basename(self.config_path)
+            shutil.copy(self.config_path, os.path.join(self.log_dir, basename))
+        utils.save_yaml_config(os.path.join(self.log_dir, 'config.yaml'), self.config) # will eventually replace the yaml file
 
         self.model_path = os.path.join(self.model_dir, self.config.DESC)
 

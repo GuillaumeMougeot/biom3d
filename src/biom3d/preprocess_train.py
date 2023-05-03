@@ -57,8 +57,7 @@ def preprocess_train(img_dir, msk_dir, num_classes, config_dir, base_config, ct_
     )
 
     # training
-    cfg = load_python_config(config_path)
-    builder = Builder(config=cfg,path=None)
+    builder = Builder(config=config_path)
     builder.run_training()
     print("Training done!")
 

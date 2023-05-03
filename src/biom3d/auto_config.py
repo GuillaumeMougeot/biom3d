@@ -388,14 +388,19 @@ if __name__=='__main__':
     if args.median:print("MEDIAN =", list(median))
 
     if args.save_config:
-        config_path = save_config_python(
-            config_dir=args.config_dir,
-            base_config=args.base_config,
-            BATCH_SIZE=batch,
-            AUG_PATCH_SIZE=aug_patch,
-            PATCH_SIZE=patch,
-            NUM_POOLS=pool,
-            MEDIAN_SPACING=median_spacing,
-        )
+        try: 
+            from biom3d.utils import save_python_config
+            config_path = save_python_config(
+                config_dir=args.config_dir,
+                base_config=args.base_config,
+                BATCH_SIZE=batch,
+                AUG_PATCH_SIZE=aug_patch,
+                PATCH_SIZE=patch,
+                NUM_POOLS=pool,
+                MEDIAN_SPACING=median_spacing,
+            )
+        except:
+            print("[Error] Import error. Biom3d must be installed if you want to save your configuration. Another solution is to config the function function in biom3d.utils here...")
+            raise ImportError
 
 # ----------------------------------------------------------------------------

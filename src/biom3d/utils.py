@@ -716,26 +716,14 @@ class Dict(dict):
     def __setattr__(self, name, value): self[name] = value
     def __delattr__(self, name): del self[name]
 
-def Dict_to_dict(cfg):
+def config_to_type(cfg, new_type):
+    """Change config type to a new type. This function is recursive and can be use to change the type of nested dictionaries. 
     """
-    transform a Dict into a dict
-    """
-    ty = type(cfg)
-    cfg = dict(cfg)
+    old_type = type(cfg)
+    cfg = new_type(cfg)
     for k,i in cfg.items():
-        if type(i)==ty:
-            cfg[k] = Dict_to_dict(cfg[k])
-    return cfg
-
-def dict_to_Dict(cfg):
-    """
-    transform a Dict into a dict
-    """
-    ty = type(cfg)
-    cfg = Dict(cfg)
-    for k,i in cfg.items():
-        if type(i)==ty:
-            cfg[k] = dict_to_Dict(cfg[k])
+        if type(i)==old_type:
+            cfg[k] = config_to_type(cfg[k], new_type)
     return cfg
 
 def save_yaml_config(path, cfg):
@@ -744,7 +732,7 @@ def save_yaml_config(path, cfg):
     path must thus contains a yaml extension.
     example: path='logs/test.yaml'
     """
-    cfg = Dict_to_dict(cfg)
+    cfg = config_to_type(cfg, dict)
     with open(path, "w") as f:
         yaml.dump(cfg, f, sort_keys=False)
     
@@ -752,12 +740,12 @@ def load_yaml_config(path):
     """
     load a yaml stored with the self.save method.
     """
-    return dict_to_Dict(yaml.load(open(path),Loader=yaml.FullLoader))
+    return config_to_type(yaml.load(open(path),Loader=yaml.FullLoader), Dict)
 
 def nested_dict_pairs_iterator(dic):
     ''' This function accepts a nested dictionary as argument
         and iterate over all values of nested dictionaries
-        stolen from: https://thispointer.com/python-how-to-iterate-over-nested-dictionary-dict-of-dicts/ 
+        get from: https://thispointer.com/python-how-to-iterate-over-nested-dictionary-dict-of-dicts/ 
     '''
     # Iterate over all key-value pairs of dict argument
     for key, value in dic.items():
@@ -915,7 +903,7 @@ def load_python_config(config_path):
     config = importlib.util.module_from_spec(spec)
     sys.modules["config"] = config
     spec.loader.exec_module(config)
-    return config.CONFIG
+    return config_to_type(config.CONFIG, Dict) # change type from config.Dict to Dict
 
 def adaptive_load_config(config_path):
     """Return the configuration dictionary given the path of the configuration file.
