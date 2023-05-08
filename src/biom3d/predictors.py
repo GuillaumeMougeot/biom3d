@@ -305,6 +305,8 @@ def seg_predict_patch_2(
     """
     for one image path, load the image, compute the model prediction, return the prediction
     """
+    # make original_shape 3D
+    original_shape = original_shape[-3:]
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     enable_autocast = torch.cuda.is_available() and enable_autocast # tmp, autocast seems to work only with gpu for now... 

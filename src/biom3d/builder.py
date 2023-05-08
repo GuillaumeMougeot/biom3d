@@ -137,7 +137,7 @@ class Builder:
     ----------
     config : str, dict or biom3d.utils.Dict
         Path to a Python configuration file (in either .py or .yaml format) or dictionary of a configuration file. Please refer to biom3d.config_default.py to see the default configuration file format.
-    builder_path : str
+    path : str
         Path to a builder folder which contains the model, the model configuration and the training logs.
     training : bool, default=True
         Whether to load the model in training or testing mode.
@@ -159,7 +159,7 @@ class Builder:
     """
     def __init__(self, 
         config=None,         # inherit from Config class, stores the global variables
-        builder_path=None,      # path to a training folder
+        path=None,      # path to a training folder
         training=True,  # use training mode or testing?
         ):                
 
@@ -184,28 +184,28 @@ class Builder:
                 self.config.NB_EPOCHS = self.config.NB_EPOCHS//torch.cuda.device_count()
 
         # fine-tuning  
-        if builder_path is not None and config is not None:
+        if path is not None and config is not None:
             print("Fine-tuning mode! The path to a builder folder and a configuration file have been input.")
             
             # build the training folder
             self.build_train()
 
             # load the model weights
-            model_dir = os.path.join(builder_path, 'model')
-            model_name = utils.load_yaml_config(os.path.join(builder_path,"log","config.yaml")).DESC+'.pth'
+            model_dir = os.path.join(path, 'model')
+            model_name = utils.load_yaml_config(os.path.join(path,"log","config.yaml")).DESC+'.pth'
             ckpt_path = os.path.join(model_dir, model_name)
             ckpt = torch.load(ckpt_path)
             print("Loading model from", ckpt_path)
             print(self.model.load_state_dict(ckpt['model'], strict=False))
         
         # training restart or prediction
-        elif builder_path is not None:
-            self.config = utils.load_yaml_config(os.path.join(builder_path,"log","config.yaml"))
+        elif path is not None:
+            self.config = utils.load_yaml_config(os.path.join(path,"log","config.yaml"))
             # print(self.config)
             if training:
-                self.load_train(builder_path)
+                self.load_train(path)
             else:
-                self.load_test(builder_path)
+                self.load_test(path)
         
         # standard training
         else:
