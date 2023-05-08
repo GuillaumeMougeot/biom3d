@@ -1040,7 +1040,7 @@ def versus_one(fct, in_path, tg_path, num_classes, single_class=None):
     img1,_ = adaptive_imread(in_path)
     print("input path",in_path)
     if len(img1.shape)==3:
-        img1 = one_hot_fast(img1, num_classes)[1:,...]
+        img1 = one_hot_fast(img1.astype(np.uint8), num_classes)[1:,...]
     if single_class is not None:
         img1 = img1[single_class,...]
     img1 = (img1 > 0).astype(int)
@@ -1048,7 +1048,7 @@ def versus_one(fct, in_path, tg_path, num_classes, single_class=None):
     img2,_ = adaptive_imread(tg_path)
     print("target path",tg_path)
     if len(img2.shape)==3:
-        img2 = one_hot_fast(img2, num_classes)[1:,...]
+        img2 = one_hot_fast(img2.astype(np.uint8), num_classes)[1:,...]
     if single_class is not None:
         img2 = img2[single_class,...]
     img2 = (img2 > 0).astype(int)
