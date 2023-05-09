@@ -30,6 +30,9 @@ IMG_DIR = None
 # Folder where pre-processed masks are stored
 MSK_DIR = None
 
+# Folder with the foreground locations
+FG_DIR = None
+
 # (optional) path to the .csv file storing "filename,hold_out,fold", where:
 # "filename" is the image name,
 # "hold_out" is either 0 (training image) or 1 (testing image),
@@ -48,6 +51,9 @@ DESC = 'unet_default'
 # the background does not count, so the minimum is 1 (the max is 255)
 NUM_CLASSES = 1
 
+# number of channels in the input images
+NUM_CHANNELS = 1
+
 #---------------------------------------------------------------------------
 # Auto-config builder-parameters
 # PASTE AUTO-CONFIG RESULTS HERE
@@ -64,10 +70,18 @@ AUG_PATCH_SIZE = [160,160,160]
 # number of pooling done in the UNet
 NUM_POOLS = [5,5,5]
 
+# the parameters below are here to be used by the predictor to 
+# perform image pre-processing
 # median spacing is used only during prediction to normalize the output images
 # it is commented here because we did not noticed any improvement yet
 # MEDIAN_SPACING=[0.79492199, 0.79492199, 2.5]
 MEDIAN_SPACING = []
+
+# clipping bounds
+CLIPPING_BOUNDS = []
+
+# intensity moments
+INTENSITY_MOMENTS = []
 
 #---------------------------------------------------------------------------
 # Advanced paramaters (can be left as such) 
@@ -94,7 +108,7 @@ USE_SOFTMAX = True
 
 # training loop parameters
 USE_FP16 = True
-NUM_WORKERS = 6
+NUM_WORKERS = 10
 PIN_MEMORY = True
 
 #---------------------------------------------------------------------------
@@ -111,7 +125,7 @@ SAVE_MODEL_EVERY_EPOCH = 1
 USE_IMAGE_CLBK = True
 VAL_EVERY_EPOCH = SAVE_MODEL_EVERY_EPOCH
 SAVE_IMAGE_EVERY_EPOCH = SAVE_MODEL_EVERY_EPOCH
-USE_FG_CLBK = True
+USE_FG_CLBK = False
 
 #---------------------------------------------------------------------------
 # dataset configs
@@ -164,7 +178,7 @@ VAL_DATALOADER_KWARGS = Dict(
     batch_size  = BATCH_SIZE, # TODO: change it in the final version
     drop_last   = False, 
     shuffle     = False, 
-    num_workers = NUM_WORKERS, 
+    num_workers = NUM_WORKERS//2, # less worker needed for validation 
     pin_memory  = PIN_MEMORY,
 )
 
@@ -178,6 +192,7 @@ MODEL = Dict(
         num_classes=NUM_CLASSES if not USE_SOFTMAX else NUM_CLASSES+1,
         factor = 32,
         use_deep=USE_DEEP_SUPERVISION,
+        in_planes=NUM_CHANNELS,
     )
 )
 
@@ -185,13 +200,15 @@ MODEL = Dict(
 # loss configs
 
 TRAIN_LOSS = Dict(
-    fct="DiceBCE",
-    kwargs = Dict(name="train_loss", use_softmax=USE_SOFTMAX)
+    fct="DiceCEnnUNet",
+    # kwargs = Dict(name="train_loss", use_softmax=USE_SOFTMAX)
+    kwargs = Dict(name="train_loss")
 )
 
 VAL_LOSS = Dict(
-    fct="DiceBCE",
-    kwargs = Dict(name="val_loss", use_softmax=USE_SOFTMAX)
+    fct="DiceCEnnUNet",
+    # kwargs = Dict(name="val_loss", use_softmax=USE_SOFTMAX)
+    kwargs = Dict(name="val_loss")
 )
 
 #---------------------------------------------------------------------------
@@ -223,9 +240,25 @@ VALIDATER = Dict(
 #---------------------------------------------------------------------------
 # predictors configs
 
+PREPROCESSOR = Dict(
+    fct="Seg",
+    kwargs=Dict(
+        num_classes=NUM_CLASSES,
+        use_one_hot = False,
+        remove_bg = False, 
+        median_spacing=MEDIAN_SPACING,
+        clipping_bounds=CLIPPING_BOUNDS,
+        intensity_moments=INTENSITY_MOMENTS,
+    )
+)
+
 PREDICTOR = Dict(
     fct="SegPatch",
-    kwargs=Dict(patch_size=PATCH_SIZE, tta=True, median_spacing=MEDIAN_SPACING, use_softmax=USE_SOFTMAX, keep_biggest_only=False),
+    kwargs=Dict(
+        patch_size=PATCH_SIZE,
+        tta=True,
+        use_softmax=USE_SOFTMAX,
+        keep_biggest_only=False),
 )
 
 ############################################################################

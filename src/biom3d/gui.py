@@ -213,7 +213,7 @@ class ParaProxy(paramiko.proxy.ProxyCommand):
         self.channel.close()        
 
 #----------------------------------------------------------------------------
-# general utils (also in biom3d.utils)
+# general utils
 
 class Dict(dict):
     def __init__(self, *args, **kwargs): super().__init__(*args, **kwargs)

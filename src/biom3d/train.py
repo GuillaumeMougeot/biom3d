@@ -9,21 +9,14 @@ import numpy as np
 # from telegram_send import send
 
 from biom3d.builder import Builder
-from biom3d.utils import load_yaml_config, load_python_config, abs_listdir, versus_one, dice
+from biom3d.utils import abs_listdir, versus_one, dice, load_python_config
 
 
 #---------------------------------------------------------------------------
 # utils
 
-def train(config=None, log=None): 
-    cfg = None if not config else load_python_config(config)
-    builder = Builder(config=cfg,path=log)
-    builder.run_training()
-    print("Training done!")
-
-def train_yaml(config=None, log=None): 
-    cfg = None if not config else load_yaml_config(config)
-    builder = Builder(config=cfg,path=log)
+def train(config=None, path=None): 
+    builder = Builder(config=config, path=path)
     builder.run_training()
     print("Training done!")
 
@@ -31,8 +24,8 @@ def train_yaml(config=None, log=None):
 # main unet segmentation
 
 def main_seg_pred_eval(
-    config=None,
-    log=None,
+    config_path=None,
+    path=None,
     dir_in=None,
     dir_out=None,
     dir_lab=None,
@@ -46,11 +39,7 @@ def main_seg_pred_eval(
     """
     # train
     print("Start training")
-    if config is not None:
-        cfg = load_python_config(config)
-    else:
-        cfg = None
-    builder_train = Builder(config=cfg,path=log)
+    builder_train = Builder(config=config_path,path=path)
     if freeze_encoder:
         builder_train.model.freeze_encoder()
     builder_train.run_training()
@@ -64,8 +53,8 @@ def main_seg_pred_eval(
     if dir_in is not None and dir_out is not None:
         print("Start inference")
         builder_pred = Builder(
-            config=cfg,
-            path=train_base_dir, 
+            config=config_path,
+            path=path,
             training=False)
 
         dir_out = os.path.join(dir_out,os.path.split(train_base_dir)[-1]) # name the prediction folder with the model folder name
@@ -87,7 +76,7 @@ def main_seg_pred_eval(
                     fct=dice, 
                     in_path=list_abs[1][idx], 
                     tg_path=list_abs[0][idx], 
-                    num_classes=(cfg.NUM_CLASSES+1), 
+                    num_classes=(builder_pred.config.NUM_CLASSES+1), 
                     single_class=None)]
                 print("Metric result:", results[-1])
             print("Evaluation done! Average result:", np.mean(results))
@@ -120,8 +109,7 @@ def main_pretrain_seg_pred_eval(
     """
     # pretraining
     print("Start pretraining")
-    cfg = load_python_config(pretrain_config)
-    builder = Builder(config=cfg,path=log)
+    builder = Builder(config=pretrain_config,path=log)
     if path_encoder is None:
         builder.run_training()
     print("Pretraining is done!")
@@ -218,11 +206,9 @@ if __name__=='__main__':
     parser.add_argument("-n", "--name", type=str, default="train",
         help="Name of the tested method. Valid names: {}".format(valid_names.keys()))
     parser.add_argument("-c", "--config", type=str, default=None,
-        help="Name of the python configuration file (full path and without the .py)")
+        help="Name of the python or yaml configuration file")
     parser.add_argument("-pc", "--pretrain_config", type=str, default=None,
-        help="Name of the python configuration file for the pretraining (full path and without the .py)")
-    parser.add_argument("--config_yaml", type=str, default=None,
-        help="Name of the configuration file stored in yaml format (full path and without the .py)")
+        help="Name of the python or yaml configuration file for the pretraining")
     parser.add_argument("-l", "--log", type=str, default=None,
         help="Name of the log folder. Used to resume model training")
     parser.add_argument("-le","--path_encoder", type=str, default=None,
@@ -261,9 +247,7 @@ if __name__=='__main__':
             dir_out=args.dir_out,
             dir_lab=args.dir_lab,
             )
-    elif args.config_yaml is not None:
-        train_yaml(config=args.config_yaml, log=args.log)
     else:
-        train(config=args.config, log=args.log)
+        train(config=args.config, path=args.log)
 
 #---------------------------------------------------------------------------

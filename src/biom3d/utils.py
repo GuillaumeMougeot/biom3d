@@ -13,12 +13,20 @@ from time import time
 import os 
 import importlib.util
 import sys
+import shutil
+import fileinput
 import tifffile as tiff
 import matplotlib.pyplot as plt
 import yaml # pip install pyyaml
 from skimage import io
+from skimage.transform import resize
+from skimage import measure
 import SimpleITK as sitk
 import torchio as tio
+from numba import njit
+
+try: import napari
+except: pass
 
 # ----------------------------------------------------------------------------
 # read folds from a csv file
@@ -293,7 +301,6 @@ def display_mesh(mesh, xlim, ylim, zlim, save=False):
     plt.savefig('mesh.png') if save else plt.show() 
 
 def napari_viewer(img, pred):
-    import napari
     viewer = napari.view_image(img, name='original')
     viewer.add_image(pred, name='pred')
     viewer.layers['pred'].opacity=0.5
@@ -316,52 +323,167 @@ def abs_listdir(path):
 # preprocess utils
 # from the median image shape predict the size of the patch, the pool, the batch 
 
-def single_patch_pool(dim, size_limit=7):
-    """
-    divide by two the dim number until obtaining a number lower than 7
-    then np.ceil this number
-    then multiply multiple times by two this number to obtain the patch size
-    """
-    pool = 0
-    while dim > size_limit:
-        dim /= 2
-        pool += 1
-    patch = np.round(dim)
-    patch = patch.astype(int)*(2**pool)
-    return patch, pool
 
-def find_patch_pool_batch(dims, max_dims=(128,128,128), max_pool=5, epsilon=1e-3):
+def one_hot(values, num_classes=None):
     """
-    take the median size as input, determine the patch size and the number of pool
-    with "single_patch_pool" function for each dimension and 
-    assert that the final dimension size is smaller than max_dims.prod().
+    transform the values np.array into a one_hot encoded
     """
-    # transform tuples into arrays
-    dims = np.array(dims)
-    max_dims = np.array(max_dims)
+    if num_classes==None: n_values = np.max(values) + 1
+    else: n_values = num_classes
+        
+    # WARNING! potential bug if we have 255 label
+    # this function normalize the values to 0,1 if it founds that the maximum of the values if 255
+    if values.max()==255: values = (values / 255).astype(np.int64) 
     
-    # divides by a 1+epsilon until reaching a sufficiently small resolution
-    while dims.prod() > max_dims.prod():
-        dims = dims / (1+epsilon)
-    dims = dims.astype(int)
+    # re-order values if needed
+    # for examples if unique values are [2,124,178,250] then they will be changed to [0,1,2,3]
+    uni, inv = np.unique(values, return_inverse=True)
+    if np.array_equal(uni, np.arange(len(uni))):
+        values = np.arange(len(uni))[inv].reshape(values.shape)
+        
+    out = np.eye(n_values)[values]
+    return np.moveaxis(out, -1, 0).astype(np.int64)
+
+@njit
+def one_hot_fast(values, num_classes=None):
+    """
+    transform the 'values' array into a one_hot encoded one
+
+    Warning ! If the number of unique values in the input array is lower than the number of classes, then it will consider that the array values are all between zero and `num_classes`. If one value is greater than `num_classes`, then it will add missing values systematically after the maximum value, which could not be the expected behavior. 
+    """
+    # get unique values
+    uni = np.sort(np.unique(values)).astype(np.uint8)
+
+    if num_classes==None: 
+        n_values = len(uni)
+    else: 
+        n_values = num_classes
     
-    # compute patch and pool for all dims
-    patch_pool = np.array([single_patch_pool(m) for m in dims])
-    patch = patch_pool[:,0]
-    pool = patch_pool[:,1]
+        # if the expected number of class is two then apply a threshold
+        if n_values==2 and (len(uni)>2 or uni.max()>1):
+            print("[Warning] The number of expected values is 2 but the maximum value is higher than 1. Threshold will be applied.")
+            values = (values>uni[0]).astype(np.uint8)
+            uni = np.array([0,1]).astype(np.uint8)
+        
+        # add values if uni is incomplete
+        if len(uni)<n_values: 
+            # if the maximum value of the array is greater than n_value, it might be an error but still, we add values in the end.
+            if values.max() >= n_values:
+                print("[Warning] The maximum values in the array is greater than the provided number of classes, this might be unexpected and might cause issues.")
+                while len(uni)<n_values:
+                    uni = np.append(uni, np.uint8(uni[-1]+1))
+            # add missing values in the array by considering that each values are in 0 and n_value
+            else:
+                uni = np.arange(0,n_values).astype(np.uint8)
+        
+    # create the one-hot encoded matrix
+    out = np.zeros((n_values, *values.shape), dtype=np.uint8)
+    for i in range(n_values):
+        out[i] = (values==uni[i]).astype(np.uint8)
+    return out
+
+def resize_segmentation(segmentation, new_shape, order=3):
+    '''
+    Copied from batch_generator library. Copyright Fabian Insensee.
+    Resizes a segmentation map. Supports all orders (see skimage documentation). Will transform segmentation map to one
+    hot encoding which is resized and transformed back to a segmentation map.
+    This prevents interpolation artifacts ([0, 0, 2] -> [0, 1, 2])
+    :param segmentation:
+    :param new_shape:
+    :param order:
+    :return:
+    '''
+    tpe = segmentation.dtype
+    unique_labels = np.unique(segmentation)
+    assert len(segmentation.shape) == len(new_shape), "new shape must have same dimensionality as segmentation"
+    if order == 0:
+        return resize(segmentation.astype(float), new_shape, order, mode="edge", clip=True, anti_aliasing=False).astype(tpe)
+    else:
+        reshaped = np.zeros(new_shape, dtype=segmentation.dtype)
+
+        for i, c in enumerate(unique_labels):
+            mask = segmentation == c
+            reshaped_multihot = resize(mask.astype(float), new_shape, order, mode="edge", clip=True, anti_aliasing=False)
+            reshaped[reshaped_multihot >= 0.5] = c
+        return reshaped
+
+def resize_3d(img, output_shape, order=3, is_msk=False, monitor_anisotropy=True):
+    """
+    Resize a 3D image given an output shape.
     
-    # assert the final size is smaller than max_dims
-    while patch.prod()>max_dims.prod():
-        patch = patch - np.array([32,32,32])*(patch>max_dims) # removing multiples of 32
-    pool = np.where(pool > max_pool, max_pool, pool)
+    Parameters
+    ----------
+    img : numpy.ndarray
+        3D image to resample.
+    output_shape : tuple, list or numpy.ndarray
+        The output shape. Must have an exact length of 3.
+    order : int
+        The order of the spline interpolation. For images use 3, for mask/label use 0.
+
+    Returns
+    -------
+    new_img : numpy.ndarray
+        Resized image.
+    """
+    assert len(img.shape)==4, '[Error] Please provided a 3D image with "CWHD" format'
+    assert len(output_shape)==3 or len(output_shape)==4, '[Error] Output shape must be "CWHD" or "WHD"'
     
-    # batch_size
-    batch = 2
-    while batch*patch.prod() <= 2*max_dims.prod():
-        batch += 1
-    if batch*patch.prod() > 2*max_dims.prod():
-        batch -= 1
-    return patch, pool, batch
+    # convert shape to array
+    input_shape = np.array(img.shape)
+    output_shape = np.array(output_shape)
+    if len(output_shape)==3:
+        output_shape = np.append(input_shape[0],output_shape)
+        
+    # resize function definition
+    resize_fct = resize_segmentation if is_msk else resize
+    resize_kwargs = {} if is_msk else {'mode': 'edge', 'anti_aliasing': False}
+        
+    # separate axis --> [Guillaume] I am not sure about the interest of that... 
+    # we only consider the following case: [147,512,513] where the anisotropic axis is undersampled
+    # and not: [147,151,512] where the anisotropic axis is oversampled
+    anistropy_axes = np.array(output_shape[1:]) / output_shape[1:].min()
+    do_anisotropy = monitor_anisotropy and len(anistropy_axes[anistropy_axes<1.1])==1
+    do_additional_resize = False
+    if do_anisotropy: 
+        axis = np.argmin(anistropy_axes)
+        print("[resize] Anisotropy monitor triggered! Anisotropic axis:", axis)
+        
+        # as the output_shape and the input_shape might have different dimension
+        # along the selected axis, we must use a temporary image.
+        tmp_shape = output_shape.copy()
+        tmp_shape[axis+1] = input_shape[axis+1]
+        
+        tmp_img = np.empty(tmp_shape)
+        
+        length = tmp_shape[axis+1]
+        tmp_shape = np.delete(tmp_shape,axis+1)
+        
+        for c in range(input_shape[0]):
+            coord  = [c]+[slice(None)]*len(input_shape[1:])
+
+            for i in range(length):
+                coord[axis+1] = i
+                tmp_img[tuple(coord)] = resize_fct(img[tuple(coord)], tmp_shape[1:], order=order, **resize_kwargs)
+            
+        # if output_shape[axis] is different from input_shape[axis]
+        # we must resize it again. We do it with order = 0
+        if np.any(output_shape!=tmp_img.shape):
+            do_additional_resize = True
+            order = 0
+            img = tmp_img
+        else:
+            new_img = tmp_img
+    
+    # normal resizing
+    if not do_anisotropy or do_additional_resize:
+        new_img = np.empty(output_shape)
+        for c in range(input_shape[0]):
+            new_img[c] = resize_fct(img[c], output_shape[1:], order=order, **resize_kwargs)
+            
+    return new_img
+
+# ----------------------------------------------------------------------------
+# determine network dynamic architecture
 
 def convert_num_pools(num_pools):
     """
@@ -384,6 +506,7 @@ def convert_num_pools(num_pools):
 
 # ----------------------------------------------------------------------------
 # data augmentation utils
+# not used yet...
 
 def centered_pad(img, final_size, msk=None):
     """
@@ -406,9 +529,8 @@ def centered_pad(img, final_size, msk=None):
     else: 
         return pad_img
 
-class RandomCropResize:
+class SmartPatch:
     """
-    SmartPatch
     Randomly crop and resize the images to a certain crop_shape.
     The global_crop_resize method performs a random crop and resize.
     The local_crop_resize method performs a random crop and resize making sure that the crop 
@@ -594,35 +716,23 @@ class Dict(dict):
     def __setattr__(self, name, value): self[name] = value
     def __delattr__(self, name): del self[name]
 
-def Dict_to_dict(cfg):
+def config_to_type(cfg, new_type):
+    """Change config type to a new type. This function is recursive and can be use to change the type of nested dictionaries. 
     """
-    transform a Dict into a dict
-    """
-    ty = type(cfg)
-    cfg = dict(cfg)
+    old_type = type(cfg)
+    cfg = new_type(cfg)
     for k,i in cfg.items():
-        if type(i)==ty:
-            cfg[k] = Dict_to_dict(cfg[k])
+        if type(i)==old_type:
+            cfg[k] = config_to_type(cfg[k], new_type)
     return cfg
 
-def dict_to_Dict(cfg):
-    """
-    transform a Dict into a dict
-    """
-    ty = type(cfg)
-    cfg = Dict(cfg)
-    for k,i in cfg.items():
-        if type(i)==ty:
-            cfg[k] = dict_to_Dict(cfg[k])
-    return cfg
-
-def save_config(path, cfg):
+def save_yaml_config(path, cfg):
     """
     save a configuration in a yaml file.
     path must thus contains a yaml extension.
     example: path='logs/test.yaml'
     """
-    cfg = Dict_to_dict(cfg)
+    cfg = config_to_type(cfg, dict)
     with open(path, "w") as f:
         yaml.dump(cfg, f, sort_keys=False)
     
@@ -630,12 +740,12 @@ def load_yaml_config(path):
     """
     load a yaml stored with the self.save method.
     """
-    return dict_to_Dict(yaml.load(open(path),Loader=yaml.FullLoader))
+    return config_to_type(yaml.load(open(path),Loader=yaml.FullLoader), Dict)
 
 def nested_dict_pairs_iterator(dic):
     ''' This function accepts a nested dictionary as argument
         and iterate over all values of nested dictionaries
-        stolen from: https://thispointer.com/python-how-to-iterate-over-nested-dictionary-dict-of-dicts/ 
+        get from: https://thispointer.com/python-how-to-iterate-over-nested-dictionary-dict-of-dicts/ 
     '''
     # Iterate over all key-value pairs of dict argument
     for key, value in dic.items():
@@ -661,6 +771,118 @@ def nested_dict_change_value(dic, key, value):
             save[key] = value
     return dic
 
+def replace_line_single(line, key, value):
+    """Given a line, replace the value if the key is in the line. This function follows the following format:
+    \'key = value\'. The line must follow this format and the output will respect this format. 
+    
+    Parameters
+    ----------
+    line : str
+        The input line that follows the format: \'key = value\'.
+    key : str
+        The key to look for in the line.
+    value : str
+        The new value that will replace the previous one.
+    
+    Returns
+    -------
+    line : str
+        The modified line.
+    
+    Examples
+    --------
+    >>> line = "IMG_DIR = None"
+    >>> key = "IMG_DIR"
+    >>> value = "path/img"
+    >>> replace_line_single(line, key, value)
+    IMG_DIR = 'path/img'
+    """
+    if key==line[:len(key)]:
+        assert line[len(key):len(key)+3]==" = ", "[Error] Invalid line. A valid line must contains \' = \'. Line:"+line
+        line = line[:len(key)]
+        
+        # if value is string then we add brackets
+        line += " = "
+        if type(value)==str: 
+            line += "\'" + value + "\'"
+        elif type(value)==np.ndarray:
+            line += str(value.tolist())
+        else:
+            line += str(value)
+    return line
+
+def replace_line_multiple(line, dic):
+    """Similar to replace_line_single but with a dictionary of keys and values.
+    """
+    for key, value in dic.items():
+        line = replace_line_single(line, key, value)
+    return line
+
+def save_python_config(
+    config_dir,
+    base_config = None,
+    **kwargs,
+    ):
+    """
+    Save the configuration in a config file. If the path to a base configuration is provided, then update this file with the new auto-configured parameters else use biom3d.config_default file.
+
+    Parameters
+    ----------
+    config_dir : str
+        Path to the configuration folder. If the folder does not exist, then create it.
+    base_config : str, default=None
+        Path to an existing configuration file which will be updated with the auto-config values.
+    **kwargs
+        Keyword arguments of the configuration file.
+
+    Returns
+    -------
+    config_path : str
+        Path to the new configuration file.
+    
+    Examples
+    --------
+    >>> config_path = save_config_python(\\
+        config_dir="configs/",\\
+        base_config="configs/pancreas_unet.py",\\
+        IMG_DIR="/pancreas/imagesTs_tiny_out",\\
+        MSK_DIR="pancreas/labelsTs_tiny_out",\\
+        NUM_CLASSES=2,\\
+        BATCH_SIZE=2,\\
+        AUG_PATCH_SIZE=[56, 288, 288],\\
+        PATCH_SIZE=[40, 224, 224],\\
+        NUM_POOLS=[3, 5, 5])
+    """
+
+    # create the config dir if needed
+    if not os.path.exists(config_dir):
+        os.makedirs(config_dir, exist_ok=True)
+
+    # copy default config file or use the one given by the user
+    if base_config == None:
+        try:
+            from biom3d import config_default
+            config_path = shutil.copy(config_default.__file__, config_dir) 
+        except:
+            print("[Error] Please provide a base config file or install biom3d.")
+            raise RuntimeError
+    else: 
+        config_path = base_config
+
+    # rename it with date included
+    current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
+    new_config_name = os.path.join(config_dir, current_time+"-"+os.path.basename(config_path))
+    os.rename(config_path, new_config_name)
+
+    # edit the new config file with the auto-config values
+    with fileinput.input(files=(new_config_name), inplace=True) as f:
+        for line in f:
+            # edit the line
+            line = replace_line_multiple(line, kwargs)
+            # write back in the input file
+            print(line, end='') 
+    return new_config_name
+
 def load_python_config(config_path):
     """Return the configuration dictionary given the path of the configuration file.
     The configuration file is in Python format.
@@ -681,12 +903,33 @@ def load_python_config(config_path):
     config = importlib.util.module_from_spec(spec)
     sys.modules["config"] = config
     spec.loader.exec_module(config)
-    return config.CONFIG
+    return config_to_type(config.CONFIG, Dict) # change type from config.Dict to Dict
+
+def adaptive_load_config(config_path):
+    """Return the configuration dictionary given the path of the configuration file.
+    The configuration file is in Python or YAML format.
+
+    Parameters
+    ----------
+    config_path : str
+        Path of the configuration file. Should have the '.py' or '.yaml' extension.
+    
+    Returns
+    -------
+    cfg : biom3d.utils.Dict
+        Dictionary of the config.
+    """
+    extension = config_path[config_path.rfind('.'):]
+    if extension=='.py':
+        return load_python_config(config_path=config_path)
+    elif extension=='.yaml':
+        return load_yaml_config(config_path=config_path)
+    else:
+        print("[Error] Unknow format for config file.")
 
 # ----------------------------------------------------------------------------
 # postprocessing utils
 
-from skimage import measure
 def dist_vec(v1,v2):
     """
     euclidean distance between two vectors (np.array)
@@ -698,15 +941,6 @@ def center(labels, idx):
     """
     return the barycenter of the pixels of label = idx
     """
-    # dim = labels.shape
-    
-    # matrix of coordinate with the same size as labels
-    # x, y, z = np.meshgrid(np.arange(dim[1]),np.arange(dim[0]), np.arange(dim[2]))
-    # out = np.stack((y,x,z))
-    # out = np.transpose(out, axes=(1,2,3,0))
-    
-    # extract the barycenter
-    # return np.mean(out[labels==idx], axis=0)
     return np.mean(np.argwhere(labels == idx), axis=0)
 
 def closest(labels, num):
@@ -785,45 +1019,6 @@ def keep_biggest_volume_centered(msk):
 
 # ----------------------------------------------------------------------------
 # test utils
-
-def one_hot(values, num_classes=None):
-    """
-    One hot encoding
-    """
-    if num_classes==None:
-        n_values = np.max(values) + 1
-    else:
-        n_values = num_classes
-    out = np.eye(n_values)[values]
-    out = np.moveaxis(out, -1, 0)
-    return out
-
-def one_hot_fast(values, num_classes=None):
-    """
-    transform the 'values' array into a one_hot encoded one
-    """
-    if num_classes==None: n_values = np.max(values) + 1
-    else: n_values = num_classes
-
-    # get unique values
-    uni = np.sort(np.unique(values))
-    
-    # if the expected number of class is two then apply a threshold
-    if len(uni)>2 and n_values==2:
-        values = (values>uni[0]).astype(np.uint8)
-    
-    # add values if uni is incomplete
-    while len(uni)<n_values: 
-        uni = np.append(uni, np.uint8(uni[-1]+1))
-        
-    # create the one-hot encoded matrix
-    out = np.empty((n_values, *values.shape), dtype=np.uint8)
-    c = 0
-    for i in range(n_values):
-        if i in uni:
-            out[i] = (values==uni[c]).astype(np.uint8)
-            c += 1
-    return out
 
 # metric definition
 def iou(inputs, targets, smooth=1):

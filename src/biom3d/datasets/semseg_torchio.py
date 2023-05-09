@@ -8,6 +8,7 @@ import os
 import numpy as np 
 import torchio as tio
 import random 
+import pickle
 # from monai.data import CacheDataset
 import pandas as pd 
 from tifffile import imread
@@ -124,15 +125,19 @@ class RandomCropOrPad(RandomTransform, SpatialTransform):
         
         force_fg = random.random()
         if self.fg_rate>0 and force_fg<self.fg_rate:
-            label = subject[self.label_name].data
-            if tuple(label.shape)[0]==1:
-                # then we consider that we don't have a one hot encoded label
-                rnd_label = random.randint(1,label.max()+1)
-                locations = torch.argwhere(label[0] == rnd_label)
+            if 'fg' in subject[self.label_name].keys() and subject[self.label_name]['fg'] is not None:
+                fg = subject[self.label_name]['fg']
+                locations = fg[random.choice(list(fg.keys()))]
             else:
-                # then we have a one hot encoded label
-                rnd_label = random.randint(self.start_fg_idx,tuple(label.shape)[0]-1)
-                locations = torch.argwhere(label[rnd_label] == 1)
+                label = subject[self.label_name].data
+                if tuple(label.shape)[0]==1:
+                    # then we consider that we don't have a one hot encoded label
+                    rnd_label = random.randint(1,label.max()+1)
+                    locations = torch.argwhere(label[0] == rnd_label)
+                else:
+                    # then we have a one hot encoded label
+                    rnd_label = random.randint(self.start_fg_idx,tuple(label.shape)[0]-1)
+                    locations = torch.argwhere(label[rnd_label] == 1)
             
             if len(locations)==0: # bug fix when having empty arrays 
                 index_ini = tuple(int(torch.randint(np.maximum(x,0) + 1, (1,)).item()) for x in valid_range)
@@ -214,6 +219,7 @@ class TorchioDataset(SubjectsDataset):
         batch_size, 
         patch_size,
         nbof_steps,
+        fg_dir     = None,
         folds_csv  = None, 
         fold       = 0, 
         val_split  = 0.25,
@@ -233,6 +239,7 @@ class TorchioDataset(SubjectsDataset):
         """
         self.img_dir = img_dir
         self.msk_dir = msk_dir
+        self.fg_dir = fg_dir
 
         self.batch_size = batch_size
         self.patch_size = patch_size
@@ -254,9 +261,11 @@ class TorchioDataset(SubjectsDataset):
             self.train_imgs = []
             for i in trainset: self.train_imgs += i
 
-        else: # tmp: validation split = 50% by default
+        else: 
             all_set = os.listdir(img_dir)
             val_split = np.round(val_split * len(all_set)).astype(int)
+
+            # force validation to contain at least one image
             if val_split == 0: val_split=1
             self.train_imgs = all_set[val_split:]
             self.val_imgs = all_set[:val_split]
@@ -271,6 +280,8 @@ class TorchioDataset(SubjectsDataset):
 
         self.fnames = self.train_imgs if self.train else self.val_imgs
 
+        if len(self.fnames)==1: self.load_data=True # we force dataloading for single images.
+
         # print train and validation image names
         print("{} images: {}".format("Training" if self.train else "Validation", self.fnames))
         
@@ -282,33 +293,34 @@ class TorchioDataset(SubjectsDataset):
             for idx in range(len(fnames)):
                 img_path = os.path.join(self.img_dir, fnames[idx])
                 msk_path = os.path.join(self.msk_dir, fnames[idx])
+                if self.fg_dir is not None:
+                    fg_path = os.path.join(self.fg_dir, fnames[idx][:fnames[idx].find(".")]+'.pkl')
+                    fg = pickle.load(open(fg_path, 'rb'))
+                    fg = {k:torch.tensor(v) for k,v in fg.items()}
+                else: 
+                    fg = None
 
                 # load img and msks
                 if self.load_data:
-                    img = torch.from_numpy(adaptive_imread(img_path)[0])
-                    msk = torch.from_numpy(adaptive_imread(msk_path)[0]).long()
+                    img = torch.from_numpy(adaptive_imread(img_path)[0].astype(np.float32))
+                    msk = torch.from_numpy(adaptive_imread(msk_path)[0].astype(np.int8)).long()
                     subjects_list += [
                         tio.Subject(
                             img=tio.ScalarImage(tensor=img),
-                            msk=tio.LabelMap(tensor=msk))]    
+                            msk=tio.LabelMap(tensor=msk) if fg is None else tio.LabelMap(tensor=msk, fg=fg))]    
                 else:
                     subjects_list += [
                         tio.Subject(
                             img=tio.ScalarImage(img_path, reader=reader),
-                            msk=tio.LabelMap(msk_path, reader=reader))] 
+                            msk=tio.LabelMap(msk_path, reader=reader) if fg is None else tio.LabelMap(tensor=msk, reader=reader, fg=fg))] 
             return subjects_list
 
         self.subjects_list = load_subjects(self.fnames)
         self.use_aug = use_aug
         self.fg_rate = fg_rate
         self.use_softmax = use_softmax
+        self.batch_idx = 0
         
-        self.set_preprocessing()
-
-        SubjectsDataset.__init__(self, subjects=self.subjects_list)
-        
-    
-    def set_preprocessing(self):
         if self.use_aug:
             ps = np.array(self.patch_size)
 
@@ -342,18 +354,19 @@ class TorchioDataset(SubjectsDataset):
             self.transform = tio.Compose([
                 # pre-cropping to aug_patch_size
                 tio.OneOf({
-                    tio.Compose([RandomCropOrPad(self.aug_patch_size, fg_rate=self.fg_rate, label_name='msk', use_softmax=self.use_softmax),
+                    tio.Compose([# RandomCropOrPad(self.aug_patch_size, fg_rate=self.fg_rate, label_name='msk', use_softmax=self.use_softmax),
                                 #  tio.RandomAffine(scales=(0.7,1.4), degrees=degrees, translation=0),
-                                 tio.RandomAffine(scales=0, degrees=degrees, translation=0),
+                                 tio.RandomAffine(scales=0, degrees=degrees, translation=0, default_pad_value=0),
                                  tio.Crop(cropping=cropping),
                                  LabelToLong(label_name='msk')
-                                ]): 0.25,
-                    RandomCropOrPad(self.patch_size, fg_rate=self.fg_rate, label_name='msk',use_softmax=self.use_softmax): 0.75,
+                                ]): 0.2,
+                    tio.Crop(cropping=cropping): 0.8,
+#                     RandomCropOrPad(self.patch_size, fg_rate=self.fg_rate, label_name='msk',use_softmax=self.use_softmax): 0.8,
                 }),
 
                 tio.Compose([tio.RandomAffine(scales=(0.7,1.4), degrees=0, translation=0),
                              LabelToLong(label_name='msk')
-                            ], p=0.25),
+                            ], p=0.2),
                 # RandomCropOrPad(AUG_PATCH_SIZE),
 
                 # spatial augmentations
@@ -378,20 +391,18 @@ class TorchioDataset(SubjectsDataset):
                 # LabelToFloat(label_name='msk')
             ])
 
-            # transform = tio.Compose([
-            #     # pre-cropping to aug_patch_size
-            #     RandomCropOrPad(self.patch_size, fg_rate=self.fg_rate, label_name='msk',use_softmax=self.use_softmax),
-            #     tio.RandomFlip(p=1, axes=(0,1,2)),
-            # ])
-        else:
-            self.transform = RandomCropOrPad(self.patch_size, fg_rate=self.fg_rate, label_name='msk')
+        SubjectsDataset.__init__(self, subjects=self.subjects_list)
     
-    def set_fg_rate(self,value):
+    def _do_fg(self):
         """
-        setter function for the foreground rate class parameter
+        determines whether to force the foreground depending on the batch idx
         """
-        self.fg_rate = value
-        self.set_preprocessing()
+        return not self.batch_idx < round(self.batch_size * (1 - self.fg_rate))
+    
+    def _update_batch_idx(self):
+        self.batch_idx += 1
+        if self.batch_idx >= self.batch_size:
+            self.batch_idx = 0
 
     def __len__(self):
         return self.nbof_steps*self.batch_size
@@ -413,7 +424,10 @@ class TorchioDataset(SubjectsDataset):
             subject.load()
 
         # Apply transform (this is usually the bottleneck)
-        if self.transform is not None:
+        patch_size = self.aug_patch_size if self.use_aug else self.patch_size
+        subject = RandomCropOrPad(patch_size, fg_rate=int(self._do_fg()), label_name='msk')(subject)
+        self._update_batch_idx()
+        if self.use_aug:
             subject = self.transform(subject)
         return subject['img'][tio.DATA], subject['msk'][tio.DATA]
     

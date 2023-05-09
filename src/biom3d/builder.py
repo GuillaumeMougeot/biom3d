@@ -4,6 +4,7 @@
 #---------------------------------------------------------------------------
 
 import os 
+import shutil
 import torch
 from torch.utils.data import DataLoader
 # from monai.data import ThreadDataLoader
@@ -134,10 +135,10 @@ class Builder:
 
     Parameters
     ----------
-    config : biom3d.utils.Dict
-        A dictionary defining the configuration file. Specific keywords must be defined, others are optional.
+    config : str, dict or biom3d.utils.Dict
+        Path to a Python configuration file (in either .py or .yaml format) or dictionary of a configuration file. Please refer to biom3d.config_default.py to see the default configuration file format.
     path : str
-        Path to the log folder. 
+        Path to a builder folder which contains the model, the model configuration and the training logs.
     training : bool, default=True
         Whether to load the model in training or testing mode.
 
@@ -162,16 +163,16 @@ class Builder:
         training=True,  # use training mode or testing?
         ):                
 
-        if path is not None:
-            self.config = utils.load_yaml_config(path + "/log/config.yaml")
-            # print(self.config)
-            if training:
-                self.load_train(path)
+        # for training or fine-tuning:
+        # load the config file and change some parameters if multi-gpus training
+        if config is not None: 
+            assert type(config)==str or type(config)==dict or type(config)==utils.Dict, "[Error] Config has the wrong type {}".format(type(config))
+            if type(config)==str:
+                self.config_path = config
+                self.config = utils.adaptive_load_config(config)
             else:
-                self.load_test(path)
-        else:
-            assert config is not None, "[Error] config file not defined."
-            self.config = config
+                self.config_path = None
+                self.config = config
 
             # if there are more than 1 GPU we augment the batch size and reduce the number of epochs
             if torch.cuda.device_count() > 1: 
@@ -182,6 +183,33 @@ class Builder:
                 self.config.BATCH_SIZE *= torch.cuda.device_count()
                 self.config.NB_EPOCHS = self.config.NB_EPOCHS//torch.cuda.device_count()
 
+        # fine-tuning  
+        if path is not None and config is not None:
+            print("Fine-tuning mode! The path to a builder folder and a configuration file have been input.")
+            
+            # build the training folder
+            self.build_train()
+
+            # load the model weights
+            model_dir = os.path.join(path, 'model')
+            model_name = utils.load_yaml_config(os.path.join(path,"log","config.yaml")).DESC+'.pth'
+            ckpt_path = os.path.join(model_dir, model_name)
+            ckpt = torch.load(ckpt_path)
+            print("Loading model from", ckpt_path)
+            print(self.model.load_state_dict(ckpt['model'], strict=False))
+        
+        # training restart or prediction
+        elif path is not None:
+            self.config = utils.load_yaml_config(os.path.join(path,"log","config.yaml"))
+            # print(self.config)
+            if training:
+                self.load_train(path)
+            else:
+                self.load_test(path)
+        
+        # standard training
+        else:
+            assert config is not None, "[Error] config file not defined."
             # print(self.config)
             self.build_train()
 
@@ -461,10 +489,15 @@ class Builder:
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
 
-        # saver configs
+        # saver folder configuration
         self.base_dir, self.image_dir, self.log_dir, self.model_dir = utils.create_save_dirs(
             self.config.LOG_DIR, self.config.DESC, dir_names=['image', 'log', 'model'], return_base_dir=True) 
-        utils.save_config(os.path.join(self.log_dir, 'config.yaml'), self.config) # save the config file
+    
+        # save the config file
+        if self.config_path is not None:
+            basename = os.path.basename(self.config_path)
+            shutil.copy(self.config_path, os.path.join(self.log_dir, basename))
+        utils.save_yaml_config(os.path.join(self.log_dir, 'config.yaml'), self.config) # will eventually replace the yaml file
 
         self.model_path = os.path.join(self.model_dir, self.config.DESC)
 
@@ -544,13 +577,16 @@ class Builder:
         numpy.ndarray
             Output images.
         """
+        # load image with the preprocessor
+        img, img_metadata = read_config(self.config.PREPROCESSOR, register.preprocessors, img_path=img_path)
 
         return read_config(
             self.config.PREDICTOR, 
             register.predictors,
-            img_path = img_path,
+            img = img,
             model = self.model,
             return_logit = return_logit,
+            **img_metadata
             )
     
     def run_prediction_folder(self, dir_in, dir_out, return_logit=False):
@@ -625,13 +661,8 @@ class Builder:
         if not 'LR_START' in self.config.keys() or self.config.LR_START is None:
             self.optim.load_state_dict(ckpt['opt'])
 
-        if 'epoch' in list(ckpt.keys()): # tmp
+        if 'epoch' in list(ckpt.keys()): 
             self.initial_epoch=ckpt['epoch'] # definitive version 
-        # else: # tmp
-        #     with open(self.log_path, "r") as file:
-        #         last_line = file.readlines()[-1] # read the last line
-        #     last_line = last_line.split(',')
-        #     self.initial_epoch=int(last_line[0])
         print('Restart training at epoch {}'.format(self.initial_epoch))
 
         self.build_dataset()

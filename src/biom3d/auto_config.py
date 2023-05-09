@@ -7,16 +7,11 @@
 # - the number of poolings in the 3D U-Net
 #---------------------------------------------------------------------------
 
-import shutil
-import fileinput
-from datetime import datetime
 from skimage.io import imread
 import SimpleITK as sitk
 import os
 import numpy as np
 import argparse
-
-from biom3d import config_default
 
 # ----------------------------------------------------------------------------
 # path utils
@@ -142,20 +137,49 @@ def compute_median(path, return_spacing=False):
 
 def data_fingerprint(img_dir, msk_dir=None, num_samples=10000):
     """Compute the data fingerprint. 
+
+    Parameters 
+    ----------
+    img_dir : str
+        Path to the directory of images.
+    msk_dir : str, default=None
+        (Optional) Path to the corresponding directory of masks. If provided the function will compute the mean, the standard deviation, the 0.5% percentile and the 99.5% percentile of the intensity values of the images located inside the masks. If not provide, the function returns zeros for each of these values.
+    num_samples : int, default=10000
+        We compute the intensity characteristic on only a sample of the candidate voxels.
+    
+    Returns
+    -------
+    median_size : numpy.ndarray
+        Median size of the images in the image folder.
+    median_spacing : numpy.ndarray
+        Median spacing of the images in the image folder.
+    mean : float
+        Mean of the intensities.
+    std : float
+        Standard deviation of the intensities.
+    perc_005 : float
+        0.5% percentile of the intensities.
+    perc_995 : float
+        99.5% percentile of the intensities.
     """ 
     path_imgs = abs_listdir(img_dir)
     if msk_dir is not None:
         path_msks = abs_listdir(msk_dir)
-        
+    
     sizes = []
     spacings = []
     samples = []
         
     for i in range(len(path_imgs)):
         img,spacing = adaptive_imread(path_imgs[i])
+
+        # store the size
         sizes += [list(img.shape)]
+
+        # store the spacing
         if spacing is not None or spacing!=[]: 
             spacings+=[spacing]
+
         if msk_dir is not None:
             # read msk
             msk,_ = adaptive_imread(path_msks[i])
@@ -166,7 +190,7 @@ def data_fingerprint(img_dir, msk_dir=None, num_samples=10000):
             # to get a global sample of all the images, 
             # we use random sampling on the image voxels inside the mask
             samples.append(np.random.choice(img, num_samples, replace=True) if len(img)>0 else [])
-            
+
     # median computation
     median_size = np.median(np.array(sizes), axis=0).astype(int)
     median_spacing = np.median(np.array(spacings), axis=0)
@@ -250,7 +274,7 @@ def find_patch_pool_batch(dims, max_dims=(128,128,128), max_pool=5, epsilon=1e-3
     
     # assert the final size is smaller than max_dims
     while patch.prod()>max_dims.prod():
-        patch = patch - np.array([32,32,32])*(patch>max_dims) # removing multiples of 32
+        patch = patch - np.array([2**max_pool]*3)*(patch>max_dims) # removing multiples of 32
     pool = np.where(pool > max_pool, max_pool, pool)
     
     # batch_size
@@ -261,6 +285,29 @@ def find_patch_pool_batch(dims, max_dims=(128,128,128), max_pool=5, epsilon=1e-3
         batch -= 1
     return patch, pool, batch
 
+def get_aug_patch(patch_size):
+    """Return augmentation patch size.
+    The current solution is to increase the size of each dimension by 17% except for the eventual anisotropic dimension (meaning that this dimension is at least three time smaller than the others)... All of this sounds arbitrary... yes but it is pretty close to the original nnUNet solution.
+
+    Parameters
+    ----------
+    patch_size : tuple, list or numpy.ndarray
+        Patch size.
+
+    Returns
+    -------
+    aug_patch : numpy.ndarray
+        Augmentation patch size.
+    """
+    ps = np.array(patch_size)
+    aug_patch = np.round(1.17*ps).astype(int)
+    dummy_2d = ps/ps.min()
+    if np.any(dummy_2d>3): # then use dummy_2d
+        axis = np.argmin(dummy_2d)
+        aug_patch[axis] = patch_size[axis]
+    return aug_patch
+        
+
 # ----------------------------------------------------------------------------
 # Display 
 
@@ -270,7 +317,7 @@ def display_info(patch, pool, batch):
     print("*"*20,"YOU CAN COPY AND PASTE THE FOLLOWING LINES INSIDE THE CONFIG FILE", "*"*20)
     print("BATCH_SIZE =", batch)
     print("PATCH_SIZE =", list(patch))
-    aug_patch = np.array(patch)+2**(np.array(pool)+1)
+    aug_patch = get_aug_patch(patch)
     print("AUG_PATCH_SIZE =",list(aug_patch))
     print("NUM_POOLS =", list(pool))
 
@@ -298,124 +345,15 @@ def auto_config(img_dir=None, median=None, max_dims=(128,128,128)):
     pool: numpy.ndarray
         Number of pooling.
     """
-    assert not(img_dir == None and median == None), "[Error] Please provide either an image directory or a median shape."
-    if median == None: median = compute_median(path=img_dir) 
+    assert not(img_dir is None and median is None), "[Error] Please provide either an image directory or a median shape."
+    if median is None: median = compute_median(path=img_dir) 
     patch, pool, batch = find_patch_pool_batch(dims=median, max_dims=max_dims) 
-    aug_patch = np.array(patch)+2**(np.array(pool)+1)
+    aug_patch = get_aug_patch(patch)
     return batch, aug_patch, patch, pool
 
 # ----------------------------------------------------------------------------
-# Save the auto-config values in a config file.
-
-def replace_line_single(line, key, value):
-    """Given a line, replace the value if the key is in the line. This function follows the following format:
-    \'key = value\'. The line must follow this format and the output will respect this format. 
-    
-    Parameters
-    ----------
-    line : str
-        The input line that follows the format: \'key = value\'.
-    key : str
-        The key to look for in the line.
-    value : str
-        The new value that will replace the previous one.
-    
-    Returns
-    -------
-    line : str
-        The modified line.
-    
-    Examples
-    --------
-    >>> line = "IMG_DIR = None"
-    >>> key = "IMG_DIR"
-    >>> value = "path/img"
-    >>> replace_line_single(line, key, value)
-    IMG_DIR = 'path/img'
-    """
-    if key==line[:len(key)]:
-        assert line[len(key):len(key)+3]==" = ", "[Error] Invalid line. A valid line must contains \' = \'. Line:"+line
-        line = line[:len(key)]
-        
-        # if value is string then we add brackets
-        line += " = "
-        if type(value)==str: 
-            line += "\'" + value + "\'"
-        elif type(value)==np.ndarray:
-            line += str(value.tolist())
-        else:
-            line += str(value)
-    return line
-
-def replace_line_multiple(line, dic):
-    """Similar to replace_line_single but with a dictionary of keys and values.
-    """
-    for key, value in dic.items():
-        line = replace_line_single(line, key, value)
-    return line
-
-def save_auto_config(
-    config_dir,
-    base_config = None,
-    **kwargs,
-    ):
-    """
-    Save the auto-configuration in a config file. If the path to a base configuration is provided, then update this file with the new auto-configured parameters.
-
-    Parameters
-    ----------
-    config_dir : str
-        Path to the configuration folder. If the folder does not exist, then create it.
-    base_config : str, default=None
-        Path to an existing configuration file which will be updated with the auto-config values.
-    **kwargs
-        Keyword arguments of the configuration file.
-
-    Returns
-    -------
-    config_path : str
-        Path to the new configuration file.
-    
-    Examples
-    --------
-    >>> config_path = save_auto_config(\\
-        config_dir="configs/",\\
-        base_config="configs/pancreas_unet.py",\\
-        IMG_DIR="/pancreas/imagesTs_tiny_out",\\
-        MSK_DIR="pancreas/labelsTs_tiny_out",\\
-        NUM_CLASSES=2,\\
-        BATCH_SIZE=2,\\
-        AUG_PATCH_SIZE=[56, 288, 288],\\
-        PATCH_SIZE=[40, 224, 224],\\
-        NUM_POOLS=[3, 5, 5])
-    """
-
-    # create the config dir if needed
-    if not os.path.exists(config_dir):
-        os.makedirs(config_dir, exist_ok=True)
-
-    # copy default config file or use the one given by the user
-    if base_config == None:
-        config_path = shutil.copy(config_default.__file__, config_dir) 
-    else: 
-        config_path = base_config
-
-    # rename it with date included
-    current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
-    new_config_name = os.path.join(config_dir, current_time+"-"+os.path.basename(config_path))
-    os.rename(config_path, new_config_name)
-
-    # edit the new config file with the auto-config values
-    with fileinput.input(files=(new_config_name), inplace=True) as f:
-        for line in f:
-            # edit the line
-            line = replace_line_multiple(line, kwargs)
-            # write back in the input file
-            print(line, end='') 
-    return new_config_name
-
-# ----------------------------------------------------------------------------
 # Main
+# Note 2023/04/28, Guillaume: I think that the main is now a bit outdated... still works tho
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description="Auto-configuration of the hyper-parameter for training.")
@@ -435,7 +373,6 @@ if __name__=='__main__':
         help="(default=None) Optional. Path to an existing configuration file which will be updated with the preprocessed values.")
     args = parser.parse_args()
 
-
     median = compute_median(path=args.img_dir, return_spacing=args.spacing)
     
     if args.spacing: 
@@ -451,14 +388,19 @@ if __name__=='__main__':
     if args.median:print("MEDIAN =", list(median))
 
     if args.save_config:
-        config_path = save_auto_config(
-            config_dir=args.config_dir,
-            base_config=args.base_config,
-            BATCH_SIZE=batch,
-            AUG_PATCH_SIZE=aug_patch,
-            PATCH_SIZE=patch,
-            NUM_POOLS=pool,
-            MEDIAN_SPACING=median_spacing,
-        )
+        try: 
+            from biom3d.utils import save_python_config
+            config_path = save_python_config(
+                config_dir=args.config_dir,
+                base_config=args.base_config,
+                BATCH_SIZE=batch,
+                AUG_PATCH_SIZE=aug_patch,
+                PATCH_SIZE=patch,
+                NUM_POOLS=pool,
+                MEDIAN_SPACING=median_spacing,
+            )
+        except:
+            print("[Error] Import error. Biom3d must be installed if you want to save your configuration. Another solution is to config the function function in biom3d.utils here...")
+            raise ImportError
 
 # ----------------------------------------------------------------------------

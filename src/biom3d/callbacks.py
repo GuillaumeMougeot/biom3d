@@ -351,7 +351,7 @@ class ImageSaver(Callback):
                     l = [X, y, pred.detach()]
                     for j in range(len(l)):
                         _,_,channel,_,_ = l[j].shape
-                        l[j] = l[j][0, -1, channel//2, ...].cpu().numpy().astype(float)
+                        l[j] = l[j][-1, -1, channel//2, ...].cpu().numpy().astype(float)
                     X, y, pred = l
 
                     # plot 
