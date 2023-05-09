@@ -481,7 +481,6 @@ class TrainFolderSelection(ttk.LabelFrame):
         # Position elements
 
         self.label1.grid(column=0, row=1, sticky=W, pady=5)
-        self.send_data_button.grid(column=0, row=9, sticky=(E), ipady=5, pady=4)
         
         if REMOTE:
             self.label0.grid(column=0,row=0, sticky=W, pady=2)
@@ -490,6 +489,7 @@ class TrainFolderSelection(ttk.LabelFrame):
             self.msk_outdir.grid(column=0,row=4, sticky=(W,E))
             self.send_data_label.grid(column=0, row=7, sticky=(W,E), pady=2)
             self.send_data_entry.grid(column=0, row=8, sticky=(W,E))
+            self.send_data_button.grid(column=0, row=9, sticky=(E), ipady=5, pady=4)
             self.data_dir_option_menu.grid(column=0, row=10, pady=2)
             self.label4.grid(column=0,row=10, sticky=W, pady=2)
         else:
@@ -569,7 +569,7 @@ class ConfigFrame(ttk.LabelFrame):
         # widgets definitions
         willy1 = ttk.Style()
         willy1.configure("auto_confing_button.TLabel", background = '#76D7C4', foreground = 'black', width = 45, borderwidth=3, focusthickness=7, focuscolor='red', relief="raised" , anchor='c')
-        self.auto_config_button = ttk.Button(self, text="Working Preprocessing & Auto-configuration", style='train_button.TLabel',width = 45,command=self.auto_config)
+        self.auto_config_button = ttk.Button(self, text="Preprocessing & Auto-configuration", style='train_button.TLabel',width = 45,command=self.auto_config)
         #self.img_outdir = train_folder_selection.img_outdir
         self.auto_config_finished = ttk.Label(self, text="")
 
@@ -645,9 +645,8 @@ class ConfigFrame(ttk.LabelFrame):
 
         if REMOTE:
             # preprocessing
-            print("------------------------------------------------------------------",TrainFolderSelection().classes.get())
             REMOTE.exec_command("cd {}; python -m biom3d.preprocess --img_dir data/{}/img --msk_dir data/{}/msk --num_classes {} ".format(MAIN_DIR, selected_dataset, selected_dataset,TrainFolderSelection().classes.get()))
-            _,stdout,stderr=REMOTE.exec_command("cd {}; python -m biom3d.auto_config --img_dir data/{}/img_out ".format(MAIN_DIR, selected_dataset))
+            _,stdout,stderr=REMOTE.exec_command("cd {}; python -m biom3d.auto_config --img_dir data/{}/img ".format(MAIN_DIR, selected_dataset))
             auto_config_results = stdout.readlines()
             auto_config_results = [e.replace('\n','') for e in auto_config_results]
             
@@ -661,6 +660,7 @@ class ConfigFrame(ttk.LabelFrame):
                 print(line, end="")
 
             batch, aug_patch, patch, pool = auto_config_results
+            
         else: 
             # Preprocessing    
             p=Preprocessing(
