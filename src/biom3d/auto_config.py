@@ -123,8 +123,10 @@ def compute_median(path, return_spacing=False):
     if return_spacing: spacings = []
     for i in range(len(path_imgs)):
         img,spacing = adaptive_imread(path_imgs[i])
+        assert len(img.shape)>0, "[Error] Wrong image image."
         sizes += [list(img.shape)]
         if return_spacing and (spacing is not None): spacings+=[spacing]
+    assert len(sizes)>0, "[Error] List of sizes for median computation is empty. It is probably due to an empty image folder."
     sizes = np.array(sizes)
     median = np.median(sizes, axis=0).astype(int)
     

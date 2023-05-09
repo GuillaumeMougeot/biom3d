@@ -8,6 +8,7 @@
 #  --ct_norm
 
 python -m biom3d.preprocess\
- --img_dir data/msd/Task01_BrainTumour/imagesTr\
- --msk_dir data/msd/Task01_BrainTumour/labelsTr\
- --num_classes 3
+ --img_dir data/msd/Task01_BrainTumour/imagesTr_train\
+ --msk_dir data/msd/Task01_BrainTumour/labelsTr_train\
+ --num_classes 3\
+ --skip_preprocessing

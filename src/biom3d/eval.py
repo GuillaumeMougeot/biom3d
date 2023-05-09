@@ -16,7 +16,7 @@ def eval(dir_lab, dir_out, num_classes):
             fct=dice, 
             in_path=list_abs[1][idx], 
             tg_path=list_abs[0][idx], 
-            num_classes=num_classes, 
+            num_classes=num_classes+1, 
             single_class=None)
 
         print("Metric result:", res)

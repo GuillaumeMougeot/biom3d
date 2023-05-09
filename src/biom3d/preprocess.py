@@ -472,6 +472,8 @@ if __name__=='__main__':
         help="(default=False) Stop showing the information to copy and paste inside the configuration file (patch_size, batch_size and num_pools).") 
     parser.add_argument("--ct_norm", default=False,  action='store_true', dest='ct_norm',
         help="(default=False) Whether to use CT-Scan normalization routine (cf. nnUNet).") 
+    parser.add_argument("--skip_preprocessing", default=False,  action='store_true', dest='skip_preprocessing',
+        help="(default=False) Whether to skip the preprocessing. Only for debugging.") 
     args = parser.parse_args()
 
     if args.ct_norm:
@@ -481,6 +483,7 @@ if __name__=='__main__':
         intensity_moments = [mean, std]
         print("Done!")
     else:
+        median_size = None
         median_spacing = []
         clipping_bounds = []
         intensity_moments = []
@@ -499,13 +502,14 @@ if __name__=='__main__':
         intensity_moments=intensity_moments,
     )
 
-    p.run()
+    if not args.skip_preprocessing:
+        p.run()
 
     if not args.no_auto_config:
         print("Start auto-configuration")
         
 
-        batch, aug_patch, patch, pool = auto_config(median=median_size)
+        batch, aug_patch, patch, pool = auto_config(median=median_size, img_dir=args.img_dir if median_size is None else None)
 
         config_path = save_python_config(
             config_dir=args.config_dir,

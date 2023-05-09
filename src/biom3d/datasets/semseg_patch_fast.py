@@ -10,21 +10,9 @@ import random
 from torch.utils.data import Dataset
 # from monai.data import CacheDataset
 import pandas as pd 
-from tifffile import imread
+# from tifffile import imread
 
-from biom3d.utils import centered_pad, get_folds_train_test_df
-
-#---------------------------------------------------------------------------
-# imread utilities 
-
-def adaptive_imread(img_path):
-    extension = img_path[img_path.rfind('.'):]
-    if extension == ".tif":
-        return imread(img_path)
-    elif extension == '.npy':
-        return np.load(img_path)
-    else:
-        print('[Error] extension unknown:', extension)
+from biom3d.utils import centered_pad, get_folds_train_test_df, adaptive_imread
 
 #---------------------------------------------------------------------------
 # utilities to random crops
@@ -246,8 +234,8 @@ class SemSeg3DPatchFast(Dataset):
                     msk_path = os.path.join(self.msk_dir, fnames[idx])
 
                     # load img and msks
-                    imgs_data += [imread(img_path)]
-                    msks_data += [imread(msk_path)]
+                    imgs_data += [adaptive_imread(img_path)[0]]
+                    msks_data += [adaptive_imread(msk_path)[0]]
                 return imgs_data, msks_data
 
             self.imgs_data, self.msks_data = load_data(self.fnames)
@@ -345,8 +333,8 @@ class SemSeg3DPatchFast(Dataset):
             msk_path = os.path.join(self.msk_dir, img_fname)
 
             # read the images
-            img = adaptive_imread(img_path)
-            msk = adaptive_imread(msk_path)
+            img = adaptive_imread(img_path)[0]
+            msk = adaptive_imread(msk_path)[0]
 
         # random crop and pad
         final_size = self.aug_patch_size if self.use_aug else self.patch_size

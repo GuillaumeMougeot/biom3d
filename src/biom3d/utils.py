@@ -433,6 +433,8 @@ def resize_3d(img, output_shape, order=3, is_msk=False, monitor_anisotropy=True)
     output_shape = np.array(output_shape)
     if len(output_shape)==3:
         output_shape = np.append(input_shape[0],output_shape)
+    if np.all(input_shape==output_shape): # return image if no reshaping is needed
+        return img 
         
     # resize function definition
     resize_fct = resize_segmentation if is_msk else resize
