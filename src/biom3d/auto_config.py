@@ -395,6 +395,7 @@ if __name__=='__main__':
             config_path = save_python_config(
                 config_dir=args.config_dir,
                 base_config=args.base_config,
+                
                 BATCH_SIZE=batch,
                 AUG_PATCH_SIZE=aug_patch,
                 PATCH_SIZE=patch,
