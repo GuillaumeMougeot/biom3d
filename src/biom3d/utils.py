@@ -145,15 +145,19 @@ def create_save_dirs(log_dir, desc, dir_names=['model', 'logs', 'images'], retur
 # ----------------------------------------------------------------------------
 # image readers and savers
 
-def sitk_imread(img_path):
+def sitk_imread(img_path, return_spacing=True, return_origin=False, return_direction=False):
     """
     image reader for nii.gz files
     """
     img = sitk.ReadImage(img_path)
     img_np = sitk.GetArrayFromImage(img)
-    return img_np, np.array(img.GetSpacing())
+    returns = [img_np]
+    if return_spacing: returns += [np.array(img.GetSpacing())]
+    if return_origin: returns += [np.array(img.GetOrigin())]
+    if return_direction: returns += [np.array(img.GetDirection())]
+    return tuple(returns)
 
-def adaptive_imread(img_path):
+def adaptive_imread(img_path, return_origin=False, return_direction=False):
     """
     use skimage imread or sitk imread depending on the file extension:
     .tif --> skimage.io.imread
@@ -161,21 +165,29 @@ def adaptive_imread(img_path):
     """
     extension = img_path[img_path.rfind('.'):]
     if extension == ".tif":
-        return io.imread(img_path), []
+        returns = [io.imread(img_path), []]
+        if return_origin: returns += [[]]
+        if return_direction: returns += [[]]
+        return tuple(returns)
     elif extension == ".npy":
-        return np.load(img_path), []
+        returns = [np.load(img_path), []]
+        if return_origin: returns += [[]]
+        if return_direction: returns += [[]]
+        return tuple(returns)
     else:
-        return sitk_imread(img_path)
+        return sitk_imread(img_path, return_origin=return_origin, return_direction=return_direction)
 
-def sitk_imsave(img_path, img, spacing=(1,1,1)):
+def sitk_imsave(img_path, img, spacing=(1,1,1), origin=(0,0,0), direction=(1, 0, 0, 0, 1, 0, 0, 0, 1)):
     """
     image saver for nii gz files
     """
     img_out = sitk.GetImageFromArray(img)
     img_out.SetSpacing(spacing)
+    img_out.SetOrigin(origin)
+    img_out.SetDirection(direction)
     sitk.WriteImage(img_out, img_path)
 
-def adaptive_imsave(img_path, img, spacing=(1,1,1)):
+def adaptive_imsave(img_path, img, spacing=(1,1,1), origin=(0,0,0), direction=(1, 0, 0, 0, 1, 0, 0, 0, 1)):
     """Adaptive image saving. Use tifffile for `.tif`, use numpy for `.npy` and use SimpleITK for other format. 
 
     Parameters
@@ -193,7 +205,7 @@ def adaptive_imsave(img_path, img, spacing=(1,1,1)):
     elif extension == ".npy":
         np.save(img_path, img)
     else:
-        sitk_imsave(img_path, img, spacing)
+        sitk_imsave(img_path, img, spacing, origin, direction)
 
 # ----------------------------------------------------------------------------
 # tif metadata reader and writer

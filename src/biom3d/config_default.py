@@ -108,7 +108,7 @@ USE_SOFTMAX = True
 
 # training loop parameters
 USE_FP16 = True
-NUM_WORKERS = 10
+NUM_WORKERS = 6
 PIN_MEMORY = True
 
 #---------------------------------------------------------------------------
@@ -135,6 +135,7 @@ TRAIN_DATASET = Dict(
     kwargs=Dict(
         img_dir    = IMG_DIR,
         msk_dir    = MSK_DIR, 
+        fg_dir     = FG_DIR,
         batch_size = BATCH_SIZE, 
         patch_size = PATCH_SIZE,
         nbof_steps = 250,
@@ -161,6 +162,7 @@ VAL_DATASET = Dict(
     kwargs = Dict(
         img_dir    = IMG_DIR,
         msk_dir    = MSK_DIR, 
+        fg_dir     = FG_DIR,
         batch_size = BATCH_SIZE, 
         patch_size = PATCH_SIZE,
         nbof_steps = 50,

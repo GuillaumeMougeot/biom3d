@@ -619,9 +619,8 @@ class Builder:
             pred = self.run_prediction_single(img_path=img_path, return_logit=return_logit)
 
             print("Saving images in", fnames_out[i])
-            spacing = utils.adaptive_imread(img_path)[1]
-            if len(spacing)==0: spacing = (1,1,1) 
-            adaptive_imsave(fnames_out[i], pred, spacing)
+            _,spacing,origin,direction = utils.adaptive_imread(img_path, return_origin=True, return_direction=True)
+            adaptive_imsave(fnames_out[i], pred, spacing, origin, direction)
                 
     def load_train(self, 
         path, 
