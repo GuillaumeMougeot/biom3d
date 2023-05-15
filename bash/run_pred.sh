@@ -3,7 +3,7 @@
 
 python -m biom3d.pred\
  --name seg_eval\
- --log logs/20230510-181401-unet_default\
+ --log logs/20230514-182230-unet_lung\
  --dir_in data/msd/Task06_Lung/imagesTr_test\
  --dir_out data/msd/Task06_Lung/preds\
  --dir_lab data/msd/Task06_Lung/labelsTr_test
