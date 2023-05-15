@@ -1,5 +1,7 @@
 # Quick run with the Graphical User Interface
 
+**[DEPRECATION NOTICE] The GUI is currently being updated! It will soon be back...**
+
 Starting the Graphical User Interface of biom3d depends on the type of installation you followed:
 * If you installed biom3d with the directly link toward the executable file, you can simply double-click on the downloaded file.
 * If you installed biom3d with the API or the source code, you can start the GUI with `python -m biom3d.gui -L`.
