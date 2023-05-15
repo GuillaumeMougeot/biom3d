@@ -18,6 +18,7 @@
 #---------------------------------------------------------------------------
 
 # from tkinter import *
+import tkinter as tk
 from tkinter import LEFT, ttk, Tk, N, W, E, S, YES, IntVar, StringVar
 from tkinter import filedialog
 import paramiko
@@ -31,7 +32,7 @@ import argparse
 from biom3d.config_default import CONFIG
 from biom3d.preprocess import Preprocessing
 from biom3d.auto_config import auto_config
-from biom3d.auto_config import save_auto_config
+from biom3d.utils import save_python_config
 # the packages below are only needed for the local version of the GUI
 # WARNING! the lines below must be commented when deploying the remote version,
 # and uncommented when installing the local version.
@@ -41,6 +42,7 @@ import biom3d.omero_pred
 from biom3d.utils import load_python_config
 from biom3d.train import train
 import numpy as np
+import torch
 #----------------------------------------------------------------------------
 # Constants 
 # remote or local
@@ -271,6 +273,16 @@ def nested_dict_change_value(dic, key, value):
             save[key] = value
     return dic
 
+def popupmsg(msg):
+    popup = tk.Tk()
+    popup.wm_title("!")
+    label = ttk.Label(popup, text=msg)
+    #popup.geometry('300x100')
+    popup.minsize(300,100)
+    label.pack(pady=10, padx=10)
+    B1 = ttk.Button(popup, text="Okay", command = popup.destroy)
+    B1.pack(side="bottom",pady=10)
+    popup.mainloop()
 #----------------------------------------------------------------------------
 # File dialog
 
@@ -560,6 +572,7 @@ class TrainFolderSelection(ttk.LabelFrame):
         ftp_put_folder(ftp, localpath=self.img_outdir.get(), remotepath=remote_dir_img)
         ftp_put_folder(ftp, localpath=self.msk_outdir.get(), remotepath=remote_dir_msk)
         self.heheNotanUpdate()
+        popupmsg("Data sent!")
         self.send_data_finish.config(text="Data sent!")
 
 class ConfigFrame(ttk.LabelFrame):
@@ -576,6 +589,7 @@ class ConfigFrame(ttk.LabelFrame):
         self.num_epochs_label = ttk.Label(self, text='Number of epochs:')
         self.num_epochs = IntVar(value=10)
         self.num_epochs_entry = ttk.Entry(self, width=4, textvariable=self.num_epochs)
+        
 
         self.batch_size_label = ttk.Label(self, text='Batch size (int):')
         self.batch_size = IntVar(value=2)
@@ -639,27 +653,47 @@ class ConfigFrame(ttk.LabelFrame):
         self.columnconfigure(1, weight=10)
         for i in range(6):
             self.rowconfigure(i, weight=1)
-
+    def str2list(self, string):
+        """
+        convert a string like '[5 5 5]' into list of integers
+        we remove first and last element, as they are supposed to be '[' and ']' symbols.
+        """
+        # remove first and last element
+        return [int(e) for e in string[1:-1].split(' ') if e!='']
+    
     def auto_config(self):
         self.auto_config_finished.config(text="Auto-configuration, please wait...")
-
+        global config_path 
+        global img_dir_train
+        global msk_dir_train
         if REMOTE:
             # preprocessing
-            REMOTE.exec_command("cd {}; python -m biom3d.preprocess --img_dir data/{}/img --msk_dir data/{}/msk --num_classes {} ".format(MAIN_DIR, selected_dataset, selected_dataset,TrainFolderSelection().classes.get()))
-            _,stdout,stderr=REMOTE.exec_command("cd {}; python -m biom3d.auto_config --img_dir data/{}/img ".format(MAIN_DIR, selected_dataset))
+            _,stdout,stderr=REMOTE.exec_command("cd {}; python -m biom3d.preprocess --img_dir data/{}/img --msk_dir data/{}/msk --num_classes {} --remote true".format(MAIN_DIR, selected_dataset, selected_dataset,TrainFolderSelection().classes.get()))  
+            #_,stdout,stderr=REMOTE.exec_command("cd {}; python -m biom3d.auto_config --img_dir data/{}/img --remote true".format(MAIN_DIR, selected_dataset))
             auto_config_results = stdout.readlines()
             auto_config_results = [e.replace('\n','') for e in auto_config_results]
+         
+            img_dir_train = "data/{}/img_out".format(selected_dataset)
+            msk_dir_train = "data/{}/msk_out".format(selected_dataset)
             
             # error management
-            if len(auto_config_results)!=4:
-                print("[Error] Auto-config error:", auto_config_results)
+            if len(auto_config_results)!=10:
+               print("[Error] Auto-config error:", auto_config_results)
+               popupmsg("[Error] Auto-config error: "+ str(auto_config_results))
             while True:
                 line = stderr.readline()
                 if not line:
                     break
                 print(line, end="")
 
-            batch, aug_patch, patch, pool = auto_config_results
+            _, __, ___, ____, _____, batch, patch, aug_patch, pool, config_path = auto_config_results
+            
+    
+            aug_patch = self.str2list(aug_patch)
+            patch = self.str2list(patch)
+            pool = self.str2list(pool)
+            print(batch,patch,pool,aug_patch,config_path)
+          
             
         else: 
             # Preprocessing    
@@ -671,9 +705,8 @@ class ConfigFrame(ttk.LabelFrame):
             p.run()
             
             # img and mask output folders for the train section
-            global img_dir_train
+            
             img_dir_train = p.img_outdir
-            global msk_dir_train
             msk_dir_train = p.msk_outdir
             
             # Run autoconfig
@@ -686,8 +719,8 @@ class ConfigFrame(ttk.LabelFrame):
                 os.mkdir(path)
                 
             # save the config file in config folder 
-            global config_path 
-            config_path = save_auto_config(
+            
+            config_path = save_python_config(
             config_dir=path,
             base_config=None,
             IMG_DIR=p.img_outdir,
@@ -715,12 +748,18 @@ class ConfigFrame(ttk.LabelFrame):
         self.num_pools1.set(pool[0])
         self.num_pools2.set(pool[1])
         self.num_pools3.set(pool[2])
-       
-        self.auto_config_finished.config(text="Auto-configuration done! and saved in config folder : \n" +config_path)
+        
+        if REMOTE:
+            self.auto_config_finished.config(text="Auto-configuration done! \n" )
+            popupmsg("Auto-configuration done!")
+        else :
+            self.auto_config_finished.config(text="Auto-configuration done! and saved in config folder : \n" +config_path)
+            popupmsg("Auto-configuration done! and saved in config folder : \n" +config_path)
 
 class TrainTab(ttk.Frame):
     def __init__(self, preprocess_tab=None, *arg, **kw):
         super(TrainTab, self).__init__(*arg, **kw)
+        global new_config_path
         #####################################################
         style = ttk.Style()
         style.configure("BW.TLabel", background = '#76D7C4', foreground = 'black', width = 10, borderwidth=3, focusthickness=7, focuscolor='none', anchor='c', height= 105)
@@ -775,53 +814,77 @@ class TrainTab(ttk.Frame):
         self.train_done.config(text="Training, please wait...")
 
         #cfg = CONFIG
-        cfg = load_python_config(config_path)
-        
+        if REMOTE:
+            cfg = load_python_config("{}/{}".format(MAIN_DIR,config_path))
+        else :   
+            cfg = load_python_config(config_path)
+       
+       
+       # test if aug_patch_size is greater than patch_size 
+        self.config_selection.patch_size = [int(self.config_selection.patch_size1.get()), int(self.config_selection.patch_size2.get()), int(self.config_selection.patch_size3.get())]
+        self.config_selection.aug_patch_size = [int(self.config_selection.aug_patch_size1.get()), int(self.config_selection.aug_patch_size2.get()), int(self.config_selection.aug_patch_size3.get())]
+       
+        for i in range(len(self.config_selection.patch_size)):
+         if self.config_selection.patch_size[i] > self.config_selection.aug_patch_size[i]:
+             popupmsg(f" ERREUR ! Le patch size N°{i} est inferieur a l'élément {i} de l'augmentation patch size !")
+       
         # set the configuration
+        
         cfg.IMG_DIR = img_dir_train
+
         cfg = nested_dict_change_value(cfg, 'img_dir', cfg.IMG_DIR)
 
         cfg.MSK_DIR = msk_dir_train
         cfg = nested_dict_change_value(cfg, 'msk_dir', cfg.MSK_DIR)
 
         cfg.DESC = self.builder_name.get()
-
+        
         cfg.NUM_CLASSES = self.folder_selection.num_classes.get()
         cfg = nested_dict_change_value(cfg, 'num_classes', cfg.NUM_CLASSES)
-
+       
         cfg.NB_EPOCHS = self.config_selection.num_epochs.get()
-        print("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",cfg.NB_EPOCHS )
         cfg = nested_dict_change_value(cfg, 'nb_epochs', cfg.NB_EPOCHS)
         
         # Pourquoi on change pas la valeur dans le dictionnaire ici ? 
         cfg.BATCH_SIZE = self.config_selection.batch_size.get()
         cfg = nested_dict_change_value(cfg, 'batch_size', cfg.BATCH_SIZE)
        
-        self.config_selection.patch_size = [int(self.config_selection.patch_size1.get()), int(self.config_selection.patch_size2.get()), int(self.config_selection.patch_size3.get())]
+        
         cfg.PATCH_SIZE = np.array(self.config_selection.patch_size)
         cfg = nested_dict_change_value(cfg, 'patch_size', cfg.PATCH_SIZE)
         
-        self.config_selection.aug_patch_size = [int(self.config_selection.aug_patch_size1.get()), int(self.config_selection.aug_patch_size2.get()), int(self.config_selection.aug_patch_size3.get())]
+        
         cfg.AUG_PATCH_SIZE = np.array(self.config_selection.aug_patch_size)
         cfg = nested_dict_change_value(cfg, 'aug_patch_size', cfg.AUG_PATCH_SIZE)
 
         self.config_selection.num_pools = [int(self.config_selection.num_pools1.get()), int(self.config_selection.num_pools2.get()), int(self.config_selection.num_pools3.get())]
         cfg.NUM_POOLS = np.array(self.config_selection.num_pools)
         cfg = nested_dict_change_value(cfg, 'num_pools', cfg.NUM_POOLS)
-
+        
         if REMOTE:
             # if remote store the config file in a temp file
-            save_config("config.yaml", cfg)
+            new_config_path = save_python_config(config_dir=config_path,
+            IMG_DIR=cfg.IMG_DIR,
+            MSK_DIR=cfg.MSK_DIR,
+            NUM_CLASSES=TrainFolderSelection().num_classes.get(),
+            BATCH_SIZE=cfg.BATCH_SIZE,
+            AUG_PATCH_SIZE=cfg.AUG_PATCH_SIZE,
+            PATCH_SIZE=cfg.PATCH_SIZE,
+            NUM_POOLS=cfg.NUM_POOLS,
+            NB_EPOCHS=cfg.NB_EPOCHS)
             # copy it
             ftp = REMOTE.open_sftp()
-            ftp.put("config.yaml", MAIN_DIR+"/config.yaml")
+            ftp.put(new_config_path, MAIN_DIR+"/config1.py")
             ftp.close()
             # delete the temp file
-            os.remove("config.yaml")
+            os.remove(new_config_path)
 
+
+
+            
              # run the training and store the output in an output file 
             # https://askubuntu.com/questions/1336685/how-do-i-save-to-a-file-and-simultaneously-view-terminal-output 
-            _,stdout,stderr=REMOTE.exec_command("cd {}; python -m biom3d.train --config_yaml config.yaml | tee log.out".format(MAIN_DIR))
+            _,stdout,stderr=REMOTE.exec_command("cd {}; python -m biom3d.train --config config1.py | tee log.out".format(MAIN_DIR))
             
             # print the stdout continuously
             # from https://stackoverflow.com/questions/55642555/real-time-output-for-paramiko-exec-command  
@@ -837,15 +900,15 @@ class TrainTab(ttk.Frame):
                 print(line, end="")
 
                 # TODO: copy the event file to local
-
+            popupmsg(" Training Done ! ")
         else:  
             
             # get path to config file
             parent_dir= os.path.dirname(TrainFolderSelection().img_outdir.get())
             path = os.path.join(parent_dir, "config")
             # save the new config file
-            global new_config_path
-            new_config_path = save_auto_config(
+            
+            new_config_path = save_python_config(
             config_dir=path,
             base_config=config_path,
             IMG_DIR=cfg.IMG_DIR,
@@ -858,12 +921,33 @@ class TrainTab(ttk.Frame):
             NB_EPOCHS=cfg.NB_EPOCHS
             
             )
-         
-            # run the training
-            train(config=new_config_path,log=None)
-            
+            if torch.cuda.is_available():
+                # Get the current CUDA device
+                device = torch.device('cuda')
 
-        self.train_done.config(text="Training done!")
+                # Print CUDA memory usage statistics
+                allocated_bytes = torch.cuda.memory_allocated(device=device)
+                reserved_bytes = torch.cuda.memory_reserved(device=device)
+                free_bytes = torch.cuda.get_device_properties(device).total_memory - allocated_bytes - reserved_bytes
+                free_bytes = free_bytes / 1024**2
+                
+                if(free_bytes > 252):
+                    popupmsg("  CUDA out of memory. Tried to allocate 252.00 MiB but only "+str(free_bytes)+" MiB is free")
+                else:
+                    # run the training
+                    train(config=new_config_path)
+                    popupmsg(" Training Done ! ")
+                    self.train_done.config(text="Training done!")   
+            else :
+                popupmsg("Cuda is not available !")
+             
+            """
+            # run the training
+            train(config=new_config_path)
+            
+            popupmsg(" Training Done ! ")
+            self.train_done.config(text="Training done!")
+            """   
 
         
 
@@ -883,9 +967,11 @@ class InputDirectory(ttk.LabelFrame):
             # define the dropdown menu
             _,stdout,_ = REMOTE.exec_command('ls {}/data/to_pred'.format(MAIN_DIR))     # Where should i search ??
             self.data_list = [e.replace('\n','') for e in stdout.readlines()]
-            #self.data_list = stdout.readlines()
-            self.data_dir = StringVar(value=self.data_list[0])
-            self.data_dir_option_menu = ttk.OptionMenu(self, self.data_dir, self.data_list[0], *self.data_list)
+            if(len(self.data_list) == 0):
+                self.data_dir = StringVar(value="Empty")
+            else:   
+                self.data_dir = StringVar(value=self.data_list[0])
+            self.data_dir_option_menu = ttk.OptionMenu(self, self.data_dir, self.data_dir.get(), *self.data_list)
 
             # or send the dataset to server
             self.send_data_label = ttk.Label(self, text="Or send a new dataset of raw images to the server:")
@@ -921,6 +1007,7 @@ class InputDirectory(ttk.LabelFrame):
         self.data_list = [e.replace('\n','') for e in stdout.readlines()]
         self.data_dir_option_menu.set_menu(self.data_list[0], *self.data_list)
         self.data_dir.set(os.path.basename(self.send_data_folder.get()))
+        popupmsg("Data sent !")
 
 class Connect2Omero(ttk.LabelFrame):
     def __init__(self, *arg, **kw):
@@ -984,12 +1071,17 @@ class ModelSelection(ttk.LabelFrame):
         # get model list
         if REMOTE:
             _,stdout,_ = REMOTE.exec_command('ls {}/logs'.format(MAIN_DIR))
-            #self.logs_list = [e.replace('\n','') for e in stdout.readlines()]
-            self.logs_list = [stdout.readlines()]
+            self.logs_list = [e.replace('\n','') for e in stdout.readlines()]
+            
 
             # define the dropdown menu
-            self.logs_dir = StringVar(value=self.logs_list[0])
-            self.logs_dir_option_menu = ttk.OptionMenu(self, self.logs_dir, self.logs_list[0], *self.logs_list)
+        
+            
+            if(len(self.logs_list) == 0):
+                self.logs_dir = StringVar(value="Empty")
+            else:   
+                self.logs_dir = StringVar(value=self.logs_list[0])
+            self.logs_dir_option_menu = ttk.OptionMenu(self, self.logs_dir, self.logs_dir.get(), *self.logs_list)
             self.button_update_list = ttk.Button(self, text="Update", command=self._update_logs_list)
 
             self.logs_dir_option_menu.grid(column=0, row=0, sticky=(W,E))
@@ -1013,6 +1105,7 @@ class ModelSelection(ttk.LabelFrame):
         _,stdout,_ = REMOTE.exec_command('ls {}/logs'.format(MAIN_DIR))
         self.logs_list = [e.replace('\n','') for e in stdout.readlines()]
         self.logs_dir_option_menu.set_menu(self.logs_list[0], *self.logs_list)
+        popupmsg("Models list upadted !")
 
 class OutputDirectory(ttk.LabelFrame):
     def __init__(self, *arg, **kw):
@@ -1054,8 +1147,7 @@ class DownloadPrediction(ttk.LabelFrame):
 
         # define the dropdown menu
         _,stdout,_ = REMOTE.exec_command('ls {}/data/pred'.format(MAIN_DIR))
-        #self.data_list = [e.replace('\n','') for e in stdout.readlines()]
-        self.data_list = [stdout.readlines()]
+        self.data_list = [e.replace('\n','') for e in stdout.readlines()]
         self.data_dir = StringVar(value=self.data_list[0])
         self.data_dir_option_menu = ttk.OptionMenu(self, self.data_dir, self.data_list[0], *self.data_list)
         self.button_update_list = ttk.Button(self, text="Update", command=self._update_pred_list)
@@ -1093,12 +1185,12 @@ class DownloadPrediction(ttk.LabelFrame):
         
         # copy files from remote to local
         ftp_get_folder(ftp, remotedir, localdir)
-    
+        popupmsg("Data sent to local !")
     def _update_pred_list(self):
         _,stdout,_ = REMOTE.exec_command('ls {}/data/pred'.format(MAIN_DIR))
         self.data_list = [e.replace('\n','') for e in stdout.readlines()]
         self.data_dir_option_menu.set_menu(self.data_list[0], *self.data_list)
-        
+        popupmsg("Remote folder list updated !")
 
 class PredictTab(ttk.Frame):
     def __init__(self, *arg, **kw):
@@ -1153,7 +1245,7 @@ class PredictTab(ttk.Frame):
                         print(line, end="")
 
                 self.download_prediction._update_pred_list()
-                    
+                popupmsg("Prediction Done !")    
             else:
                 target = self.output_dir.data_dir.get()
                 if not os.path.isdir(target):
@@ -1240,6 +1332,10 @@ class Connect2Remote(ttk.LabelFrame):
         self.password = StringVar(value="")
         self.password_entry = ttk.Entry(self, textvariable=self.password, show='*')
 
+        
+
+        current_folder = os.getcwd()
+        
         self.main_dir_label = ttk.Label(self, text='Folder of Biom3d repository on remote server:')
         self.main_dir = StringVar(value="/home/biome/biom3d")
         self.main_dir_entry = ttk.Entry(self, textvariable=self.main_dir)
