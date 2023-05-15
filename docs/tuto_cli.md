@@ -213,3 +213,31 @@ Please complete each of the field above. The Omero dataset ID can be found in yo
 <p align="center">
   <img src="_static/image/omero_dataset_id.PNG" />
 </p>
+
+## Even more
+
+For even more details on the Command Line Interface, please check our inline documentation with one of the following commands:
+
+```
+python -m biom3d.preprocess_train --help
+```
+
+```
+python -m biom3d.preprocess --help
+```
+
+```
+python -m biom3d.train --help
+```
+
+```
+python -m biom3d.pred --help
+```
+
+```
+python -m biom3d.eval --help
+```
+
+```
+python -m biom3d.omero_pred --help
+```

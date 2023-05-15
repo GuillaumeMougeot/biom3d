@@ -469,7 +469,7 @@ if __name__=='__main__':
     parser.add_argument("--remove_bg", default=False,  action='store_true', dest='remove_bg',
         help="(default=False) If use one hot, remove the background in masks. Remove the bg to use with sigmoid activation maps (not softmax).") 
     parser.add_argument("--no_auto_config", default=False,  action='store_true', dest='no_auto_config',
-        help="(default=False) Stop showing the information to copy and paste inside the configuration file (patch_size, batch_size and num_pools).") 
+        help="(default=False) For debugging, deactivate auto-configuration.") 
     parser.add_argument("--ct_norm", default=False,  action='store_true', dest='ct_norm',
         help="(default=False) Whether to use CT-Scan normalization routine (cf. nnUNet).") 
     parser.add_argument("--skip_preprocessing", default=False,  action='store_true', dest='skip_preprocessing',

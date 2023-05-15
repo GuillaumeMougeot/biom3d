@@ -27,11 +27,11 @@ In the following documentation, we marked the advanced features with :rocket: sy
 
 ## :hammer: Installation
 
-**Please check our documentation for the installation details:** [**Documentation-Installation**](https://biom3d.readthedocs.io/en/latest/installation.html)
+**For the installation details, please check our documentation here:** [**Documentation-Installation**](https://biom3d.readthedocs.io/en/latest/installation.html)
 
 ## :hand: Usage
 
-**For Graphical User Interface users, check our new documentation!** [**Documentation-GUI**](https://biom3d.readthedocs.io/en/latest/quick_run_gui.html)
+**For Graphical User Interface users, please check our documentation here:** [**Documentation-GUI**](https://biom3d.readthedocs.io/en/latest/quick_run_gui.html)
 
 Two options:
 * If you have a trained model, you can do [predictions](#prediction) directly.
