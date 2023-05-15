@@ -244,7 +244,7 @@ Biom3d has originally been designed to fasten state-of-the-art tools development
 Once your model is trained, it is ready to use for prediction with the following command:
 
 ``` 
-python biom3d/pred.py --bui_dir path/to/base-folder --dir_in path/to/raw/data --dir_out path/of/the/future/predictions 
+python biom3d/pred.py --log path/to/base-folder --dir_in path/to/raw/data --dir_out path/of/the/future/predictions 
 ```
 
 For Omero user, you can use the following command to download a Omero Dataset or a Omero Project and to directly run the prediction over this dataset:

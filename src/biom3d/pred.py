@@ -15,34 +15,34 @@ from biom3d.utils import abs_listdir, versus_one, dice, adaptive_imread, adaptiv
 #---------------------------------------------------------------------------
 # prediction base fonction
 
-def pred_single(bui_dir, img_path, out_path):
+def pred_single(log, img_path, out_path):
     """Prediction on a single image.
     """
-    bui_dir=str(bui_dir)
-    builder = Builder(config=None,path=bui_dir, training=False)
+    log=str(log)
+    builder = Builder(config=None,path=log, training=False)
     img = builder.run_prediction_single(img_path, return_logit=False)
 
     _, spacing, origin = adaptive_imread(img_path, return_origin=True)
     adaptive_imsave(out_path, img, spacing, origin)
     return builder.config.NUM_CLASSES+1 # for pred_seg_eval_single
 
-def pred(bui_dir, dir_in, dir_out):
+def pred(log, dir_in, dir_out):
     """Prediction on a folder of images.
     """
-    bui_dir=str(bui_dir)
+    log=str(log)
     dir_in=str(dir_in)
     dir_out=str(dir_out)
 
-    dir_out = os.path.join(dir_out,os.path.split(bui_dir)[-1]) # name the prediction folder with the model folder name
-    builder = Builder(config=None,path=bui_dir, training=False)
+    dir_out = os.path.join(dir_out,os.path.split(log)[-1]) # name the prediction folder with the model folder name
+    builder = Builder(config=None,path=log, training=False)
     builder.run_prediction_folder(dir_in=dir_in, dir_out=dir_out, return_logit=False)
 
-def pred_multiple(bui_dir, dir_in, dir_out):
+def pred_multiple(log, dir_in, dir_out):
     """Prediction a folder of folders of images.
     """
     list_dir_in = [dir_in + "/" + e for e in os.listdir(dir_in)]
     list_dir_out = [dir_out + "/" + e for e in os.listdir(dir_in)]
-    LOG_PATH = bui_dir
+    LOG_PATH = log
 
     for i in range(len(list_dir_in)):
         dir_in = list_dir_in[i]
@@ -57,17 +57,17 @@ def pred_multiple(bui_dir, dir_in, dir_out):
 # import configs.config_unet as config_unet
 
 # @magicgui(call_button="predict")
-def pred_seg(bui_dir=pathlib.Path.home(), dir_in=pathlib.Path.home(), dir_out=pathlib.Path.home()):
-    pred(bui_dir, dir_in, dir_out)
+def pred_seg(log=pathlib.Path.home(), dir_in=pathlib.Path.home(), dir_out=pathlib.Path.home()):
+    pred(log, dir_in, dir_out)
 
-def pred_seg_eval(bui_dir=pathlib.Path.home(), dir_in=pathlib.Path.home(), dir_out=pathlib.Path.home(), dir_lab=None, eval_only=False):
+def pred_seg_eval(log=pathlib.Path.home(), dir_in=pathlib.Path.home(), dir_out=pathlib.Path.home(), dir_lab=None, eval_only=False):
     print("Start inference")
     builder_pred = Builder(
         config=None,
-        path=bui_dir, 
+        path=log, 
         training=False)
 
-    dir_out = os.path.join(dir_out,os.path.split(bui_dir)[-1]) # name the prediction folder with the model folder name
+    dir_out = os.path.join(dir_out,os.path.split(log)[-1]) # name the prediction folder with the model folder name
     if not eval_only:
         builder_pred.run_prediction_folder(dir_in=dir_in, dir_out=dir_out, return_logit=False) # run the predictions
     print("Inference done!")
@@ -96,9 +96,9 @@ def pred_seg_eval(bui_dir=pathlib.Path.home(), dir_in=pathlib.Path.home(), dir_o
         print("Evaluation done! Average result:", np.mean(results))
         # send(messages=["Evaluation done of model {}! Average result: {}".format(dir_out, np.mean(results))])
 
-def pred_seg_eval_single(bui_dir, img_path, out_path, msk_path):
+def pred_seg_eval_single(log, img_path, out_path, msk_path):
     print("Run prediction for:", img_path)
-    num_classes = pred_single(bui_dir, img_path, out_path)
+    num_classes = pred_single(log, img_path, out_path)
     print("Done! Prediction saved in:", out_path)
     print("Metric computation with mask:", msk_path)
     dice_score = versus_one(fct=dice, in_path=out_path, tg_path=msk_path, num_classes=num_classes)
@@ -129,7 +129,7 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser(description="Main training file.")
     parser.add_argument("-n", "--name", type=str, default="seg",
         help="Name of the tested method. Valid names: {}".format(valid_names.keys()))
-    parser.add_argument("-b", "--bui_dir", type=str,
+    parser.add_argument("-b", "--log", type=str,
         help="Path of the builder directory")
     parser.add_argument("-i", "--dir_in", type=str,
         help="Path to the input image directory")
@@ -143,14 +143,14 @@ if __name__=='__main__':
 
     # run the method
     assert args.name in valid_names.keys(), "[Error] Name of the method must be one of {}".format(valid_names.keys())
-    if args.bui_dir is None:
+    if args.log is None:
         valid_names[args.name].show(run=True)
     else:
         if args.name=="seg_eval":
-            valid_names[args.name](args.bui_dir, args.dir_in, args.dir_out, args.dir_lab, args.eval_only)
+            valid_names[args.name](args.log, args.dir_in, args.dir_out, args.dir_lab, args.eval_only)
         elif args.name=="seg_eval_single":
-            valid_names[args.name](args.bui_dir, args.dir_in, args.dir_out, args.dir_lab)
+            valid_names[args.name](args.log, args.dir_in, args.dir_out, args.dir_lab)
         else:
-            valid_names[args.name](args.bui_dir, args.dir_in, args.dir_out)
+            valid_names[args.name](args.log, args.dir_in, args.dir_out)
 
 #---------------------------------------------------------------------------

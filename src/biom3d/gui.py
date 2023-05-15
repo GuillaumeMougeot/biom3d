@@ -969,7 +969,7 @@ class PredictTab(ttk.Frame):
             obj=self.omero_dataset.option.get()+":"+self.omero_dataset.id.get()
             if REMOTE:
                 # TODO: below, still OS dependant 
-                _, stdout, stderr = REMOTE.exec_command("cd {}; python -m biom3d.omero_pred --obj {} --bui_dir {} --username {} --password {} --hostname {}".format(
+                _, stdout, stderr = REMOTE.exec_command("cd {}; python -m biom3d.omero_pred --obj {} --log {} --username {} --password {} --hostname {}".format(
                     MAIN_DIR,
                     obj,
                     MAIN_DIR+'/logs/'+self.model_selection.logs_dir.get(), 
@@ -1008,7 +1008,7 @@ class PredictTab(ttk.Frame):
                 )
         else: # if not use Omero
             if REMOTE:
-                _, stdout, stderr = REMOTE.exec_command("cd {}; python -m biom3d.pred --bui_dir {} --dir_in {} --dir_out {}".format(
+                _, stdout, stderr = REMOTE.exec_command("cd {}; python -m biom3d.pred --log {} --dir_in {} --dir_out {}".format(
                     MAIN_DIR,
                     'logs/'+self.model_selection.logs_dir.get(), 
                     'data/to_pred/'+self.input_dir.data_dir.get(),
