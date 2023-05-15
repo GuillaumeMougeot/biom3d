@@ -1,4 +1,4 @@
-# Quick run with the Graphical User Interface
+# The Graphical User Interface
 
 **[DEPRECATION NOTICE] The GUI is currently being updated! It will soon be back...**
 
