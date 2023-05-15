@@ -1,19 +1,19 @@
 #!/bin/sh
 #SBATCH -o ./slurm/%j-train.out # STDOUT
 
+python -m biom3d.pred\
+ --name seg_eval\
+ --bui_dir logs/20230510-181401-unet_default\
+ --dir_in data/msd/Task06_Lung/imagesTr_test\
+ --dir_out data/msd/Task06_Lung/preds\
+ --dir_lab data/msd/Task06_Lung/labelsTr_test
+
 # python -m biom3d.pred\
 #  --name seg_eval\
 #  --bui_dir logs/20230508-231647-unet_brain\
-#  --dir_in data/msd/Task06_Lung/imagesTr_test\
-#  --dir_out data/msd/Task06_Lung/preds\
-#  --dir_lab data/msd/Task06_Lung/labelsTr_test
-
-python -m biom3d.pred\
- --name seg_eval\
- --bui_dir logs/20230508-231647-unet_brain\
- --dir_in data/msd/Task01_BrainTumour/imagesTr_test\
- --dir_out data/msd/Task01_BrainTumour/preds\
- --dir_lab data/msd/Task01_BrainTumour/labelsTr_test
+#  --dir_in data/msd/Task01_BrainTumour/imagesTr_test\
+#  --dir_out data/msd/Task01_BrainTumour/preds\
+#  --dir_lab data/msd/Task01_BrainTumour/labelsTr_test
 
 # python -m biom3d.pred\
 #  --name seg\

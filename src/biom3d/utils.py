@@ -151,10 +151,20 @@ def sitk_imread(img_path, return_spacing=True, return_origin=False, return_direc
     """
     img = sitk.ReadImage(img_path)
     img_np = sitk.GetArrayFromImage(img)
+    dim = img.GetDimension()
     returns = [img_np]
-    if return_spacing: returns += [np.array(img.GetSpacing())]
-    if return_origin: returns += [np.array(img.GetOrigin())]
-    if return_direction: returns += [np.array(img.GetDirection())]
+    spacing = np.array(img.GetSpacing())
+    origin = np.array(img.GetOrigin())
+    direction = np.array(img.GetDirection())
+    if dim==4: # if dim==4 then turn it into 3...
+        spacing = spacing[:-1]
+        origin = origin[:-1]
+        direction = direction.reshape(4,4)[:-1, :-1].reshape(-1)
+    elif dim != 4 and dim != 3: 
+        raise RuntimeError("Unexpected dimensionality: %d of file %s, cannot split" % (dim, img_path))
+    if return_spacing: returns += [spacing]
+    if return_origin: returns += [origin]
+    if return_direction: returns += [direction]
     return tuple(returns)
 
 def adaptive_imread(img_path, return_origin=False, return_direction=False):
@@ -165,7 +175,7 @@ def adaptive_imread(img_path, return_origin=False, return_direction=False):
     """
     extension = img_path[img_path.rfind('.'):]
     if extension == ".tif":
-        returns = [io.imread(img_path), []]
+        returns = [io.imread(img_path), []] # TODO: spacing is set to empty but could be set from tif metadata
         if return_origin: returns += [[]]
         if return_direction: returns += [[]]
         return tuple(returns)
@@ -177,7 +187,7 @@ def adaptive_imread(img_path, return_origin=False, return_direction=False):
     else:
         return sitk_imread(img_path, return_origin=return_origin, return_direction=return_direction)
 
-def sitk_imsave(img_path, img, spacing=(1,1,1), origin=(0,0,0), direction=(1, 0, 0, 0, 1, 0, 0, 0, 1)):
+def sitk_imsave(img_path, img, spacing=(1,1,1), origin=(0,0,0), direction=(1., 0., 0., 0., 1., 0., 0., 0., 1.)):
     """
     image saver for nii gz files
     """

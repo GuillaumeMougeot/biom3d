@@ -425,7 +425,7 @@ class TorchioDataset(SubjectsDataset):
 
         # Apply transform (this is usually the bottleneck)
         patch_size = self.aug_patch_size if self.use_aug else self.patch_size
-        subject = RandomCropOrPad(patch_size, fg_rate=int(self._do_fg()), label_name='msk')(subject)
+        subject = RandomCropOrPad(patch_size, fg_rate=int(self._do_fg()), label_name='msk', use_softmax=self.use_softmax)(subject)
         self._update_batch_idx()
         if self.use_aug:
             subject = self.transform(subject)

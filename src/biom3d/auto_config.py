@@ -289,7 +289,7 @@ def find_patch_pool_batch(dims, max_dims=(128,128,128), max_pool=5, epsilon=1e-3
 
 def get_aug_patch(patch_size):
     """Return augmentation patch size.
-    The current solution is to increase the size of each dimension by 17% except for the eventual anisotropic dimension (meaning that this dimension is at least three time smaller than the others)... All of this sounds arbitrary... yes but it is pretty close to the original nnUNet solution.
+    The current solution is to increase the size of each dimension by 37% except if the image is anisotropic, then by 17% expect for the anisotropic dimension (meaning that the anisotropic dimension is at least three time smaller than the others)... All of this sounds arbitrary... yes but it is pretty close to the original nnUNet solution, yet much simpler.
 
     Parameters
     ----------
@@ -302,11 +302,14 @@ def get_aug_patch(patch_size):
         Augmentation patch size.
     """
     ps = np.array(patch_size)
-    aug_patch = np.round(1.17*ps).astype(int)
     dummy_2d = ps/ps.min()
+
     if np.any(dummy_2d>3): # then use dummy_2d
         axis = np.argmin(dummy_2d)
+        aug_patch = np.round(1.17*ps).astype(int)
         aug_patch[axis] = patch_size[axis]
+    else:
+        aug_patch = np.round(1.37*ps).astype(int)
     return aug_patch
         
 

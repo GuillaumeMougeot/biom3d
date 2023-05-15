@@ -1,6 +1,6 @@
 #!/bin/sh
 #SBATCH -o ./slurm/%j-train.out # STDOUT
 
-# python -m biom3d.train --config configs/20230413-unet_btcv.py
+# python -m biom3d.train --config configs/20230413-unet_btcv_sempatch.py
 # python -m biom3d.train --log logs/20230501-153638-unet_default
-python -m biom3d.train --config configs/20230510-nnunet_lung.py
+python -m biom3d.train --config configs/20230509-181824-segpatch_lung.py

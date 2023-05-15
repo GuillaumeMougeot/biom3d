@@ -131,7 +131,7 @@ USE_FG_CLBK = False
 # dataset configs
 
 TRAIN_DATASET = Dict(
-    fct="Torchio",
+    fct="SegPatchFast",
     kwargs=Dict(
         img_dir    = IMG_DIR,
         msk_dir    = MSK_DIR, 
@@ -145,7 +145,8 @@ TRAIN_DATASET = Dict(
         train      = True,
         use_aug    = True,
         aug_patch_size = AUG_PATCH_SIZE,
-        use_softmax  = USE_SOFTMAX,
+        use_softmax = USE_SOFTMAX,
+        load_data   = False,
     )
 )
 
@@ -158,7 +159,7 @@ TRAIN_DATALOADER_KWARGS = Dict(
 )          
 
 VAL_DATASET = Dict(
-    fct="Torchio",
+    fct="SegPatchFast",
     kwargs = Dict(
         img_dir    = IMG_DIR,
         msk_dir    = MSK_DIR, 
@@ -173,6 +174,7 @@ VAL_DATASET = Dict(
         use_aug    = False,
         use_softmax  = USE_SOFTMAX,
         fg_rate    = 0.33,
+        load_data  = False,
     )
 )
 
