@@ -1,6 +1,8 @@
 # Use the Command Line Interface
 
-Biom3d has different entry points with which you will be able to interact. We will go from the quickest approach, which will let you run a training in a single line of code, to the more detailed ones, which will let you manually adjust some of the hyper-parameters of Biom3d.
+Biom3d has different entry points with which you will be able to interact. We will go from the quickest approach, which will let you run a training in a single line of code, to the more detailed ones, which will let you manually adjust some of the hyper-parameters of Biom3d. 
+
+You can find examples of command lines [in the bash folder on the GitHub repo of Biom3d](https://github.com/GuillaumeMougeot/biom3d/tree/main/bash) starting with `run_`. 
 
 > **Warning**: For Windows users, the paths are here written in "linux-like format". You will have to change '/' symbols to '\\' symbols in the command lines. 
 
@@ -17,9 +19,9 @@ Let's say you would like to train a deep learning model with on one of the tasks
     │   ├── pancreas_002.nii.gz
     │   ├── pancreas_003.nii.gz
     │   └── ...
-    └── labelsTr
-    │   ├── pancreas_002.nii.gz
-    │   ├── pancreas_003.nii.gz
+    ├── labelsTr
+    │   ├── pancreas_001.nii.gz
+    │   ├── pancreas_004.nii.gz
     │   └── ...
     └── dataset.json
 
@@ -39,18 +41,53 @@ That's it! Your data will be automatically preprocessed and stored in a folder a
 
 The `--ct_norm` option is optional and should be used only with CT-scan images.
 
-This command should create five new folders: two folders with the same names as your image and label folders with the extension `_out`, a `fg_out` folder, a `configs` folder and a `logs` folder. The `_out` folders contain the preprocessed images and labels. The `fg_out` folders contains a list of `.pkl` files with the same name as the images and each containing the foreground locations. The `configs` folder contains a Python script: the configuration file of your training. The `logs` folder contains one folder which contains the saved model and the training logs. 
+This command should create five new folders: two folders with the same names as your image and label folders with the extension `_out`, a `fg_out` folder, a `configs` folder and a `logs` folder. The `_out` folders contain the preprocessed images and labels. The `fg_out` folders contains a list of `.pkl` files with the same name as the images and each containing the foreground locations. The `configs` folder contains a Python script: the configuration file of your training. The `logs` folder contains one folder which contains the saved model and the training logs. The resulting folder architecture should look like this:
+
+    main_dir
+    ├── Task07_Pancreas
+    │   ├── fg_out
+    │   │   ├── pancreas_001.pkl
+    │   │   ├── pancreas_004.pkl
+    │   │   └── ...
+    │   ├── imagesTr
+    │   │   ├── pancreas_001.nii.gz
+    │   │   ├── pancreas_004.nii.gz
+    │   │   └── ...
+    │   ├── imagesTr_out
+    │   │   ├── pancreas_001.npy
+    │   │   ├── pancreas_004.npy
+    │   │   └── ...
+    │   ├── imagesTs
+    │   │   ├── pancreas_002.nii.gz
+    │   │   ├── pancreas_003.nii.gz
+    │   │   └── ...
+    │   ├── labelsTr
+    │   │   ├── pancreas_001.nii.gz
+    │   │   ├── pancreas_004.nii.gz
+    │   │   └── ...
+    │   ├── labelsTr_out
+    │   │   ├── pancreas_001.npy
+    │   │   ├── pancreas_004.npy
+    │   │   └── ...
+    │   └── dataset.json
+    ├── configs
+    │   └── 20240427-170528-config_default.py
+    └── logs
+        └── 20240427-170528-unet_default
+            ├── image
+            ├── log
+            └── model
 
 Once the training is finished, you can use your model to predict new images with the following command:
 
 ```
 python -m biom3d.pred\
- --log path/to/logs/sub-folder\
+ --log logs\20240427-170528-unet_default\
  --dir_in Task07_Pancreas/imagesTs\
  --dir_out Task07_Pancreas/predsTs
 ```
 
-The parameter `--log` is the path of the sub-folder that has been created in the `logs` folder. It should be something like: `logs/20230412-154857-unet_default`.
+The parameter `--log` is the path of the sub-folder that has been created in the `logs` folder. It should be something like: `logs/20240427-170528-unet_default`.
 
 ## Another example with tif files!
 
@@ -82,7 +119,9 @@ The optional `--desc` option here is used to change the name of the configuratio
 
 That's it! The preprocessing and training should start.
 
-## Preprocess, train, predict and evaluate
+Prediction can be run with the aforementioned command (cf. section above).
+
+## Preprocess first, train after
 
 Let's now suppose that we would like to decompose the preprocessing from the training. This could be particularly useful when debugging...
 
@@ -114,5 +153,63 @@ python -m biom3d.train\
  --log logs/20240427-170528-unet_default
 ```
 
-Where `logs/20240427-170528-unet_default` is the path of the 
+Where `logs/20240427-170528-unet_default` is the path of the log folder containing the model, images and curves. 
 
+Prediction can be run with the aforementioned command (cf. first section above).
+
+## Evaluate
+
+Once some predictions have been made, Biom3d can let you evaluate your trained model on a test set. The folder architecture of the test set should look like this:
+
+    evaluation_folder
+    ├── masks
+    │   ├── image_01.tif
+    │   ├── image_02.tif
+    │   └── ...
+    └── predictions
+        ├── image_01.tif
+        ├── image_01.tif
+        └── ...
+
+You can now evaluate your trained model with the following command:
+
+```
+python -m biom3d.eval\
+ --dir_pred evaluation_folder/predictions\
+ --dir_lab evaluation_folder/masks\
+ --num_classes 1
+```
+
+This should print the Dice score of each prediction and the average one.
+
+Additionally, you can sequentially run the prediction first and then the evaluation with only one command:
+
+```
+python -m biom3d.pred\
+ --name seg_eval\
+ --log logs/20230510-181401-unet_default\
+ --dir_in data/msd/Task06_Lung/imagesTr_test\
+ --dir_out data/msd/Task06_Lung/preds\
+ --dir_lab data/msd/Task06_Lung/labelsTr_test
+```
+
+## Omero prediction
+
+For Omero users, you can use the following command to make a prediction on one of your Omero dataset or Omero project:
+
+```
+python -m biom3d.omero_pred\
+ --obj Dataset:ID\
+ --log logs/20240427-170528-unet_default\
+ --target folder/where/omero/images/are/downloaded\
+ --dir_out folder/where/predictions/will/be/stored\
+ --username your_username\
+ --password your_password\
+ --hostname your_hostname
+```
+
+Please complete each of the field above. The Omero dataset ID can be found in your Omero browser here:
+
+<p align="center">
+  <img src="_static/image/omero_dataset_id.PNG" />
+</p>
