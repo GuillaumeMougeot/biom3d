@@ -429,7 +429,7 @@ def resize_segmentation(segmentation, new_shape, order=3):
             reshaped[reshaped_multihot >= 0.5] = c
         return reshaped
 
-def resize_3d(img, output_shape, order=3, is_msk=False, monitor_anisotropy=True):
+def resize_3d(img, output_shape, order=3, is_msk=False, monitor_anisotropy=True, anisotropy_threshold=3):
     """
     Resize a 3D image given an output shape.
     
@@ -466,10 +466,10 @@ def resize_3d(img, output_shape, order=3, is_msk=False, monitor_anisotropy=True)
     # we only consider the following case: [147,512,513] where the anisotropic axis is undersampled
     # and not: [147,151,512] where the anisotropic axis is oversampled
     anistropy_axes = np.array(input_shape[1:]) / input_shape[1:].min()
-    do_anisotropy = monitor_anisotropy and len(anistropy_axes[anistropy_axes<1.1])==1
+    do_anisotropy = monitor_anisotropy and len(anistropy_axes[anistropy_axes>anisotropy_threshold])==2
     if not do_anisotropy:
         anistropy_axes = np.array(output_shape[1:]) / output_shape[1:].min()
-        do_anisotropy = monitor_anisotropy and len(anistropy_axes[anistropy_axes<1.1])==1
+        do_anisotropy = monitor_anisotropy and len(anistropy_axes[anistropy_axes>anisotropy_threshold])==2
         
     do_additional_resize = False
     if do_anisotropy: 

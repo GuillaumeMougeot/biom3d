@@ -3,7 +3,7 @@
 
 python -m biom3d.pred\
  --name seg_eval\
- --log logs/20230514-182230-unet_lung\
+ --log logs/20230516-111625-unet_lung\
  --dir_in data/msd/Task06_Lung/imagesTr_test\
  --dir_out data/msd/Task06_Lung/preds\
  --dir_lab data/msd/Task06_Lung/labelsTr_test
@@ -23,7 +23,7 @@ python -m biom3d.pred\
 
 # python -m biom3d.pred\
 #  --name seg_eval_single\
-#  --log logs/20230503-111615-unet_default\
-#  --dir_in data/msd/Task06_Lung/imagesTr_test/lung_083.nii.gz\
-#  --dir_out data/msd/Task06_Lung/preds/20230503-111615-unet_default/lung_083.nii.gz\
-#  --dir_lab data/msd/Task06_Lung/labelsTr_test/lung_083.nii.gz
+#  --log logs/20230514-182230-unet_lung\
+#  --dir_in data/msd/Task06_Lung/imagesTr_test/lung_051.nii.gz\
+#  --dir_out data/msd/Task06_Lung/preds/20230514-182230-unet_lung/lung_051.nii.gz\
+#  --dir_lab data/msd/Task06_Lung/labelsTr_test/lung_051.nii.gz
