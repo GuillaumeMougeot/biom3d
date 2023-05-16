@@ -201,7 +201,7 @@ def sitk_imsave(img_path, img, spacing=(1,1,1), origin=(0,0,0), direction=(1., 0
     img_out.SetDirection(direction)
     sitk.WriteImage(img_out, img_path)
 
-def adaptive_imsave(img_path, img, spacing=(1,1,1), origin=(0,0,0), direction=(1, 0, 0, 0, 1, 0, 0, 0, 1)):
+def adaptive_imsave(img_path, img, spacing=(1.,1.,1.), origin=(0,0,0), direction=(1, 0, 0, 0, 1, 0, 0, 0, 1)):
     """Adaptive image saving. Use tifffile for `.tif`, use numpy for `.npy` and use SimpleITK for other format. 
 
     Parameters
@@ -215,7 +215,17 @@ def adaptive_imsave(img_path, img, spacing=(1,1,1), origin=(0,0,0), direction=(1
     """
     extension = img_path[img_path.rfind('.'):]
     if extension == ".tif":
-        tiff.imwrite(img_path, img, compression=('zlib', 1))
+        tiff.imwrite(
+            img_path,
+            img,
+            compression=('zlib', 1),
+            metadata={
+                'spacing':spacing,
+                'unit':'MICROMETER', # TODO: unit is set to micrometer by default but this could be a problem... 
+                'axes':'ZYX',
+                },
+            imagej=True,
+            )
     elif extension == ".npy":
         np.save(img_path, img)
     else:
