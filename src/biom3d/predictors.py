@@ -402,18 +402,13 @@ def seg_predict_patch_2(
         print("[Warning] Incompatible options 'keep_big_only' and 'keep_biggest_only' have both been set to True. Please deactivate one! We consider here only 'keep_biggest_only'.")
     # TODO: the function below is too slow
     if keep_biggest_only or keep_big_only:
+        fct = keep_biggest_volume_centered if keep_biggest_only else keep_big_volumes
         if len(out.shape)==3:
-            if keep_biggest_only:
-                out = keep_biggest_volume_centered(out)
-            if keep_big_only:
-                out = keep_big_volumes(out)
+            out = fct(out)
         elif len(out.shape)==4:
             tmp = []
             for i in range(out.shape[0]):
-                if keep_biggest_only:
-                    tmp += [keep_biggest_volume_centered(out[i])]
-                if keep_big_only:
-                    tmp += [keep_big_volumes(out[i])]
+                tmp += [fct(out[i])]
             out = np.array(tmp)
 
     out = out.astype(np.uint8)    

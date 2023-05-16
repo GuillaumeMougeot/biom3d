@@ -175,7 +175,11 @@ def adaptive_imread(img_path, return_origin=False, return_direction=False):
     """
     extension = img_path[img_path.rfind('.'):]
     if extension == ".tif":
-        returns = [io.imread(img_path), []] # TODO: spacing is set to empty but could be set from tif metadata
+        try:
+            spacing = tif_get_spacing(img_path)
+        except:
+            spacing = []
+        returns = [io.imread(img_path), spacing]  # TODO: spacing is set to empty but could be set from tif metadata
         if return_origin: returns += [[]]
         if return_direction: returns += [[]]
         return tuple(returns)
@@ -283,10 +287,10 @@ def tif_get_spacing(path):
     xres = (img_meta["XResolution"][1]/img_meta["XResolution"][0])*1e-6
     yres = (img_meta["YResolution"][1]/img_meta["YResolution"][0])*1e-6
     zres = float(img_meta["ImageDescription"]["spacing"])*1e-6
-    max_dim = min([xres,yres,zres])
-    xres = max_dim / xres
-    yres = max_dim / yres
-    zres = max_dim / zres
+    # max_dim = min([xres,yres,zres])
+    # xres = max_dim / xres
+    # yres = max_dim / yres
+    # zres = max_dim / zres
     return (xres, yres, zres)
 
 # ----------------------------------------------------------------------------

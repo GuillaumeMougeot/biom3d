@@ -12,7 +12,7 @@ configs/20*
 bash/submit_*
 bash/zay_*
 bash/nnunet_*
-bash/omero_pred.sh
+bash/omero_*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -40,8 +40,8 @@ def pred(log, dir_in, dir_out):
 def pred_multiple(log, dir_in, dir_out):
     """Prediction a folder of folders of images.
     """
-    list_dir_in = [dir_in + "/" + e for e in os.listdir(dir_in)]
-    list_dir_out = [dir_out + "/" + e for e in os.listdir(dir_in)]
+    list_dir_in = [os.path.join(dir_in, e) for e in os.listdir(dir_in)]
+    list_dir_out = [os.path.join(dir_out, e) for e in os.listdir(dir_in)]
     LOG_PATH = log
 
     for i in range(len(list_dir_in)):
