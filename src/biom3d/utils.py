@@ -465,8 +465,12 @@ def resize_3d(img, output_shape, order=3, is_msk=False, monitor_anisotropy=True)
     # separate axis --> [Guillaume] I am not sure about the interest of that... 
     # we only consider the following case: [147,512,513] where the anisotropic axis is undersampled
     # and not: [147,151,512] where the anisotropic axis is oversampled
-    anistropy_axes = np.array(output_shape[1:]) / output_shape[1:].min()
+    anistropy_axes = np.array(input_shape[1:]) / input_shape[1:].min()
     do_anisotropy = monitor_anisotropy and len(anistropy_axes[anistropy_axes<1.1])==1
+    if not do_anisotropy:
+        anistropy_axes = np.array(output_shape[1:]) / output_shape[1:].min()
+        do_anisotropy = monitor_anisotropy and len(anistropy_axes[anistropy_axes<1.1])==1
+        
     do_additional_resize = False
     if do_anisotropy: 
         axis = np.argmin(anistropy_axes)
