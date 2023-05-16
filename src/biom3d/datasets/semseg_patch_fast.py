@@ -382,7 +382,7 @@ class SemSeg3DPatchFast(Dataset):
                 tio.RandomBiasField(p=0.15, coefficients=0.2),
                 tio.RandomBlur(p=0.2, std=(0.5,1)),
                 tio.RandomNoise(p=0.2, std=(0,0.1)),
-                tio.RandomSwap(p=0.2, patch_size=ps//8),
+                # tio.RandomSwap(p=0.2, patch_size=ps//8),
                 tio.RandomGamma(p=0.3, log_gamma=(-0.35,0.4)),
                 # LabelToFloat(label_name='msk')
             ])
