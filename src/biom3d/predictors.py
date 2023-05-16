@@ -11,7 +11,7 @@ from skimage.io import imread
 from tqdm import tqdm
 # from scipy.ndimage.filters import gaussian_filter
 
-from biom3d.utils import keep_biggest_volume_centered, adaptive_imread, resize_3d
+from biom3d.utils import keep_biggest_volume_centered, adaptive_imread, resize_3d, keep_big_volumes
 
 #---------------------------------------------------------------------------
 # model predictor for segmentation
@@ -301,6 +301,7 @@ def seg_predict_patch_2(
     num_workers=4,
     enable_autocast=True, 
     keep_biggest_only=False,
+    keep_big_only=False,
     ):
     """
     for one image path, load the image, compute the model prediction, return the prediction
@@ -397,18 +398,25 @@ def seg_predict_patch_2(
     else: 
         out = resize_3d(out, original_shape, order=1, is_msk=True)
     
-
+    if keep_big_only and keep_biggest_only:
+        print("[Warning] Incompatible options 'keep_big_only' and 'keep_biggest_only' have both been set to True. Please deactivate one! We consider here only 'keep_biggest_only'.")
     # TODO: the function below is too slow
-    if keep_biggest_only:
+    if keep_biggest_only or keep_big_only:
         if len(out.shape)==3:
-            out = keep_biggest_volume_centered(out)
+            if keep_biggest_only:
+                out = keep_biggest_volume_centered(out)
+            if keep_big_only:
+                out = keep_big_volumes(out)
         elif len(out.shape)==4:
             tmp = []
             for i in range(out.shape[0]):
-                tmp += [keep_biggest_volume_centered(out[i])]
+                if keep_biggest_only:
+                    tmp += [keep_biggest_volume_centered(out[i])]
+                if keep_big_only:
+                    tmp += [keep_big_volumes(out[i])]
             out = np.array(tmp)
 
-    out = out.astype(np.uint16) 
+    out = out.astype(np.uint8) 
     
     
     print("Post-processing done!")
