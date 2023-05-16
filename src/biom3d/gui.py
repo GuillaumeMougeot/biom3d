@@ -466,14 +466,14 @@ class TrainFolderSelection(ttk.LabelFrame):
             _,stdout,_ = REMOTE.exec_command('ls {}/data'.format(MAIN_DIR))
             self.data_list = [e.replace('\n','') for e in stdout.readlines()]
             # define the dropdown menu
-            self.data_dir = StringVar(value=self.data_list[0])
-            self.data_dir_option_menu = ttk.OptionMenu(self, self.data_dir, *self.data_list, command= self.option_selected)
+            if(len(self.data_list) == 0):
+                self.data_dir = StringVar(value="Empty")
+            else:   
+                self.data_dir = StringVar(value=self.data_list[0])
+            
+            self.data_dir_option_menu = ttk.OptionMenu(self, self.data_dir, self.data_dir.get(), *self.data_list, command= self.option_selected)
             
             
-            """
-            self.img_outdir = StringVar("")
-            self.msk_outdir = StringVar("")
-            """
             self.label4 = ttk.Label(self, text="Select the Dataset to preprocess :", anchor="sw", background='white')
             self.data_dir.trace("w", self.option_selected)
             self.heheNotanUpdate()
@@ -921,6 +921,8 @@ class TrainTab(ttk.Frame):
             NB_EPOCHS=cfg.NB_EPOCHS
             
             )
+            """
+            """
             if torch.cuda.is_available():
                 # Get the current CUDA device
                 device = torch.device('cuda')
@@ -931,7 +933,7 @@ class TrainTab(ttk.Frame):
                 free_bytes = torch.cuda.get_device_properties(device).total_memory - allocated_bytes - reserved_bytes
                 free_bytes = free_bytes / 1024**2
                 
-                if(free_bytes > 252):
+                if(free_bytes < 252):
                     popupmsg("  CUDA out of memory. Tried to allocate 252.00 MiB but only "+str(free_bytes)+" MiB is free")
                 else:
                     # run the training
@@ -963,6 +965,21 @@ class InputDirectory(ttk.LabelFrame):
 
         if REMOTE: 
             # if remote, print the list of available dataset or offer the option to send a local one on the server.
+            to_pred_folder_path= 'ls {}/data/to_pred'.format(MAIN_DIR)
+            test_folder_command= f'[ -d "{to_pred_folder_path}" ] && echo "Folder exists" || echo "Folder does not exist"'
+            stdin,stdout,stderr=REMOTE.exec_command(test_folder_command)
+            
+            # Read the output and check the result
+            output = stdout.read().decode().strip()
+            if output == 'Folder exists':
+                print("Folder exists")
+            else:
+                # Create the folder
+                create_folder = f'mkdir -p "{to_pred_folder_path}"'
+                REMOTE.exec_command(create_folder)
+                print("Folder created")
+                
+
 
             # define the dropdown menu
             _,stdout,_ = REMOTE.exec_command('ls {}/data/to_pred'.format(MAIN_DIR))     # Where should i search ??
@@ -1105,7 +1122,7 @@ class ModelSelection(ttk.LabelFrame):
         _,stdout,_ = REMOTE.exec_command('ls {}/logs'.format(MAIN_DIR))
         self.logs_list = [e.replace('\n','') for e in stdout.readlines()]
         self.logs_dir_option_menu.set_menu(self.logs_list[0], *self.logs_list)
-        popupmsg("Models list upadted !")
+        popupmsg("Models list updated !")
 
 class OutputDirectory(ttk.LabelFrame):
     def __init__(self, *arg, **kw):
@@ -1148,8 +1165,11 @@ class DownloadPrediction(ttk.LabelFrame):
         # define the dropdown menu
         _,stdout,_ = REMOTE.exec_command('ls {}/data/pred'.format(MAIN_DIR))
         self.data_list = [e.replace('\n','') for e in stdout.readlines()]
-        self.data_dir = StringVar(value=self.data_list[0])
-        self.data_dir_option_menu = ttk.OptionMenu(self, self.data_dir, self.data_list[0], *self.data_list)
+        if(len(self.data_list) == 0):
+                self.data_dir = StringVar(value="Empty")
+        else:   
+            self.data_dir = StringVar(value=self.data_list[0])
+        self.data_dir_option_menu = ttk.OptionMenu(self, self.data_dir, self.data_dir.get(), *self.data_list)
         self.button_update_list = ttk.Button(self, text="Update", command=self._update_pred_list)
 
         # or send the dataset to server
@@ -1189,8 +1209,12 @@ class DownloadPrediction(ttk.LabelFrame):
     def _update_pred_list(self):
         _,stdout,_ = REMOTE.exec_command('ls {}/data/pred'.format(MAIN_DIR))
         self.data_list = [e.replace('\n','') for e in stdout.readlines()]
-        self.data_dir_option_menu.set_menu(self.data_list[0], *self.data_list)
-        popupmsg("Remote folder list updated !")
+        if(len(self.data_list) == 0):
+                self.data_dir = StringVar(value="Empty")
+        else:   
+            self.data_dir = StringVar(value=self.data_list[0])
+        self.data_dir_option_menu.set_menu(self.data_dir.get(), *self.data_list)
+        
 
 class PredictTab(ttk.Frame):
     def __init__(self, *arg, **kw):
@@ -1222,8 +1246,9 @@ class PredictTab(ttk.Frame):
         if self.use_omero_state.get():
             obj=self.omero_dataset.option.get()+":"+self.omero_dataset.id.get()
             if REMOTE:
+                popupmsg("Prediction is running ... !")
                 # TODO: below, still OS dependant 
-                _, stdout, stderr = REMOTE.exec_command("cd {}; python -m biom3d.omero_pred --obj {} --bui_dir {} --username {} --password {} --hostname {}".format(
+                _, stdout, stderr = REMOTE.exec_command("cd {}; python -m biom3d.omero_pred --obj {} --log {} --username {} --password {} --hostname {}".format(
                     MAIN_DIR,
                     obj,
                     MAIN_DIR+'/logs/'+self.model_selection.logs_dir.get(), 
@@ -1262,7 +1287,8 @@ class PredictTab(ttk.Frame):
                 )
         else: # if not use Omero
             if REMOTE:
-                _, stdout, stderr = REMOTE.exec_command("cd {}; python -m biom3d.pred --bui_dir {} --dir_in {} --dir_out {}".format(
+                #popupmsg("Prediction is running ... !")
+                _, stdout, stderr = REMOTE.exec_command("cd {}; python -m biom3d.pred --log {} --dir_in {} --dir_out {}".format(
                     MAIN_DIR,
                     'logs/'+self.model_selection.logs_dir.get(), 
                     'data/to_pred/'+self.input_dir.data_dir.get(),
@@ -1282,11 +1308,14 @@ class PredictTab(ttk.Frame):
                         print(line, end="")
                 
                 self.download_prediction._update_pred_list()
+                popupmsg("Prediction done !")
             else: 
+                popupmsg("Prediction is running ... !")
                 pred(
                     bui_dir=self.model_selection.logs_dir.get(),
                     dir_in=self.input_dir.data_dir.get(),
                     dir_out=self.output_dir.data_dir.get())
+                popupmsg("Prediction done !")
 
     def display_omero(self):
         if self.use_omero_state.get():
