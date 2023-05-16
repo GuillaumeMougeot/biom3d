@@ -440,7 +440,35 @@ class Preprocessing:
 
                 
         print("Done preprocessing!")
+def get_aug_patch(patch_size):
+    
+    """Return augmentation patch size.
+    The current solution is to increase the size of each dimension by 17% except for the eventual anisotropic dimension (meaning that this dimension is at least three time smaller than the others)... All of this sounds arbitrary... yes but it is pretty close to the original nnUNet solution.
 
+    Parameters
+    ----------
+    patch_size : tuple, list or numpy.ndarray
+        Patch size.
+
+    Returns
+    -------
+    aug_patch : numpy.ndarray
+        Augmentation patch size.
+    """
+    ps = np.array(patch_size)
+    aug_patch = np.round(1.17*ps).astype(int)
+    dummy_2d = ps/ps.min()
+    if np.any(dummy_2d>3): # then use dummy_2d
+        axis = np.argmin(dummy_2d)
+        aug_patch[axis] = patch_size[axis]
+    return aug_patch
+def parameters_return(patch, pool, batch, config_path):
+    print(batch)
+    print(patch)
+    aug_patch= get_aug_patch(patch)
+    print(aug_patch)
+    print(pool)
+    print(config_path)
 #---------------------------------------------------------------------------
 
 if __name__=='__main__':
@@ -472,6 +500,8 @@ if __name__=='__main__':
         help="(default=False) Stop showing the information to copy and paste inside the configuration file (patch_size, batch_size and num_pools).") 
     parser.add_argument("--ct_norm", default=False,  action='store_true', dest='ct_norm',
         help="(default=False) Whether to use CT-Scan normalization routine (cf. nnUNet).") 
+    parser.add_argument("--remote", default=False, dest='remote',
+        help="Use this arg when using remote preprocessing only")
     args = parser.parse_args()
 
     if args.ct_norm:
@@ -500,9 +530,10 @@ if __name__=='__main__':
     )
 
     p.run()
-
+    
+    """
     if not args.no_auto_config:
-        print("Start auto-configuration")
+        #print("Start auto-configuration")
         
 
         batch, aug_patch, patch, pool = auto_config(median=median_size)
@@ -527,7 +558,36 @@ if __name__=='__main__':
             DESC=args.desc,
         )
 
-        print("Auto-config done! Configuration saved in: ", config_path)
+        #print("Auto-config done! Configuration saved in: ", config_path)
+    """
+    
+    
+    if not args.no_auto_config or args.remote:
+        median_size, median_spacing, mean, std, perc_005, perc_995 = data_fingerprint(args.img_dir, args.msk_dir)
+        batch, aug_patch, patch, pool = auto_config(median=median_size)
+        config_path = save_python_config(
+            config_dir=args.config_dir,
+            base_config=args.base_config,
+
+            # store hyper-parameters in the config file:
+            IMG_DIR=p.img_outdir,
+            MSK_DIR=p.msk_outdir,
+            FG_DIR=p.fg_outdir,
+            NUM_CLASSES=args.num_classes,
+            NUM_CHANNELS=p.num_channels,
+            BATCH_SIZE=batch,
+            AUG_PATCH_SIZE=aug_patch,
+            PATCH_SIZE=patch,
+            NUM_POOLS=pool,
+            MEDIAN_SPACING=median_spacing,
+            CLIPPING_BOUNDS=clipping_bounds,
+            INTENSITY_MOMENTS=intensity_moments,
+            DESC=args.desc,
+        )
+        parameters_return(patch, pool, batch, config_path)
+    
+        
+        
 
 #---------------------------------------------------------------------------
 
