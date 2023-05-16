@@ -416,8 +416,7 @@ def seg_predict_patch_2(
                     tmp += [keep_big_volumes(out[i])]
             out = np.array(tmp)
 
-    out = out.astype(np.uint8) 
-    
+    out = out.astype(np.uint8)    
     
     print("Post-processing done!")
     print("Output shape:",out.shape)
