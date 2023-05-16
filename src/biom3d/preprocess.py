@@ -497,21 +497,33 @@ if __name__=='__main__':
     parser.add_argument("--remove_bg", default=False,  action='store_true', dest='remove_bg',
         help="(default=False) If use one hot, remove the background in masks. Remove the bg to use with sigmoid activation maps (not softmax).") 
     parser.add_argument("--no_auto_config", default=False,  action='store_true', dest='no_auto_config',
-        help="(default=False) Stop showing the information to copy and paste inside the configuration file (patch_size, batch_size and num_pools).") 
+        help="(default=False) For debugging, deactivate auto-configuration.") 
     parser.add_argument("--ct_norm", default=False,  action='store_true', dest='ct_norm',
         help="(default=False) Whether to use CT-Scan normalization routine (cf. nnUNet).") 
     parser.add_argument("--remote", default=False, dest='remote',
         help="Use this arg when using remote preprocessing only")
+    parser.add_argument("--skip_preprocessing", default=False,  action='store_true', dest='skip_preprocessing',
+        help="(default=False) Whether to skip the preprocessing. Only for debugging.") 
     args = parser.parse_args()
+
+    median_size, median_spacing, mean, std, perc_005, perc_995 = data_fingerprint(args.img_dir, args.msk_dir)
+    print("Data fingerprint:")
+    print("Median size:", median_size)
+    print("Median spacing:", median_spacing)
+    print("Mean intensity:", mean)
+    print("Standard deviation of intensities:", std)
+    print("0.5% percentile of intensities:", perc_005)
+    print("99.5% percentile of intensities:", perc_995)
+    print("")
 
     if args.ct_norm:
         print("Computing data fingerprint for CT normalization...")
-        median_size, median_spacing, mean, std, perc_005, perc_995 = data_fingerprint(args.img_dir, args.msk_dir)
         clipping_bounds = [perc_005, perc_995]
         intensity_moments = [mean, std]
         print("Done!")
     else:
-        median_spacing = []
+        # median_size = None
+        # median_spacing = []
         clipping_bounds = []
         intensity_moments = []
 
@@ -529,14 +541,14 @@ if __name__=='__main__':
         intensity_moments=intensity_moments,
     )
 
-    p.run()
-    
+    if not args.skip_preprocessing:
+        p.run()
     """
     if not args.no_auto_config:
         #print("Start auto-configuration")
         
 
-        batch, aug_patch, patch, pool = auto_config(median=median_size)
+        batch, aug_patch, patch, pool = auto_config(median=median_size, img_dir=args.img_dir if median_size is None else None)
 
         config_path = save_python_config(
             config_dir=args.config_dir,

@@ -3,13 +3,27 @@
 
 python -m biom3d.pred\
  --name seg_eval\
- --bui_dir logs/20230502-143157-unet_default\
- --dir_in data/msd/Task01_BrainTumour/imagesTr_test\
- --dir_out data/msd/Task01_BrainTumour/preds\
- --dir_lab data/msd/Task01_BrainTumour/labelsTr_test
+ --log logs/20230516-111625-unet_lung\
+ --dir_in data/msd/Task06_Lung/imagesTr_test\
+ --dir_out data/msd/Task06_Lung/preds\
+ --dir_lab data/msd/Task06_Lung/labelsTr_test
+
+# python -m biom3d.pred\
+#  --name seg_eval\
+#  --log logs/20230508-231647-unet_brain\
+#  --dir_in data/msd/Task01_BrainTumour/imagesTr_test\
+#  --dir_out data/msd/Task01_BrainTumour/preds\
+#  --dir_lab data/msd/Task01_BrainTumour/labelsTr_test
 
 # python -m biom3d.pred\
 #  --name seg\
-#  --bui_dir logs/20230427-170753-unet_default\
+#  --log logs/20230427-170753-unet_default\
 #  --dir_in data/btcv/Testing_official/img\
 #  --dir_out data/btcv/Testing_official/preds
+
+# python -m biom3d.pred\
+#  --name seg_eval_single\
+#  --log logs/20230514-182230-unet_lung\
+#  --dir_in data/msd/Task06_Lung/imagesTr_test/lung_051.nii.gz\
+#  --dir_out data/msd/Task06_Lung/preds/20230514-182230-unet_lung/lung_051.nii.gz\
+#  --dir_lab data/msd/Task06_Lung/labelsTr_test/lung_051.nii.gz

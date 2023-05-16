@@ -609,7 +609,7 @@ class Builder:
         # fnames_out = [f[:f.rfind('.')] for f in sorted(os.listdir(dir_in))]
         # fnames_out = [os.path.basename(f).split('.')[0] for f in sorted(os.listdir(dir_in))]
 
-        fnames_out = os.listdir(dir_in)
+        fnames_out = sorted(os.listdir(dir_in))
 
         # add folder path
         fnames_out = utils.abs_path(dir_out,fnames_out)
@@ -619,9 +619,8 @@ class Builder:
             pred = self.run_prediction_single(img_path=img_path, return_logit=return_logit)
 
             print("Saving images in", fnames_out[i])
-            spacing = utils.sitk_imread(img_path)[1]
-            if spacing==[]: spacing = (1,1,1) 
-            adaptive_imsave(fnames_out[i], pred, spacing)
+            _,spacing,origin,direction = utils.adaptive_imread(img_path, return_origin=True, return_direction=True)
+            adaptive_imsave(fnames_out[i], pred, spacing, origin, direction)
                 
     def load_train(self, 
         path, 

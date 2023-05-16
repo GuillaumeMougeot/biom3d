@@ -108,7 +108,7 @@ USE_SOFTMAX = True
 
 # training loop parameters
 USE_FP16 = True
-NUM_WORKERS = 10
+NUM_WORKERS = 6
 PIN_MEMORY = True
 
 #---------------------------------------------------------------------------
@@ -131,10 +131,11 @@ USE_FG_CLBK = False
 # dataset configs
 
 TRAIN_DATASET = Dict(
-    fct="Torchio",
+    fct="SegPatchFast",
     kwargs=Dict(
         img_dir    = IMG_DIR,
         msk_dir    = MSK_DIR, 
+        fg_dir     = FG_DIR,
         batch_size = BATCH_SIZE, 
         patch_size = PATCH_SIZE,
         nbof_steps = 250,
@@ -144,7 +145,8 @@ TRAIN_DATASET = Dict(
         train      = True,
         use_aug    = True,
         aug_patch_size = AUG_PATCH_SIZE,
-        use_softmax  = USE_SOFTMAX,
+        use_softmax = USE_SOFTMAX,
+        load_data   = False,
     )
 )
 
@@ -157,10 +159,11 @@ TRAIN_DATALOADER_KWARGS = Dict(
 )          
 
 VAL_DATASET = Dict(
-    fct="Torchio",
+    fct="SegPatchFast",
     kwargs = Dict(
         img_dir    = IMG_DIR,
         msk_dir    = MSK_DIR, 
+        fg_dir     = FG_DIR,
         batch_size = BATCH_SIZE, 
         patch_size = PATCH_SIZE,
         nbof_steps = 50,
@@ -171,6 +174,7 @@ VAL_DATASET = Dict(
         use_aug    = False,
         use_softmax  = USE_SOFTMAX,
         fg_rate    = 0.33,
+        load_data  = False,
     )
 )
 
@@ -243,9 +247,6 @@ VALIDATER = Dict(
 PREPROCESSOR = Dict(
     fct="Seg",
     kwargs=Dict(
-        num_classes=NUM_CLASSES,
-        use_one_hot = False,
-        remove_bg = False, 
         median_spacing=MEDIAN_SPACING,
         clipping_bounds=CLIPPING_BOUNDS,
         intensity_moments=INTENSITY_MOMENTS,

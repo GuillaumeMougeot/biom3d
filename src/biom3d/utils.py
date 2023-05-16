@@ -145,15 +145,29 @@ def create_save_dirs(log_dir, desc, dir_names=['model', 'logs', 'images'], retur
 # ----------------------------------------------------------------------------
 # image readers and savers
 
-def sitk_imread(img_path):
+def sitk_imread(img_path, return_spacing=True, return_origin=False, return_direction=False):
     """
     image reader for nii.gz files
     """
     img = sitk.ReadImage(img_path)
     img_np = sitk.GetArrayFromImage(img)
-    return img_np, np.array(img.GetSpacing())
+    dim = img.GetDimension()
+    returns = [img_np]
+    spacing = np.array(img.GetSpacing())
+    origin = np.array(img.GetOrigin())
+    direction = np.array(img.GetDirection())
+    if dim==4: # if dim==4 then turn it into 3...
+        spacing = spacing[:-1]
+        origin = origin[:-1]
+        direction = direction.reshape(4,4)[:-1, :-1].reshape(-1)
+    elif dim != 4 and dim != 3: 
+        raise RuntimeError("Unexpected dimensionality: %d of file %s, cannot split" % (dim, img_path))
+    if return_spacing: returns += [spacing]
+    if return_origin: returns += [origin]
+    if return_direction: returns += [direction]
+    return tuple(returns)
 
-def adaptive_imread(img_path):
+def adaptive_imread(img_path, return_origin=False, return_direction=False):
     """
     use skimage imread or sitk imread depending on the file extension:
     .tif --> skimage.io.imread
@@ -161,21 +175,29 @@ def adaptive_imread(img_path):
     """
     extension = img_path[img_path.rfind('.'):]
     if extension == ".tif":
-        return io.imread(img_path), []
+        returns = [io.imread(img_path), []] # TODO: spacing is set to empty but could be set from tif metadata
+        if return_origin: returns += [[]]
+        if return_direction: returns += [[]]
+        return tuple(returns)
     elif extension == ".npy":
-        return np.load(img_path), []
+        returns = [np.load(img_path), []]
+        if return_origin: returns += [[]]
+        if return_direction: returns += [[]]
+        return tuple(returns)
     else:
-        return sitk_imread(img_path)
+        return sitk_imread(img_path, return_origin=return_origin, return_direction=return_direction)
 
-def sitk_imsave(img_path, img, spacing=(1,1,1)):
+def sitk_imsave(img_path, img, spacing=(1,1,1), origin=(0,0,0), direction=(1., 0., 0., 0., 1., 0., 0., 0., 1.)):
     """
     image saver for nii gz files
     """
     img_out = sitk.GetImageFromArray(img)
     img_out.SetSpacing(spacing)
+    img_out.SetOrigin(origin)
+    img_out.SetDirection(direction)
     sitk.WriteImage(img_out, img_path)
 
-def adaptive_imsave(img_path, img, spacing=(1,1,1)):
+def adaptive_imsave(img_path, img, spacing=(1,1,1), origin=(0,0,0), direction=(1, 0, 0, 0, 1, 0, 0, 0, 1)):
     """Adaptive image saving. Use tifffile for `.tif`, use numpy for `.npy` and use SimpleITK for other format. 
 
     Parameters
@@ -193,7 +215,7 @@ def adaptive_imsave(img_path, img, spacing=(1,1,1)):
     elif extension == ".npy":
         np.save(img_path, img)
     else:
-        sitk_imsave(img_path, img, spacing)
+        sitk_imsave(img_path, img, spacing, origin, direction)
 
 # ----------------------------------------------------------------------------
 # tif metadata reader and writer
@@ -407,7 +429,7 @@ def resize_segmentation(segmentation, new_shape, order=3):
             reshaped[reshaped_multihot >= 0.5] = c
         return reshaped
 
-def resize_3d(img, output_shape, order=3, is_msk=False, monitor_anisotropy=True):
+def resize_3d(img, output_shape, order=3, is_msk=False, monitor_anisotropy=True, anisotropy_threshold=3):
     """
     Resize a 3D image given an output shape.
     
@@ -433,6 +455,8 @@ def resize_3d(img, output_shape, order=3, is_msk=False, monitor_anisotropy=True)
     output_shape = np.array(output_shape)
     if len(output_shape)==3:
         output_shape = np.append(input_shape[0],output_shape)
+    if np.all(input_shape==output_shape): # return image if no reshaping is needed
+        return img 
         
     # resize function definition
     resize_fct = resize_segmentation if is_msk else resize
@@ -441,8 +465,12 @@ def resize_3d(img, output_shape, order=3, is_msk=False, monitor_anisotropy=True)
     # separate axis --> [Guillaume] I am not sure about the interest of that... 
     # we only consider the following case: [147,512,513] where the anisotropic axis is undersampled
     # and not: [147,151,512] where the anisotropic axis is oversampled
-    anistropy_axes = np.array(output_shape[1:]) / output_shape[1:].min()
-    do_anisotropy = monitor_anisotropy and len(anistropy_axes[anistropy_axes<1.1])==1
+    anistropy_axes = np.array(input_shape[1:]) / input_shape[1:].min()
+    do_anisotropy = monitor_anisotropy and len(anistropy_axes[anistropy_axes>anisotropy_threshold])==2
+    if not do_anisotropy:
+        anistropy_axes = np.array(output_shape[1:]) / output_shape[1:].min()
+        do_anisotropy = monitor_anisotropy and len(anistropy_axes[anistropy_axes>anisotropy_threshold])==2
+        
     do_additional_resize = False
     if do_anisotropy: 
         axis = np.argmin(anistropy_axes)
@@ -1040,7 +1068,7 @@ def versus_one(fct, in_path, tg_path, num_classes, single_class=None):
     img1,_ = adaptive_imread(in_path)
     print("input path",in_path)
     if len(img1.shape)==3:
-        img1 = one_hot_fast(img1, num_classes)[1:,...]
+        img1 = one_hot_fast(img1.astype(np.uint8), num_classes)[1:,...]
     if single_class is not None:
         img1 = img1[single_class,...]
     img1 = (img1 > 0).astype(int)
@@ -1048,7 +1076,7 @@ def versus_one(fct, in_path, tg_path, num_classes, single_class=None):
     img2,_ = adaptive_imread(tg_path)
     print("target path",tg_path)
     if len(img2.shape)==3:
-        img2 = one_hot_fast(img2, num_classes)[1:,...]
+        img2 = one_hot_fast(img2.astype(np.uint8), num_classes)[1:,...]
     if single_class is not None:
         img2 = img2[single_class,...]
     img2 = (img2 > 0).astype(int)

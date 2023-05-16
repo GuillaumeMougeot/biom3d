@@ -1287,7 +1287,6 @@ class PredictTab(ttk.Frame):
                 )
         else: # if not use Omero
             if REMOTE:
-                #popupmsg("Prediction is running ... !")
                 _, stdout, stderr = REMOTE.exec_command("cd {}; python -m biom3d.pred --log {} --dir_in {} --dir_out {}".format(
                     MAIN_DIR,
                     'logs/'+self.model_selection.logs_dir.get(), 

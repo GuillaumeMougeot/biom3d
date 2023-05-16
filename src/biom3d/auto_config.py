@@ -123,8 +123,10 @@ def compute_median(path, return_spacing=False):
     if return_spacing: spacings = []
     for i in range(len(path_imgs)):
         img,spacing = adaptive_imread(path_imgs[i])
+        assert len(img.shape)>0, "[Error] Wrong image image."
         sizes += [list(img.shape)]
         if return_spacing and (spacing is not None): spacings+=[spacing]
+    assert len(sizes)>0, "[Error] List of sizes for median computation is empty. It is probably due to an empty image folder."
     sizes = np.array(sizes)
     median = np.median(sizes, axis=0).astype(int)
     
@@ -287,7 +289,7 @@ def find_patch_pool_batch(dims, max_dims=(128,128,128), max_pool=5, epsilon=1e-3
 
 def get_aug_patch(patch_size):
     """Return augmentation patch size.
-    The current solution is to increase the size of each dimension by 17% except for the eventual anisotropic dimension (meaning that this dimension is at least three time smaller than the others)... All of this sounds arbitrary... yes but it is pretty close to the original nnUNet solution.
+    The current solution is to increase the size of each dimension by 37% except if the image is anisotropic, then by 17% expect for the anisotropic dimension (meaning that the anisotropic dimension is at least three time smaller than the others)... All of this sounds arbitrary... yes but it is pretty close to the original nnUNet solution, yet much simpler.
 
     Parameters
     ----------
@@ -300,11 +302,14 @@ def get_aug_patch(patch_size):
         Augmentation patch size.
     """
     ps = np.array(patch_size)
-    aug_patch = np.round(1.17*ps).astype(int)
     dummy_2d = ps/ps.min()
+
     if np.any(dummy_2d>3): # then use dummy_2d
         axis = np.argmin(dummy_2d)
+        aug_patch = np.round(1.17*ps).astype(int)
         aug_patch[axis] = patch_size[axis]
+    else:
+        aug_patch = np.round(1.37*ps).astype(int)
     return aug_patch
         
 
@@ -418,6 +423,7 @@ if __name__=='__main__':
             config_path = save_python_config(
                 config_dir=args.config_dir,
                 base_config=args.base_config,
+                
                 BATCH_SIZE=batch,
                 AUG_PATCH_SIZE=aug_patch,
                 PATCH_SIZE=patch,

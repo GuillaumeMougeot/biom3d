@@ -16,19 +16,21 @@ Careful! Biom3d has two modes: a local mode and a remote mode. The local mode me
 
 ## Application Programming Interface
 
-Requirements:
+**Requirements**:
 * A NVidia GPUs with at least 12Go of VRAM (at least a Geforce GTX 1080). We tried with the following graphic cards: RTX 2080Ti, RTX 3090, P100, V100 or A100. 
 * Windows 10 or Ubuntu 18.04 (other OS have not been tested)
-* Python 3.8 or 3.9 or 3.10 (newer or older version have not been tested)
-* CUDA & CuDNN (cf [Nvidia doc](https://docs.nvidia.com/cuda/cuda-installation-guide-microsoft-windows/index.html)). We used CUDA 11.6 and 11.7. Before installing CUDA and CuDNN, please be sure that Pytorch is compatible (we tested Pytorch 1.10, 1.11, 1.12 and 1.13). You can find archived version 11.7 of CUDA [here](https://developer.nvidia.com/cuda-11-7-0-download-archive) and version 8.6.0 of CuDNN [here](https://developer.nvidia.com/rdp/cudnn-archive).
+* Python 3.8 or 3.9 or 3.10 (newer or older version have not been tested). For Windows users, you can install Python from [here](https://www.python.org/downloads/windows/) and please make sure to "Add Python to environment variable" during installation, or, if already installed, please add it.
+* CUDA & CuDNN (cf [Nvidia doc](https://docs.nvidia.com/cuda/cuda-installation-guide-microsoft-windows/index.html)). We used CUDA 11.6 and 11.7. **Before installing CUDA and CuDNN, please be sure that Pytorch is compatible (we tested Pytorch 1.10, 1.11, 1.12, 1.13 and 2.0)**. You can find archived version 11.7 of CUDA [here](https://developer.nvidia.com/cuda-11-7-0-download-archive) and version 8.6.0 of CuDNN [here](https://developer.nvidia.com/rdp/cudnn-archive).
 
-We also recommend to first setup a new Python environment before installing biom3d, with:
+We also recommend to first setup a new Python environment before installing biom3d. You can do that by opening a new terminal or the Command Prompt in Windows and type:
 
 ```
 python -m venv b3d
 ```
 
-and to activate your new environment use:
+> If you have an error indicating that Python cannot be found on your system, please make sure that you have tick the box "Add Python to environment variable" during installation, or, add Python to your environment variables [How to install Python on Windows](https://www.digitalocean.com/community/tutorials/install-python-windows-10).
+
+And to activate your new environment use:
 
 (for Windows users)
 ```
@@ -49,7 +51,13 @@ If the previous requirements are fulfilled, installing the API of biom3d is as s
 pip install biom3d
 ```
 
-If you would like to start the GUI, you can run the following command:
+If would like to install the GUI as well, type the following:
+
+```
+pip install biom3d[gui]
+```
+
+If you would like to start the GUI, you can then run the following command:
 
 ```
 python -m biom3d.gui -L
@@ -57,7 +65,7 @@ python -m biom3d.gui -L
 
 ## Source code
 
-Please follow first the requirements detailed in the API section before the biom3d installation.
+Please first follow the requirements detailed in the API section before the biom3d installation.
 
 Once pytorch installed, you can download the source code via GitHub by cloning the biom3d repository:
 
@@ -65,7 +73,7 @@ Once pytorch installed, you can download the source code via GitHub by cloning t
 git clone https://github.com/GuillaumeMougeot/biom3d.git
 ```
 
-or by forking the repository with your GitHub account and cloning it after.
+Or by forking the repository with your GitHub account and cloning it after.
 
 `cd` to your newly downloaded biom3d repository and the installation can be completed with the following command (after activating your pip environment):
 

@@ -7,7 +7,7 @@ from biom3d import omero_downloader
 from biom3d import pred 
 
 
-def run(obj, target, bui_dir, dir_out, host=None, user=None, pwd=None):
+def run(obj, target, log, dir_out, host=None, user=None, pwd=None):
     print("Start dataset/project downloading...")
     if host:
         conn = BlitzGateway(user, pwd, host=host, port=4064)
@@ -25,12 +25,12 @@ def run(obj, target, bui_dir, dir_out, host=None, user=None, pwd=None):
         dir_out = os.path.join(dir_out, datasets[0].name)
         if not os.path.isdir(dir_out):
             os.makedirs(dir_out, exist_ok=True)
-        pred.pred(bui_dir, dir_in, dir_out)
+        pred.pred(log, dir_in, dir_out)
     elif 'Project' in obj:
         dir_out = os.path.join(dir_out, os.path.split(dir_in)[-1])
         if not os.path.isdir(dir_out):
             os.makedirs(dir_out, exist_ok=True)
-        pred.pred_multiple(bui_dir, dir_in, dir_out)
+        pred.pred_multiple(log, dir_in, dir_out)
     else:
         print("[Error] Type of object unknown {}. It should be 'Dataset' or 'Project'".format(obj))
     print("Done prediction!")
@@ -44,7 +44,7 @@ if __name__=='__main__':
         help="Download object: 'Project:ID' or 'Dataset:ID'")
     parser.add_argument('--target', type=str, default="data/to_pred/",
         help="Directory name to download into")
-    parser.add_argument("--bui_dir", type=str, default="logs/unet_nucleus",
+    parser.add_argument("--log", type=str, default="logs/unet_nucleus",
         help="Path of the builder directory")
     parser.add_argument("--dir_out", type=str, default="data/pred/",
         help="Path to the output prediction directory")
@@ -61,7 +61,7 @@ if __name__=='__main__':
     run(
         obj=args.obj,
         target=args.target,
-        bui_dir=args.bui_dir,
+        log=args.log,
         dir_out=args.dir_out,
         host=args.hostname,
         user=args.username,
