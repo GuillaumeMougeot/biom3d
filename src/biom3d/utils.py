@@ -284,9 +284,9 @@ def tif_get_spacing(path):
     """
     img_meta = tif_read_meta(path)
 
-    xres = (img_meta["XResolution"][1]/img_meta["XResolution"][0])*1e-6
-    yres = (img_meta["YResolution"][1]/img_meta["YResolution"][0])*1e-6
-    zres = float(img_meta["ImageDescription"]["spacing"])*1e-6
+    xres = (img_meta["XResolution"][1]/img_meta["XResolution"][0])
+    yres = (img_meta["YResolution"][1]/img_meta["YResolution"][0])
+    zres = float(img_meta["ImageDescription"]["spacing"])
     # max_dim = min([xres,yres,zres])
     # xres = max_dim / xres
     # yres = max_dim / yres
