@@ -36,6 +36,7 @@ def pred(log, dir_in, dir_out):
     dir_out = os.path.join(dir_out,os.path.split(log)[-1]) # name the prediction folder with the model folder name
     builder = Builder(config=None,path=log, training=False)
     builder.run_prediction_folder(dir_in=dir_in, dir_out=dir_out, return_logit=False)
+    return dir_out
 
 def pred_multiple(log, dir_in, dir_out):
     """Prediction a folder of folders of images.

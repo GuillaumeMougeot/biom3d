@@ -215,17 +215,27 @@ def adaptive_imsave(img_path, img, spacing=(1.,1.,1.), origin=(0,0,0), direction
     """
     extension = img_path[img_path.rfind('.'):]
     if extension == ".tif":
+        # if not np.all(spacing==(1.,1.,1.)):
+        #     res = int(1e6) # default resolution is MICROMETERS
+        #     tiff.imwrite(
+        #         img_path,
+        #         img,
+        #         compression=('zlib', 1),
+
+        #         # the lines below might have to be commented in certain cases, depending on the unit of your images... 
+        #         resolution=((int(1/spacing[0]),res), (int(1/spacing[1]), res)), # TODO: unit is set to micrometer by default but this could be a problem... 
+        #         metadata={
+        #             'spacing':float(spacing[-1]*res),
+        #             'unit':'MICROMETER', # TODO: unit is set to micrometer by default but this could be a problem... 
+        #             'axes':'ZYX',
+        #             },
+        #         imagej=True,
+        #         )
+        # else:
         tiff.imwrite(
             img_path,
             img,
-            compression=('zlib', 1),
-            metadata={
-                'spacing':spacing,
-                'unit':'MICROMETER', # TODO: unit is set to micrometer by default but this could be a problem... 
-                'axes':'ZYX',
-                },
-            imagej=True,
-            )
+            compression=('zlib', 1))
     elif extension == ".npy":
         np.save(img_path, img)
     else:
@@ -288,15 +298,15 @@ def tif_copy_meta(in_path1, in_path2, out_path):
     data = tiff.imread(in_path2)
     tif_write_meta(data, in_meta, out_path)
 
-def tif_get_spacing(path):
+def tif_get_spacing(path, res=1e-6):
     """
     get the image spacing stored in the metadata file.
     """
     img_meta = tif_read_meta(path)
 
-    xres = (img_meta["XResolution"][1]/img_meta["XResolution"][0])
-    yres = (img_meta["YResolution"][1]/img_meta["YResolution"][0])
-    zres = float(img_meta["ImageDescription"]["spacing"])
+    xres = (img_meta["XResolution"][1]/img_meta["XResolution"][0])*res
+    yres = (img_meta["YResolution"][1]/img_meta["YResolution"][0])*res
+    zres = float(img_meta["ImageDescription"]["spacing"])*res
     # max_dim = min([xres,yres,zres])
     # xres = max_dim / xres
     # yres = max_dim / yres

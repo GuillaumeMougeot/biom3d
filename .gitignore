@@ -13,6 +13,7 @@ bash/submit_*
 bash/zay_*
 bash/nnunet_*
 bash/omero_*
+dev/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
