@@ -23,16 +23,22 @@ def centered_crop(img, msk, center, crop_shape, margin=np.zeros(3)):
     """
     img_shape = np.array(img.shape)[1:]
     center = np.array(center)
+    assert np.all(center>=0) and np.all(center<img_shape), "[Error] Center must be located inside the image. Center: {}, Image shape: {}".format(center, img_shape)
     crop_shape = np.array(crop_shape)
     margin = np.array(margin)
     
     # middle of the crop
-    start = np.maximum(0,center-crop_shape//2+margin).astype(int)
+    # start = np.maximum(0,center-crop_shape//2+margin).astype(int)
+    start = (center-crop_shape//2+margin).astype(int)
 
     # assert that the end will not be out of the crop
     # start = start - np.maximum(start+crop_shape-img_shape, 0)
 
-    end = center+(crop_shape-crop_shape//2)
+    # end = center+(crop_shape-crop_shape//2)
+    end = start+crop_shape
+
+    # we make sure that we are not out of the image shape
+    start = np.maximum(0,start)
     
     idx = [slice(0,img.shape[0])]+list(slice(s[0], s[1]) for s in zip(start, end))
     idx = tuple(idx)
@@ -333,7 +339,9 @@ class SemSeg3DPatchFast(Dataset):
             # the foreground-crop-function forces the foreground to be in the center of the patch
             # so that, when doing the second centrering crop, the foreground is still present in the patch,
             # that's why there is a margin here
-            self.fg_margin = start 
+            # [DEPRECATED] 2023/05/22 Guillaume: this is not the case anymore, will be removed
+            # self.fg_margin = start 
+            self.fg_margin = np.zeros(len(patch_size))
 
 
             # self.transform = tio.Compose([
