@@ -44,7 +44,7 @@ def centered_crop(img, msk, center, crop_shape, margin=np.zeros(3)):
     start = np.maximum(0,center-crop_shape//2+margin).astype(int)
 
     # assert that the end will not be out of the crop
-    start = start - np.maximum(start+crop_shape-img_shape, 0)
+    # start = start - np.maximum(start+crop_shape-img_shape, 0)
 
     end = crop_shape+start
     
@@ -74,6 +74,28 @@ def located_crop(img, msk, location, crop_shape, margin=np.zeros(3)):
     crop_img = img[idx]
     crop_msk = msk[idx]
     return crop_img, crop_msk
+
+def foreground_crop(img, msk, final_size, fg_margin, fg=None, use_softmax=True):
+    """Do a foreground crop.
+    """
+    if fg is not None:
+        locations = fg[random.choice(list(fg.keys()))]
+    else:
+        if tuple(msk.shape)[0]==1:
+            # then we consider that we don't have a one hot encoded label
+            rnd_label = random.randint(1,msk.max()+1)
+            locations = np.argwhere(msk[0] == rnd_label)
+        else:
+            # then we have a one hot encoded label
+            rnd_label = random.randint(int(use_softmax),tuple(msk.shape)[0]-1)
+            locations = np.argwhere(msk[rnd_label] == 1)
+
+    if np.array(locations).size==0: # bug fix when having empty arrays 
+        img, msk = random_crop(img, msk, final_size)
+    else:
+        center=random.choice(locations) # choose a random voxel of this label
+        img, msk = centered_crop(img, msk, center, final_size, fg_margin)
+    return img, msk
 
 def random_crop(img, msk, crop_shape):
     """
@@ -107,27 +129,12 @@ def centered_pad(img, final_size, msk=None):
     pad_img = np.pad(img, pad, 'constant', constant_values=0)
     
     if msk is not None:
-        pad_msk = np.pad(msk, pad, 'constant', constant_values=-1)
+        pad_msk = np.pad(msk, pad, 'constant', constant_values=0)
         return pad_img, pad_msk
     else: 
         return pad_img
 
-def foreground_crop(img, msk, final_size, fg_margin):
-    """Do a foreground crop.
-    """
-    # rnd_label = random.randint(0,msk.shape[0]-1) # choose a random label
-    rnd_label = random.randint(1,msk[0].max()) # choose a random label
-
-    locations = np.argwhere(msk[0] == rnd_label)
-
-    if locations.size==0: # bug fix when having empty arrays 
-        img, msk = random_crop(img, msk, final_size)
-    else:
-        center=random.choice(locations) # choose a random voxel of this label
-        img, msk = centered_crop(img, msk, center, final_size, fg_margin)
-    return img, msk
-    
-def random_crop_pad(img, msk, final_size, fg_rate=0.33, fg_margin=np.zeros(3)):
+def random_crop_pad(img, msk, final_size, fg_rate=0.33, fg_margin=np.zeros(3), fg=None, use_softmax=True):
     """
     random crop and pad if needed.
     """
@@ -142,7 +149,7 @@ def random_crop_pad(img, msk, final_size, fg_rate=0.33, fg_margin=np.zeros(3)):
     # choose if using foreground centrered or random alignement
     force_fg = random.random()
     if fg_rate>0 and force_fg<fg_rate:
-        img, msk = foreground_crop(img, msk, final_size, fg_margin)
+        img, msk = foreground_crop(img, msk, final_size, fg_margin, fg=fg, use_softmax=use_softmax)
     else:
         # or random crop
         img, msk = random_crop(img, msk, final_size)

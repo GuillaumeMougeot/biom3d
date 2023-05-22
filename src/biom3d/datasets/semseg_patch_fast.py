@@ -32,7 +32,7 @@ def centered_crop(img, msk, center, crop_shape, margin=np.zeros(3)):
     # assert that the end will not be out of the crop
     # start = start - np.maximum(start+crop_shape-img_shape, 0)
 
-    end = crop_shape+start
+    end = center+(crop_shape-crop_shape//2)
     
     idx = [slice(0,img.shape[0])]+list(slice(s[0], s[1]) for s in zip(start, end))
     idx = tuple(idx)
@@ -77,27 +77,11 @@ def foreground_crop(img, msk, final_size, fg_margin, fg=None, use_softmax=True):
             locations = np.argwhere(msk[rnd_label] == 1)
 
     if np.array(locations).size==0: # bug fix when having empty arrays 
-        img, msk = random_crop(img, msk, final_size)
+        img, msk = random_crop(img, msk, final_size, force_in=False)
     else:
         center=random.choice(locations) # choose a random voxel of this label
         img, msk = centered_crop(img, msk, center, final_size, fg_margin)
     return img, msk
-
-def random_crop(img, msk, crop_shape):
-    """
-    randomly crop a portion of size prop of the original image size.
-    """ 
-    img_shape = np.array(img.shape)[1:]
-    assert len(img_shape)==len(crop_shape),"[Error] Not the same dimensions! Image shape {}, Crop shape {}".format(img_shape, crop_shape)
-    start = np.random.randint(0, np.maximum(1,img_shape-crop_shape))
-    end = start+crop_shape
-    
-    idx = [slice(0,img.shape[0])]+list(slice(s[0], s[1]) for s in zip(start, end))
-    idx = tuple(idx)
-    
-    crop_img = img[idx]
-    crop_msk = msk[idx]
-    return crop_img, crop_msk
 
 def centered_pad(img, final_size, msk=None):
     """
@@ -120,6 +104,32 @@ def centered_pad(img, final_size, msk=None):
     else: 
         return pad_img
 
+def random_crop(img, msk, crop_shape, force_in=True):
+    """
+    randomly crop a portion of size prop of the original image size.
+    """ 
+    img_shape = np.array(img.shape)[1:]
+    assert len(img_shape)==len(crop_shape),"[Error] Not the same dimensions! Image shape {}, Crop shape {}".format(img_shape, crop_shape)
+    
+    if force_in: # force the crop to be located in image shape range
+        start = np.random.randint(0, np.maximum(1,img_shape-crop_shape))
+        end = start+crop_shape
+        
+        idx = [slice(0,img.shape[0])]+list(slice(s[0], s[1]) for s in zip(start, end))
+        idx = tuple(idx)
+        
+        crop_img = img[idx]
+        crop_msk = msk[idx]
+    else: # the crop will be chosen randomly and then padded if needed
+        # the crop might be too small but will be padded with zeros
+        start = np.random.randint(0, img_shape)
+        crop_img, crop_msk = centered_crop(img=img, msk=msk, center=start, crop_shape=crop_shape)
+        # pad if needed
+        if np.any(np.array(crop_img.shape)[1:]-crop_shape)!=0:
+            crop_img, crop_msk = centered_pad(img=crop_img, msk=crop_msk, final_size=crop_shape)
+
+    return crop_img, crop_msk
+
 def random_crop_pad(img, msk, final_size, fg_rate=0.33, fg_margin=np.zeros(3), fg=None, use_softmax=True):
     """
     random crop and pad if needed.
@@ -138,7 +148,7 @@ def random_crop_pad(img, msk, final_size, fg_rate=0.33, fg_margin=np.zeros(3), f
         img, msk = foreground_crop(img, msk, final_size, fg_margin, fg=fg, use_softmax=use_softmax)
     else:
         # or random crop
-        img, msk = random_crop(img, msk, final_size)
+        img, msk = random_crop(img, msk, final_size, force_in=False)
         
     # pad if needed
     if np.any(np.array(img.shape)[1:]-final_size)!=0:
@@ -298,16 +308,20 @@ class SemSeg3DPatchFast(Dataset):
             flip_prop/=flip_prop.sum()
 
             # [aug] 'axes' for tio.RandomAnisotropy
-            anisotropy_axes=tuple(np.arange(3)[ps/ps.min()>3].tolist())
+            anisotropy_axes=tuple(np.arange(len(ps))[ps/ps.min()>3].tolist())
+            if len(anisotropy_axes)==0:
+                anisotropy_axes=tuple(np.arange(len(ps)).tolist())
 
             # [aug] 'degrees' for tio.RandomAffine
             if np.any(ps/ps.min()>3): # then use dummy_2d
-                norm = ps*3/ps.min()
-                softmax=np.exp(norm)/sum(np.exp(norm))
-                degrees=softmax.min()*90/softmax
+                # norm = ps*3/ps.min()
+                # softmax=np.exp(norm)/sum(np.exp(norm))
+                # degrees=softmax.min()*90/softmax
                 # degrees = 180*ps.min()/ps
+                degrees = tuple(180 if p==ps.argmin() else 0 for p in range(len(ps)))
             else:
-                degrees = (-30,30)
+                # degrees = (-30,30)
+                degrees = 90
 
             # [aug] 'cropping'
             # the affine transform is computed on bigger patches than the other transform
@@ -350,23 +364,28 @@ class SemSeg3DPatchFast(Dataset):
             #     # tio.RandomSwap(p=0.2, patch_size=ps//8),
             #     tio.RandomGamma(p=0.3, log_gamma=(-0.35,0.4)),
             # ])
-            self.transform = tio.Compose([
-                # pre-cropping to aug_patch_size
-                tio.OneOf({
-                    tio.Compose([
+            # separate rotation as it requires a bigger patch size
+            self.rotate = tio.Compose([
                                  tio.RandomAffine(scales=0, degrees=degrees, translation=0, default_pad_value=0),
                                  tio.Crop(cropping=cropping),
-                                 LabelToLong(label_name='msk')
-                                ]): 0.2,
-                    tio.Crop(cropping=cropping): 0.8,
-                }),
+                                 LabelToLong(label_name='msk')])
+            self.transform = tio.Compose([
+                # pre-cropping to aug_patch_size
+                # tio.OneOf({
+                #     tio.Compose([
+                #                  tio.RandomAffine(scales=0, degrees=degrees, translation=0, default_pad_value=0),
+                #                  tio.Crop(cropping=cropping),
+                #                  LabelToLong(label_name='msk')
+                #                 ]): 0.2,
+                #     tio.Crop(cropping=cropping): 0.8,
+                # }),
 
                 tio.Compose([tio.RandomAffine(scales=(0.7,1.4), degrees=0, translation=0),
                              LabelToLong(label_name='msk')
                             ], p=0.2),
 
                 # spatial augmentations
-                # tio.RandomAnisotropy(p=0.2, axes=anisotropy_axes, downsampling=(1,2)),
+                tio.RandomAnisotropy(p=0.2, axes=anisotropy_axes, downsampling=(1,2)),
                 # tio.RandomAffine(p=0.25, scales=(0.7,1.4), degrees=degrees, translation=0),
                 # tio.Crop(cropping=cropping),
                 tio.RandomFlip(p=1, axes=(0,1,2)),
@@ -443,7 +462,9 @@ class SemSeg3DPatchFast(Dataset):
                 fg = None
 
         # random crop and pad
-        final_size = self.aug_patch_size if self.use_aug else self.patch_size
+        # rotation augmentation requires a larger patch size
+        do_rot = random.random() < 0.2 # rotation proba = 0.2 
+        final_size = self.aug_patch_size if self.use_aug and do_rot else self.patch_size
         fg_margin = self.fg_margin if self.use_aug else np.zeros(3)
         if self.train and self.crop_scale > 1:
             img, msk = random_crop_resize(
@@ -470,6 +491,7 @@ class SemSeg3DPatchFast(Dataset):
         # data augmentation
         if self.use_aug:
             sub = tio.Subject(img=tio.ScalarImage(tensor=img), msk=tio.LabelMap(tensor=msk))
+            if do_rot: sub = self.rotate(sub)
             sub = self.transform(sub)
             img, msk = sub.img.tensor, sub.msk.tensor
         
