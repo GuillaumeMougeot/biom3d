@@ -11,16 +11,23 @@
 #  --msk_dir data/msd/Task02_Heart/labelsTr\
 #  --num_classes 1
 
-python -m biom3d.preprocess_train\
- --img_dir data/msd/Task06_Lung/imagesTr_train\
- --msk_dir data/msd/Task06_Lung/labelsTr_train\
- --num_classes 1
+# python -m biom3d.preprocess_train\
+#  --img_dir data/msd/Task06_Lung/imagesTr_train\
+#  --msk_dir data/msd/Task06_Lung/labelsTr_train\
+#  --num_classes 1\
+#  --ct_norm
 
 # python -m biom3d.preprocess_train\
 #  --img_dir data/btcv/Training_official/img\
 #  --msk_dir data/btcv/Training_official/label\
 #  --num_classes 13\
 #  --ct_norm
+
+python -m biom3d.preprocess_train\
+ --img_dir data/btcv/Training_small/img\
+ --msk_dir data/btcv/Training_small/label\
+ --num_classes 13\
+ --ct_norm
 
 # python -m biom3d.preprocess_train\
 #  --img_dir data/nucleus/official/train/img\
