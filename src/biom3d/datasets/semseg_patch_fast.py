@@ -75,7 +75,7 @@ def foreground_crop(img, msk, final_size, fg_margin, fg=None, use_softmax=True):
     else:
         if tuple(msk.shape)[0]==1:
             # then we consider that we don't have a one hot encoded label
-            rnd_label = random.randint(1,msk.max()+1)
+            rnd_label = random.randint(1,msk.max() if msk.max()>0 else 1)
             locations = np.argwhere(msk[0] == rnd_label)
         else:
             # then we have a one hot encoded label

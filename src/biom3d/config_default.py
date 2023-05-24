@@ -30,10 +30,13 @@ IMG_DIR = None
 # Folder where pre-processed masks are stored
 MSK_DIR = None
 
-# Folder with the foreground locations
+# (Optional) Folder with the foreground locations
+# It is automatically set during preprocessing,
+# but can be left None. If so, foreground locations will be 
+# dynamically computed during training.
 FG_DIR = None
 
-# (optional) path to the .csv file storing "filename,hold_out,fold", where:
+# (Optional) path to the .csv file storing "filename,hold_out,fold", where:
 # "filename" is the image name,
 # "hold_out" is either 0 (training image) or 1 (testing image),
 # "fold" (non-negative integer) indicates the k-th fold, 

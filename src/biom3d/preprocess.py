@@ -456,6 +456,8 @@ if __name__=='__main__':
         help="(default=None) Path to the directory of the preprocessed masks/labels")
     parser.add_argument("--num_classes", type=int, default=1,
         help="(default=1) Number of classes (types of objects) in the dataset. The background is not included.")
+    parser.add_argument("--max_dim", type=int, default=128,
+        help="(default=128) max_dim^3 determines the maximum size of patch for auto-config.")
     parser.add_argument("--config_dir", type=str, default='configs/',
         help="(default=\'configs/\') Configuration folder to save the auto-configuration.")
     parser.add_argument("--base_config", type=str, default=None,
@@ -518,7 +520,11 @@ if __name__=='__main__':
         print("Start auto-configuration")
         
 
-        batch, aug_patch, patch, pool = auto_config(median=median_size, img_dir=args.img_dir if median_size is None else None)
+        batch, aug_patch, patch, pool = auto_config(
+            median=median_size,
+            img_dir=args.img_dir if median_size is None else None,
+            max_dims=(args.max_dim, args.max_dim, args.max_dim)
+            )
 
         config_path = save_python_config(
             config_dir=args.config_dir,

@@ -11,7 +11,7 @@ from biom3d.auto_config import auto_config, data_fingerprint
 from biom3d.utils import load_python_config, save_python_config
 from biom3d.builder import Builder
 
-def preprocess_train(img_dir, msk_dir, num_classes, config_dir, base_config, ct_norm, desc=None):
+def preprocess_train(img_dir, msk_dir, num_classes, config_dir, base_config, ct_norm, desc=None, max_dim=128):
     median_size, median_spacing, mean, std, perc_005, perc_995 = data_fingerprint(args.img_dir, args.msk_dir)
     if ct_norm:
         clipping_bounds = [perc_005, perc_995]
@@ -20,6 +20,15 @@ def preprocess_train(img_dir, msk_dir, num_classes, config_dir, base_config, ct_
         # median_spacing = []
         clipping_bounds = []
         intensity_moments = []
+
+    print("Data fingerprint:")
+    print("Median size:", median_size)
+    print("Median spacing:", median_spacing)
+    print("Mean intensity:", mean)
+    print("Standard deviation of intensities:", std)
+    print("0.5% percentile of intensities:", perc_005)
+    print("99.5% percentile of intensities:", perc_995)
+    print("")
 
     # preprocessing
     p=Preprocessing(
@@ -35,7 +44,11 @@ def preprocess_train(img_dir, msk_dir, num_classes, config_dir, base_config, ct_
     p.run()
 
     # auto-config
-    batch, aug_patch, patch, pool = auto_config(img_dir=p.img_dir)
+    batch, aug_patch, patch, pool = auto_config(
+            median=median_size,
+            img_dir=img_dir if median_size is None else None,
+            max_dims=(max_dim, max_dim, max_dim)
+        )
 
     # save auto-config
     config_path = save_python_config(
@@ -69,6 +82,8 @@ if __name__=='__main__':
         help="(default=None) Path to the masks/labels directory")
     parser.add_argument("--num_classes", type=int, default=1,
         help="(default=1) Number of classes (types of objects) in the dataset. The background is not included.")
+    parser.add_argument("--max_dim", type=int, default=128,
+        help="(default=128) max_dim^3 determines the maximum size of patch for auto-config.")
     parser.add_argument("--config_dir", type=str, default='configs/',
         help="(default=\'configs/\') Configuration folder to save the auto-configuration.")
     parser.add_argument("--base_config", type=str, default=None,
@@ -87,4 +102,5 @@ if __name__=='__main__':
         base_config=args.base_config,
         ct_norm=args.ct_norm,
         desc=args.desc,
+        max_dim=args.max_dim,
     )

@@ -923,7 +923,10 @@ def save_python_config(
 
     # rename it with date included
     current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
-    new_config_name = os.path.join(config_dir, current_time+"-"+os.path.basename(config_path))
+
+    # if DESC is in kwargs, then it will be used to rename the config file
+    basename = os.path.basename(config_path) if "DESC" not in kwargs.keys() else kwargs['DESC']+'.py'
+    new_config_name = os.path.join(config_dir, current_time+"-"+basename)
     os.rename(config_path, new_config_name)
 
     # edit the new config file with the auto-config values

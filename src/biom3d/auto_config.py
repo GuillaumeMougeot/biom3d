@@ -274,8 +274,8 @@ def find_patch_pool_batch(dims, max_dims=(128,128,128), max_pool=5, epsilon=1e-3
     patch = patch_pool[:,0]
     pool = patch_pool[:,1]
     
-    # assert the final size is smaller than max_dims
-    while patch.prod()>max_dims.prod():
+    # assert the final size is smaller than max_dims and the median size
+    while patch.prod()>max_dims.prod() or patch.prod()>dims.prod():
         patch = patch - np.array([2**max_pool]*3)*(patch>max_dims) # removing multiples of 32
     pool = np.where(pool > max_pool, max_pool, pool)
     

@@ -3,6 +3,22 @@ import argparse
 
 from biom3d.utils import abs_listdir, versus_one, dice
 
+def robust_sort(str_list):
+    """Robust sorting of string. Useful for list of paths sorting.
+    """
+    # max string lenght
+    max_len = max(list(len(s) for s in str_list))
+
+    # add zeros in the beginning so that all strings have the same length
+    # associate with the original length to the elongated string
+    same_len = {'0'*(max_len-len(s))+s:len(s) for s in str_list}
+
+    # sort the dict by key
+    sorted_same_len = {k:same_len[k] for k in sorted(same_len)}
+
+    # remove zeros and return
+    return [k[max_len-v:] for k,v in sorted_same_len.items()]
+
 def eval(dir_lab, dir_out, num_classes):
     print("Start evaluation")
     paths_lab = [dir_lab, dir_out]
