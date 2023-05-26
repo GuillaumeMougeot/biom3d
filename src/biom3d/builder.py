@@ -657,8 +657,8 @@ class Builder:
         print(self.model.load_state_dict(ckpt['model'], strict=False))
         if 'loss' in ckpt.keys(): self.loss_fn.load_state_dict(ckpt['loss'])
 
-        if not 'LR_START' in self.config.keys() or self.config.LR_START is None:
-            self.optim.load_state_dict(ckpt['opt'])
+        # if not 'LR_START' in self.config.keys() or self.config.LR_START is None:
+        self.optim.load_state_dict(ckpt['opt'])
 
         if 'epoch' in list(ckpt.keys()): 
             self.initial_epoch=ckpt['epoch'] # definitive version 

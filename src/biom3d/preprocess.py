@@ -478,7 +478,7 @@ if __name__=='__main__':
         help="(default=False) Whether to skip the preprocessing. Only for debugging.") 
     args = parser.parse_args()
 
-    median_size, median_spacing, mean, std, perc_005, perc_995 = data_fingerprint(args.img_dir, args.msk_dir)
+    median_size, median_spacing, mean, std, perc_005, perc_995 = data_fingerprint(args.img_dir, args.msk_dir if args.ct_norm else None)
     print("Data fingerprint:")
     print("Median size:", median_size)
     print("Median spacing:", median_spacing)
@@ -496,6 +496,8 @@ if __name__=='__main__':
     else:
         # median_size = None
         # median_spacing = []
+        # if sum(median_spacing)==len(median_size): # in case spacing all = 1 = default value
+        #     median_spacing = []
         clipping_bounds = []
         intensity_moments = []
 

@@ -137,7 +137,7 @@ def compute_median(path, return_spacing=False):
 
     return median 
 
-def data_fingerprint(img_dir, msk_dir=None, num_samples=10000):
+def data_fingerprint(img_dir, msk_dir=None, num_samples=10000, dim=3):
     """Compute the data fingerprint. 
 
     Parameters 
@@ -148,6 +148,8 @@ def data_fingerprint(img_dir, msk_dir=None, num_samples=10000):
         (Optional) Path to the corresponding directory of masks. If provided the function will compute the mean, the standard deviation, the 0.5% percentile and the 99.5% percentile of the intensity values of the images located inside the masks. If not provide, the function returns zeros for each of these values.
     num_samples : int, default=10000
         We compute the intensity characteristic on only a sample of the candidate voxels.
+    dim : int, default=3
+        Dimension of the images (2D or 3D images). Useful to remove the unwanted channel dim.
     
     Returns
     -------
@@ -195,7 +197,7 @@ def data_fingerprint(img_dir, msk_dir=None, num_samples=10000):
 
     # median computation
     median_size = np.median(np.array(sizes), axis=0).astype(int)
-    median_spacing = np.median(np.array(spacings), axis=0)
+    median_spacing = np.median(np.array(spacings), axis=0)[-dim:]  # remove channel dim
     
     # compute fingerprints
     mean = float(np.mean(samples)) if samples!=[] else 0
@@ -262,24 +264,39 @@ def find_patch_pool_batch(dims, max_dims=(128,128,128), max_pool=5, epsilon=1e-3
     if len(dims)==4:
         dims=dims[1:]
     dims = np.array(dims)
+    ori_dim = dims.copy()
     max_dims = np.array(max_dims)
     
     # divides by a 1+epsilon until reaching a sufficiently small resolution
     while dims.prod() > max_dims.prod():
         dims = dims / (1+epsilon)
-    dims = dims.astype(int)
+    dims = np.round(dims).astype(int)
     
     # compute patch and pool for all dims
     patch_pool = np.array([single_patch_pool(m) for m in dims])
     patch = patch_pool[:,0]
     pool = patch_pool[:,1]
     
+    
     # assert the final size is smaller than max_dims and the median size
-    while patch.prod()>max_dims.prod() or patch.prod()>dims.prod():
-        patch = patch - np.array([2**max_pool]*3)*(patch>max_dims) # removing multiples of 32
+    while patch.prod()>max_dims.prod() or patch.prod()>ori_dim.prod()*2:
+        patch = patch - 2**max_pool*(patch==patch.max()) # removing multiples of 2**max_pool
+    
+    # if we removed too much we just add multiples of 2**pool.min() to the smallest dimension
+    added = False
+    while max_dims.prod()-(patch + 2**pool*(patch==patch.min())).prod()>=0 and\
+          ori_dim.prod() -(patch + 2**pool*(patch==patch.min())).prod()>=0:
+        patch = patch + 2**pool*(patch==patch.min()); added = True
+        
+    # if we increased the patch size then we set pool to the 2-adic valuation of the patch size
+    if added:
+        while np.any(patch%2**(pool+1)==0): 
+            pool = pool + (patch%2**(pool+1)==0).astype(int)
+ 
+    # limit pool size
     pool = np.where(pool > max_pool, max_pool, pool)
     
-    # batch_size
+    # batch_size is set to 2 and increased if possible
     batch = 2
     while batch*patch.prod() <= 2*max_dims.prod():
         batch += 1
@@ -289,7 +306,7 @@ def find_patch_pool_batch(dims, max_dims=(128,128,128), max_pool=5, epsilon=1e-3
 
 def get_aug_patch(patch_size):
     """Return augmentation patch size.
-    The current solution is to increase the size of each dimension by 37% except if the image is anisotropic, then by 17% expect for the anisotropic dimension (meaning that the anisotropic dimension is at least three time smaller than the others)... All of this sounds arbitrary... yes but it is pretty close to the original nnUNet solution, yet much simpler.
+    The current solution is to use the diagonal of the rectagular cuboid of the patch size, for isotripic images and, for anisotropic images, the diagonal of the rectangle spaned by the non-anisotropic dimensions. 
 
     Parameters
     ----------

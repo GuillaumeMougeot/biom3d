@@ -184,7 +184,7 @@ VAL_DATASET = Dict(
 VAL_DATALOADER_KWARGS = Dict(
     batch_size  = BATCH_SIZE, # TODO: change it in the final version
     drop_last   = False, 
-    shuffle     = False, 
+    shuffle     = True, 
     num_workers = NUM_WORKERS//2, # less worker needed for validation 
     pin_memory  = PIN_MEMORY,
 )

@@ -23,11 +23,11 @@
 #  --num_classes 13\
 #  --ct_norm
 
-python -m biom3d.preprocess_train\
- --img_dir data/btcv/Training_small/img\
- --msk_dir data/btcv/Training_small/label\
- --num_classes 13\
- --ct_norm
+# python -m biom3d.preprocess_train\
+#  --img_dir data/btcv/Training_small/img\
+#  --msk_dir data/btcv/Training_small/label\
+#  --num_classes 13\
+#  --ct_norm
 
 # python -m biom3d.preprocess_train\
 #  --img_dir data/nucleus/official/train/img\
@@ -38,3 +38,9 @@ python -m biom3d.preprocess_train\
 #  --img_dir data/mito/train/img\
 #  --msk_dir data/mito/train/msk\
 #  --num_classes 1
+
+python -m biom3d.preprocess_train\
+ --img_dir data/msd/Task01_BrainTumour/imagesTr_train\
+ --msk_dir data/msd/Task01_BrainTumour/labelsTr_train\
+ --num_classes 3\
+ --desc unet_brain

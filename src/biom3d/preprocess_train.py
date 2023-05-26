@@ -12,12 +12,13 @@ from biom3d.utils import load_python_config, save_python_config
 from biom3d.builder import Builder
 
 def preprocess_train(img_dir, msk_dir, num_classes, config_dir, base_config, ct_norm, desc=None, max_dim=128):
-    median_size, median_spacing, mean, std, perc_005, perc_995 = data_fingerprint(args.img_dir, args.msk_dir)
+    median_size, median_spacing, mean, std, perc_005, perc_995 = data_fingerprint(img_dir, msk_dir if ct_norm else None)
     if ct_norm:
         clipping_bounds = [perc_005, perc_995]
         intensity_moments = [mean, std]
     else:
-        # median_spacing = []
+        # if sum(median_spacing)==len(median_size): # in case spacing all = 1 = default value
+        #     median_spacing = []
         clipping_bounds = []
         intensity_moments = []
 
