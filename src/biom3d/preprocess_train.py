@@ -48,7 +48,8 @@ def preprocess_train(img_dir, msk_dir, num_classes, config_dir, base_config, ct_
     batch, aug_patch, patch, pool = auto_config(
             median=median_size,
             img_dir=img_dir if median_size is None else None,
-            max_dims=(max_dim, max_dim, max_dim)
+            max_dims=(max_dim, max_dim, max_dim),
+            max_batch = len(os.listdir(img_dir))//20, # we limit batch to avoid overfitting
         )
 
     # save auto-config

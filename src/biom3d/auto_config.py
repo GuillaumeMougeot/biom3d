@@ -348,7 +348,7 @@ def display_info(patch, pool, batch):
     print("AUG_PATCH_SIZE =",list(aug_patch))
     print("NUM_POOLS =", list(pool))
 
-def auto_config(img_dir=None, median=None, max_dims=(128,128,128)):
+def auto_config(img_dir=None, median=None, max_dims=(128,128,128), max_batch=16, min_batch=2):
     """Given an image folder, return the batch size, the patch size and the number of pooling.
     Provide either an image directory or a median shape. If a median shape is provided it will not be recomputed and the auto-configuration will be much faster.
 
@@ -376,6 +376,8 @@ def auto_config(img_dir=None, median=None, max_dims=(128,128,128)):
     if median is None: median = compute_median(path=img_dir) 
     patch, pool, batch = find_patch_pool_batch(dims=median, max_dims=max_dims) 
     aug_patch = get_aug_patch(patch)
+    if batch > max_batch: batch = max_batch
+    if batch < min_batch: batch = min_batch
     return batch, aug_patch, patch, pool
 
 # ----------------------------------------------------------------------------

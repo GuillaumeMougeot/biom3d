@@ -525,7 +525,8 @@ if __name__=='__main__':
         batch, aug_patch, patch, pool = auto_config(
             median=median_size,
             img_dir=args.img_dir if median_size is None else None,
-            max_dims=(args.max_dim, args.max_dim, args.max_dim)
+            max_dims=(args.max_dim, args.max_dim, args.max_dim),
+            max_batch = len(os.listdir(args.img_dir))//20, # we limit batch to avoid overfitting
             )
 
         config_path = save_python_config(
