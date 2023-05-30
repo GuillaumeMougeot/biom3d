@@ -27,7 +27,7 @@ We target two main types of users:
 
 ## :hand: Usage
 
-TL;DR: here is a single line of code to run biom3d on the [BTCV challenge](https://www.synapse.org/#!Synapse:syn3193805/wiki/217785) and reached the same performance as nnU-Net (no cross-validation yet): 
+TL;DR: here is a single line of code to run biom3d on the [BTCV challenge](https://www.synapse.org/#!Synapse:syn3193805/wiki/217785) and reach the same performance as nnU-Net (no cross-validation yet): 
 
 ```
 python -m biom3d.preprocess_train\
