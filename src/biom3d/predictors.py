@@ -314,9 +314,10 @@ def seg_predict_patch_2(
     print('AMP {}'.format('enabled' if enable_autocast else 'disabled'))
 
     # get grid sampler
+    overlap = 0.6
     patch_size = np.array(patch_size)
-    patch_overlap = np.maximum(patch_size//2, patch_size-np.array(img.shape[-3:]))
-    patch_overlap = np.ceil(patch_overlap/2).astype(int)*2
+    patch_overlap = np.maximum(patch_size*overlap, patch_size-np.array(img.shape[-3:]))
+    patch_overlap = (np.ceil(patch_overlap*overlap)/overlap).astype(int)
     sub = tio.Subject(img=tio.ScalarImage(tensor=img))
     sampler= tio.data.GridSampler(subject=sub, 
                             patch_size=patch_size, 

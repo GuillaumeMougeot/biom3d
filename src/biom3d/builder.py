@@ -212,6 +212,10 @@ class Builder:
             assert config is not None, "[Error] config file not defined."
             # print(self.config)
             self.build_train()
+        
+        # if cuda is not available then deactivate USE_FP16
+        if not torch.cuda.is_available():
+            self.config.USE_FP16 = False
 
     def build_dataset(self):
         """Build the dataset.
@@ -289,11 +293,15 @@ class Builder:
         # losses
         if training:
             self.loss_fn = read_config(self.config.TRAIN_LOSS, register.metrics)
-            self.loss_fn.cuda().train()
+            if torch.cuda.is_available():
+                self.loss_fn.cuda()
+            self.loss_fn.train()
 
             if 'VAL_LOSS' in self.config.keys():
                 self.val_loss_fn = read_config(self.config.VAL_LOSS, register.metrics)
-                self.val_loss_fn.cuda().eval()
+                if torch.cuda.is_available():
+                    self.val_loss_fn.cuda()
+                self.val_loss_fn.eval()
             else: 
                 self.val_loss_fn = None
 
@@ -301,12 +309,17 @@ class Builder:
             if 'TRAIN_METRICS' in self.config.keys():
                 self.train_metrics = [read_config(v, register.metrics) for v in self.config.TRAIN_METRICS.values()]
                 # print(self.train_metrics)
-                for m in self.train_metrics: m.cuda().eval()
+                for m in self.train_metrics: 
+                    if torch.cuda.is_available():
+                        m.cuda()
+                    m.eval()
             else: self.train_metrics = []
 
             if 'VAL_METRICS' in self.config.keys():
                 self.val_metrics = [read_config(v, register.metrics) for v in self.config.VAL_METRICS.values()]
-                for m in self.val_metrics: m.cuda().eval()
+                for m in self.val_metrics: 
+                    m.cuda()
+                m.eval()
             else: self.val_metrics = []
 
             # optimizer
