@@ -339,7 +339,8 @@ class ImageSaver(Callback):
                 # make prediction
                     X, y = next(iter(self.val_dataloader))
                     # X, y = self.val_dataloader.get_sample()
-                    X, y = X.cuda(), y.cuda()
+                    if torch.cuda.is_available():
+                        X, y = X.cuda(), y.cuda()
                     with torch.cuda.amp.autocast(self.use_fp16):
                         pred = self.model(X)
                         if type(pred)==list:
