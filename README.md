@@ -33,6 +33,12 @@ pip install torch biom3d
 
 ## :hand: Usage
 
+**For Graphical User Interface users, please check our documentation here:** [**Documentation-GUI**](https://biom3d.readthedocs.io/en/latest/quick_run_gui.html)
+
+**For Command Line Interface users, please check our documentation here:** [**Documentation-CLI**](https://biom3d.readthedocs.io/en/latest/tuto_cli.html)
+
+**For Deep Learning developers, the tutorials are currently being cooked stayed tuned! You can check the partial API documentation already:** [**Documentation-API**](https://biom3d.readthedocs.io/en/latest/builder.html)
+
 TL;DR: here is a single line of code to run biom3d on the [BTCV challenge](https://www.synapse.org/#!Synapse:syn3193805/wiki/217785) and reach the same performance as nnU-Net (no cross-validation yet): 
 
 ```
@@ -42,12 +48,6 @@ python -m biom3d.preprocess_train\
  --num_classes 13\
  --ct_norm
 ```
-
-**For Graphical User Interface users, please check our documentation here:** [**Documentation-GUI**](https://biom3d.readthedocs.io/en/latest/quick_run_gui.html)
-
-**For Command Line Interface users, please check our documentation here:** [**Documentation-CLI**](https://biom3d.readthedocs.io/en/latest/tuto_cli.html)
-
-**For Deep Learning developers, the tutorials are currently being cooked stayed tuned! You can check the partial API documentation already:** [**Documentation-API**](https://biom3d.readthedocs.io/en/latest/builder.html)
 
 ## :bookmark_tabs: Citation
 
