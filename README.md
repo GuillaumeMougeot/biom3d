@@ -25,6 +25,12 @@ We target two main types of users:
 
 **For the installation details, please check our documentation here:** [**Documentation-Installation**](https://biom3d.readthedocs.io/en/latest/installation.html)
 
+TL;DR: here is a single line of code to install biom3d:
+
+```
+pip install torch biom3d
+```
+
 ## :hand: Usage
 
 TL;DR: here is a single line of code to run biom3d on the [BTCV challenge](https://www.synapse.org/#!Synapse:syn3193805/wiki/217785) and reach the same performance as nnU-Net (no cross-validation yet): 
