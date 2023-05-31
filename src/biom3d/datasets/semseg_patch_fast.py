@@ -326,8 +326,8 @@ class SemSeg3DPatchFast(Dataset):
                 # degrees = 180*ps.min()/ps
                 degrees = tuple(180 if p==ps.argmin() else 0 for p in range(len(ps)))
             else:
-                # degrees = (-30,30)
-                degrees = 90
+                degrees = (-45,45)
+                # degrees = 90
 
             # [aug] 'cropping'
             # the affine transform is computed on bigger patches than the other transform
@@ -393,7 +393,7 @@ class SemSeg3DPatchFast(Dataset):
                             ], p=0.2),
 
                 # spatial augmentations
-                tio.RandomAnisotropy(p=0.2, axes=anisotropy_axes, downsampling=(1,2)),
+                tio.RandomAnisotropy(p=0.1, axes=anisotropy_axes, downsampling=(1,1.5)),
                 # tio.RandomAffine(p=0.25, scales=(0.7,1.4), degrees=degrees, translation=0),
                 # tio.Crop(cropping=cropping),
                 tio.RandomFlip(p=1, axes=(0,1,2)),
