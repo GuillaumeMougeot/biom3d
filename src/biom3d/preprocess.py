@@ -11,11 +11,117 @@ import pickle # for foreground storage
 from tqdm import tqdm
 import argparse
 import tifffile
+import pandas as pd
 
 from biom3d.auto_config import auto_config, data_fingerprint
 from biom3d.utils import adaptive_imread, one_hot_fast, resize_3d, save_python_config
 
 np.random.seed(42)
+
+#---------------------------------------------------------------------------
+# Define the CSV file for KFold split
+
+def hold_out(df, ratio=0.1, seed=42):
+    """
+    Select a set of element from the first column of df.
+    The size of the set is len(set)*ratio.
+    It is randomly selected.
+    The results are stored in a new column in df called 'hold_out'.
+    The results is a 0/1 list: 1=selected, 0=not selected
+    
+    Args:
+        df: pd.DataFrame
+        ratio: float in [0,1]
+        seed: np.random.seed initialisation
+    Return:
+        df: pd.DataFrame
+    """
+    np.random.seed(seed)
+    l = np.array(df.iloc[:,0])
+    
+    # shuffle the list 
+    permut = np.random.permutation(len(l))
+    inv_permut = np.argsort(permut)
+    # shuffled = l[permut] # shuffled contains the suffled list
+    
+    # split the shuffled list
+    split = int(len(l)*ratio)
+    indices = np.array([1]*split+[0]*(len(l)-split))
+    
+    # unpermut the list of indice to get back the original
+    sort_indices = indices[inv_permut]
+    
+    # add columns
+    df['hold_out'] = sort_indices
+    return df
+
+def strat_kfold(df, k=4, seed=43):
+    """
+    Stratified Kfold. 
+    Same as kfold but pay attention to balance the train and test sets.
+    df must contains a column named 'hold_out'.
+    """
+    np.random.seed(seed)
+    l = np.array(df.iloc[:,0])
+    
+    holds_out = np.array(df['hold_out'])
+    indices_all = np.arange(len(l))
+    
+    # retrieve train/test indices 
+    indices_test = indices_all[holds_out==1]
+    indices_train = indices_all[holds_out==0]
+    
+    # split the list in k folds and shuffle it 
+    def split_indices(l):
+        kfold_size = len(l)//k
+        indices = []
+        for i in range(k):
+            indices += [i]*kfold_size
+        # the remaining indices are randomly assigned
+        if len(l[len(indices):])>0:
+            for i in range(len(l[len(indices):])):
+                alea = np.random.randint(0,k)
+                indices += [alea]
+        indices = np.array(indices)
+        assert len(indices) == len(l)
+        np.random.shuffle(indices) # shuffle the indices
+        return indices
+    
+    folds_train = split_indices(indices_train)
+    folds_test = split_indices(indices_test)
+    
+    # merge folds at the right place
+    merge = np.zeros_like(l)
+    merge[holds_out==1] = folds_test
+    merge[holds_out==0] = folds_train
+    
+    # add the column to the DataFrame
+    df['fold'] = merge
+    return df
+
+def generate_kfold_csv(filenames, csv_path, hold_out_rate=0., kfold=5, seed=42):
+    """From a list of filenames create a CSV containing three columns:
+    - filename: image filename
+    - hold: 0 or 1, whether to consider this image as test set
+    - fold: 0, 1, ..., K, each corresponds to the validation set images
+
+    Parameters
+    ----------
+    filenames : list of str
+        List of the filenames (not the absolute path).
+    csv_path : str
+        Path of the output csv file.
+    hold_out_rate : float, default=0.
+        Float between 0 and 1, rate with which the test split will be selected. 
+    kfold : int, default=5
+        Number of fold that will be defined
+    seed : int, default=42
+        Random seed for numpy.random
+    """
+    df = pd.DataFrame(filenames, columns=['filename'])
+    df = hold_out(df, ratio=hold_out_rate, seed=seed)
+    df = strat_kfold(df, k=kfold, seed=seed)
+    df.to_csv(csv_path, index=False)
 
 #---------------------------------------------------------------------------
 # 3D segmentation preprocessing
@@ -143,7 +249,7 @@ class Preprocessing:
         
         self.img_dir=img_dir
         self.msk_dir=msk_dir
-        self.img_fnames=os.listdir(self.img_dir)
+        self.img_fnames=sorted(os.listdir(self.img_dir))
 
         if img_outdir is None: # name the out dir the same way as the input and add the _out suffix
             img_outdir = img_dir+'_out'
@@ -167,6 +273,9 @@ class Preprocessing:
             os.makedirs(self.msk_outdir, exist_ok=True)
         if msk_dir is not None and not os.path.exists(self.fg_outdir):
             os.makedirs(self.fg_outdir, exist_ok=True)
+
+        # create csv along with the img folder
+        self.csv_path = os.path.join(os.path.dirname(img_dir), 'folds.csv')
 
         self.num_classes = num_classes
         self.num_channels = 1
@@ -438,10 +547,106 @@ class Preprocessing:
                 with open(fg_file, 'wb') as handle:
                     pickle.dump(fg, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-                
+        # create csv file
+        filenames = sorted(os.listdir(self.img_outdir))
+        generate_kfold_csv(filenames, self.csv_path)
+
         print("Done preprocessing!")
 
 #---------------------------------------------------------------------------
+
+def auto_config_preprocess(
+        img_dir, 
+        msk_dir, 
+        num_classes, 
+        config_dir, 
+        base_config, 
+        img_outdir=None,
+        msk_outdir=None,
+        use_one_hot=False,
+        ct_norm=False,
+        remove_bg=False, 
+        use_tif=False,
+        desc=None, 
+        max_dim=128,
+        skip_preprocessing=False,
+        no_auto_config=False,
+        ):
+    
+    median_size, median_spacing, mean, std, perc_005, perc_995 = data_fingerprint(img_dir, msk_dir if ct_norm else None)
+    print("Data fingerprint:")
+    print("Median size:", median_size)
+    print("Median spacing:", median_spacing)
+    print("Mean intensity:", mean)
+    print("Standard deviation of intensities:", std)
+    print("0.5% percentile of intensities:", perc_005)
+    print("99.5% percentile of intensities:", perc_995)
+    print("")
+
+    if ct_norm:
+        print("Computing data fingerprint for CT normalization...")
+        clipping_bounds = [perc_005, perc_995]
+        intensity_moments = [mean, std]
+        print("Done!")
+    else:
+        # median_size = None
+        # median_spacing = []
+        # if sum(median_spacing)==len(median_size): # in case spacing all = 1 = default value
+        #     median_spacing = []
+        clipping_bounds = []
+        intensity_moments = []
+
+    p=Preprocessing(
+        img_dir=img_dir,
+        msk_dir=msk_dir,
+        img_outdir=img_outdir,
+        msk_outdir=msk_outdir,
+        num_classes=num_classes+1,
+        use_one_hot=use_one_hot,
+        remove_bg=remove_bg,
+        use_tif=use_tif,
+        median_spacing=median_spacing,
+        clipping_bounds=clipping_bounds,
+        intensity_moments=intensity_moments,
+    )
+
+    if not skip_preprocessing:
+        p.run()
+
+    if not no_auto_config:
+        print("Start auto-configuration")
+        
+
+        batch, aug_patch, patch, pool = auto_config(
+            median=median_size,
+            img_dir=img_dir if median_size is None else None,
+            max_dims=(max_dim, max_dim, max_dim),
+            max_batch = len(os.listdir(img_dir))//20, # we limit batch to avoid overfitting
+            )
+
+        config_path = save_python_config(
+            config_dir=config_dir,
+            base_config=base_config,
+
+            # store hyper-parameters in the config file:
+            IMG_DIR=p.img_outdir,
+            MSK_DIR=p.msk_outdir,
+            FG_DIR=p.fg_outdir,
+            CSV_DIR=p.csv_path,
+            NUM_CLASSES=num_classes,
+            NUM_CHANNELS=p.num_channels,
+            BATCH_SIZE=batch,
+            AUG_PATCH_SIZE=aug_patch,
+            PATCH_SIZE=patch,
+            NUM_POOLS=pool,
+            MEDIAN_SPACING=median_spacing,
+            CLIPPING_BOUNDS=clipping_bounds,
+            INTENSITY_MOMENTS=intensity_moments,
+            DESC=desc,
+        )
+
+        print("Auto-config done! Configuration saved in: ", config_path)
+        return config_path
 
 if __name__=='__main__':
 
@@ -478,78 +683,97 @@ if __name__=='__main__':
         help="(default=False) Whether to skip the preprocessing. Only for debugging.") 
     args = parser.parse_args()
 
-    median_size, median_spacing, mean, std, perc_005, perc_995 = data_fingerprint(args.img_dir, args.msk_dir if args.ct_norm else None)
-    print("Data fingerprint:")
-    print("Median size:", median_size)
-    print("Median spacing:", median_spacing)
-    print("Mean intensity:", mean)
-    print("Standard deviation of intensities:", std)
-    print("0.5% percentile of intensities:", perc_005)
-    print("99.5% percentile of intensities:", perc_995)
-    print("")
-
-    if args.ct_norm:
-        print("Computing data fingerprint for CT normalization...")
-        clipping_bounds = [perc_005, perc_995]
-        intensity_moments = [mean, std]
-        print("Done!")
-    else:
-        # median_size = None
-        # median_spacing = []
-        # if sum(median_spacing)==len(median_size): # in case spacing all = 1 = default value
-        #     median_spacing = []
-        clipping_bounds = []
-        intensity_moments = []
-
-    p=Preprocessing(
-        img_dir=args.img_dir,
-        msk_dir=args.msk_dir,
+    auto_config_preprocess(
+        img_dir=args.img_dir, 
+        msk_dir=args.msk_dir, 
+        num_classes=args.num_classes, 
+        config_dir=args.config_dir, 
+        base_config=args.base_config, 
         img_outdir=args.img_outdir,
         msk_outdir=args.msk_outdir,
-        num_classes=args.num_classes+1,
         use_one_hot=args.use_one_hot,
-        remove_bg=args.remove_bg,
+        ct_norm=args.ct_norm,
+        remove_bg=args.remove_bg, 
         use_tif=args.use_tif,
-        median_spacing=median_spacing,
-        clipping_bounds=clipping_bounds,
-        intensity_moments=intensity_moments,
-    )
-
-    if not args.skip_preprocessing:
-        p.run()
-
-    if not args.no_auto_config:
-        print("Start auto-configuration")
-        
-
-        batch, aug_patch, patch, pool = auto_config(
-            median=median_size,
-            img_dir=args.img_dir if median_size is None else None,
-            max_dims=(args.max_dim, args.max_dim, args.max_dim),
-            max_batch = len(os.listdir(args.img_dir))//20, # we limit batch to avoid overfitting
-            )
-
-        config_path = save_python_config(
-            config_dir=args.config_dir,
-            base_config=args.base_config,
-
-            # store hyper-parameters in the config file:
-            IMG_DIR=p.img_outdir,
-            MSK_DIR=p.msk_outdir,
-            FG_DIR=p.fg_outdir,
-            NUM_CLASSES=args.num_classes,
-            NUM_CHANNELS=p.num_channels,
-            BATCH_SIZE=batch,
-            AUG_PATCH_SIZE=aug_patch,
-            PATCH_SIZE=patch,
-            NUM_POOLS=pool,
-            MEDIAN_SPACING=median_spacing,
-            CLIPPING_BOUNDS=clipping_bounds,
-            INTENSITY_MOMENTS=intensity_moments,
-            DESC=args.desc,
+        desc=args.desc, 
+        max_dim=args.max_dim,
+        skip_preprocessing=args.skip_preprocessing,
+        no_auto_config=args.no_auto_config,
         )
 
-        print("Auto-config done! Configuration saved in: ", config_path)
+    # median_size, median_spacing, mean, std, perc_005, perc_995 = data_fingerprint(args.img_dir, args.msk_dir if args.ct_norm else None)
+    # print("Data fingerprint:")
+    # print("Median size:", median_size)
+    # print("Median spacing:", median_spacing)
+    # print("Mean intensity:", mean)
+    # print("Standard deviation of intensities:", std)
+    # print("0.5% percentile of intensities:", perc_005)
+    # print("99.5% percentile of intensities:", perc_995)
+    # print("")
+
+    # if args.ct_norm:
+    #     print("Computing data fingerprint for CT normalization...")
+    #     clipping_bounds = [perc_005, perc_995]
+    #     intensity_moments = [mean, std]
+    #     print("Done!")
+    # else:
+    #     # median_size = None
+    #     # median_spacing = []
+    #     # if sum(median_spacing)==len(median_size): # in case spacing all = 1 = default value
+    #     #     median_spacing = []
+    #     clipping_bounds = []
+    #     intensity_moments = []
+
+    # p=Preprocessing(
+    #     img_dir=args.img_dir,
+    #     msk_dir=args.msk_dir,
+    #     img_outdir=args.img_outdir,
+    #     msk_outdir=args.msk_outdir,
+    #     num_classes=args.num_classes+1,
+    #     use_one_hot=args.use_one_hot,
+    #     remove_bg=args.remove_bg,
+    #     use_tif=args.use_tif,
+    #     median_spacing=median_spacing,
+    #     clipping_bounds=clipping_bounds,
+    #     intensity_moments=intensity_moments,
+    # )
+
+    # if not args.skip_preprocessing:
+    #     p.run()
+
+    # if not args.no_auto_config:
+    #     print("Start auto-configuration")
+        
+
+    #     batch, aug_patch, patch, pool = auto_config(
+    #         median=median_size,
+    #         img_dir=args.img_dir if median_size is None else None,
+    #         max_dims=(args.max_dim, args.max_dim, args.max_dim),
+    #         max_batch = len(os.listdir(args.img_dir))//20, # we limit batch to avoid overfitting
+    #         )
+
+    #     config_path = save_python_config(
+    #         config_dir=args.config_dir,
+    #         base_config=args.base_config,
+
+    #         # store hyper-parameters in the config file:
+    #         IMG_DIR=p.img_outdir,
+    #         MSK_DIR=p.msk_outdir,
+    #         FG_DIR=p.fg_outdir,
+    #         CSV_DIR=p.csv_path,
+    #         NUM_CLASSES=args.num_classes,
+    #         NUM_CHANNELS=p.num_channels,
+    #         BATCH_SIZE=batch,
+    #         AUG_PATCH_SIZE=aug_patch,
+    #         PATCH_SIZE=patch,
+    #         NUM_POOLS=pool,
+    #         MEDIAN_SPACING=median_spacing,
+    #         CLIPPING_BOUNDS=clipping_bounds,
+    #         INTENSITY_MOMENTS=intensity_moments,
+    #         DESC=args.desc,
+    #     )
+
+    #     print("Auto-config done! Configuration saved in: ", config_path)
 
 #---------------------------------------------------------------------------
 

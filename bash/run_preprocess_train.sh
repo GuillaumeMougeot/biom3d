@@ -39,8 +39,13 @@
 #  --msk_dir data/mito/train/msk\
 #  --num_classes 1
 
+# python -m biom3d.preprocess_train\
+#  --img_dir data/msd/Task01_BrainTumour/imagesTr_train\
+#  --msk_dir data/msd/Task01_BrainTumour/labelsTr_train\
+#  --num_classes 3\
+#  --desc unet_brain
+
 python -m biom3d.preprocess_train\
- --img_dir data/msd/Task01_BrainTumour/imagesTr_train\
- --msk_dir data/msd/Task01_BrainTumour/labelsTr_train\
- --num_classes 3\
- --desc unet_brain
+ --img_dir data/nucleus/aline_nucleus_48h24hL/img\
+ --msk_dir data/nucleus/aline_nucleus_48h24hL/msk_chromo\
+ --num_classes 1

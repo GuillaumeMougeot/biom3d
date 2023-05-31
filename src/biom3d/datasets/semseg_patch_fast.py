@@ -259,8 +259,8 @@ class SemSeg3DPatchFast(Dataset):
             self.train_imgs = []
             for i in trainset: self.train_imgs += i
 
-        else: # tmp: validation split = 50% by default
-            all_set = os.listdir(img_dir)
+        else: 
+            all_set = np.random.shuffle(sorted(os.listdir(img_dir)))
             val_split = np.round(val_split * len(all_set)).astype(int)
             if val_split == 0: val_split=1
             self.train_imgs = all_set[val_split:]

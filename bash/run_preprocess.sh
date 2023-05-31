@@ -17,18 +17,18 @@
 #  --desc unet_brain\
 #  --skip_preprocessing
 
-python -m biom3d.preprocess\
- --img_dir data/msd/Task09_Spleen/imagesTr\
- --msk_dir data/msd/Task09_Spleen/labelsTr\
- --num_classes 1\
- --max_dim 160\
- --desc unet_spleen\
- --ct_norm
-
 # python -m biom3d.preprocess\
-#  --img_dir data/nucleus/aline_nucleus_48h24hL/img\
-#  --msk_dir data/nucleus/aline_nucleus_48h24hL/msk_chromo\
-#  --num_classes 1
+#  --img_dir data/msd/Task09_Spleen/imagesTr\
+#  --msk_dir data/msd/Task09_Spleen/labelsTr\
+#  --num_classes 1\
+#  --max_dim 160\
+#  --desc unet_spleen\
+#  --ct_norm
+
+python -m biom3d.preprocess\
+ --img_dir data/nucleus/aline_nucleus_48h24hL/img\
+ --msk_dir data/nucleus/aline_nucleus_48h24hL/msk_chromo\
+ --num_classes 1
 
 # python -m biom3d.preprocess\
 #  --img_dir data/msd/Task06_Lung/imagesTr_train\
