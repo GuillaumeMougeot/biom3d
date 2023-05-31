@@ -10,13 +10,20 @@
 #  --ct_norm\
 #  --skip_preprocessing
 
-python -m biom3d.preprocess\
- --img_dir data/msd/Task01_BrainTumour/imagesTr_train\
- --msk_dir data/msd/Task01_BrainTumour/labelsTr_train\
- --num_classes 3\
- --desc unet_brain\
- --skip_preprocessing
+# python -m biom3d.preprocess\
+#  --img_dir data/msd/Task01_BrainTumour/imagesTr_train\
+#  --msk_dir data/msd/Task01_BrainTumour/labelsTr_train\
+#  --num_classes 3\
+#  --desc unet_brain\
+#  --skip_preprocessing
 
+python -m biom3d.preprocess\
+ --img_dir data/msd/Task09_Spleen/imagesTr\
+ --msk_dir data/msd/Task09_Spleen/labelsTr\
+ --num_classes 1\
+ --max_dim 160\
+ --desc unet_spleen\
+ --ct_norm
 
 # python -m biom3d.preprocess\
 #  --img_dir data/nucleus/aline_nucleus_48h24hL/img\

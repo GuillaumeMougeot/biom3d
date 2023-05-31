@@ -33,7 +33,7 @@ def abs_path(root, listdir_):
     """
     listdir = listdir_.copy()
     for i in range(len(listdir)):
-        listdir[i] = root + '/' + listdir[i]
+        listdir[i] = os.path.join(root, listdir[i])
     return listdir
 
 def abs_listdir(path):
@@ -48,9 +48,9 @@ def abs_listdir(path):
     Returns
     -------
     list of str
-        List of the absolute paths.
+        Sorted list of the absolute paths.
     """
-    return abs_path(path, os.listdir(path))
+    return abs_path(path, sorted(os.listdir(path)))
 
 # ----------------------------------------------------------------------------
 # Imread utils

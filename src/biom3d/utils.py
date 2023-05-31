@@ -363,7 +363,7 @@ def abs_path(root, listdir_):
     return listdir
 
 def abs_listdir(path):
-    return abs_path(path, os.listdir(path))
+    return abs_path(path, sorted(os.listdir(path)))
 
 # ----------------------------------------------------------------------------
 # preprocess utils
