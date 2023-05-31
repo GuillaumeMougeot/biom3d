@@ -222,6 +222,8 @@ class Preprocessing:
         Use tif format to save the preprocessed images instead of npy format.
     split_rate_for_single_img : float, default=0.2
         If a single image is present in image/mask folders, then the image/mask are split in 2 portions of size split_rate_for_single_img*largest_dimension for validation and split_rate_for_single_img*(1-largest_dimension) for training.
+    num_kfolds : int, default=5
+        Number of K-fold for cross validation.
     """
     def __init__(
         self,
@@ -238,6 +240,7 @@ class Preprocessing:
         intensity_moments=[],
         use_tif=False, # use tif instead of npy 
         split_rate_for_single_img=0.25,
+        num_kfolds=5,
         ):
         assert img_dir!='', "[Error] img_dir must not be empty."
 
@@ -290,6 +293,11 @@ class Preprocessing:
         self.split_rate_for_single_img = split_rate_for_single_img
 
         self.use_one_hot = use_one_hot
+
+        self.num_kfolds = num_kfolds
+        if self.num_kfolds * 2 > len(self.img_fnames):
+            self.num_kfolds = max(len(self.img_fnames) // 2, 2)
+            print("[Warning] The number of images {} is smaller than twice the number of folds {}. The number of folds will be reduced to {}.".format(len(self.img_fnames), num_kfolds * 2, self.num_kfolds))
         
     def _split_single(self):
         """
@@ -365,6 +373,12 @@ class Preprocessing:
         self.img_fnames = os.listdir(self.img_outdir)
         self.img_dir = self.img_outdir
         self.msk_dir = self.msk_outdir
+
+        # generate the csv file
+        df = pd.DataFrame([train_img_name, val_img_name], columns=['filename'])
+        df['hold_out'] = [0,0]
+        df['fold'] = [1,0]
+        df.to_csv(self.csv_path, index=False)
 
     @staticmethod
     def run_single(
@@ -479,9 +493,11 @@ class Preprocessing:
         """
         print("Preprocessing...")
         # if there is only a single image/mask, then split them both in two portions
+        image_was_split = False
         if len(self.img_fnames)==1 and self.msk_dir is not None:
             print("Single image found per folder. Split the images...")
             self._split_single()
+            image_was_split = True
             
         for i in tqdm(range(len(self.img_fnames))):
             # set image and mask name
@@ -549,7 +565,8 @@ class Preprocessing:
 
         # create csv file
         filenames = sorted(os.listdir(self.img_outdir))
-        generate_kfold_csv(filenames, self.csv_path)
+        if not image_was_split:
+            generate_kfold_csv(filenames, self.csv_path, kfold=self.num_kfolds)
 
         print("Done preprocessing!")
 

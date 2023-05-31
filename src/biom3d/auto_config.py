@@ -7,97 +7,10 @@
 # - the number of poolings in the 3D U-Net
 #---------------------------------------------------------------------------
 
-from skimage.io import imread
-import SimpleITK as sitk
-import os
 import numpy as np
 import argparse
 
-# ----------------------------------------------------------------------------
-# path utils
-
-def abs_path(root, listdir_):
-    """Add the root path to each element in a list of path.
-
-    Parameters
-    ----------
-    root: str
-        Path to root folder.
-    listdir_: list of str
-        List of file names.
-    
-    Returns
-    -------
-    list of str
-        List of the absolute paths.
-    """
-    listdir = listdir_.copy()
-    for i in range(len(listdir)):
-        listdir[i] = os.path.join(root, listdir[i])
-    return listdir
-
-def abs_listdir(path):
-    """Return a list of absolute paths from a folder. 
-    Equivalent to os.listdir but with absolute path.
-
-    Parameters
-    ----------
-    path: str
-        Path to the folder.
-
-    Returns
-    -------
-    list of str
-        Sorted list of the absolute paths.
-    """
-    return abs_path(path, sorted(os.listdir(path)))
-
-# ----------------------------------------------------------------------------
-# Imread utils
-
-def sitk_imread(img_path):
-    """SimpleITK image reader. Used for nii.gz files.
-
-    Parameters
-    ----------
-    img_path: str
-        Image path.
-
-    Returns
-    -------
-    numpy.ndarray
-        Images.
-    tuple 
-        Image spacing. 
-    """
-    img = sitk.ReadImage(img_path)
-    img_np = sitk.GetArrayFromImage(img)
-    return img_np, np.array(img.GetSpacing())
-
-def adaptive_imread(img_path):
-    """Use skimage imread or sitk imread depending on the file extension:
-    .tif --> skimage.io.imread
-    .nii.gz --> SimpleITK.imread
-
-    Parameters
-    ----------
-    img_path: str
-        Image path.
-
-    Returns
-    -------
-    numpy.ndarray
-        Images.
-    tuple 
-        Image spacing. Can be None (for non-nifti files).
-    """
-    extension = img_path[img_path.rfind('.'):]
-    if extension == ".tif":
-        return imread(img_path), []
-    elif extension == ".npy":
-        return np.load(img_path), []
-    else:
-        return sitk_imread(img_path)
+from biom3d.utils import adaptive_imread, abs_listdir
 
 # ----------------------------------------------------------------------------
 # Median computation
@@ -137,7 +50,7 @@ def compute_median(path, return_spacing=False):
 
     return median 
 
-def data_fingerprint(img_dir, msk_dir=None, num_samples=10000, dim=3):
+def data_fingerprint(img_dir, msk_dir=None, num_samples=10000):
     """Compute the data fingerprint. 
 
     Parameters 
@@ -148,8 +61,6 @@ def data_fingerprint(img_dir, msk_dir=None, num_samples=10000, dim=3):
         (Optional) Path to the corresponding directory of masks. If provided the function will compute the mean, the standard deviation, the 0.5% percentile and the 99.5% percentile of the intensity values of the images located inside the masks. If not provide, the function returns zeros for each of these values.
     num_samples : int, default=10000
         We compute the intensity characteristic on only a sample of the candidate voxels.
-    dim : int, default=3
-        Dimension of the images (2D or 3D images). Useful to remove the unwanted channel dim.
     
     Returns
     -------
@@ -197,7 +108,7 @@ def data_fingerprint(img_dir, msk_dir=None, num_samples=10000, dim=3):
 
     # median computation
     median_size = np.median(np.array(sizes), axis=0).astype(int)
-    median_spacing = np.median(np.array(spacings), axis=0)[-dim:]  # remove channel dim
+    median_spacing = np.median(np.array(spacings), axis=0)
     
     # compute fingerprints
     mean = float(np.mean(samples)) if samples!=[] else 0

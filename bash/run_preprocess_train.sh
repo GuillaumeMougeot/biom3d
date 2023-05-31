@@ -37,7 +37,8 @@
 # python -m biom3d.preprocess_train\
 #  --img_dir data/mito/train/img\
 #  --msk_dir data/mito/train/msk\
-#  --num_classes 1
+#  --num_classes 1\
+#  --desc unet_mito
 
 # python -m biom3d.preprocess_train\
 #  --img_dir data/msd/Task01_BrainTumour/imagesTr_train\
@@ -48,4 +49,5 @@
 python -m biom3d.preprocess_train\
  --img_dir data/nucleus/aline_nucleus_48h24hL/img\
  --msk_dir data/nucleus/aline_nucleus_48h24hL/msk_chromo\
- --num_classes 1
+ --num_classes 1\
+ --desc nucleus_48h24hL
