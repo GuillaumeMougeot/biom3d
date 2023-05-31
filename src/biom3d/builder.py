@@ -318,8 +318,9 @@ class Builder:
             if 'VAL_METRICS' in self.config.keys():
                 self.val_metrics = [read_config(v, register.metrics) for v in self.config.VAL_METRICS.values()]
                 for m in self.val_metrics: 
-                    m.cuda()
-                m.eval()
+                    if torch.cuda.is_available():
+                        m.cuda()
+                    m.eval()
             else: self.val_metrics = []
 
             # optimizer
