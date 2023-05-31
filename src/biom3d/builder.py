@@ -133,12 +133,17 @@ class Builder:
 
     Training is currently done with the SGD optimizer. If you would like to change the optimizer, you can edit `self.build_training` method.
 
+    If both `config` and `path` are defined then Builder considers that fine-tuning is intended.
+
+    If `path` is a list of path, then multi-model prediction will be used, training should be off/False.
+
     Parameters
     ----------
     config : str, dict or biom3d.utils.Dict
         Path to a Python configuration file (in either .py or .yaml format) or dictionary of a configuration file. Please refer to biom3d.config_default.py to see the default configuration file format.
-    path : str
-        Path to a builder folder which contains the model, the model configuration and the training logs.
+    path : str, list of str
+        Path to a builder folder which contains the model folder, the model configuration and the training logs.
+        If path is a list of strings, then it is considered that it is intended to run multi-model predictions. Training is not compatible with this mode.
     training : bool, default=True
         Whether to load the model in training or testing mode.
 
@@ -162,6 +167,16 @@ class Builder:
         path=None,      # path to a training folder
         training=True,  # use training mode or testing?
         ):                
+
+        # if path is a list of str, then multi-model prediction mode
+        # if type(path)==list:
+        #     if training:
+        #         print("[Warning] Multi-model prediction is not compatible with training.")
+        #     self.load_test_multi(path)
+        #     return
+        if type(path)==list:
+            print("[Warning] This option is currently been updated. Not working now... sorry")
+            return 
 
         # for training or fine-tuning:
         # load the config file and change some parameters if multi-gpus training
@@ -270,13 +285,11 @@ class Builder:
         else: 
             self.model = read_config(self.config.MODEL, register.models)
 
-
-            if torch.cuda.device_count() > 1:
-                print("Let's use", torch.cuda.device_count(), "GPUs!")
-                self.model = torch.nn.DataParallel(self.model)
-
             if torch.cuda.is_available():
                 self.model.cuda()
+                if torch.cuda.device_count() > 1:
+                    print("Let's use", torch.cuda.device_count(), "GPUs!")
+                    self.model = torch.nn.DataParallel(self.model)
 
             # TODO: use DDP...
             # if rank is not None: 
@@ -511,6 +524,11 @@ class Builder:
         if self.config_path is not None:
             basename = os.path.basename(self.config_path)
             shutil.copy(self.config_path, os.path.join(self.log_dir, basename))
+        # copy csv file
+        if self.config.CSV_DIR is not None:
+            basename = os.path.basename(self.config.CSV_DIR)
+            shutil.copy(self.config.CSV_DIR, os.path.join(self.log_dir, basename))
+
         utils.save_yaml_config(os.path.join(self.log_dir, 'config.yaml'), self.config) # will eventually replace the yaml file
 
         self.model_path = os.path.join(self.model_dir, self.config.DESC)
@@ -725,5 +743,21 @@ class Builder:
         # remove `backbone.` prefix induced by multicrop wrapper
         state_dict = {k.replace("backbone.", ""): v for k, v in state_dict.items()}
         print(self.model.load_state_dict(state_dict, strict=False))
+
+    # def load_test_multi(
+    #     path, 
+    #     load_best=True): # whether to load the best model
+    #     """Load a list of builder from a folder. The folder should have been created by the `self.build_train` method.
+    #     Can be used to test the model on unseen data.
+
+    #     Parameters
+    #     ----------
+    #     path : list of str
+    #         List of path of the log folder.
+    #     load_best : bool, default=True
+    #         Whether to load the best models or the final models.
+    #     """
+
+    #     assert type(path)==list, ""
 
 #---------------------------------------------------------------------------

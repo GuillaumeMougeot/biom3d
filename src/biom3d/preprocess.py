@@ -144,7 +144,6 @@ def get_resample_shape(input_shape, spacing, median_spacing):
         input_shape=input_shape[1:]
     return np.round(((spacing/median_spacing)[::-1]*input_shape)).astype(int)
 
-
 def sanity_check(msk, num_classes=None):
     """Check if the mask is correctly annotated.
     """
@@ -717,80 +716,6 @@ if __name__=='__main__':
         skip_preprocessing=args.skip_preprocessing,
         no_auto_config=args.no_auto_config,
         )
-
-    # median_size, median_spacing, mean, std, perc_005, perc_995 = data_fingerprint(args.img_dir, args.msk_dir if args.ct_norm else None)
-    # print("Data fingerprint:")
-    # print("Median size:", median_size)
-    # print("Median spacing:", median_spacing)
-    # print("Mean intensity:", mean)
-    # print("Standard deviation of intensities:", std)
-    # print("0.5% percentile of intensities:", perc_005)
-    # print("99.5% percentile of intensities:", perc_995)
-    # print("")
-
-    # if args.ct_norm:
-    #     print("Computing data fingerprint for CT normalization...")
-    #     clipping_bounds = [perc_005, perc_995]
-    #     intensity_moments = [mean, std]
-    #     print("Done!")
-    # else:
-    #     # median_size = None
-    #     # median_spacing = []
-    #     # if sum(median_spacing)==len(median_size): # in case spacing all = 1 = default value
-    #     #     median_spacing = []
-    #     clipping_bounds = []
-    #     intensity_moments = []
-
-    # p=Preprocessing(
-    #     img_dir=args.img_dir,
-    #     msk_dir=args.msk_dir,
-    #     img_outdir=args.img_outdir,
-    #     msk_outdir=args.msk_outdir,
-    #     num_classes=args.num_classes+1,
-    #     use_one_hot=args.use_one_hot,
-    #     remove_bg=args.remove_bg,
-    #     use_tif=args.use_tif,
-    #     median_spacing=median_spacing,
-    #     clipping_bounds=clipping_bounds,
-    #     intensity_moments=intensity_moments,
-    # )
-
-    # if not args.skip_preprocessing:
-    #     p.run()
-
-    # if not args.no_auto_config:
-    #     print("Start auto-configuration")
-        
-
-    #     batch, aug_patch, patch, pool = auto_config(
-    #         median=median_size,
-    #         img_dir=args.img_dir if median_size is None else None,
-    #         max_dims=(args.max_dim, args.max_dim, args.max_dim),
-    #         max_batch = len(os.listdir(args.img_dir))//20, # we limit batch to avoid overfitting
-    #         )
-
-    #     config_path = save_python_config(
-    #         config_dir=args.config_dir,
-    #         base_config=args.base_config,
-
-    #         # store hyper-parameters in the config file:
-    #         IMG_DIR=p.img_outdir,
-    #         MSK_DIR=p.msk_outdir,
-    #         FG_DIR=p.fg_outdir,
-    #         CSV_DIR=p.csv_path,
-    #         NUM_CLASSES=args.num_classes,
-    #         NUM_CHANNELS=p.num_channels,
-    #         BATCH_SIZE=batch,
-    #         AUG_PATCH_SIZE=aug_patch,
-    #         PATCH_SIZE=patch,
-    #         NUM_POOLS=pool,
-    #         MEDIAN_SPACING=median_spacing,
-    #         CLIPPING_BOUNDS=clipping_bounds,
-    #         INTENSITY_MOMENTS=intensity_moments,
-    #         DESC=args.desc,
-    #     )
-
-    #     print("Auto-config done! Configuration saved in: ", config_path)
 
 #---------------------------------------------------------------------------
 
