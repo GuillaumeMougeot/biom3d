@@ -485,7 +485,7 @@ class Preprocessing:
         if do_msk:
             return img, msk, fg 
         else:
-            return img, {'original_shape': original_shape}
+            return img, {"original_shape": original_shape}
     
     def run(self):
         """Start the preprocessing.

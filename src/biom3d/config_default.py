@@ -133,6 +133,11 @@ USE_FG_CLBK = False
 #---------------------------------------------------------------------------
 # dataset configs
 
+# Number of the fold in the CSV file determining which data is used for
+# training and which is used for validation
+FOLD = 0
+DESC += '_fold'+str(FOLD) # add it to the name of the model
+
 TRAIN_DATASET = Dict(
     fct="SegPatchFast",
     kwargs=Dict(
@@ -143,7 +148,7 @@ TRAIN_DATASET = Dict(
         patch_size = PATCH_SIZE,
         nbof_steps = 250,
         folds_csv  = CSV_DIR, 
-        fold       = 0, 
+        fold       = FOLD, 
         val_split  = 0.20,
         train      = True,
         use_aug    = True,
@@ -171,7 +176,7 @@ VAL_DATASET = Dict(
         patch_size = PATCH_SIZE,
         nbof_steps = 50,
         folds_csv  = CSV_DIR, 
-        fold       = 0, 
+        fold       = FOLD, 
         val_split  = 0.20,
         train      = False,
         use_aug    = False,
@@ -260,9 +265,15 @@ PREDICTOR = Dict(
     fct="SegPatch",
     kwargs=Dict(
         patch_size=PATCH_SIZE,
-        tta=True,
+        tta=True,),
+)
+
+POSTPROCESSOR = Dict(
+    fct="Seg",
+    kwargs=Dict(
         use_softmax=USE_SOFTMAX,
-        keep_biggest_only=False),
+        keep_biggest_only=False
+    ),
 )
 
 ############################################################################

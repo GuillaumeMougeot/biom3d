@@ -291,30 +291,28 @@ def seg_predict_patch(
 
 def seg_predict_patch_2(
     img,
-    model,
     original_shape,
-    return_logit=False,
+    model,
+    conserve_size=False, # force the logit to be the same size as the input
     patch_size=None,
     tta=False,          # test time augmentation 
-    use_softmax=False,
-    force_softmax=False,
     num_workers=4,
     enable_autocast=True, 
-    keep_biggest_only=False,
-    keep_big_only=False,
+    use_softmax=True,   # DEPRECATED!
+    keep_biggest_only=False, # DEPRECATED!
     ):
     """
     for one image path, load the image, compute the model prediction, return the prediction
     """
-    # make original_shape 3D
-    original_shape = original_shape[-3:]
-
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     enable_autocast = torch.cuda.is_available() and enable_autocast # tmp, autocast seems to work only with gpu for now... 
     print('AMP {}'.format('enabled' if enable_autocast else 'disabled'))
 
+    # make original_shape 3D
+    original_shape = original_shape[-3:]
+
     # get grid sampler
-    overlap = 0.6
+    overlap = 0.5
     patch_size = np.array(patch_size)
     patch_overlap = np.maximum(patch_size*overlap, patch_size-np.array(img.shape[-3:]))
     patch_overlap = (np.ceil(patch_overlap*overlap)/overlap).astype(int)
@@ -324,7 +322,8 @@ def seg_predict_patch_2(
                             patch_overlap=patch_overlap,
                             padding_mode='constant')
 
-    model.eval()
+    model.to(device).eval()
+
     with torch.no_grad():
         pred_aggr = tio.inference.GridAggregator(sampler, overlap_mode='hann')
         patch_loader = torch.utils.data.DataLoader(
@@ -370,14 +369,32 @@ def seg_predict_patch_2(
         logit = pred_aggr.get_output_tensor().float()
         print("Aggregation done!")
     
+    model.cpu()
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
 
+    # reshape the logit so it has the same size as the original image
+    if conserve_size:
+        return resize_3d(logit, original_shape, order=3)
+
+    return logit
+
+
+def seg_postprocessing(
+        logit,
+        original_shape=None,
+        use_softmax=True,
+        force_softmax=False,
+        keep_big_only=False,
+        keep_biggest_only=False,
+        return_logit=False,
+    ):
     # post-processing:
     print("Post-processing...")
 
     if return_logit: 
-        logit = resize_3d(logit, original_shape, order=3)
+        if original_shape is not None:
+            logit = resize_3d(logit, original_shape, order=3)
         print("Post-processing done!")
         return logit
 
@@ -394,10 +411,11 @@ def seg_predict_patch_2(
         out = (logit.sigmoid()>0.5).int().numpy()
         
     # resampling
-    if use_softmax or force_softmax:
-        out = resize_3d(np.expand_dims(out,0), original_shape, order=1, is_msk=True).squeeze()
-    else: 
-        out = resize_3d(out, original_shape, order=1, is_msk=True)
+    if original_shape is not None:
+        if use_softmax or force_softmax:
+            out = resize_3d(np.expand_dims(out,0), original_shape, order=1, is_msk=True).squeeze()
+        else: 
+            out = resize_3d(out, original_shape, order=1, is_msk=True)
     
     if keep_big_only and keep_biggest_only:
         print("[Warning] Incompatible options 'keep_big_only' and 'keep_biggest_only' have both been set to True. Please deactivate one! We consider here only 'keep_biggest_only'.")
@@ -417,6 +435,5 @@ def seg_predict_patch_2(
     print("Post-processing done!")
     print("Output shape:",out.shape)
     return out
-
 
 #---------------------------------------------------------------------------

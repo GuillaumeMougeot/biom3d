@@ -18,7 +18,7 @@ from biom3d.utils import abs_listdir, versus_one, dice, adaptive_imread, adaptiv
 def pred_single(log, img_path, out_path):
     """Prediction on a single image.
     """
-    log=str(log)
+    if type(log)!=list: log=str(log)
     builder = Builder(config=None,path=log, training=False)
     img = builder.run_prediction_single(img_path, return_logit=False)
 
@@ -29,11 +29,11 @@ def pred_single(log, img_path, out_path):
 def pred(log, dir_in, dir_out):
     """Prediction on a folder of images.
     """
-    log=str(log)
+    if type(log)!=list: log=str(log)
     dir_in=str(dir_in)
     dir_out=str(dir_out)
 
-    dir_out = os.path.join(dir_out,os.path.split(log)[-1]) # name the prediction folder with the model folder name
+    dir_out = os.path.join(dir_out,os.path.split(log[0] if type(log)==list else log)[-1]) # name the prediction folder with the model folder name
     builder = Builder(config=None,path=log, training=False)
     builder.run_prediction_folder(dir_in=dir_in, dir_out=dir_out, return_logit=False)
     return dir_out
@@ -68,7 +68,7 @@ def pred_seg_eval(log=pathlib.Path.home(), dir_in=pathlib.Path.home(), dir_out=p
         path=log, 
         training=False)
 
-    dir_out = os.path.join(dir_out,os.path.split(log)[-1]) # name the prediction folder with the model folder name
+    dir_out = os.path.join(dir_out,os.path.split(log[0] if type(log)==list else log)[-1]) # name the prediction folder with the last model folder name
     if not eval_only:
         builder_pred.run_prediction_folder(dir_in=dir_in, dir_out=dir_out, return_logit=False) # run the predictions
     print("Inference done!")
@@ -130,8 +130,8 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser(description="Main training file.")
     parser.add_argument("-n", "--name", type=str, default="seg",
         help="Name of the tested method. Valid names: {}".format(valid_names.keys()))
-    parser.add_argument("-b", "--log", type=str,
-        help="Path of the builder directory")
+    parser.add_argument("-l", "--log", type=str, nargs='+',
+        help="Path of the builder directory/directiories. You can pass several paths to make a prediction using several models.")
     parser.add_argument("-i", "--dir_in", type=str,
         help="Path to the input image directory")
     parser.add_argument("-o", "--dir_out", type=str,
@@ -141,6 +141,9 @@ if __name__=='__main__':
     parser.add_argument("-e", "--eval_only", default=False,  action='store_true', dest='eval_only',
         help="Do only the evaluation and skip the prediction (predictions must have been done already.)") 
     args = parser.parse_args()
+
+    if type(args.log)==list and len(args.log)==1:
+        args.log = args.log[0]
 
     # run the method
     assert args.name in valid_names.keys(), "[Error] Name of the method must be one of {}".format(valid_names.keys())

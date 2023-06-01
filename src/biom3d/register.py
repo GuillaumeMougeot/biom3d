@@ -91,4 +91,10 @@ predictors = Dict(
     SegPatch = Dict(fct=seg_predict_patch_2, kwargs=Dict()),
 )
 
+from biom3d.predictors import seg_postprocessing
+
+postprocessors = Dict(
+    Seg = Dict(fct=seg_postprocessing, kwargs=Dict())
+)
+
 #---------------------------------------------------------------------------

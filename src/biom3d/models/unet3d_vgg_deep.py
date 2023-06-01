@@ -64,13 +64,14 @@ class UNet(nn.Module):
                 print("[Warning] the following encoder couldn't be loaded, wrong key:", encoder_ckpt)
         
         if model_ckpt is not None:
-            print("Load model weights from", model_ckpt)
-            if torch.cuda.is_available():
-                self.cuda()
-            ckpt = torch.load(model_ckpt)
-            if 'encoder.last_layer.weight' in ckpt['model'].keys():
-                del ckpt['model']['encoder.last_layer.weight']
-            print(self.load_state_dict(ckpt['model'], strict=False))
+            self.load(model_ckpt)
+            # print("Load model weights from", model_ckpt)
+            # if torch.cuda.is_available():
+            #     self.cuda()
+            # ckpt = torch.load(model_ckpt)
+            # if 'encoder.last_layer.weight' in ckpt['model'].keys():
+            #     del ckpt['model']['encoder.last_layer.weight']
+            # print(self.load_state_dict(ckpt['model'], strict=False))
 
     def freeze_encoder(self, freeze=True):
         """
@@ -85,6 +86,18 @@ class UNet(nn.Module):
     
     def unfreeze_encoder(self):
         self.freeze_encoder(False)
+
+    def load(self, model_ckpt):
+        """Load the model from checkpoint.
+        The checkpoint dictionary must have a 'model' key with the saved model for value.
+        """
+        print("Load model weights from", model_ckpt)
+        if torch.cuda.is_available():
+            self.cuda()
+        ckpt = torch.load(model_ckpt)
+        if 'encoder.last_layer.weight' in ckpt['model'].keys():
+            del ckpt['model']['encoder.last_layer.weight']
+        print(self.load_state_dict(ckpt['model'], strict=False))
 
     def forward(self, x): 
         # x is an image

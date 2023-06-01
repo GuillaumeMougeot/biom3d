@@ -167,17 +167,6 @@ class Builder:
         path=None,      # path to a training folder
         training=True,  # use training mode or testing?
         ):                
-
-        # if path is a list of str, then multi-model prediction mode
-        # if type(path)==list:
-        #     if training:
-        #         print("[Warning] Multi-model prediction is not compatible with training.")
-        #     self.load_test_multi(path)
-        #     return
-        if type(path)==list:
-            print("[Warning] This option is currently been updated. Not working now... sorry")
-            return 
-
         # for training or fine-tuning:
         # load the config file and change some parameters if multi-gpus training
         if config is not None: 
@@ -215,7 +204,6 @@ class Builder:
         
         # training restart or prediction
         elif path is not None:
-            self.config = utils.load_yaml_config(os.path.join(path,"log","config.yaml"))
             # print(self.config)
             if training:
                 self.load_train(path)
@@ -610,16 +598,75 @@ class Builder:
             Output images.
         """
         # load image with the preprocessor
-        img, img_metadata = read_config(self.config.PREPROCESSOR, register.preprocessors, img_path=img_path)
+        # img, img_metadata = read_config(self.config.PREPROCESSOR, register.preprocessors, img_path=img_path)
+        if type(self.config)==list: # multi-model mode!
+            # check if the preprocessing are all equal, then only use one preprocessing
+            # TODO: make it more flexible?
+            assert np.all([config.PREPROCESSOR==self.config[0].PREPROCESSOR for config in self.config[1:]]), "[Error] For multi-model prediction, the current version of biom3d impose that all preprocessor are identical."
+            
+            # preprocessing
+            img, img_meta = read_config(self.config[0].PREPROCESSOR, register.preprocessors, img_path=img_path)
 
-        return read_config(
-            self.config.PREDICTOR, 
-            register.predictors,
-            img = img,
-            model = self.model,
-            return_logit = return_logit,
-            **img_metadata
+            # same for postprocessors
+            for i in range(len(self.config)):
+                if not 'POSTPROCESSOR' in self.config[i].keys():
+                    self.config[i].POSTPROCESSOR = utils.Dict(fct="Seg", kwargs=utils.Dict())
+
+            assert np.all([config.POSTPROCESSOR==self.config[0].POSTPROCESSOR for config in self.config[1:]]), "[Error] For multi-model prediction, the current version of biom3d impose that all postprocessors are identical."
+
+            logit = None # to accumulate the logit
+            for i, config in enumerate(self.config):
+                # prediction
+                print('Running prediction for model number', i)
+                out = read_config(
+                    config.PREDICTOR, 
+                    register.predictors,
+                    img = img,
+                    model = self.model[i], # prediction for model i
+                    **img_meta
+                    )
+
+                # accumulate the logit
+                logit = out if logit is None else logit+out
+
+            logit /= len(self.config)
+
+            # final post-processing
+            print(
+                    self.config[0].POSTPROCESSOR, 
+                    register.postprocessors,
+                    return_logit,
+                    img_meta
             )
+            return read_config(
+                    self.config[0].POSTPROCESSOR, 
+                    register.postprocessors,
+                    logit = logit, 
+                    return_logit = return_logit,
+                    **img_meta) # all img_meta should be equal as we use the same preprocessors
+        else:
+            img, img_meta = read_config(self.config.PREPROCESSOR, register.preprocessors, img_path=img_path)
+
+            # same for postprocessors
+            if not 'POSTPROCESSOR' in self.config.keys():
+                self.config.POSTPROCESSOR = utils.Dict(fct="Seg", kwargs=utils.Dict())
+
+            # prediction
+            out = read_config(
+                config.PREDICTOR, 
+                register.predictors,
+                img = img,
+                model = self.model
+                )
+            
+            # postprocessing
+            return read_config(
+                self.config.POSTPROCESSOR, 
+                register.postprocessors,
+                logit = out,
+                return_logit = return_logit,
+                **img_meta)
+
     
     def run_prediction_folder(self, dir_in, dir_out, return_logit=False):
         """Compute predictions for a folder of images.
@@ -667,6 +714,9 @@ class Builder:
         load_best : bool, default=False
             Whether to load the best model or the final model.
         """
+
+        # define config
+        self.config = utils.load_yaml_config(os.path.join(path,"log","config.yaml"))
 
         # setup the different paths from the folder
         self.base_dir = path
@@ -724,40 +774,57 @@ class Builder:
         load_best : bool, default=True
             Whether to load the best model or the final model.
         """
+        # if the path is a list of path then multi-model mode
+        if type(path)==list:
+            print("We found a list of path for your model loading. Let's switch to multi-model mode!")
+            self.config = []
+            self.model = []
+            for p in path:
+                # define config
+                config = utils.load_yaml_config(os.path.join(p,"log","config.yaml"))
+                self.config += [config]
 
-        # setup the different paths from the folder
-        self.model_dir = os.path.join(path, 'model')
-        self.model_path = os.path.join(self.model_dir, self.config.DESC)
+                # setup the different paths from the folder
+                model_dir = os.path.join(p, 'model')
+                model_name = config.DESC + '_best.pth' if load_best else config.DESC + '.pth'
+                model_path = os.path.join(model_dir, model_name)
 
-        # call the build method
-        self.build_model(training=False)
+                # create the model
+                self.model += [read_config(config.MODEL, register.models)]
+                
+                print("Loading model weights for model:", self.model[-1])
 
-        # load the model and the optimizer
-        model_name_full = self.config.DESC + '_best.pth' if load_best else self.config.DESC + '.pth'
-        device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        ckpt = torch.load(os.path.join(self.model_dir, model_name_full), map_location=torch.device(device))
-        print("Loading model from", os.path.join(self.model_dir, model_name_full))
+                # load the model
+                if getattr(self.model[-1], "load", None) is not None: 
+                    self.model[-1].load(model_path)
+                else:
+                    raise RuntimeError("For multi-model loading, please define a `load` method in your nn.Module definition.")
+        else:
+            # define config
+            self.config = utils.load_yaml_config(os.path.join(path,"log","config.yaml"))
 
-        # remove `module.` prefix
-        state_dict = {k.replace("module.", ""): v for k, v in ckpt['model'].items()}  
-        # remove `backbone.` prefix induced by multicrop wrapper
-        state_dict = {k.replace("backbone.", ""): v for k, v in state_dict.items()}
-        print(self.model.load_state_dict(state_dict, strict=False))
+            # setup the different paths from the folder
+            self.model_dir = os.path.join(path, 'model')
+            model_name = self.config.DESC + '_best.pth' if load_best else self.config.DESC + '.pth'
+            model_path = os.path.join(self.model_dir, model_name)
 
-    # def load_test_multi(
-    #     path, 
-    #     load_best=True): # whether to load the best model
-    #     """Load a list of builder from a folder. The folder should have been created by the `self.build_train` method.
-    #     Can be used to test the model on unseen data.
+            # create the model
+            self.model = read_config(self.config.MODEL, register.models) 
 
-    #     Parameters
-    #     ----------
-    #     path : list of str
-    #         List of path of the log folder.
-    #     load_best : bool, default=True
-    #         Whether to load the best models or the final models.
-    #     """
+            # if the model has a 'load' method we use it
+            if getattr(self.model, "load", None) is not None: 
+                self.model.load(model_path)
+            # else try to load it here... but not a good practice, might be removed in the future 
+            # we keep this option to avoid forcing the definition of a 'load' method in the model.
+            else: 
+                device = 'cuda' if torch.cuda.is_available() else 'cpu'
+                ckpt = torch.load(model_path, map_location=torch.device(device))
+                print("Loading model from", model_path)
 
-    #     assert type(path)==list, ""
+                # remove `module.` prefix
+                state_dict = {k.replace("module.", ""): v for k, v in ckpt['model'].items()}  
+                # remove `backbone.` prefix induced by multicrop wrapper
+                state_dict = {k.replace("backbone.", ""): v for k, v in state_dict.items()}
+                print(self.model.load_state_dict(state_dict, strict=False))
 
 #---------------------------------------------------------------------------
