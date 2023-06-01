@@ -37,6 +37,6 @@
 
 python -m biom3d.pred\
  --name seg\
- --log logs/20230515-223735-unet_nucleus_48h24-48hL logs/20230518-092836-unet_chromo_48h24-48hL\
+ --log logs/20230518-092836-unet_chromo_48h24-48hL\
  --dir_in data/nucleus/to_pred/tiny_data\
  --dir_out data/nucleus/preds/tiny_data

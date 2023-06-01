@@ -136,7 +136,6 @@ USE_FG_CLBK = False
 # Number of the fold in the CSV file determining which data is used for
 # training and which is used for validation
 FOLD = 0
-DESC += '_fold'+str(FOLD) # add it to the name of the model
 
 TRAIN_DATASET = Dict(
     fct="SegPatchFast",

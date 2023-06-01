@@ -505,8 +505,9 @@ class Builder:
         torch.backends.cudnn.benchmark = False
 
         # saver folder configuration
+        folder_name = self.config.DESC+'_fold'+str(self.config.FOLD)
         self.base_dir, self.image_dir, self.log_dir, self.model_dir = utils.create_save_dirs(
-            self.config.LOG_DIR, self.config.DESC, dir_names=['image', 'log', 'model'], return_base_dir=True) 
+            self.config.LOG_DIR, folder_name, dir_names=['image', 'log', 'model'], return_base_dir=True) 
     
         # save the config file
         if self.config_path is not None:
@@ -602,7 +603,7 @@ class Builder:
         if type(self.config)==list: # multi-model mode!
             # check if the preprocessing are all equal, then only use one preprocessing
             # TODO: make it more flexible?
-            assert np.all([config.PREPROCESSOR==self.config[0].PREPROCESSOR for config in self.config[1:]]), "[Error] For multi-model prediction, the current version of biom3d impose that all preprocessor are identical."
+            assert np.all([config.PREPROCESSOR==self.config[0].PREPROCESSOR for config in self.config[1:]]), "[Error] For multi-model prediction, the current version of biom3d imposes that all preprocessor are identical."
             
             # preprocessing
             img, img_meta = read_config(self.config[0].PREPROCESSOR, register.preprocessors, img_path=img_path)
@@ -612,7 +613,7 @@ class Builder:
                 if not 'POSTPROCESSOR' in self.config[i].keys():
                     self.config[i].POSTPROCESSOR = utils.Dict(fct="Seg", kwargs=utils.Dict())
 
-            assert np.all([config.POSTPROCESSOR==self.config[0].POSTPROCESSOR for config in self.config[1:]]), "[Error] For multi-model prediction, the current version of biom3d impose that all postprocessors are identical."
+            assert np.all([config.POSTPROCESSOR==self.config[0].POSTPROCESSOR for config in self.config[1:]]), "[Error] For multi-model prediction, the current version of biom3d imposes that all postprocessors are identical."
 
             logit = None # to accumulate the logit
             for i, config in enumerate(self.config):
@@ -632,12 +633,6 @@ class Builder:
             logit /= len(self.config)
 
             # final post-processing
-            print(
-                    self.config[0].POSTPROCESSOR, 
-                    register.postprocessors,
-                    return_logit,
-                    img_meta
-            )
             return read_config(
                     self.config[0].POSTPROCESSOR, 
                     register.postprocessors,
@@ -653,11 +648,11 @@ class Builder:
 
             # prediction
             out = read_config(
-                config.PREDICTOR, 
+                self.config.PREDICTOR, 
                 register.predictors,
                 img = img,
-                model = self.model
-                )
+                model = self.model,
+                **img_meta)
             
             # postprocessing
             return read_config(
@@ -667,7 +662,6 @@ class Builder:
                 return_logit = return_logit,
                 **img_meta)
 
-    
     def run_prediction_folder(self, dir_in, dir_out, return_logit=False):
         """Compute predictions for a folder of images.
 
@@ -810,6 +804,8 @@ class Builder:
 
             # create the model
             self.model = read_config(self.config.MODEL, register.models) 
+
+            print(self.model)
 
             # if the model has a 'load' method we use it
             if getattr(self.model, "load", None) is not None: 

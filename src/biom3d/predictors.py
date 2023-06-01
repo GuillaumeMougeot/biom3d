@@ -379,7 +379,6 @@ def seg_predict_patch_2(
 
     return logit
 
-
 def seg_postprocessing(
         logit,
         original_shape=None,
@@ -389,6 +388,9 @@ def seg_postprocessing(
         keep_biggest_only=False,
         return_logit=False,
     ):
+    # make original_shape 3D
+    original_shape = original_shape[-3:]
+
     # post-processing:
     print("Post-processing...")
 
