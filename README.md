@@ -2,9 +2,7 @@
 
 [**Documentation**](https://biom3d.readthedocs.io/)
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/GuillaumeMougeot/biom3d/blob/master/docs/biom3d_colab.ipynb)
-
-> **Warning**: This repository is still a work in progress!
+**Try it now online! Train a 3D semantic segmentation model in a few clicks:** [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/GuillaumeMougeot/biom3d/blob/master/docs/biom3d_colab.ipynb)
 
 Biom3d automatically configures the training of a 3D U-Net for 3D semantic segmentation.
 
@@ -50,6 +48,10 @@ python -m biom3d.preprocess_train\
  --num_classes 13\
  --ct_norm
 ```
+
+## Disclaimer
+
+> **Warning**: This repository is still a work in progress!
 
 ## :bookmark_tabs: Citation
 
