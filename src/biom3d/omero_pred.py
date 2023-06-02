@@ -4,7 +4,10 @@ from omero.cli import cli_login
 from omero.gateway import BlitzGateway
 
 from biom3d import omero_downloader 
-from biom3d import omero_uploader
+try:
+    from biom3d import omero_uploader
+except:
+    pass
 from biom3d import pred  
 
 def run(obj, target, log, dir_out, host=None, user=None, pwd=None, upload_id=None):
