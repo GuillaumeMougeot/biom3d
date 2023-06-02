@@ -586,7 +586,7 @@ def auto_config_preprocess(
         ct_norm=False,
         remove_bg=False, 
         use_tif=False,
-        desc=None, 
+        desc="unet", 
         max_dim=128,
         skip_preprocessing=False,
         no_auto_config=False,
