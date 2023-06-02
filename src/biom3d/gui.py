@@ -1219,7 +1219,7 @@ class DownloadPrediction(ttk.LabelFrame):
 class PredictTab(ttk.Frame):
     def __init__(self, *arg, **kw):
         super(PredictTab, self).__init__(*arg, **kw)
-
+        self.prediction_messages = ttk.Label(self, text="")
         self.use_omero_state = IntVar(value=0) 
         # if platform=='linux' or REMOTE: # local Omero for linux only
         self.use_omero = ttk.Checkbutton(self, text="Use omero input directory", command=self.display_omero, variable=self.use_omero_state)
@@ -1246,7 +1246,7 @@ class PredictTab(ttk.Frame):
         if self.use_omero_state.get():
             obj=self.omero_dataset.option.get()+":"+self.omero_dataset.id.get()
             if REMOTE:
-                popupmsg("Prediction is running ... !")
+                #popupmsg("Prediction is running ... !")
                 # TODO: below, still OS dependant 
                 _, stdout, stderr = REMOTE.exec_command("cd {}; python -m biom3d.omero_pred --obj {} --log {} --username {} --password {} --hostname {}".format(
                     MAIN_DIR,
@@ -1279,7 +1279,7 @@ class PredictTab(ttk.Frame):
                 biom3d.omero_pred.run(
                     obj=obj,
                     target=target,
-                    bui_dir=self.model_selection.logs_dir.get(), 
+                    log=self.model_selection.logs_dir.get(), 
                     dir_out=self.output_dir.data_dir.get(),
                     user=self.omero_connection.username.get(),
                     pwd=self.omero_connection.password.get(),
@@ -1309,11 +1309,14 @@ class PredictTab(ttk.Frame):
                 self.download_prediction._update_pred_list()
                 popupmsg("Prediction done !")
             else: 
-                popupmsg("Prediction is running ... !")
+                self.prediction_messages.grid(column=0, row=6, columnspan=2, sticky=(W,E))
+                #popupmsg("Prediction is running ... !")
+                self.prediction_messages.config(text="Prediction is running ...!")
                 pred(
-                    bui_dir=self.model_selection.logs_dir.get(),
+                    log=self.model_selection.logs_dir.get(),
                     dir_in=self.input_dir.data_dir.get(),
                     dir_out=self.output_dir.data_dir.get())
+                self.prediction_messages.config(text="Prediction is Done !")
                 popupmsg("Prediction done !")
 
     def display_omero(self):
