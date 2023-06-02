@@ -508,7 +508,7 @@ class Preprocessing:
             if self.msk_dir is not None: msk_path = os.path.join(self.msk_dir, img_fname)
 
             if self.msk_dir is not None:
-                img, msk, fg = self.run_single(
+                img, msk, fg = seg_preprocessor(
                     img_path            =img_path, 
                     msk_path            =msk_path,
                     num_classes         =self.num_classes,
@@ -518,7 +518,7 @@ class Preprocessing:
                     clipping_bounds     =self.clipping_bounds,
                     intensity_moments   =self.intensity_moments,)
             else:
-                img, _ = self.run_single(
+                img, _ = seg_preprocessor(
                     img_path            =img_path, 
                     msk_path            =None,
                     median_spacing      =self.median_spacing,

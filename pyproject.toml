@@ -7,7 +7,7 @@ file = "LICENSE"
 
 [project]
 name = "biom3d"
-version = "0.0.17"
+version = "0.0.18"
 authors = [
   {name="Guillaume Mougeot", email="guillaume.mougeot@laposte.net"},
 ]
