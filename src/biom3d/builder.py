@@ -133,12 +133,17 @@ class Builder:
 
     Training is currently done with the SGD optimizer. If you would like to change the optimizer, you can edit `self.build_training` method.
 
+    If both `config` and `path` are defined then Builder considers that fine-tuning is intended.
+
+    If `path` is a list of path, then multi-model prediction will be used, training should be off/False.
+
     Parameters
     ----------
     config : str, dict or biom3d.utils.Dict
         Path to a Python configuration file (in either .py or .yaml format) or dictionary of a configuration file. Please refer to biom3d.config_default.py to see the default configuration file format.
-    path : str
-        Path to a builder folder which contains the model, the model configuration and the training logs.
+    path : str, list of str
+        Path to a builder folder which contains the model folder, the model configuration and the training logs.
+        If path is a list of strings, then it is considered that it is intended to run multi-model predictions. Training is not compatible with this mode.
     training : bool, default=True
         Whether to load the model in training or testing mode.
 
@@ -162,7 +167,6 @@ class Builder:
         path=None,      # path to a training folder
         training=True,  # use training mode or testing?
         ):                
-
         # for training or fine-tuning:
         # load the config file and change some parameters if multi-gpus training
         if config is not None: 
@@ -200,7 +204,6 @@ class Builder:
         
         # training restart or prediction
         elif path is not None:
-            self.config = utils.load_yaml_config(os.path.join(path,"log","config.yaml"))
             # print(self.config)
             if training:
                 self.load_train(path)
@@ -212,6 +215,10 @@ class Builder:
             assert config is not None, "[Error] config file not defined."
             # print(self.config)
             self.build_train()
+        
+        # if cuda is not available then deactivate USE_FP16
+        if not torch.cuda.is_available():
+            self.config.USE_FP16 = False
 
     def build_dataset(self):
         """Build the dataset.
@@ -266,13 +273,11 @@ class Builder:
         else: 
             self.model = read_config(self.config.MODEL, register.models)
 
-
-            if torch.cuda.device_count() > 1:
-                print("Let's use", torch.cuda.device_count(), "GPUs!")
-                self.model = torch.nn.DataParallel(self.model)
-
             if torch.cuda.is_available():
                 self.model.cuda()
+                if torch.cuda.device_count() > 1:
+                    print("Let's use", torch.cuda.device_count(), "GPUs!")
+                    self.model = torch.nn.DataParallel(self.model)
 
             # TODO: use DDP...
             # if rank is not None: 
@@ -289,11 +294,15 @@ class Builder:
         # losses
         if training:
             self.loss_fn = read_config(self.config.TRAIN_LOSS, register.metrics)
-            self.loss_fn.cuda().train()
+            if torch.cuda.is_available():
+                self.loss_fn.cuda()
+            self.loss_fn.train()
 
             if 'VAL_LOSS' in self.config.keys():
                 self.val_loss_fn = read_config(self.config.VAL_LOSS, register.metrics)
-                self.val_loss_fn.cuda().eval()
+                if torch.cuda.is_available():
+                    self.val_loss_fn.cuda()
+                self.val_loss_fn.eval()
             else: 
                 self.val_loss_fn = None
 
@@ -301,12 +310,18 @@ class Builder:
             if 'TRAIN_METRICS' in self.config.keys():
                 self.train_metrics = [read_config(v, register.metrics) for v in self.config.TRAIN_METRICS.values()]
                 # print(self.train_metrics)
-                for m in self.train_metrics: m.cuda().eval()
+                for m in self.train_metrics: 
+                    if torch.cuda.is_available():
+                        m.cuda()
+                    m.eval()
             else: self.train_metrics = []
 
             if 'VAL_METRICS' in self.config.keys():
                 self.val_metrics = [read_config(v, register.metrics) for v in self.config.VAL_METRICS.values()]
-                for m in self.val_metrics: m.cuda().eval()
+                for m in self.val_metrics: 
+                    if torch.cuda.is_available():
+                        m.cuda()
+                    m.eval()
             else: self.val_metrics = []
 
             # optimizer
@@ -490,13 +505,19 @@ class Builder:
         torch.backends.cudnn.benchmark = False
 
         # saver folder configuration
+        folder_name = self.config.DESC+'_fold'+str(self.config.FOLD)
         self.base_dir, self.image_dir, self.log_dir, self.model_dir = utils.create_save_dirs(
-            self.config.LOG_DIR, self.config.DESC, dir_names=['image', 'log', 'model'], return_base_dir=True) 
+            self.config.LOG_DIR, folder_name, dir_names=['image', 'log', 'model'], return_base_dir=True) 
     
         # save the config file
         if self.config_path is not None:
             basename = os.path.basename(self.config_path)
             shutil.copy(self.config_path, os.path.join(self.log_dir, basename))
+        # copy csv file
+        if self.config.CSV_DIR is not None:
+            basename = os.path.basename(self.config.CSV_DIR)
+            shutil.copy(self.config.CSV_DIR, os.path.join(self.log_dir, basename))
+
         utils.save_yaml_config(os.path.join(self.log_dir, 'config.yaml'), self.config) # will eventually replace the yaml file
 
         self.model_path = os.path.join(self.model_dir, self.config.DESC)
@@ -578,17 +599,69 @@ class Builder:
             Output images.
         """
         # load image with the preprocessor
-        img, img_metadata = read_config(self.config.PREPROCESSOR, register.preprocessors, img_path=img_path)
+        # img, img_metadata = read_config(self.config.PREPROCESSOR, register.preprocessors, img_path=img_path)
+        if type(self.config)==list: # multi-model mode!
+            # check if the preprocessing are all equal, then only use one preprocessing
+            # TODO: make it more flexible?
+            assert np.all([config.PREPROCESSOR==self.config[0].PREPROCESSOR for config in self.config[1:]]), "[Error] For multi-model prediction, the current version of biom3d imposes that all preprocessor are identical."
+            
+            # preprocessing
+            img, img_meta = read_config(self.config[0].PREPROCESSOR, register.preprocessors, img_path=img_path)
 
-        return read_config(
-            self.config.PREDICTOR, 
-            register.predictors,
-            img = img,
-            model = self.model,
-            return_logit = return_logit,
-            **img_metadata
-            )
-    
+            # same for postprocessors
+            for i in range(len(self.config)):
+                if not 'POSTPROCESSOR' in self.config[i].keys():
+                    self.config[i].POSTPROCESSOR = utils.Dict(fct="Seg", kwargs=utils.Dict())
+
+            assert np.all([config.POSTPROCESSOR==self.config[0].POSTPROCESSOR for config in self.config[1:]]), "[Error] For multi-model prediction, the current version of biom3d imposes that all postprocessors are identical."
+
+            logit = None # to accumulate the logit
+            for i, config in enumerate(self.config):
+                # prediction
+                print('Running prediction for model number', i)
+                out = read_config(
+                    config.PREDICTOR, 
+                    register.predictors,
+                    img = img,
+                    model = self.model[i], # prediction for model i
+                    **img_meta
+                    )
+
+                # accumulate the logit
+                logit = out if logit is None else logit+out
+
+            logit /= len(self.config)
+
+            # final post-processing
+            return read_config(
+                    self.config[0].POSTPROCESSOR, 
+                    register.postprocessors,
+                    logit = logit, 
+                    return_logit = return_logit,
+                    **img_meta) # all img_meta should be equal as we use the same preprocessors
+        else:
+            img, img_meta = read_config(self.config.PREPROCESSOR, register.preprocessors, img_path=img_path)
+
+            # same for postprocessors
+            if not 'POSTPROCESSOR' in self.config.keys():
+                self.config.POSTPROCESSOR = utils.Dict(fct="Seg", kwargs=utils.Dict())
+
+            # prediction
+            out = read_config(
+                self.config.PREDICTOR, 
+                register.predictors,
+                img = img,
+                model = self.model,
+                **img_meta)
+            
+            # postprocessing
+            return read_config(
+                self.config.POSTPROCESSOR, 
+                register.postprocessors,
+                logit = out,
+                return_logit = return_logit,
+                **img_meta)
+
     def run_prediction_folder(self, dir_in, dir_out, return_logit=False):
         """Compute predictions for a folder of images.
 
@@ -636,6 +709,9 @@ class Builder:
             Whether to load the best model or the final model.
         """
 
+        # define config
+        self.config = utils.load_yaml_config(os.path.join(path,"log","config.yaml"))
+
         # setup the different paths from the folder
         self.base_dir = path
         self.image_dir = os.path.join(path, 'image')
@@ -657,8 +733,8 @@ class Builder:
         print(self.model.load_state_dict(ckpt['model'], strict=False))
         if 'loss' in ckpt.keys(): self.loss_fn.load_state_dict(ckpt['loss'])
 
-        if not 'LR_START' in self.config.keys() or self.config.LR_START is None:
-            self.optim.load_state_dict(ckpt['opt'])
+        # if not 'LR_START' in self.config.keys() or self.config.LR_START is None:
+        self.optim.load_state_dict(ckpt['opt'])
 
         if 'epoch' in list(ckpt.keys()): 
             self.initial_epoch=ckpt['epoch'] # definitive version 
@@ -692,24 +768,59 @@ class Builder:
         load_best : bool, default=True
             Whether to load the best model or the final model.
         """
+        # if the path is a list of path then multi-model mode
+        if type(path)==list:
+            print("We found a list of path for your model loading. Let's switch to multi-model mode!")
+            self.config = []
+            self.model = []
+            for p in path:
+                # define config
+                config = utils.load_yaml_config(os.path.join(p,"log","config.yaml"))
+                self.config += [config]
 
-        # setup the different paths from the folder
-        self.model_dir = os.path.join(path, 'model')
-        self.model_path = os.path.join(self.model_dir, self.config.DESC)
+                # setup the different paths from the folder
+                model_dir = os.path.join(p, 'model')
+                model_name = config.DESC + '_best.pth' if load_best else config.DESC + '.pth'
+                model_path = os.path.join(model_dir, model_name)
 
-        # call the build method
-        self.build_model(training=False)
+                # create the model
+                self.model += [read_config(config.MODEL, register.models)]
+                
+                print("Loading model weights for model:", self.model[-1])
 
-        # load the model and the optimizer
-        model_name_full = self.config.DESC + '_best.pth' if load_best else self.config.DESC + '.pth'
-        device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        ckpt = torch.load(os.path.join(self.model_dir, model_name_full), map_location=torch.device(device))
-        print("Loading model from", os.path.join(self.model_dir, model_name_full))
+                # load the model
+                if getattr(self.model[-1], "load", None) is not None: 
+                    self.model[-1].load(model_path)
+                else:
+                    raise RuntimeError("For multi-model loading, please define a `load` method in your nn.Module definition.")
+        else:
+            # define config
+            self.config = utils.load_yaml_config(os.path.join(path,"log","config.yaml"))
 
-        # remove `module.` prefix
-        state_dict = {k.replace("module.", ""): v for k, v in ckpt['model'].items()}  
-        # remove `backbone.` prefix induced by multicrop wrapper
-        state_dict = {k.replace("backbone.", ""): v for k, v in state_dict.items()}
-        print(self.model.load_state_dict(state_dict, strict=False))
+            # setup the different paths from the folder
+            self.model_dir = os.path.join(path, 'model')
+            model_name = self.config.DESC + '_best.pth' if load_best else self.config.DESC + '.pth'
+            model_path = os.path.join(self.model_dir, model_name)
+
+            # create the model
+            self.model = read_config(self.config.MODEL, register.models) 
+
+            print(self.model)
+
+            # if the model has a 'load' method we use it
+            if getattr(self.model, "load", None) is not None: 
+                self.model.load(model_path)
+            # else try to load it here... but not a good practice, might be removed in the future 
+            # we keep this option to avoid forcing the definition of a 'load' method in the model.
+            else: 
+                device = 'cuda' if torch.cuda.is_available() else 'cpu'
+                ckpt = torch.load(model_path, map_location=torch.device(device))
+                print("Loading model from", model_path)
+
+                # remove `module.` prefix
+                state_dict = {k.replace("module.", ""): v for k, v in ckpt['model'].items()}  
+                # remove `backbone.` prefix induced by multicrop wrapper
+                state_dict = {k.replace("backbone.", ""): v for k, v in state_dict.items()}
+                print(self.model.load_state_dict(state_dict, strict=False))
 
 #---------------------------------------------------------------------------

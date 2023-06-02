@@ -11,7 +11,7 @@ from skimage.io import imread
 from tqdm import tqdm
 # from scipy.ndimage.filters import gaussian_filter
 
-from biom3d.utils import keep_biggest_volume_centered, adaptive_imread, resize_3d
+from biom3d.utils import keep_biggest_volume_centered, adaptive_imread, resize_3d, keep_big_volumes
 
 #---------------------------------------------------------------------------
 # model predictor for segmentation
@@ -291,38 +291,39 @@ def seg_predict_patch(
 
 def seg_predict_patch_2(
     img,
-    model,
     original_shape,
-    return_logit=False,
+    model,
+    conserve_size=False, # force the logit to be the same size as the input
     patch_size=None,
     tta=False,          # test time augmentation 
-    use_softmax=False,
-    force_softmax=False,
     num_workers=4,
     enable_autocast=True, 
-    keep_biggest_only=False,
+    use_softmax=True,   # DEPRECATED!
+    keep_biggest_only=False, # DEPRECATED!
     ):
     """
     for one image path, load the image, compute the model prediction, return the prediction
     """
-    # make original_shape 3D
-    original_shape = original_shape[-3:]
-
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     enable_autocast = torch.cuda.is_available() and enable_autocast # tmp, autocast seems to work only with gpu for now... 
     print('AMP {}'.format('enabled' if enable_autocast else 'disabled'))
 
+    # make original_shape 3D
+    original_shape = original_shape[-3:]
+
     # get grid sampler
+    overlap = 0.5
     patch_size = np.array(patch_size)
-    patch_overlap = np.maximum(patch_size//2, patch_size-np.array(original_shape))
-    patch_overlap = np.ceil(patch_overlap/2).astype(int)*2
+    patch_overlap = np.maximum(patch_size*overlap, patch_size-np.array(img.shape[-3:]))
+    patch_overlap = (np.ceil(patch_overlap*overlap)/overlap).astype(int)
     sub = tio.Subject(img=tio.ScalarImage(tensor=img))
     sampler= tio.data.GridSampler(subject=sub, 
                             patch_size=patch_size, 
                             patch_overlap=patch_overlap,
                             padding_mode='constant')
 
-    model.eval()
+    model.to(device).eval()
+
     with torch.no_grad():
         pred_aggr = tio.inference.GridAggregator(sampler, overlap_mode='hann')
         patch_loader = torch.utils.data.DataLoader(
@@ -368,14 +369,34 @@ def seg_predict_patch_2(
         logit = pred_aggr.get_output_tensor().float()
         print("Aggregation done!")
     
+    model.cpu()
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
+
+    # reshape the logit so it has the same size as the original image
+    if conserve_size:
+        return resize_3d(logit, original_shape, order=3)
+
+    return logit
+
+def seg_postprocessing(
+        logit,
+        original_shape=None,
+        use_softmax=True,
+        force_softmax=False,
+        keep_big_only=False,
+        keep_biggest_only=False,
+        return_logit=False,
+    ):
+    # make original_shape 3D
+    original_shape = original_shape[-3:]
 
     # post-processing:
     print("Post-processing...")
 
     if return_logit: 
-        logit = resize_3d(logit, original_shape, order=3)
+        if original_shape is not None:
+            logit = resize_3d(logit, original_shape, order=3)
         print("Post-processing done!")
         return logit
 
@@ -392,28 +413,29 @@ def seg_predict_patch_2(
         out = (logit.sigmoid()>0.5).int().numpy()
         
     # resampling
-    if use_softmax or force_softmax:
-        out = resize_3d(np.expand_dims(out,0), original_shape, order=1, is_msk=True).squeeze()
-    else: 
-        out = resize_3d(out, original_shape, order=1, is_msk=True)
+    if original_shape is not None:
+        if use_softmax or force_softmax:
+            out = resize_3d(np.expand_dims(out,0), original_shape, order=1, is_msk=True).squeeze()
+        else: 
+            out = resize_3d(out, original_shape, order=1, is_msk=True)
     
-
+    if keep_big_only and keep_biggest_only:
+        print("[Warning] Incompatible options 'keep_big_only' and 'keep_biggest_only' have both been set to True. Please deactivate one! We consider here only 'keep_biggest_only'.")
     # TODO: the function below is too slow
-    if keep_biggest_only:
+    if keep_biggest_only or keep_big_only:
+        fct = keep_biggest_volume_centered if keep_biggest_only else keep_big_volumes
         if len(out.shape)==3:
-            out = keep_biggest_volume_centered(out)
+            out = fct(out)
         elif len(out.shape)==4:
             tmp = []
             for i in range(out.shape[0]):
-                tmp += [keep_biggest_volume_centered(out[i])]
+                tmp += [fct(out[i])]
             out = np.array(tmp)
 
-    out = out.astype(np.uint16) 
-    
+    out = out.astype(np.uint8)    
     
     print("Post-processing done!")
     print("Output shape:",out.shape)
     return out
-
 
 #---------------------------------------------------------------------------

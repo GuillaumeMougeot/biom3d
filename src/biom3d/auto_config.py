@@ -7,97 +7,10 @@
 # - the number of poolings in the 3D U-Net
 #---------------------------------------------------------------------------
 
-from skimage.io import imread
-import SimpleITK as sitk
-import os
 import numpy as np
 import argparse
 
-# ----------------------------------------------------------------------------
-# path utils
-
-def abs_path(root, listdir_):
-    """Add the root path to each element in a list of path.
-
-    Parameters
-    ----------
-    root: str
-        Path to root folder.
-    listdir_: list of str
-        List of file names.
-    
-    Returns
-    -------
-    list of str
-        List of the absolute paths.
-    """
-    listdir = listdir_.copy()
-    for i in range(len(listdir)):
-        listdir[i] = root + '/' + listdir[i]
-    return listdir
-
-def abs_listdir(path):
-    """Return a list of absolute paths from a folder. 
-    Equivalent to os.listdir but with absolute path.
-
-    Parameters
-    ----------
-    path: str
-        Path to the folder.
-
-    Returns
-    -------
-    list of str
-        List of the absolute paths.
-    """
-    return abs_path(path, os.listdir(path))
-
-# ----------------------------------------------------------------------------
-# Imread utils
-
-def sitk_imread(img_path):
-    """SimpleITK image reader. Used for nii.gz files.
-
-    Parameters
-    ----------
-    img_path: str
-        Image path.
-
-    Returns
-    -------
-    numpy.ndarray
-        Images.
-    tuple 
-        Image spacing. 
-    """
-    img = sitk.ReadImage(img_path)
-    img_np = sitk.GetArrayFromImage(img)
-    return img_np, np.array(img.GetSpacing())
-
-def adaptive_imread(img_path):
-    """Use skimage imread or sitk imread depending on the file extension:
-    .tif --> skimage.io.imread
-    .nii.gz --> SimpleITK.imread
-
-    Parameters
-    ----------
-    img_path: str
-        Image path.
-
-    Returns
-    -------
-    numpy.ndarray
-        Images.
-    tuple 
-        Image spacing. Can be None (for non-nifti files).
-    """
-    extension = img_path[img_path.rfind('.'):]
-    if extension == ".tif":
-        return imread(img_path), []
-    elif extension == ".npy":
-        return np.load(img_path), []
-    else:
-        return sitk_imread(img_path)
+from biom3d.utils import adaptive_imread, abs_listdir
 
 # ----------------------------------------------------------------------------
 # Median computation
@@ -262,24 +175,39 @@ def find_patch_pool_batch(dims, max_dims=(128,128,128), max_pool=5, epsilon=1e-3
     if len(dims)==4:
         dims=dims[1:]
     dims = np.array(dims)
+    ori_dim = dims.copy()
     max_dims = np.array(max_dims)
     
     # divides by a 1+epsilon until reaching a sufficiently small resolution
     while dims.prod() > max_dims.prod():
         dims = dims / (1+epsilon)
-    dims = dims.astype(int)
+    dims = np.round(dims).astype(int)
     
     # compute patch and pool for all dims
     patch_pool = np.array([single_patch_pool(m) for m in dims])
     patch = patch_pool[:,0]
     pool = patch_pool[:,1]
     
-    # assert the final size is smaller than max_dims
-    while patch.prod()>max_dims.prod():
-        patch = patch - np.array([2**max_pool]*3)*(patch>max_dims) # removing multiples of 32
+    
+    # assert the final size is smaller than max_dims and the median size
+    while patch.prod()>max_dims.prod() or patch.prod()>ori_dim.prod()*2:
+        patch = patch - 2**max_pool*(patch==patch.max()) # removing multiples of 2**max_pool
+    
+    # if we removed too much we just add multiples of 2**pool.min() to the smallest dimension
+    added = False
+    while max_dims.prod()-(patch + 2**pool*(patch==patch.min())).prod()>=0 and\
+          ori_dim.prod() -(patch + 2**pool*(patch==patch.min())).prod()>=0:
+        patch = patch + 2**pool*(patch==patch.min()); added = True
+        
+    # if we increased the patch size then we set pool to the 2-adic valuation of the patch size
+    if added:
+        while np.any(patch%2**(pool+1)==0): 
+            pool = pool + (patch%2**(pool+1)==0).astype(int)
+ 
+    # limit pool size
     pool = np.where(pool > max_pool, max_pool, pool)
     
-    # batch_size
+    # batch_size is set to 2 and increased if possible
     batch = 2
     while batch*patch.prod() <= 2*max_dims.prod():
         batch += 1
@@ -289,7 +217,7 @@ def find_patch_pool_batch(dims, max_dims=(128,128,128), max_pool=5, epsilon=1e-3
 
 def get_aug_patch(patch_size):
     """Return augmentation patch size.
-    The current solution is to increase the size of each dimension by 37% except if the image is anisotropic, then by 17% expect for the anisotropic dimension (meaning that the anisotropic dimension is at least three time smaller than the others)... All of this sounds arbitrary... yes but it is pretty close to the original nnUNet solution, yet much simpler.
+    The current solution is to use the diagonal of the rectagular cuboid of the patch size, for isotripic images and, for anisotropic images, the diagonal of the rectangle spaned by the non-anisotropic dimensions. 
 
     Parameters
     ----------
@@ -306,10 +234,15 @@ def get_aug_patch(patch_size):
 
     if np.any(dummy_2d>3): # then use dummy_2d
         axis = np.argmin(dummy_2d)
-        aug_patch = np.round(1.17*ps).astype(int)
+        # aug_patch = np.round(1.17*ps).astype(int)
+        diag = np.sqrt(np.array(list(s**2 if i!=axis else 0 for i,s in enumerate(ps))).sum())
+        diag = np.round(diag).astype(int)
+        aug_patch = list(diag for _ in range(len(patch_size)))
         aug_patch[axis] = patch_size[axis]
     else:
-        aug_patch = np.round(1.37*ps).astype(int)
+        # aug_patch = np.round(1.37*ps).astype(int)
+        diag = np.round(np.sqrt((ps**2).sum())).astype(int)
+        aug_patch = list(diag for _ in range(len(patch_size)))
     return aug_patch
         
 
@@ -333,7 +266,8 @@ def display_info(patch, pool, batch):
     aug_patch = get_aug_patch(patch)
     print("AUG_PATCH_SIZE =",list(aug_patch))  
     print("NUM_POOLS =", list(pool))
-def auto_config(img_dir=None, median=None, max_dims=(128,128,128)):
+
+def auto_config(img_dir=None, median=None, max_dims=(128,128,128), max_batch=16, min_batch=2):
     """Given an image folder, return the batch size, the patch size and the number of pooling.
     Provide either an image directory or a median shape. If a median shape is provided it will not be recomputed and the auto-configuration will be much faster.
 
@@ -361,6 +295,8 @@ def auto_config(img_dir=None, median=None, max_dims=(128,128,128)):
     if median is None: median = compute_median(path=img_dir) 
     patch, pool, batch = find_patch_pool_batch(dims=median, max_dims=max_dims) 
     aug_patch = get_aug_patch(patch)
+    if batch > max_batch: batch = max_batch
+    if batch < min_batch: batch = min_batch
     return batch, aug_patch, patch, pool
 
 # ----------------------------------------------------------------------------

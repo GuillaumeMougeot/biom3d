@@ -33,7 +33,8 @@ def seg_train(
     for batch, (X, y) in enumerate(dataloader):
         
         callbacks.on_batch_begin(batch)
-        X, y = X.cuda(), y.cuda()
+        if torch.cuda.is_available():
+            X, y = X.cuda(), y.cuda()
 
         # print("batch:",batch, "memory reserved:", torch.cuda.memory_reserved(0), "allocated memory", torch.cuda.memory_allocated(0), "free memory:", torch.cuda.memory_reserved(0)-torch.cuda.memory_allocated(0), "percentage of free memory:", torch.cuda.memory_allocated(0)/torch.cuda.max_memory_allocated(0))
 
@@ -102,7 +103,8 @@ def seg_validate(
     model.eval() # set the module in evaluation mode (only useful for dropout or batchnorm like layers)
     with torch.no_grad(): # set all the requires_grad flags to zeros
         for X, y in dataloader:
-            X, y = X.cuda(), y.cuda()
+            if torch.cuda.is_available():
+                X, y = X.cuda(), y.cuda()
             with torch.cuda.amp.autocast(use_fp16):
                 pred=model(X)
                 del X
@@ -135,7 +137,8 @@ def seg_patch_validate(dataloader, model, loss_fn, metrics):
             for patch in patch_loader:
                 X = patch['img'][tio.DATA]
                 y = patch['msk'][tio.DATA]
-                X, y = X.cuda(), y.cuda()
+                if torch.cuda.is_available():
+                    X, y = X.cuda(), y.cuda()
                 pred=model(X).detach()
 
                 # pred_aggr.add_batch(pred, patch[tio.LOCATION])
@@ -174,7 +177,8 @@ def seg_patch_train(
         for patch, (X, y) in enumerate(patch_loader):
             callbacks.on_batch_begin(batch * len(patch_loader) + patch)
 
-            X, y = X.cuda(), y.cuda()
+            if torch.cuda.is_available():
+                X, y = X.cuda(), y.cuda()
 
             # Compute prediction error
             pred = model(X)

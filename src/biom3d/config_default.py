@@ -30,10 +30,13 @@ IMG_DIR = None
 # Folder where pre-processed masks are stored
 MSK_DIR = None
 
-# Folder with the foreground locations
+# (Optional) Folder with the foreground locations
+# It is automatically set during preprocessing,
+# but can be left None. If so, foreground locations will be 
+# dynamically computed during training.
 FG_DIR = None
 
-# (optional) path to the .csv file storing "filename,hold_out,fold", where:
+# (Optional) path to the .csv file storing "filename,hold_out,fold", where:
 # "filename" is the image name,
 # "hold_out" is either 0 (training image) or 1 (testing image),
 # "fold" (non-negative integer) indicates the k-th fold, 
@@ -130,6 +133,10 @@ USE_FG_CLBK = False
 #---------------------------------------------------------------------------
 # dataset configs
 
+# Number of the fold in the CSV file determining which data is used for
+# training and which is used for validation
+FOLD = 0
+
 TRAIN_DATASET = Dict(
     fct="SegPatchFast",
     kwargs=Dict(
@@ -140,7 +147,7 @@ TRAIN_DATASET = Dict(
         patch_size = PATCH_SIZE,
         nbof_steps = 250,
         folds_csv  = CSV_DIR, 
-        fold       = 0, 
+        fold       = FOLD, 
         val_split  = 0.20,
         train      = True,
         use_aug    = True,
@@ -168,7 +175,7 @@ VAL_DATASET = Dict(
         patch_size = PATCH_SIZE,
         nbof_steps = 50,
         folds_csv  = CSV_DIR, 
-        fold       = 0, 
+        fold       = FOLD, 
         val_split  = 0.20,
         train      = False,
         use_aug    = False,
@@ -181,7 +188,7 @@ VAL_DATASET = Dict(
 VAL_DATALOADER_KWARGS = Dict(
     batch_size  = BATCH_SIZE, # TODO: change it in the final version
     drop_last   = False, 
-    shuffle     = False, 
+    shuffle     = True, 
     num_workers = NUM_WORKERS//2, # less worker needed for validation 
     pin_memory  = PIN_MEMORY,
 )
@@ -257,9 +264,15 @@ PREDICTOR = Dict(
     fct="SegPatch",
     kwargs=Dict(
         patch_size=PATCH_SIZE,
-        tta=True,
+        tta=True,),
+)
+
+POSTPROCESSOR = Dict(
+    fct="Seg",
+    kwargs=Dict(
         use_softmax=USE_SOFTMAX,
-        keep_biggest_only=False),
+        keep_biggest_only=False
+    ),
 )
 
 ############################################################################

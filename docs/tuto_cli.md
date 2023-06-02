@@ -122,10 +122,10 @@ That's it! The preprocessing and training should start.
 > **Warning**: About the file/folder naming, the only constraint is that the images and masks have the exact same name. All the folders can have any name with **no space** in it and the parent folder structure does not matter. 
 
 > **Warning**: Constraints on image format:
-* The images and masks must be .tif files or .nii.gz file. If using another format then install biom3d from source and edit `biom3d.utils.adaptive_imread` and `biom3d.utils.adaptive_imsave`... or preprocess your images to have the proper format.
-* The images and masks must all have 3 or 4 dimensions: (height, width, depth) or (channel, height, width, depth).
-* Each dimension of each image must be identical to each dimension of the corresponding mask, expect for the channel dimension.
-* Masks values must be either 0 or 1 if stored in (channel, height, width, depth) format, or must be in 0,1,...,N where N is the number of classes.
+> * The images and masks must be .tif files or .nii.gz file. If using another format then install biom3d from source and edit `biom3d.utils.adaptive_imread` and `biom3d.utils.adaptive_imsave`... or preprocess your images to have the proper format.
+> * The images and masks must all have 3 or 4 dimensions: (height, width, depth) or (channel, height, width, depth).
+> * Each dimension of each image must be identical to each dimension of the corresponding mask, expect for the channel dimension.
+> * Masks values must be either 0 or 1 if stored in (channel, height, width, depth) format, or must be in 0,1,...,N where N is the number of classes.
 
 Prediction can be run with the aforementioned command (cf. section above).
 

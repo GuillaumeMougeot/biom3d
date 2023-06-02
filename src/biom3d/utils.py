@@ -175,7 +175,11 @@ def adaptive_imread(img_path, return_origin=False, return_direction=False):
     """
     extension = img_path[img_path.rfind('.'):]
     if extension == ".tif":
-        returns = [io.imread(img_path), []] # TODO: spacing is set to empty but could be set from tif metadata
+        try:
+            spacing = tif_get_spacing(img_path)
+        except:
+            spacing = []
+        returns = [io.imread(img_path), spacing]  # TODO: spacing is set to empty but could be set from tif metadata
         if return_origin: returns += [[]]
         if return_direction: returns += [[]]
         return tuple(returns)
@@ -197,7 +201,7 @@ def sitk_imsave(img_path, img, spacing=(1,1,1), origin=(0,0,0), direction=(1., 0
     img_out.SetDirection(direction)
     sitk.WriteImage(img_out, img_path)
 
-def adaptive_imsave(img_path, img, spacing=(1,1,1), origin=(0,0,0), direction=(1, 0, 0, 0, 1, 0, 0, 0, 1)):
+def adaptive_imsave(img_path, img, spacing=(1.,1.,1.), origin=(0,0,0), direction=(1, 0, 0, 0, 1, 0, 0, 0, 1)):
     """Adaptive image saving. Use tifffile for `.tif`, use numpy for `.npy` and use SimpleITK for other format. 
 
     Parameters
@@ -211,7 +215,27 @@ def adaptive_imsave(img_path, img, spacing=(1,1,1), origin=(0,0,0), direction=(1
     """
     extension = img_path[img_path.rfind('.'):]
     if extension == ".tif":
-        tiff.imwrite(img_path, img, compression=('zlib', 1))
+        # if not np.all(spacing==(1.,1.,1.)):
+        #     res = int(1e6) # default resolution is MICROMETERS
+        #     tiff.imwrite(
+        #         img_path,
+        #         img,
+        #         compression=('zlib', 1),
+
+        #         # the lines below might have to be commented in certain cases, depending on the unit of your images... 
+        #         resolution=((int(1/spacing[0]),res), (int(1/spacing[1]), res)), # TODO: unit is set to micrometer by default but this could be a problem... 
+        #         metadata={
+        #             'spacing':float(spacing[-1]*res),
+        #             'unit':'MICROMETER', # TODO: unit is set to micrometer by default but this could be a problem... 
+        #             'axes':'ZYX',
+        #             },
+        #         imagej=True,
+        #         )
+        # else:
+        tiff.imwrite(
+            img_path,
+            img,
+            compression=('zlib', 1))
     elif extension == ".npy":
         np.save(img_path, img)
     else:
@@ -274,19 +298,19 @@ def tif_copy_meta(in_path1, in_path2, out_path):
     data = tiff.imread(in_path2)
     tif_write_meta(data, in_meta, out_path)
 
-def tif_get_spacing(path):
+def tif_get_spacing(path, res=1e-6):
     """
     get the image spacing stored in the metadata file.
     """
     img_meta = tif_read_meta(path)
 
-    xres = (img_meta["XResolution"][1]/img_meta["XResolution"][0])*1e-6
-    yres = (img_meta["YResolution"][1]/img_meta["YResolution"][0])*1e-6
-    zres = float(img_meta["ImageDescription"]["spacing"])*1e-6
-    max_dim = min([xres,yres,zres])
-    xres = max_dim / xres
-    yres = max_dim / yres
-    zres = max_dim / zres
+    xres = (img_meta["XResolution"][1]/img_meta["XResolution"][0])*res
+    yres = (img_meta["YResolution"][1]/img_meta["YResolution"][0])*res
+    zres = float(img_meta["ImageDescription"]["spacing"])*res
+    # max_dim = min([xres,yres,zres])
+    # xres = max_dim / xres
+    # yres = max_dim / yres
+    # zres = max_dim / zres
     return (xres, yres, zres)
 
 # ----------------------------------------------------------------------------
@@ -339,7 +363,7 @@ def abs_path(root, listdir_):
     return listdir
 
 def abs_listdir(path):
-    return abs_path(path, os.listdir(path))
+    return abs_path(path, sorted(os.listdir(path)))
 
 # ----------------------------------------------------------------------------
 # preprocess utils
@@ -899,7 +923,10 @@ def save_python_config(
 
     # rename it with date included
     current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
-    new_config_name = os.path.join(config_dir, current_time+"-"+os.path.basename(config_path))
+
+    # if DESC is in kwargs, then it will be used to rename the config file
+    basename = os.path.basename(config_path) if "DESC" not in kwargs.keys() else kwargs['DESC']+'.py'
+    new_config_name = os.path.join(config_dir, current_time+"-"+basename)
     os.rename(config_path, new_config_name)
 
     # edit the new config file with the auto-config values

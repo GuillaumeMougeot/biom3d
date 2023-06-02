@@ -11,6 +11,7 @@ import pickle # for foreground storage
 from tqdm import tqdm
 import argparse
 import tifffile
+import pandas as pd
 
 from biom3d.auto_config import auto_config, data_fingerprint
 from biom3d.utils import adaptive_imread, one_hot_fast, resize_3d, save_python_config
@@ -18,12 +19,112 @@ from biom3d.utils import adaptive_imread, one_hot_fast, resize_3d, save_python_c
 np.random.seed(42)
 
 #---------------------------------------------------------------------------
+# Define the CSV file for KFold split
+
+def hold_out(df, ratio=0.1, seed=42):
+    """
+    Select a set of element from the first column of df.
+    The size of the set is len(set)*ratio.
+    It is randomly selected.
+    The results are stored in a new column in df called 'hold_out'.
+    The results is a 0/1 list: 1=selected, 0=not selected
+    
+    Args:
+        df: pd.DataFrame
+        ratio: float in [0,1]
+        seed: np.random.seed initialisation
+    Return:
+        df: pd.DataFrame
+    """
+    np.random.seed(seed)
+    l = np.array(df.iloc[:,0])
+    
+    # shuffle the list 
+    permut = np.random.permutation(len(l))
+    inv_permut = np.argsort(permut)
+    # shuffled = l[permut] # shuffled contains the suffled list
+    
+    # split the shuffled list
+    split = int(len(l)*ratio)
+    indices = np.array([1]*split+[0]*(len(l)-split))
+    
+    # unpermut the list of indice to get back the original
+    sort_indices = indices[inv_permut]
+    
+    # add columns
+    df['hold_out'] = sort_indices
+    return df
+
+def strat_kfold(df, k=4, seed=43):
+    """
+    Stratified Kfold. 
+    Same as kfold but pay attention to balance the train and test sets.
+    df must contains a column named 'hold_out'.
+    """
+    np.random.seed(seed)
+    l = np.array(df.iloc[:,0])
+    
+    holds_out = np.array(df['hold_out'])
+    indices_all = np.arange(len(l))
+    
+    # retrieve train/test indices 
+    indices_test = indices_all[holds_out==1]
+    indices_train = indices_all[holds_out==0]
+    
+    # split the list in k folds and shuffle it 
+    def split_indices(l):
+        kfold_size = len(l)//k
+        indices = []
+        for i in range(k):
+            indices += [i]*kfold_size
+        # the remaining indices are randomly assigned
+        if len(l[len(indices):])>0:
+            for i in range(len(l[len(indices):])):
+                alea = np.random.randint(0,k)
+                indices += [alea]
+        indices = np.array(indices)
+        assert len(indices) == len(l)
+        np.random.shuffle(indices) # shuffle the indices
+        return indices
+    
+    folds_train = split_indices(indices_train)
+    folds_test = split_indices(indices_test)
+    
+    # merge folds at the right place
+    merge = np.zeros_like(l)
+    merge[holds_out==1] = folds_test
+    merge[holds_out==0] = folds_train
+    
+    # add the column to the DataFrame
+    df['fold'] = merge
+    return df
+
+def generate_kfold_csv(filenames, csv_path, hold_out_rate=0., kfold=5, seed=42):
+    """From a list of filenames create a CSV containing three columns:
+    - filename: image filename
+    - hold: 0 or 1, whether to consider this image as test set
+    - fold: 0, 1, ..., K, each corresponds to the validation set images
+
+    Parameters
+    ----------
+    filenames : list of str
+        List of the filenames (not the absolute path).
+    csv_path : str
+        Path of the output csv file.
+    hold_out_rate : float, default=0.
+        Float between 0 and 1, rate with which the test split will be selected. 
+    kfold : int, default=5
+        Number of fold that will be defined
+    seed : int, default=42
+        Random seed for numpy.random
+    """
+    df = pd.DataFrame(filenames, columns=['filename'])
+    df = hold_out(df, ratio=hold_out_rate, seed=seed)
+    df = strat_kfold(df, k=kfold, seed=seed)
+    df.to_csv(csv_path, index=False)
+
+#---------------------------------------------------------------------------
 # 3D segmentation preprocessing
-# Nifti convertion (Medical segmentation decathlon)
-# normalization: z-score
-# resampling
-# intensity normalization
-# one_hot encoding
 
 def resize_img_msk(img, output_shape, msk=None):
     new_img = resize_3d(img, output_shape, order=3)
@@ -37,7 +138,6 @@ def get_resample_shape(input_shape, spacing, median_spacing):
     if len(input_shape)==4:
         input_shape=input_shape[1:]
     return np.round(((spacing/median_spacing)[::-1]*input_shape)).astype(int)
-
 
 def sanity_check(msk, num_classes=None):
     """Check if the mask is correctly annotated.
@@ -85,10 +185,126 @@ def sanity_check(msk, num_classes=None):
             # case like [2,18,128,254] where the number of classes should be 3 are impossible to decide...
             print("[Error] There is an error in the labels that could not be solved automatically.")
             raise RuntimeError
-        
+
+def seg_preprocessor(
+    img_path, 
+    msk_path=None,
+    num_classes=None,
+    use_one_hot = False,
+    remove_bg = False, 
+    median_spacing=[],
+    clipping_bounds=[],
+    intensity_moments=[],
+    ):
+    """Segmentation pre-processing.
+    """
+
+    do_msk = msk_path is not None
+
+    # read image and mask
+    img,spacing = adaptive_imread(img_path)
+    if do_msk: 
+        msk,_ = adaptive_imread(msk_path)
+        # sanity check
+        msk = sanity_check(msk, num_classes)
+
+    # keep the input shape, used for preprocessing before prediction
+    original_shape = img.shape
+    
+    # expand image dim
+    if len(img.shape)==3:
+        img = np.expand_dims(img, 0)
+    elif len(img.shape)==4:
+        # we consider as the channel dimension, the smallest dimension
+        # it should be either the first or the last dim
+        # if it is the last dim, then we move it to the first
+        if np.argmin(img.shape)==3:
+            img = np.moveaxis(img, -1, 0)
+        elif np.argmin(img.shape)!=0:
+            print("[Error] Invalid image shape:", img.shape)
+    else:
+        print("[Error] Invalid image shape:", img.shape)
+
+    # one hot encoding for the mask if needed
+    if do_msk and len(msk.shape)!=4: 
+        if use_one_hot:
+            msk = one_hot_fast(msk, num_classes)
+            if remove_bg:
+                msk = msk[1:]
+        else:
+            msk = np.expand_dims(msk, 0)
+    elif do_msk and len(msk.shape)==4:
+        # normalize each channel
+        msk = (msk > msk.min()).astype(np.uint8)
+
+    assert len(img.shape)==4
+    if do_msk: assert len(msk.shape)==4
+
+    # clip img
+    if len(clipping_bounds)>0:
+        img = np.clip(img, clipping_bounds[0], clipping_bounds[1])
+
+    # normalize the image and msk
+    # z-score normalization for the image
+    if len(intensity_moments)>0:
+        img = (img-intensity_moments[0])/intensity_moments[1]
+    else:
+        img = (img-img.mean())/img.std()
+    
+    # enhance contrast
+    # img = exposure.equalize_hist(img)
+
+    # range image in [-1, 1]
+    # img = (img - img.min())/(img.max()-img.min()) * 2 - 1
+
+    # resample the image and mask if needed
+    if len(median_spacing)>0:
+        output_shape = get_resample_shape(img.shape, spacing, median_spacing)
+        if do_msk:
+            # img, msk = resample_img_msk(img, msk, spacing, median_spacing)
+            img, msk = resize_img_msk(img, msk=msk, output_shape=output_shape)
+        else:
+            # img = resample_with_spacing(img, spacing, median_spacing, order=3)
+            img = resize_3d(img, output_shape)
+
+    # set image type
+    img = img.astype(np.float32)
+    if do_msk: msk = msk.astype(np.uint16)
+    
+    # foreground computation
+    if do_msk:
+        fg={}
+        if use_one_hot: start = 0 if remove_bg else 1
+        else: start = 1
+        for i in range(start,len(msk) if use_one_hot else msk.max()+1):
+            fgi = np.argwhere(msk[i] == 1) if use_one_hot else np.argwhere(msk[0] == i)
+            if len(fgi)>0:
+                num_samples = min(len(fgi), 10000)
+                fgi_idx = np.random.choice(np.arange(len(fgi)), size=num_samples, replace=False)
+                fgi = fgi[fgi_idx,:]
+            else:
+                fgi = []
+            fg[i] = fgi
+
+        if len(fg)==0:
+            print("[Warning] Empty foreground!")
+
+    # return
+    if do_msk:
+        return img, msk, fg 
+    else:
+        return img, {"original_shape": original_shape}
+
+#---------------------------------------------------------------------------
+# 3D segmentation preprocessing
+# Nifti convertion (Medical segmentation decathlon)
+# normalization: z-score
+# resampling
+# intensity normalization
+# one_hot encoding
 
 class Preprocessing:
-    """A helper class to transform nifti (.nii.gz) and Tiff (.tif or .tiff) images to .tif format and to normalize them.
+    """A helper class to transform nifti (.nii.gz) and Tiff (.tif or .tiff) images to .npy format and to normalize them.
 
     Parameters
     ----------
@@ -116,6 +332,8 @@ class Preprocessing:
         Use tif format to save the preprocessed images instead of npy format.
     split_rate_for_single_img : float, default=0.2
         If a single image is present in image/mask folders, then the image/mask are split in 2 portions of size split_rate_for_single_img*largest_dimension for validation and split_rate_for_single_img*(1-largest_dimension) for training.
+    num_kfolds : int, default=5
+        Number of K-fold for cross validation.
     """
     def __init__(
         self,
@@ -132,6 +350,7 @@ class Preprocessing:
         intensity_moments=[],
         use_tif=False, # use tif instead of npy 
         split_rate_for_single_img=0.25,
+        num_kfolds=5,
         ):
         assert img_dir!='', "[Error] img_dir must not be empty."
 
@@ -143,7 +362,7 @@ class Preprocessing:
         
         self.img_dir=img_dir
         self.msk_dir=msk_dir
-        self.img_fnames=os.listdir(self.img_dir)
+        self.img_fnames=sorted(os.listdir(self.img_dir))
 
         if img_outdir is None: # name the out dir the same way as the input and add the _out suffix
             img_outdir = img_dir+'_out'
@@ -168,6 +387,9 @@ class Preprocessing:
         if msk_dir is not None and not os.path.exists(self.fg_outdir):
             os.makedirs(self.fg_outdir, exist_ok=True)
 
+        # create csv along with the img folder
+        self.csv_path = os.path.join(os.path.dirname(img_dir), 'folds.csv')
+
         self.num_classes = num_classes
         self.num_channels = 1
 
@@ -181,6 +403,11 @@ class Preprocessing:
         self.split_rate_for_single_img = split_rate_for_single_img
 
         self.use_one_hot = use_one_hot
+
+        self.num_kfolds = num_kfolds
+        if self.num_kfolds * 2 > len(self.img_fnames):
+            self.num_kfolds = max(len(self.img_fnames) // 2, 2)
+            print("[Warning] The number of images {} is smaller than twice the number of folds {}. The number of folds will be reduced to {}.".format(len(self.img_fnames), num_kfolds * 2, self.num_kfolds))
         
     def _split_single(self):
         """
@@ -257,122 +484,22 @@ class Preprocessing:
         self.img_dir = self.img_outdir
         self.msk_dir = self.msk_outdir
 
-    @staticmethod
-    def run_single(
-        img_path, 
-        msk_path=None,
-        num_classes=None,
-        use_one_hot = False,
-        remove_bg = False, 
-        median_spacing=[],
-        clipping_bounds=[],
-        intensity_moments=[],
-        ):
-
-        do_msk = msk_path is not None
-
-        # read image and mask
-        img,spacing = adaptive_imread(img_path)
-        if do_msk: 
-            msk,_ = adaptive_imread(msk_path)
-            # sanity check
-            msk = sanity_check(msk, num_classes)
-
-        # keep the input shape, used for preprocessing before prediction
-        original_shape = img.shape
-        
-        # expand image dim
-        if len(img.shape)==3:
-            img = np.expand_dims(img, 0)
-        elif len(img.shape)==4:
-            # we consider as the channel dimension, the smallest dimension
-            # it should be either the first or the last dim
-            # if it is the last dim, then we move it to the first
-            if np.argmin(img.shape)==3:
-                img = np.moveaxis(img, -1, 0)
-            elif np.argmin(img.shape)!=0:
-                print("[Error] Invalid image shape:", img.shape)
-        else:
-            print("[Error] Invalid image shape:", img.shape)
-
-        # one hot encoding for the mask if needed
-        if do_msk and len(msk.shape)!=4: 
-            if use_one_hot:
-                msk = one_hot_fast(msk, num_classes)
-                if remove_bg:
-                    msk = msk[1:]
-            else:
-                msk = np.expand_dims(msk, 0)
-        elif do_msk and len(msk.shape)==4:
-            # normalize each channel
-            msk = (msk > msk.min()).astype(np.uint8)
-
-        assert len(img.shape)==4
-        if do_msk: assert len(msk.shape)==4
-
-        # clip img
-        if len(clipping_bounds)>0:
-            img = np.clip(img, clipping_bounds[0], clipping_bounds[1])
-
-        # normalize the image and msk
-        # z-score normalization for the image
-        if len(intensity_moments)>0:
-            img = (img-intensity_moments[0])/intensity_moments[1]
-        else:
-            img = (img-img.mean())/img.std()
-        
-        # enhance contrast
-        # img = exposure.equalize_hist(img)
-
-        # range image in [-1, 1]
-        # img = (img - img.min())/(img.max()-img.min()) * 2 - 1
-
-        # resample the image and mask if needed
-        if len(median_spacing)>0:
-            output_shape = get_resample_shape(img.shape, spacing, median_spacing)
-            if do_msk:
-                # img, msk = resample_img_msk(img, msk, spacing, median_spacing)
-                img, msk = resize_img_msk(img, msk=msk, output_shape=output_shape)
-            else:
-                # img = resample_with_spacing(img, spacing, median_spacing, order=3)
-                img = resize_3d(img, output_shape)
-
-        # set image type
-        img = img.astype(np.float32)
-        if do_msk: msk = msk.astype(np.uint16)
-        
-        # foreground computation
-        if do_msk:
-            fg={}
-            if use_one_hot: start = 0 if remove_bg else 1
-            else: start = 1
-            for i in range(start,len(msk) if use_one_hot else msk.max()+1):
-                fgi = np.argwhere(msk[i] == 1) if use_one_hot else np.argwhere(msk[0] == i)
-                if len(fgi)>0:
-                    num_samples = min(len(fgi), 10000)
-                    fgi_idx = np.random.choice(np.arange(len(fgi)), size=num_samples, replace=False)
-                    fgi = fgi[fgi_idx,:]
-                else:
-                    fgi = []
-                fg[i] = fgi
-
-            if len(fg)==0:
-                print("[Warning] Empty foreground!")
-
-        # return
-        if do_msk:
-            return img, msk, fg 
-        else:
-            return img, {'original_shape': original_shape}
+        # generate the csv file
+        df = pd.DataFrame([train_img_name, val_img_name], columns=['filename'])
+        df['hold_out'] = [0,0]
+        df['fold'] = [1,0]
+        df.to_csv(self.csv_path, index=False)
     
     def run(self):
         """Start the preprocessing.
         """
         print("Preprocessing...")
         # if there is only a single image/mask, then split them both in two portions
+        image_was_split = False
         if len(self.img_fnames)==1 and self.msk_dir is not None:
             print("Single image found per folder. Split the images...")
             self._split_single()
+            image_was_split = True
             
         for i in tqdm(range(len(self.img_fnames))):
             # set image and mask name
@@ -438,7 +565,11 @@ class Preprocessing:
                 with open(fg_file, 'wb') as handle:
                     pickle.dump(fg, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-                
+        # create csv file
+        filenames = sorted(os.listdir(self.img_outdir))
+        if not image_was_split:
+            generate_kfold_csv(filenames, self.csv_path, kfold=self.num_kfolds)
+
         print("Done preprocessing!")
 def get_aug_patch(patch_size):
     
@@ -471,6 +602,101 @@ def parameters_return(patch, pool, batch, config_path):
     print(config_path)
 #---------------------------------------------------------------------------
 
+def auto_config_preprocess(
+        img_dir, 
+        msk_dir, 
+        num_classes, 
+        config_dir, 
+        base_config, 
+        img_outdir=None,
+        msk_outdir=None,
+        use_one_hot=False,
+        ct_norm=False,
+        remove_bg=False, 
+        use_tif=False,
+        desc=None, 
+        max_dim=128,
+        skip_preprocessing=False,
+        no_auto_config=False,
+        ):
+    """Helper function to do auto-config and preprocessing.
+    """
+    
+    median_size, median_spacing, mean, std, perc_005, perc_995 = data_fingerprint(img_dir, msk_dir if ct_norm else None)
+    print("Data fingerprint:")
+    print("Median size:", median_size)
+    print("Median spacing:", median_spacing)
+    print("Mean intensity:", mean)
+    print("Standard deviation of intensities:", std)
+    print("0.5% percentile of intensities:", perc_005)
+    print("99.5% percentile of intensities:", perc_995)
+    print("")
+
+    if ct_norm:
+        print("Computing data fingerprint for CT normalization...")
+        clipping_bounds = [perc_005, perc_995]
+        intensity_moments = [mean, std]
+        print("Done!")
+    else:
+        # median_size = None
+        # median_spacing = []
+        # if sum(median_spacing)==len(median_size): # in case spacing all = 1 = default value
+        #     median_spacing = []
+        clipping_bounds = []
+        intensity_moments = []
+
+    p=Preprocessing(
+        img_dir=img_dir,
+        msk_dir=msk_dir,
+        img_outdir=img_outdir,
+        msk_outdir=msk_outdir,
+        num_classes=num_classes+1,
+        use_one_hot=use_one_hot,
+        remove_bg=remove_bg,
+        use_tif=use_tif,
+        median_spacing=median_spacing,
+        clipping_bounds=clipping_bounds,
+        intensity_moments=intensity_moments,
+    )
+
+    if not skip_preprocessing:
+        p.run()
+
+    if not no_auto_config:
+        print("Start auto-configuration")
+        
+
+        batch, aug_patch, patch, pool = auto_config(
+            median=median_size,
+            img_dir=img_dir if median_size is None else None,
+            max_dims=(max_dim, max_dim, max_dim),
+            max_batch = len(os.listdir(img_dir))//20, # we limit batch to avoid overfitting
+            )
+
+        config_path = save_python_config(
+            config_dir=config_dir,
+            base_config=base_config,
+
+            # store hyper-parameters in the config file:
+            IMG_DIR=p.img_outdir,
+            MSK_DIR=p.msk_outdir,
+            FG_DIR=p.fg_outdir,
+            CSV_DIR=p.csv_path,
+            NUM_CLASSES=num_classes,
+            NUM_CHANNELS=p.num_channels,
+            BATCH_SIZE=batch,
+            AUG_PATCH_SIZE=aug_patch,
+            PATCH_SIZE=patch,
+            NUM_POOLS=pool,
+            MEDIAN_SPACING=median_spacing,
+            CLIPPING_BOUNDS=clipping_bounds,
+            INTENSITY_MOMENTS=intensity_moments,
+            DESC=desc,
+        )
+
+        print("Auto-config done! Configuration saved in: ", config_path)
+        return config_path
+
 if __name__=='__main__':
 
     parser = argparse.ArgumentParser(description="Dataset preprocessing for training purpose.")
@@ -484,6 +710,8 @@ if __name__=='__main__':
         help="(default=None) Path to the directory of the preprocessed masks/labels")
     parser.add_argument("--num_classes", type=int, default=1,
         help="(default=1) Number of classes (types of objects) in the dataset. The background is not included.")
+    parser.add_argument("--max_dim", type=int, default=128,
+        help="(default=128) max_dim^3 determines the maximum size of patch for auto-config.")
     parser.add_argument("--config_dir", type=str, default='configs/',
         help="(default=\'configs/\') Configuration folder to save the auto-configuration.")
     parser.add_argument("--base_config", type=str, default=None,
@@ -500,106 +728,27 @@ if __name__=='__main__':
         help="(default=False) For debugging, deactivate auto-configuration.") 
     parser.add_argument("--ct_norm", default=False,  action='store_true', dest='ct_norm',
         help="(default=False) Whether to use CT-Scan normalization routine (cf. nnUNet).") 
-    parser.add_argument("--remote", default=False, dest='remote',
-        help="Use this arg when using remote preprocessing only")
     parser.add_argument("--skip_preprocessing", default=False,  action='store_true', dest='skip_preprocessing',
         help="(default=False) Whether to skip the preprocessing. Only for debugging.") 
     args = parser.parse_args()
 
-    median_size, median_spacing, mean, std, perc_005, perc_995 = data_fingerprint(args.img_dir, args.msk_dir)
-    print("Data fingerprint:")
-    print("Median size:", median_size)
-    print("Median spacing:", median_spacing)
-    print("Mean intensity:", mean)
-    print("Standard deviation of intensities:", std)
-    print("0.5% percentile of intensities:", perc_005)
-    print("99.5% percentile of intensities:", perc_995)
-    print("")
-
-    if args.ct_norm:
-        print("Computing data fingerprint for CT normalization...")
-        clipping_bounds = [perc_005, perc_995]
-        intensity_moments = [mean, std]
-        print("Done!")
-    else:
-        # median_size = None
-        # median_spacing = []
-        clipping_bounds = []
-        intensity_moments = []
-
-    p=Preprocessing(
-        img_dir=args.img_dir,
-        msk_dir=args.msk_dir,
+    auto_config_preprocess(
+        img_dir=args.img_dir, 
+        msk_dir=args.msk_dir, 
+        num_classes=args.num_classes, 
+        config_dir=args.config_dir, 
+        base_config=args.base_config, 
         img_outdir=args.img_outdir,
         msk_outdir=args.msk_outdir,
-        num_classes=args.num_classes+1,
         use_one_hot=args.use_one_hot,
-        remove_bg=args.remove_bg,
+        ct_norm=args.ct_norm,
+        remove_bg=args.remove_bg, 
         use_tif=args.use_tif,
-        median_spacing=median_spacing,
-        clipping_bounds=clipping_bounds,
-        intensity_moments=intensity_moments,
-    )
-
-    if not args.skip_preprocessing:
-        p.run()
-    """
-    if not args.no_auto_config:
-        #print("Start auto-configuration")
-        
-
-        batch, aug_patch, patch, pool = auto_config(median=median_size, img_dir=args.img_dir if median_size is None else None)
-
-        config_path = save_python_config(
-            config_dir=args.config_dir,
-            base_config=args.base_config,
-
-            # store hyper-parameters in the config file:
-            IMG_DIR=p.img_outdir,
-            MSK_DIR=p.msk_outdir,
-            FG_DIR=p.fg_outdir,
-            NUM_CLASSES=args.num_classes,
-            NUM_CHANNELS=p.num_channels,
-            BATCH_SIZE=batch,
-            AUG_PATCH_SIZE=aug_patch,
-            PATCH_SIZE=patch,
-            NUM_POOLS=pool,
-            MEDIAN_SPACING=median_spacing,
-            CLIPPING_BOUNDS=clipping_bounds,
-            INTENSITY_MOMENTS=intensity_moments,
-            DESC=args.desc,
+        desc=args.desc, 
+        max_dim=args.max_dim,
+        skip_preprocessing=args.skip_preprocessing,
+        no_auto_config=args.no_auto_config,
         )
-
-        #print("Auto-config done! Configuration saved in: ", config_path)
-    """
-    
-    
-    if not args.no_auto_config or args.remote:
-        median_size, median_spacing, mean, std, perc_005, perc_995 = data_fingerprint(args.img_dir, args.msk_dir)
-        batch, aug_patch, patch, pool = auto_config(median=median_size)
-        config_path = save_python_config(
-            config_dir=args.config_dir,
-            base_config=args.base_config,
-
-            # store hyper-parameters in the config file:
-            IMG_DIR=p.img_outdir,
-            MSK_DIR=p.msk_outdir,
-            FG_DIR=p.fg_outdir,
-            NUM_CLASSES=args.num_classes,
-            NUM_CHANNELS=p.num_channels,
-            BATCH_SIZE=batch,
-            AUG_PATCH_SIZE=aug_patch,
-            PATCH_SIZE=patch,
-            NUM_POOLS=pool,
-            MEDIAN_SPACING=median_spacing,
-            CLIPPING_BOUNDS=clipping_bounds,
-            INTENSITY_MOMENTS=intensity_moments,
-            DESC=args.desc,
-        )
-        parameters_return(patch, pool, batch, config_path)
-    
-        
-        
 
 #---------------------------------------------------------------------------
 

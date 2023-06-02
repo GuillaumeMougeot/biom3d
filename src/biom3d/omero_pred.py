@@ -4,12 +4,12 @@ from omero.cli import cli_login
 from omero.gateway import BlitzGateway
 
 from biom3d import omero_downloader 
-from biom3d import pred 
+from biom3d import omero_uploader
+from biom3d import pred  
 
-
-def run(obj, target, log, dir_out, host=None, user=None, pwd=None):
+def run(obj, target, log, dir_out, host=None, user=None, pwd=None, upload_id=None):
     print("Start dataset/project downloading...")
-    if host:
+    if host is not None:
         conn = BlitzGateway(user, pwd, host=host, port=4064)
         conn.connect()
         datasets, dir_in = omero_downloader.download_object(conn, obj, target)
@@ -17,6 +17,7 @@ def run(obj, target, log, dir_out, host=None, user=None, pwd=None):
     else:
         with cli_login() as cli:
             datasets, dir_in = omero_downloader.download_object_cli(cli, obj, target)
+
     print("Done downloading dataset/project!")
 
     print("Start prediction...")
@@ -25,7 +26,15 @@ def run(obj, target, log, dir_out, host=None, user=None, pwd=None):
         dir_out = os.path.join(dir_out, datasets[0].name)
         if not os.path.isdir(dir_out):
             os.makedirs(dir_out, exist_ok=True)
-        pred.pred(log, dir_in, dir_out)
+        dir_out = pred.pred(log, dir_in, dir_out)
+
+        # eventually upload the dataset back into Omero
+        if upload_id is not None and host is not None:
+            conn = BlitzGateway(user, pwd, host=host, port=4064)
+            conn.connect()
+            omero_uploader.omero_dataset_upload(conn, dir_out, dir_in, upload_id)
+            conn.close()
+
     elif 'Project' in obj:
         dir_out = os.path.join(dir_out, os.path.split(dir_in)[-1])
         if not os.path.isdir(dir_out):
@@ -34,12 +43,13 @@ def run(obj, target, log, dir_out, host=None, user=None, pwd=None):
     else:
         print("[Error] Type of object unknown {}. It should be 'Dataset' or 'Project'".format(obj))
     print("Done prediction!")
+    
 
 
 if __name__=='__main__':
 
     # parser
-    parser = argparse.ArgumentParser(description="Main training file.")
+    parser = argparse.ArgumentParser(description="Prediction with Omero.")
     parser.add_argument('--obj', type=str,
         help="Download object: 'Project:ID' or 'Dataset:ID'")
     parser.add_argument('--target', type=str, default="data/to_pred/",
@@ -54,6 +64,8 @@ if __name__=='__main__':
         help="(optional) User name for Omero server")
     parser.add_argument('--password', type=str, 
         help="(optional) Password for Omero server")
+    parser.add_argument('--upload_id', type=int, 
+        help="(optional) Id of Omero Project in which to upload the Dataset. Only works with datasets.")
     # parser.add_argument("-e", "--eval_only", default=False,  action='store_true', dest='eval_only',
     #     help="Do only the evaluation and skip the prediction (predictions must have been done already.)") 
     args = parser.parse_args()
@@ -66,4 +78,5 @@ if __name__=='__main__':
         host=args.hostname,
         user=args.username,
         pwd=args.password,
+        upload_id=args.upload_id,
     )

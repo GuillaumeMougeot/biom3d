@@ -75,10 +75,10 @@ trainers = Dict(
 # Preprocessor must correspond to the one used to preprocess data
 # before training.
 
-from biom3d.preprocess import Preprocessing
+from biom3d.preprocess import seg_preprocessor
 
 preprocessors = Dict(
-    Seg = Dict(fct=Preprocessing.run_single, kwargs=Dict())
+    Seg = Dict(fct=seg_preprocessor, kwargs=Dict())
 )
 
 from biom3d.predictors import (
@@ -89,6 +89,12 @@ from biom3d.predictors import (
 predictors = Dict(
     Seg = Dict(fct=seg_predict, kwargs=Dict()),
     SegPatch = Dict(fct=seg_predict_patch_2, kwargs=Dict()),
+)
+
+from biom3d.predictors import seg_postprocessing
+
+postprocessors = Dict(
+    Seg = Dict(fct=seg_postprocessing, kwargs=Dict())
 )
 
 #---------------------------------------------------------------------------
