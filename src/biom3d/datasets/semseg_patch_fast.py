@@ -260,7 +260,9 @@ class SemSeg3DPatchFast(Dataset):
             for i in trainset: self.train_imgs += i
 
         else: 
-            all_set = np.random.shuffle(sorted(os.listdir(img_dir)))
+            all_set = sorted(os.listdir(img_dir))
+            assert len(all_set) > 0, "[Error] Incorrect path for folder of images or your folder is empty."
+            np.random.shuffle(all_set) # shuffle all_set
             val_split = np.round(val_split * len(all_set)).astype(int)
             if val_split == 0: val_split=1
             self.train_imgs = all_set[val_split:]
