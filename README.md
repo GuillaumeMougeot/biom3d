@@ -2,6 +2,8 @@
 
 [**Documentation**](https://biom3d.readthedocs.io/)
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/GuillaumeMougeot/biom3d/blob/master/docs/biom3d_colab.ipynb)
+
 > **Warning**: This repository is still a work in progress!
 
 Biom3d automatically configures the training of a 3D U-Net for 3D semantic segmentation.
