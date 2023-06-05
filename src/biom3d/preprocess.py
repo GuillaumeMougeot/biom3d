@@ -135,6 +135,9 @@ def resize_img_msk(img, output_shape, msk=None):
         return new_img
 
 def get_resample_shape(input_shape, spacing, median_spacing):
+    input_shape = np.array(input_shape)
+    spacing = np.array(spacing)
+    median_spacing = np.array(median_spacing)
     if len(input_shape)==4:
         input_shape=input_shape[1:]
     return np.round(((spacing/median_spacing)[::-1]*input_shape)).astype(int)
@@ -614,10 +617,12 @@ def auto_config_preprocess(
         ct_norm=False,
         remove_bg=False, 
         use_tif=False,
-        desc=None, 
+        desc="unet", 
         max_dim=128,
+        num_epochs=1000,
         skip_preprocessing=False,
         no_auto_config=False,
+        logs_dir='logs/',
         ):
     """Helper function to do auto-config and preprocessing.
     """
@@ -692,6 +697,8 @@ def auto_config_preprocess(
             CLIPPING_BOUNDS=clipping_bounds,
             INTENSITY_MOMENTS=intensity_moments,
             DESC=desc,
+            NB_EPOCHS=num_epochs,
+            LOG_DIR=logs_dir,
         )
 
         print("Auto-config done! Configuration saved in: ", config_path)
@@ -712,8 +719,12 @@ if __name__=='__main__':
         help="(default=1) Number of classes (types of objects) in the dataset. The background is not included.")
     parser.add_argument("--max_dim", type=int, default=128,
         help="(default=128) max_dim^3 determines the maximum size of patch for auto-config.")
+    parser.add_argument("--num_epochs", type=int, default=1000,
+        help="(default=1000) Number of epochs for the training.")
     parser.add_argument("--config_dir", type=str, default='configs/',
         help="(default=\'configs/\') Configuration folder to save the auto-configuration.")
+    parser.add_argument("--logs_dir", type=str, default='logs/',
+        help="(default=\'logs/\') Builder output folder to save the model.")
     parser.add_argument("--base_config", type=str, default=None,
         help="(default=None) Optional. Path to an existing configuration file which will be updated with the preprocessed values.")
     parser.add_argument("--desc", type=str, default='unet_default',
@@ -746,8 +757,10 @@ if __name__=='__main__':
         use_tif=args.use_tif,
         desc=args.desc, 
         max_dim=args.max_dim,
+        num_epochs=args.num_epochs,
         skip_preprocessing=args.skip_preprocessing,
         no_auto_config=args.no_auto_config,
+        logs_dir=args.logs_dir,
         )
 
 #---------------------------------------------------------------------------

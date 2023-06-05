@@ -11,7 +11,7 @@ from biom3d.auto_config import auto_config, data_fingerprint
 from biom3d.utils import load_python_config, save_python_config
 from biom3d.builder import Builder
 
-def preprocess_train(img_dir, msk_dir, num_classes, config_dir, base_config, ct_norm, desc=None, max_dim=128):
+def preprocess_train(img_dir, msk_dir, num_classes, config_dir="configs/", base_config=None, ct_norm=False, desc="unet", max_dim=128):
     # preprocessing
     config_path = auto_config_preprocess(
         img_dir=img_dir, 
@@ -28,6 +28,7 @@ def preprocess_train(img_dir, msk_dir, num_classes, config_dir, base_config, ct_
     builder = Builder(config=config_path)
     builder.run_training()
     print("Training done!")
+    return builder
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description="Let's do it all-at-once! Subsequent preprocessing and training.")

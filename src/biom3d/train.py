@@ -19,6 +19,7 @@ def train(config=None, path=None):
     builder = Builder(config=config, path=path)
     builder.run_training()
     print("Training done!")
+    return builder
 
 #---------------------------------------------------------------------------
 # main unet segmentation
