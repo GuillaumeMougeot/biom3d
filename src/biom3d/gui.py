@@ -666,6 +666,7 @@ class ConfigFrame(ttk.LabelFrame):
         global config_path 
         global img_dir_train
         global msk_dir_train
+        global fg_dir_train
         if REMOTE:
             # preprocessing
             _,stdout,stderr=REMOTE.exec_command("cd {}; python -m biom3d.preprocess --img_dir data/{}/img --msk_dir data/{}/msk --num_classes {} --remote true".format(MAIN_DIR, selected_dataset, selected_dataset,TrainFolderSelection().classes.get()))  
@@ -675,7 +676,7 @@ class ConfigFrame(ttk.LabelFrame):
          
             img_dir_train = "data/{}/img_out".format(selected_dataset)
             msk_dir_train = "data/{}/msk_out".format(selected_dataset)
-            
+            fg_dir_train = "data/{}/fg_out".format(selected_dataset)
             # error management
             if len(auto_config_results)!=10:
                print("[Error] Auto-config error:", auto_config_results)
@@ -708,7 +709,8 @@ class ConfigFrame(ttk.LabelFrame):
             
             img_dir_train = p.img_outdir
             msk_dir_train = p.msk_outdir
-            
+            fg_dir_train = p.fg_outdir
+       
             # Run autoconfig
             batch, aug_patch, patch, pool = auto_config(img_dir=p.img_outdir)
             
@@ -836,6 +838,9 @@ class TrainTab(ttk.Frame):
 
         cfg.MSK_DIR = msk_dir_train
         cfg = nested_dict_change_value(cfg, 'msk_dir', cfg.MSK_DIR)
+        
+        cfg.FG_DIR = fg_dir_train
+        cfg = nested_dict_change_value(cfg, 'fg_dir', cfg.FG_DIR)
 
         cfg.DESC = self.builder_name.get()
         
@@ -863,9 +868,11 @@ class TrainTab(ttk.Frame):
         
         if REMOTE:
             # if remote store the config file in a temp file
+    
             new_config_path = save_python_config(config_dir=config_path,
             IMG_DIR=cfg.IMG_DIR,
             MSK_DIR=cfg.MSK_DIR,
+            FG_DIR=cfg.FG_DIR,
             NUM_CLASSES=TrainFolderSelection().num_classes.get(),
             BATCH_SIZE=cfg.BATCH_SIZE,
             AUG_PATCH_SIZE=cfg.AUG_PATCH_SIZE,
