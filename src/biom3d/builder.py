@@ -742,7 +742,7 @@ class Builder:
         self.optim.load_state_dict(ckpt['opt'])
 
         if 'epoch' in list(ckpt.keys()): 
-            self.initial_epoch=ckpt['epoch'] # definitive version 
+            self.initial_epoch=ckpt['epoch']+1 # definitive version 
         print('Restart training at epoch {}'.format(self.initial_epoch))
 
         self.build_dataset()

@@ -49,7 +49,7 @@ class Callback(object):
     def on_epoch_end(self, epoch):
         pass
 
-    def on_train_begin(self):
+    def on_train_begin(self, epoch=None):
         pass
 
     def on_train_end(self):
@@ -95,7 +95,7 @@ class Callbacks(Callback):
         for callback in self.callbacks.values():
             callback.on_epoch_end(epoch)
 
-    def on_train_begin(self):
+    def on_train_begin(self, epoch=None):
         for callback in self.callbacks.values():
             callback.on_train_begin()
 
@@ -588,11 +588,11 @@ class LRSchedulerPoly(Callback):
     # def get_last_lr(self):
     #     return self.optimizer.param_groups[0]['lr']
     
-    def on_train_begin(self):
-        self.optimizer.param_groups[0]['lr'] = self.initial_lr
-        print("Current learning rate: {}".format(self.optimizer.param_groups[0]['lr']))
+    # def on_train_begin(self, epoch=None):
+    #     self.optimizer.param_groups[0]['lr'] = self.initial_lr * (1 - epoch / self.max_epochs)**self.exponent
+    #     print("Current learning rate: {}".format(self.optimizer.param_groups[0]['lr']))
 
-    def on_epoch_end(self, epoch):
+    def on_epoch_begin(self, epoch):
         self.optimizer.param_groups[0]['lr'] = self.initial_lr * (1 - epoch / self.max_epochs)**self.exponent
         print("Current learning rate: {}".format(self.optimizer.param_groups[0]['lr']))
 
@@ -637,11 +637,11 @@ class ForceFGScheduler(Callback):
         self.max_epochs = max_epochs
         self.exponent = exponent
 
-    def on_train_begin(self):
-        self.dataloader.dataset.set_fg_rate(self.initial_rate)
-        print("Current foreground rate: {}".format(self.initial_rate))
+    # def on_train_begin(self, epoch=None):
+    #     self.dataloader.dataset.set_fg_rate(self.initial_rate)
+    #     print("Current foreground rate: {}".format(self.initial_rate))
     
-    def on_epoch_end(self, epoch):
+    def on_epoch_begin(self, epoch):
         crt_rate = (self.initial_rate-self.min_rate) * (1 - epoch / self.max_epochs)**self.exponent + self.min_rate
         self.dataloader.dataset.set_fg_rate(crt_rate) 
         print("Current foreground rate: {}".format(crt_rate))
@@ -671,11 +671,11 @@ class OverlapScheduler(Callback):
         self.max_epochs = max_epochs
         self.exponent = exponent
 
-    def on_train_begin(self):
+    # def on_train_begin(self, epoch=None):
         self.dataloader.dataset.set_min_overlap(self.initial_rate)
         print("Current overlap: {}".format(self.initial_rate))
     
-    def on_epoch_end(self, epoch):
+    def on_epoch_begin(self, epoch):
         crt_rate = (self.initial_rate-self.min_rate) * (1 - epoch / self.max_epochs)**self.exponent + self.min_rate
         self.dataloader.dataset.set_min_overlap(crt_rate)
         print("Current overlap: {}".format(crt_rate))
@@ -704,11 +704,11 @@ class GlobalScaleScheduler(Callback):
         self.max_epochs = max_epochs
         self.exponent = exponent
 
-    def on_train_begin(self):
-        self.dataloader.dataset.set_global_crop(self.initial_rate)
-        print("Current global crop scale: {}".format(self.initial_rate))
+    # def on_train_begin(self, epoch=None):
+    #     self.dataloader.dataset.set_global_crop(self.initial_rate)
+    #     print("Current global crop scale: {}".format(self.initial_rate))
     
-    def on_epoch_end(self, epoch):
+    def on_epoch_begin(self, epoch):
         crt_rate = (self.initial_rate-self.min_rate) * (1 - epoch / self.max_epochs)**self.exponent + self.min_rate
         self.dataloader.dataset.set_global_crop(crt_rate)
         print("Current global crop scale: {}".format(crt_rate))
@@ -739,11 +739,11 @@ class WeightDecayScheduler(Callback):
         self.use_poly = use_poly 
         self.exponent = exponent
 
-    def on_train_begin(self):
-        self.optimizer.param_groups[0]["weight_decay"] = self.initial_wd
-        print("Current weight decay:", self.optimizer.param_groups[0]["weight_decay"] )
+    # def on_train_begin(self, epoch=None):
+    #     self.optimizer.param_groups[0]["weight_decay"] = self.initial_wd
+    #     print("Current weight decay:", self.optimizer.param_groups[0]["weight_decay"] )
     
-    def on_epoch_end(self, epoch):
+    def on_epoch_begin(self, epoch):
         if self.use_poly:
             self.optimizer.param_groups[0]["weight_decay"] = self.final_wd + (self.initial_wd - self.final_wd) * (1 - epoch / self.nb_epochs)**self.exponent
         else: 
