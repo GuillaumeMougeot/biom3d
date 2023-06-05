@@ -13,7 +13,7 @@ import argparse
 import tifffile
 import pandas as pd
 
-from biom3d.auto_config import auto_config, data_fingerprint
+from biom3d.auto_config import auto_config, data_fingerprint, get_aug_patch
 from biom3d.utils import adaptive_imread, one_hot_fast, resize_3d, save_python_config
 
 np.random.seed(42)
@@ -595,6 +595,7 @@ def auto_config_preprocess(
         skip_preprocessing=False,
         no_auto_config=False,
         logs_dir='logs/',
+        print_param=False,
         ):
     """Helper function to do auto-config and preprocessing.
     """
@@ -674,6 +675,13 @@ def auto_config_preprocess(
         )
 
         print("Auto-config done! Configuration saved in: ", config_path)
+        if print_param:
+            print(batch)
+            print(patch)
+            print(aug_patch)
+            print(pool)
+            print(config_path)
+
         return config_path
 
 if __name__=='__main__':
@@ -713,6 +721,8 @@ if __name__=='__main__':
         help="(default=False) Whether to use CT-Scan normalization routine (cf. nnUNet).") 
     parser.add_argument("--skip_preprocessing", default=False,  action='store_true', dest='skip_preprocessing',
         help="(default=False) Whether to skip the preprocessing. Only for debugging.") 
+    parser.add_argument("--remote", default=False,  action='store_true', dest='remote',
+        help="(default=False) Whether to print auto-config parameters. Used for remote preprocessing using the GUI.") 
     args = parser.parse_args()
 
     auto_config_preprocess(
@@ -733,6 +743,7 @@ if __name__=='__main__':
         skip_preprocessing=args.skip_preprocessing,
         no_auto_config=args.no_auto_config,
         logs_dir=args.logs_dir,
+        print_param=args.remote,
         )
 
 #---------------------------------------------------------------------------
