@@ -451,6 +451,7 @@ class Builder:
                 scheduler=None if not hasattr(self, 'clbk_scheduler') else self.clbk_scheduler,)
                 # save_best=self.config.SAVE_BEST,
                 # every_batch=10)
+        clbk_dict["log_saver"] = self.clbk_logsaver
         
         if "USE_IMAGE_CLBK" in self.config.keys() and self.config.USE_IMAGE_CLBK and hasattr(self, 'val_dataloader'):
             self.clbk_imagesaver = clbk.ImageSaver(
@@ -505,7 +506,11 @@ class Builder:
         torch.backends.cudnn.benchmark = False
 
         # saver folder configuration
-        folder_name = self.config.DESC+'_fold'+str(self.config.FOLD)
+        folder_name = self.config.DESC
+        
+        # add fold number if defined
+        if 'FOLD' in self.config.keys():
+            folder_name += '_fold'+str(self.config.FOLD)
         self.base_dir, self.image_dir, self.log_dir, self.model_dir = utils.create_save_dirs(
             self.config.LOG_DIR, folder_name, dir_names=['image', 'log', 'model'], return_base_dir=True) 
     

@@ -221,7 +221,7 @@ class LogSaver(Callback):
         self.train_metrics = train_metrics
         self.val_metrics = val_metrics
 
-        self.scheduler = scheduler
+        self.scheduler = scheduler if hasattr(scheduler, 'get_last_lr') else None
 
         # if save_best:
         #     self.save_best = save_best # self.tracked_loss = val_loss
@@ -229,26 +229,31 @@ class LogSaver(Callback):
         #     self.best_path = log_dir + '/log_best.csv'
         #     self.f_best = None
 
-        self.every_batch = every_batch
+        # self.every_batch = every_batch
 
-        self.f = None
+        f = open(self.path, "a")
+        if os.stat(self.path).st_size == 0: # if the file is empty
+            self.write_file_head()
+        f.close()
 
-    def write_file_head(self, file):
+    def write_file_head(self):
         """Write the head of the CSV file.
         """
         # write the head of the log file
-        head = "epoch,learning_rate,train_loss"
+        f = open(self.path, "a")
+        head = "epoch"
+        if self.scheduler is not None:
+            head += ',learning_rate'
+        head += ",train_loss"
         if self.val_loss is not None:
             head += ",val_loss"
-        for m in self.train_metrics+self.val_metrics:
-            head += "," + m.name
-        file.write(head + "\n")
-
-    def on_train_begin(self):
-        # create the file and edit the head 
-        self.f = open(self.path, "a")
-        if os.stat(self.path).st_size == 0: # if the file is empty
-            self.write_file_head(self.f)
+        if self.train_metrics is not None:
+            for m in self.train_metrics:
+                head += "," + m.name
+        if self.val_metrics is not None:
+            for m in self.val_metrics:
+                head += "," + m.name
+        f.write(head + "\n")
 
     # def on_epoch_begin(self, epoch):
     #     self.crt_epoch = epoch+1
@@ -280,10 +285,14 @@ class LogSaver(Callback):
             #     self.f_best.close()
     
     def on_epoch_end(self, epoch):
+        f = open(self.path, "a")
         template =  str(epoch)
 
+        # add the scheduler value
+        if self.scheduler is not None:
+            template += "," + str(self.scheduler.get_last_lr()[0])
+
         # add the learning rate and the training loss
-        template += "," + str(self.scheduler.get_last_lr()[0])
         template += "," + str(self.train_loss.avg.item()) # TODO: save the avg value only
         
         # add the validation loss if needed
@@ -302,7 +311,7 @@ class LogSaver(Callback):
                 template += "," + str(val_m)
         
         # write in the output file
-        self.f.write(template + "\n")
+        f.write(template + "\n")
 
 class ImageSaver(Callback):
     """The image saver callback saves a small snapshot of the raw image, the prediction and the ground truth. By default, it uses the validation dataloader to load a batch of 3D images, makes a prediction with the model, then uses the first images of the batch and the prediction and, to display a 2D image, uses the first channel of each image (input, prediction, ground truth).
