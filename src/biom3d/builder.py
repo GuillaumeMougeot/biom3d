@@ -442,15 +442,15 @@ class Builder:
                 saved_loss=self.loss_fn)
         clbk_dict["model_saver"] = self.clbk_modelsaver
 
-        # self.clbk_logsaver = clbk.LogSaver(
-        #         log_dir=self.log_dir,
-        #         train_loss=self.loss_fn,
-        #         val_loss=self.val_loss_fn,
-        #         train_metrics=self.train_metrics,
-        #         val_metrics=self.val_metrics,
-        #         scheduler=self.clbk_scheduler,
-        #         save_best=self.config.SAVE_BEST,
-        #         every_batch=10)
+        self.clbk_logsaver = clbk.LogSaver(
+                log_dir=self.log_dir,
+                train_loss=self.loss_fn,
+                val_loss=None if not hasattr(self, 'val_loss_fn') else self.val_loss_fn,
+                train_metrics=None if not hasattr(self, 'train_metrics') else self.train_metrics,
+                val_metrics=None if not hasattr(self, 'val_metrics') else self.val_metrics,
+                scheduler=None if not hasattr(self, 'clbk_scheduler') else self.clbk_scheduler,)
+                # save_best=self.config.SAVE_BEST,
+                # every_batch=10)
         
         if "USE_IMAGE_CLBK" in self.config.keys() and self.config.USE_IMAGE_CLBK and hasattr(self, 'val_dataloader'):
             self.clbk_imagesaver = clbk.ImageSaver(

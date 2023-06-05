@@ -176,7 +176,7 @@ class ModelSaver(Callback): # TODO: save best_only
                 
 
 class LogSaver(Callback):
-    """Save logs in a CSV file.
+    """Save logs in a CSV file in the end of each epoch.
 
     This callback creates a `log.csv` file in the log folder.
     
@@ -194,22 +194,25 @@ class LogSaver(Callback):
         List of validation metrics.
     scheduler : biom3d.callback.Callback
         Learning rate callback.
-    save_best : bool, default=True
-        Whether to save the best loss in other CSV file. This will create another CSV file that will be called `log_best.csv` in the log folder.
-    every_batch : int, default=10
-        Batch period when to save the log.
     """
     def __init__(self, 
         log_dir,            # path to where the csv file will be store
         train_loss,
-        val_loss,
-        train_metrics,
-        val_metrics,
+        val_loss=None,
+        train_metrics=None,
+        val_metrics=None,
         scheduler=None,
-        save_best=False,    # save the best metrics in another text file ? 
-        every_batch=10):    # save period (in batch)
+        # save_best=False,    # save the best metrics in another text file ? 
+        # every_batch=10
+        ):    # save period (in batch)
 
-        self.path = log_dir + '/log.csv'
+        # old documentation about save best:
+        # save_best : bool, default=True
+        #     Whether to save the best loss in other CSV file. This will create another CSV file that will be called `log_best.csv` in the log folder.
+        # every_batch : int, default=10
+        #     Batch period when to save the log.
+
+        self.path = os.path.join(log_dir,'log.csv')
 
         self.crt_epoch = 1
 
@@ -220,11 +223,11 @@ class LogSaver(Callback):
 
         self.scheduler = scheduler
 
-        if save_best:
-            self.save_best = save_best # self.tracked_loss = val_loss
-            self.best_loss = float('inf')
-            self.best_path = log_dir + '/log_best.csv'
-            self.f_best = None
+        # if save_best:
+        #     self.save_best = save_best # self.tracked_loss = val_loss
+        #     self.best_loss = float('inf')
+        #     self.best_path = log_dir + '/log_best.csv'
+        #     self.f_best = None
 
         self.every_batch = every_batch
 
@@ -234,7 +237,9 @@ class LogSaver(Callback):
         """Write the head of the CSV file.
         """
         # write the head of the log file
-        head = "epoch,batch,learning_rate,train_loss,val_loss"
+        head = "epoch,learning_rate,train_loss"
+        if self.val_loss is not None:
+            head += ",val_loss"
         for m in self.train_metrics+self.val_metrics:
             head += "," + m.name
         file.write(head + "\n")
@@ -245,54 +250,59 @@ class LogSaver(Callback):
         if os.stat(self.path).st_size == 0: # if the file is empty
             self.write_file_head(self.f)
 
-    def on_epoch_begin(self, epoch):
-        self.crt_epoch = epoch+1
+    # def on_epoch_begin(self, epoch):
+    #     self.crt_epoch = epoch+1
 
-    def on_batch_end(self, batch):
-        if batch % self.every_batch == 0:
-            template =  str(self.crt_epoch)
-            template += "," + str(batch)
-            template += "," + str(self.scheduler.get_last_lr()[0])
-            template += "," + str(self.train_loss.val.item()) # TODO: save the avg value only
-            # BUG fix below: TODO, simplify it! 
-            val_loss = self.val_loss.val if type(self.val_loss.val)==int else self.val_loss.val.item()
-            template += "," + str(val_loss)
-            for m in self.train_metrics: template += "," + str(m.val.item())
-            for m in self.val_metrics: 
-                # TODO: cf. previous comment
-                val_m = m.avg if type(m.avg)==int else m.avg.item() 
-                template += "," + str(val_m)
-            self.f.write(template + "\n")
+    # def on_batch_end(self, batch):
+    #     if batch % self.every_batch == 0:
+    #         template =  str(self.crt_epoch)
+    #         template += "," + str(batch)
+    #         template += "," + str(self.scheduler.get_last_lr()[0])
+    #         template += "," + str(self.train_loss.val.item()) # TODO: save the avg value only
+    #         # BUG fix below: TODO, simplify it! 
+    #         val_loss = self.val_loss.val if type(self.val_loss.val)==int else self.val_loss.val.item()
+    #         template += "," + str(val_loss)
+    #         for m in self.train_metrics: template += "," + str(m.val.item())
+    #         for m in self.val_metrics: 
+    #             # TODO: cf. previous comment
+    #             val_m = m.avg if type(m.avg)==int else m.avg.item() 
+    #             template += "," + str(val_m)
+    #         self.f.write(template + "\n")
         
             # save best if needed
-            if self.save_best \
-                and (self.best_loss > self.val_loss.val) \
-                and (self.val_loss.avg != 0): # to avoid saving during the first epoch
-                self.best_loss = self.val_loss.avg
-                self.f_best = open(self.best_path, "w") # open it in write mode
-                self.write_file_head(self.f_best)
-                self.f_best.write(template)
-                self.f_best.close()
+            # if self.save_best \
+            #     and (self.best_loss > self.val_loss.val) \
+            #     and (self.val_loss.avg != 0): # to avoid saving during the first epoch
+            #     self.best_loss = self.val_loss.avg
+            #     self.f_best = open(self.best_path, "w") # open it in write mode
+            #     self.write_file_head(self.f_best)
+            #     self.f_best.write(template)
+            #     self.f_best.close()
+    
+    def on_epoch_end(self, epoch):
+        template =  str(epoch)
 
-# for image saver TODO:
-# use the run_prediction_single method of the Builder class itself
-# EXAMPLE:
-# class test:
-#     def __init__(self):
-#         self.a = 0
-#     def t(self):
-#         self.a += 1
-#     def __call__(self):
-#         caller(self, self.t)
+        # add the learning rate and the training loss
+        template += "," + str(self.scheduler.get_last_lr()[0])
+        template += "," + str(self.train_loss.avg.item()) # TODO: save the avg value only
+        
+        # add the validation loss if needed
+        if self.val_loss is not None:
+            val_loss = self.val_loss.avg if type(self.val_loss.avg)==float else self.val_loss.avg.item()
+            template += "," + str(val_loss)
+        
+        # add the training metrics
+        if self.train_metrics is not None:
+            for m in self.train_metrics: template += "," + str(m.val.item())
 
-# def caller(tester, fct):
-#     print(tester)
-#     print(tester.a)
-#     fct()
-#     print(tester.a)
-
-# tester = test()
-# tester()
+        # adde the validation metrics
+        if self.val_metrics is not None:
+            for m in self.val_metrics: 
+                val_m = m.avg if type(m.avg)==int else m.avg.item() 
+                template += "," + str(val_m)
+        
+        # write in the output file
+        self.f.write(template + "\n")
 
 class ImageSaver(Callback):
     """The image saver callback saves a small snapshot of the raw image, the prediction and the ground truth. By default, it uses the validation dataloader to load a batch of 3D images, makes a prediction with the model, then uses the first images of the batch and the prediction and, to display a 2D image, uses the first channel of each image (input, prediction, ground truth).
