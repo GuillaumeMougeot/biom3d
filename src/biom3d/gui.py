@@ -483,8 +483,8 @@ class TrainFolderSelection(ttk.LabelFrame):
             #self.img_outdir = FileDialog(self, mode='folder', textEntry='D:/code/python/3dnucleus/data/img_out')        
             #self.msk_outdir = FileDialog(self, mode='folder', textEntry="D:/code/python/3dnucleus/data/msk_out")
             # TODO: change this
-            self.img_outdir = FileDialog(self, mode='folder', textEntry='/home/safarbatis/chocolate-factory/data/raw')        
-            self.msk_outdir = FileDialog(self, mode='folder', textEntry="/home/safarbatis/chocolate-factory/data/seg")
+            self.img_outdir = FileDialog(self, mode='folder', textEntry="/home/safarbatis/chocolate-factory/data/raw")
+            self.msk_outdir = FileDialog(self, mode='folder', textEntry="/home/safarbatis/chocolate-factory/data/seg")            
         ## number of classes
         self.label3 = ttk.Label(self, text="Enter the number of classes:", anchor="sw", background='white')
         self.num_classes = IntVar(value=1)
@@ -558,10 +558,10 @@ class TrainFolderSelection(ttk.LabelFrame):
             self.data_dir.set(self.preprocess_tab.send_data_name.get())
             self._update_data_dir()
         else:
-            self.img_outdir.set(self.preprocess_tab.folder_selection.img_outdir.get())
-            self.msk_outdir.set(self.preprocess_tab.folder_selection.msk_outdir.get())
+            self.img_outdir.set(self.img_outdir.get())
+            self.msk_outdir.set(self.msk_outdir.get())
 
-        self.num_classes.set(self.preprocess_tab.folder_selection.num_classes.get())
+        self.num_classes.set(self.num_classes.get())
     
     def send_data(self):
         ftp = REMOTE.open_sftp()
@@ -583,7 +583,8 @@ class ConfigFrame(ttk.LabelFrame):
         willy1 = ttk.Style()
         willy1.configure("auto_confing_button.TLabel", background = '#76D7C4', foreground = 'black', width = 45, borderwidth=3, focusthickness=7, focuscolor='red', relief="raised" , anchor='c')
         self.auto_config_button = ttk.Button(self, text="Preprocessing & Auto-configuration", style='train_button.TLabel',width = 45,command=self.auto_config)
-        #self.img_outdir = train_folder_selection.img_outdir
+        self.img_outdir = train_folder_selection.img_outdir
+        self.msk_outdir = train_folder_selection.msk_outdir
         self.auto_config_finished = ttk.Label(self, text="")
 
         self.num_epochs_label = ttk.Label(self, text='Number of epochs:')
@@ -698,9 +699,10 @@ class ConfigFrame(ttk.LabelFrame):
             
         else: 
             # Preprocessing    
+            TrainFolderSelection().use_preprocessing()
             p=Preprocessing(
-            img_dir=TrainFolderSelection().img_outdir.get(),
-            msk_dir=TrainFolderSelection().msk_outdir.get(),
+            img_dir=self.img_outdir.get(),
+            msk_dir=self.msk_outdir.get(),
             num_classes=TrainFolderSelection().num_classes.get()+1,
             remove_bg=False, use_tif=False)
             p.run()
@@ -786,8 +788,8 @@ class TrainTab(ttk.Frame):
         """
         self.folder_selection.grid(column=0,row=0,sticky=(N,W,E), pady=3)
         self.config_selection.grid(column=0,row=1,sticky=(N,W,E), pady=3)
-        self.builder_name_label.grid(column=0, row=2, sticky=(W,E), pady=3)
-        self.builder_name_entry.grid(column=0, row=3, sticky=(W,E))
+        self.builder_name_label.grid(column=0, row=2, sticky=(W,E), ipady=5,pady=3)
+        self.builder_name_entry.grid(column=0, row=3,ipady=5,pady=3,sticky=(W,E))
         self.train_button.grid(column=0, row=4, ipady=5, pady= 30)
         self.train_done.grid(column=0, row=5, sticky=W)
 
@@ -813,7 +815,7 @@ class TrainTab(ttk.Frame):
                 line_buf = ''
 
     def train(self):
-        self.train_done.config(text="Training, please wait...")
+        #self.train_done.config(text="Training, please wait...")
 
         #cfg = CONFIG
         if REMOTE:
@@ -909,7 +911,6 @@ class TrainTab(ttk.Frame):
                 # TODO: copy the event file to local
             popupmsg(" Training Done ! ")
         else:  
-            
             # get path to config file
             parent_dir= os.path.dirname(TrainFolderSelection().img_outdir.get())
             path = os.path.join(parent_dir, "config")
@@ -1253,7 +1254,7 @@ class PredictTab(ttk.Frame):
         if self.use_omero_state.get():
             obj=self.omero_dataset.option.get()+":"+self.omero_dataset.id.get()
             if REMOTE:
-                #popupmsg("Prediction is running ... !")
+                popupmsg("Prediction is running ... !")
                 # TODO: below, still OS dependant 
                 _, stdout, stderr = REMOTE.exec_command("cd {}; python -m biom3d.omero_pred --obj {} --log {} --username {} --password {} --hostname {}".format(
                     MAIN_DIR,
@@ -1294,6 +1295,7 @@ class PredictTab(ttk.Frame):
                 )
         else: # if not use Omero
             if REMOTE:
+                #popupmsg("Prediction is running ... !")
                 _, stdout, stderr = REMOTE.exec_command("cd {}; python -m biom3d.pred --log {} --dir_in {} --dir_out {}".format(
                     MAIN_DIR,
                     'logs/'+self.model_selection.logs_dir.get(), 
