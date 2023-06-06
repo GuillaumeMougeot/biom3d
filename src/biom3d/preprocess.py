@@ -574,6 +574,8 @@ class Preprocessing:
             generate_kfold_csv(filenames, self.csv_path, kfold=self.num_kfolds)
 
         print("Done preprocessing!")
+
+#---------------------------------------------------------------------------
 def get_aug_patch(patch_size):
     
     """Return augmentation patch size.
@@ -596,14 +598,6 @@ def get_aug_patch(patch_size):
         axis = np.argmin(dummy_2d)
         aug_patch[axis] = patch_size[axis]
     return aug_patch
-def parameters_return(patch, pool, batch, config_path):
-    print(batch)
-    print(patch)
-    aug_patch= get_aug_patch(patch)
-    print(aug_patch)
-    print(pool)
-    print(config_path)
-#---------------------------------------------------------------------------
 
 def auto_config_preprocess(
         img_dir, 
@@ -629,14 +623,15 @@ def auto_config_preprocess(
     """
     
     median_size, median_spacing, mean, std, perc_005, perc_995 = data_fingerprint(img_dir, msk_dir if ct_norm else None)
-    print("Data fingerprint:")
-    print("Median size:", median_size)
-    print("Median spacing:", median_spacing)
-    print("Mean intensity:", mean)
-    print("Standard deviation of intensities:", std)
-    print("0.5% percentile of intensities:", perc_005)
-    print("99.5% percentile of intensities:", perc_995)
-    print("")
+    if not print_param:
+        print("Data fingerprint:")
+        print("Median size:", median_size)
+        print("Median spacing:", median_spacing)
+        print("Mean intensity:", mean)
+        print("Standard deviation of intensities:", std)
+        print("0.5% percentile of intensities:", perc_005)
+        print("99.5% percentile of intensities:", perc_995)
+        print("")
 
     if ct_norm:
         print("Computing data fingerprint for CT normalization...")
@@ -706,6 +701,7 @@ def auto_config_preprocess(
         if print_param:
             print(batch)
             print(patch)
+            aug_patch=get_aug_patch(patch)
             print(aug_patch)
             print(pool)
             print(config_path)
