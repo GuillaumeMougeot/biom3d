@@ -456,8 +456,8 @@ class TrainFolderSelection(ttk.LabelFrame):
         if REMOTE:
 
             self.label0 = ttk.Label(self, text="Send a new Dataset :", anchor="sw", background='white')
-            self.img_outdir = FileDialog(self, mode='folder', textEntry='/home/safarbatis/chocolate-factory/data/raw')        
-            self.msk_outdir = FileDialog(self, mode='folder', textEntry="/home/safarbatis/chocolate-factory/data/seg")
+            self.img_outdir = FileDialog(self, mode='folder', textEntry='')        
+            self.msk_outdir = FileDialog(self, mode='folder', textEntry="")
             self.send_data_label = ttk.Label(self, text="Define a unique name below to your Dataset")
             self.send_data_name = StringVar(value="nucleus_0001")
             self.send_data_entry = ttk.Entry(self, textvariable=self.send_data_name)
@@ -483,8 +483,8 @@ class TrainFolderSelection(ttk.LabelFrame):
             #self.img_outdir = FileDialog(self, mode='folder', textEntry='D:/code/python/3dnucleus/data/img_out')        
             #self.msk_outdir = FileDialog(self, mode='folder', textEntry="D:/code/python/3dnucleus/data/msk_out")
             # TODO: change this
-            self.img_outdir = FileDialog(self, mode='folder', textEntry="/home/safarbatis/chocolate-factory/data/raw")
-            self.msk_outdir = FileDialog(self, mode='folder', textEntry="/home/safarbatis/chocolate-factory/data/seg")            
+            self.img_outdir = FileDialog(self, mode='folder', textEntry="")
+            self.msk_outdir = FileDialog(self, mode='folder', textEntry="")            
         ## number of classes
         self.label3 = ttk.Label(self, text="Enter the number of classes:", anchor="sw", background='white')
         self.num_classes = IntVar(value=1)
@@ -717,7 +717,7 @@ class ConfigFrame(ttk.LabelFrame):
             batch, aug_patch, patch, pool = auto_config(img_dir=p.img_outdir)
             
             # Test if config folder exists
-            parent_dir= os.path.dirname(TrainFolderSelection().img_outdir.get())
+            parent_dir= os.path.dirname(self.img_outdir.get())
             path = os.path.join(parent_dir, "config")
             if not os.path.isdir(path):
                 os.mkdir(path)
