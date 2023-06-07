@@ -585,6 +585,7 @@ class ConfigFrame(ttk.LabelFrame):
         self.auto_config_button = ttk.Button(self, text="Preprocessing & Auto-configuration", style='train_button.TLabel',width = 45,command=self.auto_config)
         self.img_outdir = train_folder_selection.img_outdir
         self.msk_outdir = train_folder_selection.msk_outdir
+        self.num_classes = train_folder_selection.num_classes
         global laravel 
         laravel = self.img_outdir
         self.auto_config_finished = ttk.Label(self, text="")
@@ -705,7 +706,7 @@ class ConfigFrame(ttk.LabelFrame):
             p=Preprocessing(
             img_dir=self.img_outdir.get(),
             msk_dir=self.msk_outdir.get(),
-            num_classes=TrainFolderSelection().num_classes.get()+1,
+            num_classes=self.num_classes.get()+1,
             remove_bg=False, use_tif=False)
             p.run()
             
@@ -731,7 +732,7 @@ class ConfigFrame(ttk.LabelFrame):
             base_config=None,
             IMG_DIR=p.img_outdir,
             MSK_DIR=p.msk_outdir,
-            NUM_CLASSES=TrainFolderSelection().num_classes.get(),
+            NUM_CLASSES=self.num_classes.get(),
             BATCH_SIZE=batch,
             AUG_PATCH_SIZE=aug_patch,
             PATCH_SIZE=patch,
@@ -877,7 +878,7 @@ class TrainTab(ttk.Frame):
             IMG_DIR=cfg.IMG_DIR,
             MSK_DIR=cfg.MSK_DIR,
             FG_DIR=cfg.FG_DIR,
-            NUM_CLASSES=TrainFolderSelection().num_classes.get(),
+            NUM_CLASSES=self.folder_selection.num_classes.get(),
             BATCH_SIZE=cfg.BATCH_SIZE,
             AUG_PATCH_SIZE=cfg.AUG_PATCH_SIZE,
             PATCH_SIZE=cfg.PATCH_SIZE,
@@ -923,7 +924,7 @@ class TrainTab(ttk.Frame):
             base_config=config_path,
             IMG_DIR=cfg.IMG_DIR,
             MSK_DIR=cfg.MSK_DIR,
-            NUM_CLASSES=TrainFolderSelection().num_classes.get(),
+            NUM_CLASSES=self.folder_selection.num_classes.get(),
             BATCH_SIZE=cfg.BATCH_SIZE,
             AUG_PATCH_SIZE=cfg.AUG_PATCH_SIZE,
             PATCH_SIZE=cfg.PATCH_SIZE,
