@@ -585,6 +585,8 @@ class ConfigFrame(ttk.LabelFrame):
         self.auto_config_button = ttk.Button(self, text="Preprocessing & Auto-configuration", style='train_button.TLabel',width = 45,command=self.auto_config)
         self.img_outdir = train_folder_selection.img_outdir
         self.msk_outdir = train_folder_selection.msk_outdir
+        global laravel 
+        laravel = self.img_outdir
         self.auto_config_finished = ttk.Label(self, text="")
 
         self.num_epochs_label = ttk.Label(self, text='Number of epochs:')
@@ -912,7 +914,7 @@ class TrainTab(ttk.Frame):
             popupmsg(" Training Done ! ")
         else:  
             # get path to config file
-            parent_dir= os.path.dirname(TrainFolderSelection().img_outdir.get())
+            parent_dir= os.path.dirname(laravel.get())
             path = os.path.join(parent_dir, "config")
             # save the new config file
             
