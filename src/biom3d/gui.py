@@ -790,7 +790,7 @@ class TrainTab(ttk.Frame):
         self.config_selection.grid(column=0,row=1,sticky=(N,W,E), pady=3)
         self.builder_name_label.grid(column=0, row=2, sticky=(W,E), ipady=5,pady=3)
         self.builder_name_entry.grid(column=0, row=3,ipady=5,pady=3,sticky=(W,E))
-        self.train_button.grid(column=0, row=4, ipady=5, pady= 30)
+        self.train_button.grid(column=0, row=4, ipady=8, pady= 10)
         self.train_done.grid(column=0, row=5, sticky=W)
 
     
@@ -1457,7 +1457,7 @@ class Root(Tk):
 
         # windows dimension and positioning
         window_width = 711
-        window_height = 710
+        window_height = 715
 
         ## get the screen dimension
         screen_width = self.winfo_screenwidth()
