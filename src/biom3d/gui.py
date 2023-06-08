@@ -719,16 +719,18 @@ class ConfigFrame(ttk.LabelFrame):
             # Run autoconfig
             batch, aug_patch, patch, pool = auto_config(img_dir=p.img_outdir)
             
+            """
             # Test if config folder exists
             parent_dir= os.path.dirname(self.img_outdir.get())
             path = os.path.join(parent_dir, "config")
             if not os.path.isdir(path):
                 os.mkdir(path)
+            """
                 
             # save the config file in config folder 
             
             config_path = save_python_config(
-            config_dir=path,
+            config_dir="config/",
             base_config=None,
             IMG_DIR=p.img_outdir,
             MSK_DIR=p.msk_outdir,
