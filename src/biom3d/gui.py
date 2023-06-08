@@ -922,7 +922,7 @@ class TrainTab(ttk.Frame):
             # save the new config file
             
             new_config_path = save_python_config(
-            config_dir=path,
+            config_dir="config/",
             base_config=config_path,
             IMG_DIR=cfg.IMG_DIR,
             MSK_DIR=cfg.MSK_DIR,
