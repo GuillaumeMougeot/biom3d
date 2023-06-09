@@ -824,7 +824,17 @@ class TrainTab(ttk.Frame):
 
         #cfg = CONFIG
         if REMOTE:
-            cfg = load_python_config("{}/{}".format(MAIN_DIR,config_path))
+            #cfg = load_python_config("{}/{}".format(MAIN_DIR,config_path))
+            import tempfile
+            tempdir = tempfile.mkdtemp(prefix="tmp-config-")
+            print(tempdir) 
+            saved_config = tempdir+"/tmp-config.py"
+            ftp = REMOTE.open_sftp()
+            print(MAIN_DIR+"/"+config_path)
+            ftp.get(MAIN_DIR+"/"+config_path, saved_config)
+            
+            cfg = load_python_config(saved_config)
+            ftp.close()
         else :   
             cfg = load_python_config(config_path)
        
@@ -876,7 +886,8 @@ class TrainTab(ttk.Frame):
         if REMOTE:
             # if remote store the config file in a temp file
     
-            new_config_path = save_python_config(config_dir=config_path,
+            new_config_path = save_python_config(config_dir=tempdir,
+                                                 base_config=saved_config,
             IMG_DIR=cfg.IMG_DIR,
             MSK_DIR=cfg.MSK_DIR,
             FG_DIR=cfg.FG_DIR,
@@ -1259,7 +1270,7 @@ class PredictTab(ttk.Frame):
         if self.use_omero_state.get():
             obj=self.omero_dataset.option.get()+":"+self.omero_dataset.id.get()
             if REMOTE:
-                popupmsg("Prediction is running ... !")
+                
                 # TODO: below, still OS dependant 
                 _, stdout, stderr = REMOTE.exec_command("cd {}; python -m biom3d.omero_pred --obj {} --log {} --username {} --password {} --hostname {}".format(
                     MAIN_DIR,
