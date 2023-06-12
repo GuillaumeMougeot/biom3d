@@ -14,7 +14,7 @@ Biom3d modules             |  nnUNet modules
 
 *Illustrations generated with `pydeps` module*
 
-> **Disclaimer**: Biom3d does not include ensemble learning, the possibility to use 2D U-Net or 3D-Cascade U-Net or Pytorch distributed parallel computing (only DP) yet. However, these options could easily be adapted if needed.
+> **Disclaimer**: Biom3d does not include the possibility to use 2D U-Net or 3D-Cascade U-Net or Pytorch distributed parallel computing (only Pytorch Data Parallel) yet. However, these options could easily be adapted if needed.
 
 We target two main types of users:
 
