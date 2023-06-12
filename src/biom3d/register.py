@@ -98,3 +98,31 @@ postprocessors = Dict(
 )
 
 #---------------------------------------------------------------------------
+# Display utils
+
+# import argparse
+
+# if __name__=="__main__":
+#     parser = argparse.ArgumentParser(description="Register of all modules in biom3d.")
+#     parser.add_argument("--one", type=str, default=None,
+#         help="Print one specific documentation of one module given its name in the register.")  
+#     parser.add_argument("--all", default=False,  action='store_true', dest='all',
+#         help="Print the documentation of all the modules.")
+#     args = parser.parse_args()
+
+#     all_cat = [datasets, models, metrics, trainers, preprocessors, predictors, postprocessors]
+
+#     if args.all:
+#         for cat in all_cat:
+#             for k,v in cat.items():
+#                 print("Module:", k)
+#                 if v['fct'].__doc__ is not None:
+#                     print(v['fct'].__doc__)
+#                 print("")
+#     elif args.one is not None:
+#         # check if it is a valid name
+#         valid = False
+#         for cat in all_cat:
+
+
+#---------------------------------------------------------------------------

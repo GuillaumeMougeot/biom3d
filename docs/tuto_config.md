@@ -2,7 +2,7 @@
 
 Let's delve a little bit more into Biom3d structure. 
 
-Biom3d code is modular, which means that it is easy to plug in or out so-called *modules*. Here is the complete list of existing modules:
+Biom3d code is modular, which means that it is easy to plug in or out so-called *modules*. The complete list of existing modules can be found in [biom3d.register](https://github.com/GuillaumeMougeot/biom3d/blob/main/src/biom3d/register.py). 
 
 
 
