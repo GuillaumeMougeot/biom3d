@@ -105,7 +105,7 @@ postprocessors = Dict(
 # if __name__=="__main__":
 #     parser = argparse.ArgumentParser(description="Register of all modules in biom3d.")
 #     parser.add_argument("--one", type=str, default=None,
-#         help="Print one specific documentation of one module given its name in the register.")  
+#         help="Print one specific documentation of one module given its category:name in the register.")  
 #     parser.add_argument("--all", default=False,  action='store_true', dest='all',
 #         help="Print the documentation of all the modules.")
 #     args = parser.parse_args()
@@ -120,9 +120,19 @@ postprocessors = Dict(
 #                     print(v['fct'].__doc__)
 #                 print("")
 #     elif args.one is not None:
+#         # check if it is a valid category
+        
+
 #         # check if it is a valid name
-#         valid = False
-#         for cat in all_cat:
+#         idx_valid=-1
+#         for i,cat in enumerate(all_cat):
+#             if args.one in cat.keys():
+#                 idx_valid = i
+#         if idx_valid<0:
+#             print("[Error] Not a correct name:", args.one)
+#             raise RuntimeError
+#         else:
+#             help(all_cat[idx_valid][args.one]['fct'])
 
 
 #---------------------------------------------------------------------------
