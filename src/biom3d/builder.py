@@ -538,7 +538,10 @@ class Builder:
     def run_training(self):
         """Run the training and validation routines.
         """
-        if 'USE_FP16' in self.config.keys() and self.config.USE_FP16:
+        if torch.cuda.is_available():
+            print("[Warning] CUDA is not available! The training might be extremely slow. We strongly advise to use a CUDA machine to train a model. Predictions can be done using a CPU only machine.")
+
+        if torch.cuda.is_available() and 'USE_FP16' in self.config.keys() and self.config.USE_FP16:
             scaler = torch.cuda.amp.GradScaler()
         else:
             scaler = None
