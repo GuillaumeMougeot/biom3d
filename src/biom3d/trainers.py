@@ -26,7 +26,8 @@ def seg_train(
 
     model.train()
     
-    torch.cuda.synchronize()
+    if torch.cuda.is_available():
+        torch.cuda.synchronize()
     t_start_epoch = time()
     print("[time] start epoch")
 
@@ -36,27 +37,32 @@ def seg_train(
         if torch.cuda.is_available():
             X, y = X.cuda(), y.cuda()
 
-        # print("batch:",batch, "memory reserved:", torch.cuda.memory_reserved(0), "allocated memory", torch.cuda.memory_allocated(0), "free memory:", torch.cuda.memory_reserved(0)-torch.cuda.memory_allocated(0), "percentage of free memory:", torch.cuda.memory_allocated(0)/torch.cuda.max_memory_allocated(0))
+            # print("batch:",batch, "memory reserved:", torch.cuda.memory_reserved(0), "allocated memory", torch.cuda.memory_allocated(0), "free memory:", torch.cuda.memory_reserved(0)-torch.cuda.memory_allocated(0), "percentage of free memory:", torch.cuda.memory_allocated(0)/torch.cuda.max_memory_allocated(0))
 
-        torch.cuda.synchronize()
+            torch.cuda.synchronize()
         t_data_loading = time()
-        # print("[time] data loading:", t_data_loading-t_start_epoch)
+
         if t_data_loading-t_start_epoch > 1:
             print("SLOW!", batch, "[time] data loading:", t_data_loading-t_start_epoch)
 
         # Compute prediction error
-        with torch.cuda.amp.autocast(scaler is not None):
+        if torch.cuda.is_available():
+            with torch.cuda.amp.autocast(scaler is not None):
+                pred = model(X); del X
+                loss = loss_fn(pred, y)
+                with torch.no_grad():
+                    if use_deep_supervision:
+                        for m in metrics: m(pred[-1],y)
+                    else: 
+                        for m in metrics: m(pred,y)
+        else:
             pred = model(X); del X
             loss = loss_fn(pred, y)
-        with torch.no_grad():
-            if use_deep_supervision:
-                for m in metrics: m(pred[-1],y)
-            else: 
-                for m in metrics: m(pred,y)
-
-            # torch.cuda.synchronize()
-            # t_model_pred = time()
-            # print("[time] model prediction:", t_model_pred-t_data_loading)
+            with torch.no_grad():
+                if use_deep_supervision:
+                    for m in metrics: m(pred[-1],y)
+                else: 
+                    for m in metrics: m(pred,y)
 
         # Backpropagation
         optimizer.zero_grad() # set gradient to zero, why is that needed?
@@ -67,10 +73,6 @@ def seg_train(
             scaler.unscale_(optimizer)
             torch.nn.utils.clip_grad_norm_(model.parameters(), 12)
 
-            # torch.cuda.synchronize()
-            # t_backward = time()
-            # print("[time] backward computation:", t_backward-t_model_pred)
-
             scaler.step(optimizer) # apply gradient
             scaler.update()
         else: 
@@ -78,19 +80,16 @@ def seg_train(
             torch.nn.utils.clip_grad_norm_(model.parameters(), 12)
             optimizer.step()
 
-        # torch.cuda.synchronize()
-        # t_optim_update = time()
-        # print("[time] optimizer update:", t_optim_update-t_backward)
-
-        # loss.detach()
         del loss, pred, y 
 
         callbacks.on_batch_end(batch)
 
-        torch.cuda.synchronize()
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
         t_start_epoch = time()
-        
-    torch.cuda.empty_cache()
+    
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
 
 def seg_validate(
     dataloader,
@@ -105,7 +104,19 @@ def seg_validate(
         for X, y in dataloader:
             if torch.cuda.is_available():
                 X, y = X.cuda(), y.cuda()
-            with torch.cuda.amp.autocast(use_fp16):
+                with torch.cuda.amp.autocast(use_fp16):
+                    pred=model(X)
+                    del X
+                    loss_fn(pred, y)
+                    loss_fn.update()
+                    for m in metrics:
+                        if use_deep_supervision:
+                            m(pred[-1],y)
+                        else:
+                            m(pred, y)
+                        m.update()
+                del pred, y
+            else:
                 pred=model(X)
                 del X
                 loss_fn(pred, y)
@@ -116,8 +127,8 @@ def seg_validate(
                     else:
                         m(pred, y)
                     m.update()
-                del pred, y
-    torch.cuda.empty_cache()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
     template = "val error: avg loss {:.3f}".format(loss_fn.avg.item())
     for m in metrics: template += ", " + str(m)
     print(template)
