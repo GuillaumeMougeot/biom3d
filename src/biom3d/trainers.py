@@ -46,6 +46,8 @@ def seg_train(
             print("SLOW!", batch, "[time] data loading:", t_data_loading-t_start_epoch)
 
         # Compute prediction error
+
+        # with CUDA
         if torch.cuda.is_available():
             with torch.cuda.amp.autocast(scaler is not None):
                 pred = model(X); del X
@@ -55,6 +57,8 @@ def seg_train(
                         for m in metrics: m(pred[-1],y)
                     else: 
                         for m in metrics: m(pred,y)
+        
+        # with CPU
         else:
             pred = model(X); del X
             loss = loss_fn(pred, y)
@@ -102,6 +106,8 @@ def seg_validate(
     model.eval() # set the module in evaluation mode (only useful for dropout or batchnorm like layers)
     with torch.no_grad(): # set all the requires_grad flags to zeros
         for X, y in dataloader:
+
+            # with CUDA
             if torch.cuda.is_available():
                 X, y = X.cuda(), y.cuda()
                 with torch.cuda.amp.autocast(use_fp16):
@@ -116,6 +122,8 @@ def seg_validate(
                             m(pred, y)
                         m.update()
                 del pred, y
+            
+            # with CPU
             else:
                 pred=model(X)
                 del X
@@ -127,6 +135,8 @@ def seg_validate(
                     else:
                         m(pred, y)
                     m.update()
+                del pred, y
+                
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
     template = "val error: avg loss {:.3f}".format(loss_fn.avg.item())
