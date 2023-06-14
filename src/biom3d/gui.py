@@ -952,7 +952,7 @@ class TrainTab(ttk.Frame):
                     popupmsg(" Training Done ! ")
                     self.train_done.config(text="Training done!")   
             else :
-                popupmsg("Cuda is not available ! Operation will run on CPU and might be slow.")
+                # popupmsg("Cuda is not available ! Operation will run on CPU and might be slow.")
                 device = torch.device('cpu')
                 train(config=new_config_path)
                 popupmsg(" Training Done ! ")
