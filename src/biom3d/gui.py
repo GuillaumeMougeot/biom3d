@@ -1215,7 +1215,7 @@ class DownloadPrediction(ttk.LabelFrame):
         _,stdout,_ = REMOTE.exec_command('ls {}/data/pred'.format(MAIN_DIR))
         self.data_list = [e.replace('\n','') for e in stdout.readlines()]
         self.data_dir_option_menu.set_menu(self.data_list[0], *self.data_list)
-        popupmsg("Models list updated !")
+        popupmsg("Prediction list updated !")
 
 class PredictTab(ttk.Frame):
     def __init__(self, *arg, **kw):
