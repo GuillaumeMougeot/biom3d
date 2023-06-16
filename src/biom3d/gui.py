@@ -26,6 +26,7 @@ from stat import S_ISDIR, S_ISREG # for recursive download
 import os 
 import yaml
 from sys import platform 
+import sys
 # if platform=='linux': # only import if linux because windows omero plugin requires Visual Studio Install which is too big
 import argparse
 
@@ -283,6 +284,90 @@ def popupmsg(msg):
     B1 = ttk.Button(popup, text="Okay", command = popup.destroy)
     B1.pack(side="bottom",pady=10)
     popup.mainloop()
+    
+ 
+def replace_line_single(line, key, value):
+ 
+    if key==line[:len(key)]:
+        assert line[len(key):len(key)+3]==" = ", "[Error] Invalid line. A valid line must contains \' = \'. Line:"+line
+        line = line[:len(key)]
+        
+        # if value is string then we add brackets
+        line += " = "
+        if type(value)==str: 
+            line += "\'" + value + "\'"
+        elif type(value)==np.ndarray:
+            line += str(value.tolist())
+        else:
+            line += str(value)
+    return line
+
+def replace_line_multiple(line, dic):
+
+    for key, value in dic.items():
+        line = replace_line_single(line, key, value)
+    return line
+
+    
+def save_python_config(
+    config_dir,
+    base_config = None,
+    **kwargs,
+    ):
+    import shutil
+    import fileinput
+    from datetime import datetime
+
+    # create the config dir if needed
+    if not os.path.exists(config_dir):
+        os.makedirs(config_dir, exist_ok=True)
+
+    # copy default config file or use the one given by the user
+    if base_config == None:
+        try:
+            from biom3d import config_default
+            config_path = shutil.copy(config_default.__file__, config_dir) 
+        except:
+            print("[Error] Please provide a base config file or install biom3d.")
+            raise RuntimeError
+    else: 
+        config_path = base_config
+
+    # rename it with date included
+    current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
+
+    # if DESC is in kwargs, then it will be used to rename the config file
+    basename = os.path.basename(config_path) if "DESC" not in kwargs.keys() else kwargs['DESC']+'.py'
+    new_config_name = os.path.join(config_dir, current_time+"-"+basename)
+    os.rename(config_path, new_config_name)
+
+    # edit the new config file with the auto-config values
+    with fileinput.input(files=(new_config_name), inplace=True) as f:
+        for line in f:
+            # edit the line
+            line = replace_line_multiple(line, kwargs)
+            # write back in the input file
+            print(line, end='') 
+    return new_config_name   
+
+def config_to_type(cfg, new_type):
+    """Change config type to a new type. This function is recursive and can be use to change the type of nested dictionaries. 
+    """
+    old_type = type(cfg)
+    cfg = new_type(cfg)
+    for k,i in cfg.items():
+        if type(i)==old_type:
+            cfg[k] = config_to_type(cfg[k], new_type)
+    return cfg
+def load_python_config(config_path):
+    import importlib.util
+    import sys
+    spec = importlib.util.spec_from_file_location("config", config_path)
+    config = importlib.util.module_from_spec(spec)
+    sys.modules["config"] = config
+    spec.loader.exec_module(config)
+    return config_to_type(config.CONFIG, Dict) # change type from config.Dict to Dict
+   
 #----------------------------------------------------------------------------
 # File dialog
 
@@ -366,74 +451,7 @@ class PreprocessFolderSelection(ttk.LabelFrame):
 
         for i in range(10):
             self.rowconfigure(i, weight=1)
-"""
-class PreprocessTab(ttk.Frame):
-    def __init__(self, *arg, **kw):
-        super(PreprocessTab, self).__init__(*arg, **kw)
 
-        # widget definition
-        self.folder_selection = PreprocessFolderSelection(self, text="Local folder path configurations", padding=[10,10,10,10])
-        self.button = ttk.Button(self, text="Start", command=self.preprocess)
-        self.done_label = ttk.Label(self, text="", anchor="sw", background='white')
-
-        ## send dataset to remote server
-        if REMOTE:
-            self.send_data_label = ttk.Label(self, text="To send the preprocessed dataset on the remote server: 1. define a unique name below, 2. press the button")
-            self.send_data_name = StringVar(value="nucleus_0001")
-            self.send_data_entry = ttk.Entry(self, textvariable=self.send_data_name)
-            self.send_data_button = ttk.Button(self, text="Send data to remote server", command=self.send_data)
-            self.send_data_finish = ttk.Label(self, text="")
-
-        # widget placement
-        self.folder_selection.grid(column=0,row=0,sticky=(N,W,E), pady=3)
-        self.button.grid(column=0,row=1,sticky=(N,W,E))
-        self.done_label.grid(column=0,row=2,sticky=(N,W,E))
-
-        if REMOTE:
-            self.send_data_label.grid(column=0, row=3, sticky=(W,E), pady=10)
-            self.send_data_entry.grid(column=0, row=4, sticky=(W,E))
-            self.send_data_button.grid(column=0, row=5, sticky=(W,E), pady=3)
-            self.send_data_finish.grid(column=0, row=6, sticky=(W,E), pady=3)
-    
-        self.columnconfigure(0, weight=1)
-        self.rowconfigure(0, weight=1)
-        self.rowconfigure(1, weight=1)
-
-        if REMOTE:
-            for i in range(2,7):
-                self.rowconfigure(i, weight=1)
-    
-    def preprocess(self):
-        # set automatically the output directories if empty
-        if self.folder_selection.img_outdir.get()=="":
-            self.folder_selection.img_outdir.set(self.folder_selection.img_dir.get()+'_out')
-        if self.folder_selection.msk_outdir.get()=="":
-            self.folder_selection.msk_outdir.set(self.folder_selection.msk_dir.get()+'_out')
-
-        Preprocessing(
-            img_dir=self.folder_selection.img_dir.get(),
-            msk_dir=self.folder_selection.msk_dir.get(),
-            img_outdir=self.folder_selection.img_outdir.get(),
-            msk_outdir=self.folder_selection.msk_outdir.get(),
-            num_classes=self.folder_selection.num_classes.get()+1,
-            remove_bg=False).run()
-        if REMOTE:
-            done_label_text = "Done preprocessing! You can send your dataset to the server before training."
-        else:
-            done_label_text = "Done preprocessing! You can start training."
-        self.done_label.config(text=done_label_text)
-    
-    def send_data(self):
-        ftp = REMOTE.open_sftp()
-
-        # copy folders 
-        remote_dir_img = "{}/data/{}/img_out".format(MAIN_DIR,self.send_data_name.get())
-        remote_dir_msk = "{}/data/{}/msk_out".format(MAIN_DIR,self.send_data_name.get())
-        ftp_put_folder(ftp, localpath=self.folder_selection.img_outdir.get(), remotepath=remote_dir_img)
-        ftp_put_folder(ftp, localpath=self.folder_selection.msk_outdir.get(), remotepath=remote_dir_msk)
-
-        self.send_data_finish.config(text="Data sent!")
-"""
 #----------------------------------------------------------------------------
 # train tab
 
@@ -1555,46 +1573,49 @@ class Root(Tk):
                     password=self.start_remotelly_frame.password.get())
 
             MAIN_DIR = self.start_remotelly_frame.main_dir.get()
+        modulename='biom3d'
+        if modulename not in sys.modules and not REMOTE:
+            popupmsg(" you can't access local interface in international area please conctact the national space agency")
+        else :  
+            # Stage 1.2 (root -> root_frame)
+            self.root_frame = ttk.Frame(self, padding=PADDING, style='red.TFrame')
+            self.root_frame.grid(column=0, row=0, sticky=(N, W, E, S))
+            self.columnconfigure(0, weight=1)
+            self.rowconfigure(0, weight=1)
 
-        # Stage 1.2 (root -> root_frame)
-        self.root_frame = ttk.Frame(self, padding=PADDING, style='red.TFrame')
-        self.root_frame.grid(column=0, row=0, sticky=(N, W, E, S))
-        self.columnconfigure(0, weight=1)
-        self.rowconfigure(0, weight=1)
+            # Stage 2.1  (root_frame -> notebook)
+            self.tab_parent = ttk.Notebook(self.root_frame, style='red.TNotebook')
+            self.tab_parent.pack(expand=YES, fill='both', padx=6, pady=6)
 
-        # Stage 2.1  (root_frame -> notebook)
-        self.tab_parent = ttk.Notebook(self.root_frame, style='red.TNotebook')
-        self.tab_parent.pack(expand=YES, fill='both', padx=6, pady=6)
+            # Stage 3 (notebook -> preprocess - train - predict - omero)
+            
+            #self.preprocess_tab = ttk.Frame(self.tab_parent, padding=PADDING)
+            self.train_tab = ttk.Frame(self.tab_parent, padding=PADDING)
+            self.predict_tab = ttk.Frame(self.tab_parent, padding=PADDING)
+            # self.omero_tab = ttk.Frame(self.tab_parent, padding=PADDING)
 
-        # Stage 3 (notebook -> preprocess - train - predict - omero)
-        
-        #self.preprocess_tab = ttk.Frame(self.tab_parent, padding=PADDING)
-        self.train_tab = ttk.Frame(self.tab_parent, padding=PADDING)
-        self.predict_tab = ttk.Frame(self.tab_parent, padding=PADDING)
-        # self.omero_tab = ttk.Frame(self.tab_parent, padding=PADDING)
+            #self.tab_parent.add(self.preprocess_tab, text="Preprocess")
+            self.tab_parent.add(self.train_tab, text="Preprocess & Train")
+            self.tab_parent.add(self.predict_tab, text="Predict")
+            """"
+            # Stage 4 (preprocess_tab -> preprocess_tab_frame)
+            self.preprocess_tab_frame = PreprocessTab(self.preprocess_tab)
+            self.preprocess_tab_frame.grid(column=0, row=0, sticky=(N,W,E), pady=24, padx=12)
+            self.preprocess_tab.columnconfigure(0, weight=1)
+            self.preprocess_tab.rowconfigure(0, weight=1)
+            """
+            # Stage 4 (predict_tab -> predict_tab_frame)
+            self.predict_tab_frame = PredictTab(self.predict_tab)
+            self.predict_tab_frame.grid(column=0, row=0, sticky=(N,W,E), pady=24, padx=12)
+            self.predict_tab.columnconfigure(0, weight=1)
+            self.predict_tab.rowconfigure(0, weight=1)
 
-        #self.tab_parent.add(self.preprocess_tab, text="Preprocess")
-        self.tab_parent.add(self.train_tab, text="Preprocess & Train")
-        self.tab_parent.add(self.predict_tab, text="Predict")
-        """"
-        # Stage 4 (preprocess_tab -> preprocess_tab_frame)
-        self.preprocess_tab_frame = PreprocessTab(self.preprocess_tab)
-        self.preprocess_tab_frame.grid(column=0, row=0, sticky=(N,W,E), pady=24, padx=12)
-        self.preprocess_tab.columnconfigure(0, weight=1)
-        self.preprocess_tab.rowconfigure(0, weight=1)
-        """
-        # Stage 4 (predict_tab -> predict_tab_frame)
-        self.predict_tab_frame = PredictTab(self.predict_tab)
-        self.predict_tab_frame.grid(column=0, row=0, sticky=(N,W,E), pady=24, padx=12)
-        self.predict_tab.columnconfigure(0, weight=1)
-        self.predict_tab.rowconfigure(0, weight=1)
-
-        # Stage 4 (train_tab -> train_tab_frame)
-        #self.train_tab_frame = TrainTab(master=self.train_tab, preprocess_tab=self.preprocess_tab_frame)
-        self.train_tab_frame = TrainTab(master=self.train_tab)
-        self.train_tab_frame.grid(column=0, row=0, sticky=(N,W,E), pady=24, padx=12)
-        self.train_tab.columnconfigure(0, weight=1)
-        self.train_tab.rowconfigure(0, weight=1)
+            # Stage 4 (train_tab -> train_tab_frame)
+            #self.train_tab_frame = TrainTab(master=self.train_tab, preprocess_tab=self.preprocess_tab_frame)
+            self.train_tab_frame = TrainTab(master=self.train_tab)
+            self.train_tab_frame.grid(column=0, row=0, sticky=(N,W,E), pady=24, padx=12)
+            self.train_tab.columnconfigure(0, weight=1)
+            self.train_tab.rowconfigure(0, weight=1)
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description="Graphical User Interface of Biom3d")
