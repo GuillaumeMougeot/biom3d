@@ -947,33 +947,14 @@ class TrainTab(ttk.Frame):
             )
             """
             """
-            if torch.cuda.is_available():
-                # Get the current CUDA device
-                device = torch.device('cuda')
-
-                # Print CUDA memory usage statistics
-                allocated_bytes = torch.cuda.memory_allocated(device=device)
-                reserved_bytes = torch.cuda.memory_reserved(device=device)
-                free_bytes = torch.cuda.get_device_properties(device).total_memory - allocated_bytes - reserved_bytes
-                free_bytes = free_bytes / 1024**2
-                
-                if(free_bytes < 252):
-                    popupmsg("  CUDA out of memory. Tried to allocate 252.00 MiB but only "+str(free_bytes)+" MiB is free")
-                else:
-                    # run the training
-                    train(config=new_config_path)
-                    popupmsg(" Training Done ! ")
-                    self.train_done.config(text="Training done!")   
-            else :
-                popupmsg("Cuda is not available !")
-             
-            """
+            if not torch.cuda.is_available():
+               popupmsg("  No GPU detected, the training might take a longer time ")
+        
             # run the training
             train(config=new_config_path)
-            
             popupmsg(" Training Done ! ")
             self.train_done.config(text="Training done!")
-            """   
+              
 
         
 
@@ -1233,12 +1214,8 @@ class DownloadPrediction(ttk.LabelFrame):
     def _update_pred_list(self):
         _,stdout,_ = REMOTE.exec_command('ls {}/data/pred'.format(MAIN_DIR))
         self.data_list = [e.replace('\n','') for e in stdout.readlines()]
-        if(len(self.data_list) == 0):
-                self.data_dir = StringVar(value="Empty")
-        else:   
-            self.data_dir = StringVar(value=self.data_list[0])
-        self.data_dir_option_menu.set_menu(self.data_dir.get(), *self.data_list)
-        
+        self.data_dir_option_menu.set_menu(self.data_list[0], *self.data_list)
+        popupmsg("Models list updated !")
 
 class PredictTab(ttk.Frame):
     def __init__(self, *arg, **kw):
