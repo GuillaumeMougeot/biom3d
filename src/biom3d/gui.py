@@ -30,20 +30,25 @@ import sys
 # if platform=='linux': # only import if linux because windows omero plugin requires Visual Studio Install which is too big
 import argparse
 
-from biom3d.config_default import CONFIG
-from biom3d.preprocess import Preprocessing
-from biom3d.auto_config import auto_config
-from biom3d.utils import save_python_config
-# the packages below are only needed for the local version of the GUI
-# WARNING! the lines below must be commented when deploying the remote version,
-# and uncommented when installing the local version.
-from biom3d.pred import pred
-from biom3d.builder import Builder
-import biom3d.omero_pred
-from biom3d.utils import load_python_config
-from biom3d.train import train
+try:
+    from biom3d.config_default import CONFIG
+    from biom3d.preprocess import Preprocessing
+    from biom3d.auto_config import auto_config
+    from biom3d.utils import save_python_config
+    # the packages below are only needed for the local version of the GUI
+    # WARNING! the lines below must be commented when deploying the remote version,
+    # and uncommented when installing the local version.
+    from biom3d.pred import pred
+    from biom3d.builder import Builder
+    import biom3d.omero_pred
+    from biom3d.utils import load_python_config
+    from biom3d.train import train
+    import torch
+except:
+    pass
+
 import numpy as np
-import torch
+
 #----------------------------------------------------------------------------
 # Constants 
 # remote or local
