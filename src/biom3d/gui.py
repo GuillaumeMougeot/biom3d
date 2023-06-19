@@ -383,8 +383,8 @@ class FileDialog(ttk.Frame):
         self.grid_columnconfigure(1, weight=1)
 
         self.command=self.openfolder if mode=='folder' else self.openfile
-        self.button = ttk.Button(self,text="Browse", style="BW.TLabel", width=8, command=self.command)
-        self.button.grid(column=2,row=1, sticky=(W), ipady=6, padx=5)
+        self.button = ttk.Button(self,text="Browse", style="train_button.TLabel", width=8, command=self.command)
+        self.button.grid(column=2,row=1, sticky=(W), ipady=4, padx=5)
 
     def set(self, text):
         # Set text entry
@@ -476,7 +476,7 @@ class TrainFolderSelection(ttk.LabelFrame):
             self.label0 = ttk.Label(self, text="Send a new Dataset :", anchor="sw", background='white')
             self.img_outdir = FileDialog(self, mode='folder', textEntry='')        
             self.msk_outdir = FileDialog(self, mode='folder', textEntry="")
-            self.send_data_label = ttk.Label(self, text="Define a unique name below to your Dataset")
+            self.send_data_label = ttk.Label(self, text="Define a unique name below to your Dataset :")
             self.send_data_name = StringVar(value="nucleus_0001")
             self.send_data_entry = ttk.Entry(self, textvariable=self.send_data_name)
             
@@ -517,9 +517,9 @@ class TrainFolderSelection(ttk.LabelFrame):
             self.img_outdir.grid(column=0, row=2, sticky=(W,E))
             self.label2.grid(column=0,row=3, sticky=W, pady=2)
             self.msk_outdir.grid(column=0,row=4, sticky=(W,E))
-            self.send_data_label.grid(column=0, row=7, sticky=(W,E), pady=2)
-            self.send_data_entry.grid(column=0, row=8, sticky=(W,E))
-            self.send_data_button.grid(column=0, row=9, sticky=(E), ipady=5, pady=4)
+            self.send_data_label.grid(column=0, row=7, sticky=(W), pady=2)
+            self.send_data_entry.grid(column=0,row=8, ipadx=180, sticky=W)
+            self.send_data_button.grid(column=0, row=8, sticky=(E), pady=5,ipady=4,)
             self.data_dir_option_menu.grid(column=0, row=10, pady=2)
             self.label4.grid(column=0,row=10, sticky=W, pady=2)
         else:
@@ -599,8 +599,8 @@ class ConfigFrame(ttk.LabelFrame):
 
         # widgets definitions
         willy1 = ttk.Style()
-        willy1.configure("auto_confing_button.TLabel", background = '#76D7C4', foreground = 'black', width = 45, borderwidth=3, focusthickness=7, focuscolor='red', relief="raised" , anchor='c')
-        self.auto_config_button = ttk.Button(self, text="Preprocessing & Auto-configuration", style='train_button.TLabel',width = 45,command=self.auto_config)
+        willy1.configure("auto_confing_button.TLabel", background = '#76D7C4', foreground = 'black', width = 25, borderwidth=3, focusthickness=7, focuscolor='red', relief="raised" , anchor='c')
+        self.auto_config_button = ttk.Button(self, text="Preprocess & Auto-configure", style='train_button.TLabel',width =29,command=self.auto_config)
         self.img_outdir = train_folder_selection.img_outdir
         self.msk_outdir = train_folder_selection.msk_outdir
         self.num_classes = train_folder_selection.num_classes
@@ -646,7 +646,7 @@ class ConfigFrame(ttk.LabelFrame):
         self.num_pools = [int(self.num_pools1.get()), int(self.num_pools2.get()), int(self.num_pools3.get())]
 
         # place widgets
-        self.auto_config_button.grid(column=0, row=0, columnspan=3 ,ipady=5, pady=2)
+        self.auto_config_button.grid(column=0, columnspan=4,row=0 ,ipady=4, pady=2, sticky=E)
         self.auto_config_finished.grid(column=0, row=1, columnspan=2, sticky=(W,E))
 
         self.num_epochs_label.grid(column=0, row=2, sticky=(W,E))
@@ -791,13 +791,13 @@ class TrainTab(ttk.Frame):
         style = ttk.Style()
         style.configure("BW.TLabel", background = '#76D7C4', foreground = 'black', width = 10, borderwidth=3, focusthickness=7, focuscolor='none', anchor='c', height= 105)
         #####################################################
-        self.folder_selection = TrainFolderSelection(preprocess_tab=preprocess_tab, master=self, text="Preprocess & autoconfig configurations", padding=[10,10,10,10])
+        self.folder_selection = TrainFolderSelection(preprocess_tab=preprocess_tab, master=self, text="Preprocess & autoconfig ", padding=[10,10,10,10])
         self.config_selection = ConfigFrame(train_folder_selection=self.folder_selection, master=self, text="Training configuration", padding=[10,10,10,10])
 
         self.builder_name_label = ttk.Label(self, text="Set a name for the builder folder (folder containing your future model):")
         self.builder_name = StringVar(value="unet_example")
         self.builder_name_entry = ttk.Entry(self, textvariable=self.builder_name)
-        self.train_button = ttk.Button(self, text="Start", style="train_button.TLabel", width=10, command=self.train)
+        self.train_button = ttk.Button(self, text="Start", style="train_button.TLabel", width=8, command=self.train)
         self.train_done = ttk.Label(self, text="")
 
         # set default values of train folders with the ones used for preprocess tab
@@ -810,10 +810,10 @@ class TrainTab(ttk.Frame):
         self.folder_selection.num_classes.set(preprocess_tab.folder_selection.num_classes.get())
         """
         self.folder_selection.grid(column=0,row=0,sticky=(N,W,E), pady=3)
-        self.config_selection.grid(column=0,row=1,sticky=(N,W,E), pady=3)
+        self.config_selection.grid(column=0,row=1,sticky=(N,W,E), pady=20)
         self.builder_name_label.grid(column=0, row=2, sticky=(W,E), ipady=5,pady=3)
-        self.builder_name_entry.grid(column=0, row=3,ipady=5,pady=3,sticky=(W,E))
-        self.train_button.grid(column=0, row=4, ipady=8, pady= 10)
+        self.builder_name_entry.grid(column=0, row=3,ipadx=213,ipady=3,pady=3,sticky=(W))
+        self.train_button.grid(column=0, row=3,sticky=E, padx=15, ipady=4, pady= 10)
         self.train_done.grid(column=0, row=5, sticky=W)
 
     
@@ -1019,10 +1019,10 @@ class InputDirectory(ttk.LabelFrame):
             self.send_data_button = ttk.Button(self, width=10, style="train_button.TLabel", text="Send data", command=self.send_data)
 
 
-            self.data_dir_option_menu.grid(column=0, row=1, sticky=(W,E))
+            self.data_dir_option_menu.grid(column=0, row=0, padx=12,ipadx=100,sticky=(E))
             self.send_data_label.grid(column=0, row=2, sticky=(W,E))
             self.send_data_folder.grid(column=0, row=3, sticky=(W,E))
-            self.send_data_button.grid(column=0, row=4, ipady=5)
+            self.send_data_button.grid(column=0, row=4, ipady=5,pady=5, sticky=(E))
 
             self.columnconfigure(0, weight=1)
             for i in range(5):
@@ -1125,7 +1125,7 @@ class ModelSelection(ttk.LabelFrame):
             self.button_update_list = ttk.Button(self, text="Update", command=self._update_logs_list)
 
             self.logs_dir_option_menu.grid(column=0, row=0, sticky=(W,E))
-            self.button_update_list.grid(column=1, row=0, sticky=(W,E))
+            self.button_update_list.grid(column=1, row=0, padx=5,sticky=(W,E))
 
             self.columnconfigure(0, weight=10)
             self.columnconfigure(1, weight=1)
@@ -1202,10 +1202,10 @@ class DownloadPrediction(ttk.LabelFrame):
 
         self.input_folder_label.grid(column=0, row=0, columnspan=2, sticky=(W,E))
         self.data_dir_option_menu.grid(column=0, row=1, sticky=(W,E))
-        self.button_update_list.grid(column=1, row=1, sticky=(W,E))
+        self.button_update_list.grid(column=1, row=1,padx=5, sticky=(W,E))
         self.get_data_label.grid(column=0, row=2, columnspan=2, sticky=(W,E))
         self.get_data_folder.grid(column=0, row=3, columnspan=2, sticky=(W,E))
-        self.get_data_button.grid(column=0, row=4, columnspan=2, ipady=5)
+        self.get_data_button.grid(column=0, row=4, columnspan=2, pady=5,ipady=5, sticky=(E))
 
         self.columnconfigure(0, weight=10)
         self.columnconfigure(1, weight=1)
@@ -1245,7 +1245,7 @@ class PredictTab(ttk.Frame):
         self.input_dir = InputDirectory(self, text="Input directory", padding=[10,10,10,10])
         self.model_selection = ModelSelection(self, text="Model selection", padding=[10,10,10,10])
         if not REMOTE: self.output_dir = OutputDirectory(self, text="Output directory", padding=[10,10,10,10])
-        self.button = ttk.Button(self, width=10,style="train_button.TLabel", text="Start", command=self.predict)
+        self.button = ttk.Button(self, width=8,style="train_button.TLabel", text="Start", command=self.predict)
         if REMOTE: self.download_prediction = DownloadPrediction(self, text="Download predictions to local", padding=[10,10,10,10])
 
         # if platform=='linux' or REMOTE: # local Omero for linux only
@@ -1253,7 +1253,7 @@ class PredictTab(ttk.Frame):
         self.input_dir.grid(column=0,row=1,sticky=(W,E), pady=6)
         self.model_selection.grid(column=0,row=3,sticky=(W,E), pady=6)
         if not REMOTE: self.output_dir.grid(column=0,row=4,sticky=(W,E), pady=6)
-        self.button.grid(column=0,row=5,ipady=5, pady=6)
+        self.button.grid(column=0,row=5,ipady=5, pady=4,padx=10, sticky=E)
         if REMOTE: self.download_prediction.grid(column=0, row=6, sticky=(W,E), pady=6)
     
         self.columnconfigure(0, weight=1)
@@ -1467,8 +1467,8 @@ class Root(Tk):
         self.title("Biom3d")
 
         # windows dimension and positioning
-        window_width = 711
-        window_height = 715
+        window_width = 725
+        window_height = 705
 
         ## get the screen dimension
         screen_width = self.winfo_screenwidth()
@@ -1507,7 +1507,7 @@ class Root(Tk):
         style.configure("BW.TLabel",background = '#CD5C5C', foreground = 'white', font=('Helvetica', 9), width = 18, borderwidth=3, focusthickness=7, relief='raised', focuscolor='none', anchor='c', height= 15)
         #####################################################
         self.title_label = ttk.Label(self.local_or_remote, text="Biom3d", font=("Montserrat", 18))
-        self.welcome_message = ttk.Label(self.local_or_remote, text="Welcome!\n\nBiom3d is an easy-to-use tool to train and use deep learning models for segmenting three dimensional images. You can either start locally, if your computer has a good graphic card (NVIDIA Geforce RTX 1080 or higher) or connect remotelly on a computer with such a graphic card.\n\nIf you need help, check our GitHub repository here: https://github.com/GuillaumeMougeot/biom3d", anchor="w", justify=LEFT, wraplength=450)
+        self.welcome_message = ttk.Label(self.local_or_remote, text="Welcome!\n\nBiom3d is an easy-to-use tool to train and use deep learning models for segmenting three dimensional images. You can either start locally, if your computer has a good graphic card (NVIDIA Geforce RTX 1080 or higher) or connect remotelly on a computer with such a graphic card.\n\nIf you need help, check our GitHub repository here: https://github.com/GuillaumeMougeot/biom3d", anchor="w", justify=LEFT, wraplength=640)
 
         self.start_locally = ttk.Button(self.local_or_remote, text="Start locally", style='BW.TLabel', command=lambda: self.main(remote=False))
 
