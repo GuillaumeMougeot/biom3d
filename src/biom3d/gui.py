@@ -509,7 +509,7 @@ class TrainFolderSelection(ttk.LabelFrame):
             self.img_outdir = FileDialog(self, mode='folder', textEntry="")
             self.msk_outdir = FileDialog(self, mode='folder', textEntry="")            
         ## number of classes
-        self.label3 = ttk.Label(self, text="Enter the number of classes: "+"."*350, anchor="sw", background='white')
+        self.label3 = ttk.Label(self, text="Enter the number of classes: "+"."*screen_width, anchor="sw", background='white')
         self.num_classes = IntVar(value=1)
         self.classes = ttk.Entry(self, width=5,textvariable=self.num_classes)
 
@@ -613,16 +613,16 @@ class ConfigFrame(ttk.LabelFrame):
         laravel = self.img_outdir
         self.auto_config_finished = ttk.Label(self, text="")
 
-        self.num_epochs_label = ttk.Label(self, text='Number of epochs: '+"."*350)
+        self.num_epochs_label = ttk.Label(self, text='Number of epochs: '+"."*screen_width)
         self.num_epochs = IntVar(value=10)
         self.num_epochs_entry = ttk.Entry(self, width=4, textvariable=self.num_epochs)
         
 
-        self.batch_size_label = ttk.Label(self, text='Batch size (int): '+"."*350)
+        self.batch_size_label = ttk.Label(self, text='Batch size (int): '+"."*screen_width)
         self.batch_size = IntVar(value=2)
         self.batch_size_entry = ttk.Entry(self, width=4, textvariable=self.batch_size)
 
-        self.patch_size_label = ttk.Label(self, text='Patch size ([int int int]): '+"."*350)
+        self.patch_size_label = ttk.Label(self, text='Patch size ([int int int]): '+"."*screen_width)
         self.patch_size1 = StringVar(value="128")
         self.patch_size_entry1 = ttk.Entry(self, width=4, textvariable=self.patch_size1)
         self.patch_size2 = StringVar(value="128")
@@ -632,7 +632,7 @@ class ConfigFrame(ttk.LabelFrame):
         self.patch_size = [int(self.patch_size1.get()), int(self.patch_size2.get()), int(self.patch_size3.get())]
        
 
-        self.aug_patch_size_label = ttk.Label(self, text='Augmentation patch size ([int int int]): '+"."*350)
+        self.aug_patch_size_label = ttk.Label(self, text='Augmentation patch size ([int int int]): '+"."*screen_width)
         self.aug_patch_size1 = StringVar(value="160")
         self.aug_patch_size_entry1 = ttk.Entry(self, width=4, textvariable=self.aug_patch_size1)
         self.aug_patch_size2 = StringVar(value="120")
@@ -641,7 +641,7 @@ class ConfigFrame(ttk.LabelFrame):
         self.aug_patch_size_entry3 = ttk.Entry(self, width=4, textvariable=self.aug_patch_size3)
         self.aug_patch_size = [int(self.aug_patch_size1.get()), int(self.aug_patch_size2.get()), int(self.aug_patch_size3.get())]
         
-        self.num_pools_label = ttk.Label(self, text='Number of pool in the U-Net model ([int int int]): '+"."*350)
+        self.num_pools_label = ttk.Label(self, text='Number of pool in the U-Net model ([int int int]): '+"."*screen_width)
         self.num_pools1 = StringVar(value="5")
         self.num_pools_entry1 = ttk.Entry(self, width=4, textvariable=self.num_pools1)
         self.num_pools2 = StringVar(value="5")
@@ -661,18 +661,18 @@ class ConfigFrame(ttk.LabelFrame):
         self.batch_size_entry.grid(column=0, row=3, padx= 0, sticky=E)
         
         self.patch_size_label.grid(column=0, row=4, sticky=(W,E))
-        self.patch_size_entry1.grid(column=0, row=4,padx= 64, sticky=E)
-        self.patch_size_entry2.grid(column=0, row=4,padx= 32, sticky=E)
+        self.patch_size_entry1.grid(column=0, row=4,padx= 60, sticky=E)
+        self.patch_size_entry2.grid(column=0, row=4,padx= 30, sticky=E)
         self.patch_size_entry3.grid(column=0, row=4, padx= 0, sticky=E)
 
         self.aug_patch_size_label.grid(column=0, row=5, sticky=(W,E))
-        self.aug_patch_size_entry1.grid(column=0, row=5,padx= 64, sticky=E)
-        self.aug_patch_size_entry2.grid(column=0, row=5, padx= 32,sticky=E)
+        self.aug_patch_size_entry1.grid(column=0, row=5,padx= 60, sticky=E)
+        self.aug_patch_size_entry2.grid(column=0, row=5, padx= 30,sticky=E)
         self.aug_patch_size_entry3.grid(column=0, row=5,padx= 0, sticky=E)
 
         self.num_pools_label.grid(column=0, row=6, sticky=(W,E))
-        self.num_pools_entry1.grid(column=0, row=6,padx= 64, sticky=E)
-        self.num_pools_entry2.grid(column=0, row=6, padx= 32,sticky=E)
+        self.num_pools_entry1.grid(column=0, row=6,padx= 60, sticky=E)
+        self.num_pools_entry2.grid(column=0, row=6, padx= 30,sticky=E)
         self.num_pools_entry3.grid(column=0, row=6,padx= 0, sticky=E)
 
         # grid config
@@ -816,8 +816,8 @@ class TrainTab(ttk.Frame):
         """
         self.folder_selection.grid(column=0,row=0,sticky=(N,W,E), pady=3)
         self.config_selection.grid(column=0,row=1,sticky=(N,W,E), pady=20)
-        self.builder_name_label.grid(column=0, row=2, sticky=(W,E), ipady=5,pady=3)
-        self.builder_name_entry.grid(column=0, row=3,ipadx=213,ipady=3,pady=3,sticky=(W,E))
+        self.builder_name_label.grid(column=0, row=2, sticky=(W,E), ipady=4,pady=3)
+        self.builder_name_entry.grid(column=0, row=3,ipadx=213,ipady=4,pady=3,sticky=(W,E))
         self.train_button.grid(column=0, row=4, padx=15, ipady=4, pady= 10, sticky=(N))
         self.train_done.grid(column=0, row=5, sticky=W)
 
@@ -1029,7 +1029,7 @@ class InputDirectory(ttk.LabelFrame):
             self.data_dir_option_menu.grid(column=0, row=0, padx=12,ipadx=100,sticky=(E))
             self.send_data_label.grid(column=0, row=2, sticky=(W,E))
             self.send_data_folder.grid(column=0, row=3, sticky=(W,E))
-            self.send_data_button.grid(column=0, row=4, ipady=5,pady=5,)
+            self.send_data_button.grid(column=0, row=4, ipady=4,pady=5,)
 
             self.columnconfigure(0, weight=1)
             for i in range(5):
@@ -1212,7 +1212,7 @@ class DownloadPrediction(ttk.LabelFrame):
         self.button_update_list.grid(column=1, row=1,padx=5, sticky=(W,E))
         self.get_data_label.grid(column=0, row=2, columnspan=2, sticky=(W,E))
         self.get_data_folder.grid(column=0, row=3, columnspan=2, sticky=(W,E))
-        self.get_data_button.grid(column=0, row=4, columnspan=2, pady=5,ipady=5, )
+        self.get_data_button.grid(column=0, row=4, columnspan=2, pady=5,ipady=4, )
 
         self.columnconfigure(0, weight=10)
         self.columnconfigure(1, weight=1)
@@ -1260,7 +1260,7 @@ class PredictTab(ttk.Frame):
         self.input_dir.grid(column=0,row=1,sticky=(W,E), pady=6)
         self.model_selection.grid(column=0,row=3,sticky=(W,E), pady=6)
         if not REMOTE: self.output_dir.grid(column=0,row=4,sticky=(W,E), pady=6)
-        self.button.grid(column=0,row=5,ipady=5, pady=4,padx=10,sticky=(S,N))
+        self.button.grid(column=0,row=5,ipady=4, pady=4,padx=10,sticky=(S,N))
         if REMOTE: self.download_prediction.grid(column=0, row=6, sticky=(W,E), pady=6)
     
         self.columnconfigure(0, weight=1)
@@ -1475,9 +1475,10 @@ class Root(Tk):
 
         # windows dimension and positioning
         window_width = 725
-        window_height = 705
+        window_height = 775
 
         ## get the screen dimension
+        global screen_width
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
 
@@ -1522,13 +1523,12 @@ class Root(Tk):
 
         self.title_label.grid(column=0, row=0, sticky=W)
         self.welcome_message.grid(column=0, row=1, sticky=(W,E), pady=12)
-
-        # The local button is displayed only for the local installation 
-        if LOCAL: 
-            self.start_locally.grid(column=0, row=2, ipady=5, pady=12)
+        modulename='biom3d'
+        if modulename in sys.modules :
+            self.start_locally.grid(column=0, row=2, ipady=4, pady=12)
 
         self.start_remotelly_frame.grid(column=0, row=3, sticky=(W,E), pady=12)
-        self.start_remotelly_button.grid(column=0, row=4, ipady=5, pady=5)
+        self.start_remotelly_button.grid(column=0, row=4, ipady=4, pady=5)
 
         # grid config
         self.local_or_remote.columnconfigure(0, weight=1)
@@ -1580,8 +1580,8 @@ class Root(Tk):
 
             MAIN_DIR = self.start_remotelly_frame.main_dir.get()
         modulename='biom3d'
-        if modulename not in sys.modules and not REMOTE:
-            popupmsg(" you can't access local interface in international area please conctact the national space agency")
+        if modulename not in sys.modules and not REMOTE :
+            popupmsg(" you can't access local interface in international area please contact the national space agency")
         else :  
             # Stage 1.2 (root -> root_frame)
             self.root_frame = ttk.Frame(self, padding=PADDING, style='red.TFrame')
@@ -1636,12 +1636,7 @@ class Root(Tk):
             
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description="Graphical User Interface of Biom3d")
-    parser.add_argument("-L", "--local", default=True,  action='store_true', dest='local',
-        help="Start the GUI with the local version (the remote version is the default version).") 
-    args = parser.parse_args()
-
-    LOCAL = args.local
-
+    
     root = Root()
 
     try: # avoid blury UI on Windows
