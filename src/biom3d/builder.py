@@ -442,15 +442,16 @@ class Builder:
                 saved_loss=self.loss_fn)
         clbk_dict["model_saver"] = self.clbk_modelsaver
 
-        # self.clbk_logsaver = clbk.LogSaver(
-        #         log_dir=self.log_dir,
-        #         train_loss=self.loss_fn,
-        #         val_loss=self.val_loss_fn,
-        #         train_metrics=self.train_metrics,
-        #         val_metrics=self.val_metrics,
-        #         scheduler=self.clbk_scheduler,
-        #         save_best=self.config.SAVE_BEST,
-        #         every_batch=10)
+        self.clbk_logsaver = clbk.LogSaver(
+                log_dir=self.log_dir,
+                train_loss=self.loss_fn,
+                val_loss=None if not hasattr(self, 'val_loss_fn') else self.val_loss_fn,
+                train_metrics=None if not hasattr(self, 'train_metrics') else self.train_metrics,
+                val_metrics=None if not hasattr(self, 'val_metrics') else self.val_metrics,
+                scheduler=None if not hasattr(self, 'clbk_scheduler') else self.clbk_scheduler,)
+                # save_best=self.config.SAVE_BEST,
+                # every_batch=10)
+        clbk_dict["log_saver"] = self.clbk_logsaver
         
         if "USE_IMAGE_CLBK" in self.config.keys() and self.config.USE_IMAGE_CLBK and hasattr(self, 'val_dataloader'):
             self.clbk_imagesaver = clbk.ImageSaver(
@@ -505,7 +506,11 @@ class Builder:
         torch.backends.cudnn.benchmark = False
 
         # saver folder configuration
-        folder_name = self.config.DESC+'_fold'+str(self.config.FOLD)
+        folder_name = self.config.DESC
+        
+        # add fold number if defined
+        if 'FOLD' in self.config.keys():
+            folder_name += '_fold'+str(self.config.FOLD)
         self.base_dir, self.image_dir, self.log_dir, self.model_dir = utils.create_save_dirs(
             self.config.LOG_DIR, folder_name, dir_names=['image', 'log', 'model'], return_base_dir=True) 
     
@@ -533,7 +538,10 @@ class Builder:
     def run_training(self):
         """Run the training and validation routines.
         """
-        if 'USE_FP16' in self.config.keys() and self.config.USE_FP16:
+        if torch.cuda.is_available():
+            print("[Warning] CUDA is not available! The training might be extremely slow. We strongly advise to use a CUDA machine to train a model. Predictions can be done using a CPU only machine.")
+
+        if torch.cuda.is_available() and 'USE_FP16' in self.config.keys() and self.config.USE_FP16:
             scaler = torch.cuda.amp.GradScaler()
         else:
             scaler = None
@@ -737,7 +745,7 @@ class Builder:
         self.optim.load_state_dict(ckpt['opt'])
 
         if 'epoch' in list(ckpt.keys()): 
-            self.initial_epoch=ckpt['epoch'] # definitive version 
+            self.initial_epoch=ckpt['epoch']+1 # definitive version 
         print('Restart training at epoch {}'.format(self.initial_epoch))
 
         self.build_dataset()

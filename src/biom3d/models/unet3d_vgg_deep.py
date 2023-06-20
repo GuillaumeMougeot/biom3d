@@ -94,7 +94,11 @@ class UNet(nn.Module):
         print("Load model weights from", model_ckpt)
         if torch.cuda.is_available():
             self.cuda()
-        ckpt = torch.load(model_ckpt)
+            device = torch.device('cuda')
+        else:
+            self.cpu()
+            device = torch.device('cpu')
+        ckpt = torch.load(model_ckpt, map_location=device)
         if 'encoder.last_layer.weight' in ckpt['model'].keys():
             del ckpt['model']['encoder.last_layer.weight']
         print(self.load_state_dict(ckpt['model'], strict=False))

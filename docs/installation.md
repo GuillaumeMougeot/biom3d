@@ -57,6 +57,10 @@ If would like to install the GUI as well, type the following:
 pip install biom3d[gui]
 ```
 
+> Warning: For Windows users, careful with the previous package: you might need to install [Visual Studio C++ 14.0](https://stackoverflow.com/questions/29846087/error-microsoft-visual-c-14-0-is-required-unable-to-find-vcvarsall-bat) to install `zeroc` dependency. You could also use conda installation with the following command: `conda install -c ome omero-py`.
+
+> For Linux users, to fasten the installation of zeroc-ice (dependency of biom3d[gui]). We strongly advise to install it indenpendently from prebuilt wheel [here](https://github.com/orgs/ome/repositories?q=zeroc). 
+
 If you would like to start the GUI, you can then run the following command:
 
 ```
@@ -81,15 +85,13 @@ Or by forking the repository with your GitHub account and cloning it after.
 pip install -e .
 ```
 
-Optional: If planning to edit the GUI source code or to use omero_dowloader to download datasets/projects from omero, please use the following command:
+*Optional*: If planning to edit the GUI source code or to use omero_dowloader to download datasets/projects from omero, please use the following command:
 
 ```
 pip install -e .[gui]
 ```
 
-For Windows users, careful with the previous package: you might need to install [Visual Studio C++ 14.0](https://stackoverflow.com/questions/29846087/error-microsoft-visual-c-14-0-is-required-unable-to-find-vcvarsall-bat) to install `zeroc` dependency.
-
-Optional: If planning to edit the documentation, please use the following command:
+*Optional*: If planning to edit the documentation, please use the following command:
 
 ```
 pip install -e .[docs]

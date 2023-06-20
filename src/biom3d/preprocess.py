@@ -634,10 +634,10 @@ def auto_config_preprocess(
         print("")
 
     if ct_norm:
-        print("Computing data fingerprint for CT normalization...")
+        if not print_param: print("Computing data fingerprint for CT normalization...")
         clipping_bounds = [perc_005, perc_995]
         intensity_moments = [mean, std]
-        print("Done!")
+        if not print_param: print("Done!")
     else:
         # median_size = None
         # median_spacing = []
@@ -664,7 +664,7 @@ def auto_config_preprocess(
         p.run()
 
     if not no_auto_config:
-        print("Start auto-configuration")
+        if not print_param: print("Start auto-configuration")
         
 
         batch, aug_patch, patch, pool = auto_config(
@@ -697,7 +697,7 @@ def auto_config_preprocess(
             LOG_DIR=logs_dir,
         )
 
-        print("Auto-config done! Configuration saved in: ", config_path)
+        if not print_param: print("Auto-config done! Configuration saved in: ", config_path)
         if print_param:
             print(batch)
             print(patch)
