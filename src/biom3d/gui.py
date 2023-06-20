@@ -509,7 +509,7 @@ class TrainFolderSelection(ttk.LabelFrame):
             self.img_outdir = FileDialog(self, mode='folder', textEntry="")
             self.msk_outdir = FileDialog(self, mode='folder', textEntry="")            
         ## number of classes
-        self.label3 = ttk.Label(self, text="Enter the number of classes: ..................................................................................................................................................................", anchor="sw", background='white')
+        self.label3 = ttk.Label(self, text="Enter the number of classes: "+"."*350, anchor="sw", background='white')
         self.num_classes = IntVar(value=1)
         self.classes = ttk.Entry(self, width=5,textvariable=self.num_classes)
 
@@ -613,16 +613,16 @@ class ConfigFrame(ttk.LabelFrame):
         laravel = self.img_outdir
         self.auto_config_finished = ttk.Label(self, text="")
 
-        self.num_epochs_label = ttk.Label(self, text='Number of epochs:')
+        self.num_epochs_label = ttk.Label(self, text='Number of epochs: '+"."*350)
         self.num_epochs = IntVar(value=10)
         self.num_epochs_entry = ttk.Entry(self, width=4, textvariable=self.num_epochs)
         
 
-        self.batch_size_label = ttk.Label(self, text='Batch size (int):')
+        self.batch_size_label = ttk.Label(self, text='Batch size (int): '+"."*350)
         self.batch_size = IntVar(value=2)
         self.batch_size_entry = ttk.Entry(self, width=4, textvariable=self.batch_size)
 
-        self.patch_size_label = ttk.Label(self, text='Patch size ([int int int]):')
+        self.patch_size_label = ttk.Label(self, text='Patch size ([int int int]): '+"."*350)
         self.patch_size1 = StringVar(value="128")
         self.patch_size_entry1 = ttk.Entry(self, width=4, textvariable=self.patch_size1)
         self.patch_size2 = StringVar(value="128")
@@ -632,7 +632,7 @@ class ConfigFrame(ttk.LabelFrame):
         self.patch_size = [int(self.patch_size1.get()), int(self.patch_size2.get()), int(self.patch_size3.get())]
        
 
-        self.aug_patch_size_label = ttk.Label(self, text='Augmentation patch size ([int int int]):')
+        self.aug_patch_size_label = ttk.Label(self, text='Augmentation patch size ([int int int]): '+"."*350)
         self.aug_patch_size1 = StringVar(value="160")
         self.aug_patch_size_entry1 = ttk.Entry(self, width=4, textvariable=self.aug_patch_size1)
         self.aug_patch_size2 = StringVar(value="120")
@@ -641,7 +641,7 @@ class ConfigFrame(ttk.LabelFrame):
         self.aug_patch_size_entry3 = ttk.Entry(self, width=4, textvariable=self.aug_patch_size3)
         self.aug_patch_size = [int(self.aug_patch_size1.get()), int(self.aug_patch_size2.get()), int(self.aug_patch_size3.get())]
         
-        self.num_pools_label = ttk.Label(self, text='Number of pool in the U-Net model ([int int int]):')
+        self.num_pools_label = ttk.Label(self, text='Number of pool in the U-Net model ([int int int]): '+"."*350)
         self.num_pools1 = StringVar(value="5")
         self.num_pools_entry1 = ttk.Entry(self, width=4, textvariable=self.num_pools1)
         self.num_pools2 = StringVar(value="5")
@@ -654,30 +654,30 @@ class ConfigFrame(ttk.LabelFrame):
         self.auto_config_button.grid(column=0, columnspan=4,row=0 ,ipady=4, pady=2,)
         self.auto_config_finished.grid(column=0, row=1, columnspan=2, sticky=(W,E))
 
-        self.num_epochs_label.grid(column=0, row=2, sticky=(W,E))
-        self.num_epochs_entry.grid(column=1, row=2, padx= 3, sticky=E)
+        self.num_epochs_label.grid(column=0, row=2, sticky=(W))
+        self.num_epochs_entry.grid(column=0, row=2, padx= 0, sticky=E)
 
         self.batch_size_label.grid(column=0, row=3, sticky=(W,E))
-        self.batch_size_entry.grid(column=1, row=3, padx= 3, sticky=E)
+        self.batch_size_entry.grid(column=0, row=3, padx= 0, sticky=E)
         
         self.patch_size_label.grid(column=0, row=4, sticky=(W,E))
-        self.patch_size_entry1.grid(column=1, row=4,padx= 3, sticky=E)
-        self.patch_size_entry2.grid(column=2, row=4,padx= 3)
-        self.patch_size_entry3.grid(column=3, row=4, padx= 3)
+        self.patch_size_entry1.grid(column=0, row=4,padx= 64, sticky=E)
+        self.patch_size_entry2.grid(column=0, row=4,padx= 32, sticky=E)
+        self.patch_size_entry3.grid(column=0, row=4, padx= 0, sticky=E)
 
         self.aug_patch_size_label.grid(column=0, row=5, sticky=(W,E))
-        self.aug_patch_size_entry1.grid(column=1, row=5,padx= 3, sticky=E)
-        self.aug_patch_size_entry2.grid(column=2, row=5, padx= 3,sticky=W)
-        self.aug_patch_size_entry3.grid(column=3, row=5,padx= 3, sticky=W)
+        self.aug_patch_size_entry1.grid(column=0, row=5,padx= 64, sticky=E)
+        self.aug_patch_size_entry2.grid(column=0, row=5, padx= 32,sticky=E)
+        self.aug_patch_size_entry3.grid(column=0, row=5,padx= 0, sticky=E)
 
         self.num_pools_label.grid(column=0, row=6, sticky=(W,E))
-        self.num_pools_entry1.grid(column=1, row=6,padx= 3, sticky=E)
-        self.num_pools_entry2.grid(column=2, row=6, padx= 3,sticky=W)
-        self.num_pools_entry3.grid(column=3, row=6,padx= 3, sticky=W)
+        self.num_pools_entry1.grid(column=0, row=6,padx= 64, sticky=E)
+        self.num_pools_entry2.grid(column=0, row=6, padx= 32,sticky=E)
+        self.num_pools_entry3.grid(column=0, row=6,padx= 0, sticky=E)
 
         # grid config
         self.columnconfigure(0, weight=1)
-        self.columnconfigure(1, weight=10)
+        #self.columnconfigure(1, weight=10)
         for i in range(6):
             self.rowconfigure(i, weight=1)
     def str2list(self, string):
@@ -1501,7 +1501,6 @@ class Root(Tk):
         self.background.grid(column=0, row=0, sticky=(N, W, E, S))
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
-
         # Stage 1.1 (root --> local of server)
 
         self.local_or_remote = ttk.Frame(self.background, padding=[20,20,20,20])
@@ -1523,7 +1522,7 @@ class Root(Tk):
 
         self.title_label.grid(column=0, row=0, sticky=W)
         self.welcome_message.grid(column=0, row=1, sticky=(W,E), pady=12)
-        
+
         # The local button is displayed only for the local installation 
         if LOCAL: 
             self.start_locally.grid(column=0, row=2, ipady=5, pady=12)
@@ -1623,7 +1622,18 @@ class Root(Tk):
             self.train_tab_frame.grid(column=0, row=0, sticky=(N,W,E), pady=24, padx=12)
             self.train_tab.columnconfigure(0, weight=1)
             self.train_tab.rowconfigure(0, weight=1)
-
+            
+            #Home button
+            
+            self.home_button_train=ttk.Button(self.train_tab,text="Home",command=self.refresh)
+            self.home_button_pred=ttk.Button(self.predict_tab,text="Home",command=self.refresh)
+            self.home_button_train.grid(column=0, row=0, sticky=(S,W))
+            self.home_button_pred.grid(column=0, row=0, sticky=(S,W))
+    def refresh(self):
+            self.destroy()
+            self.__init__()
+            
+            
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description="Graphical User Interface of Biom3d")
     parser.add_argument("-L", "--local", default=True,  action='store_true', dest='local',
