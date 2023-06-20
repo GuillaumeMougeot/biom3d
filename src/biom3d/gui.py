@@ -443,7 +443,7 @@ class PreprocessFolderSelection(ttk.LabelFrame):
         self.msk_dir.grid(column=0,row=3, sticky=(W,E))
 
         self.label3.grid(column=0,row=4, sticky=W)
-        self.classes.grid(column=0,row=5, sticky=(W,E))
+        self.classes.grid(column=0,row=5, pady=5,sticky=(E))
 
         self.label4.grid(column=0,row=6, sticky=W)
         self.img_outdir.grid(column=0,row=7, sticky=(W,E))
@@ -468,7 +468,7 @@ class TrainFolderSelection(ttk.LabelFrame):
         # use preprocessing values
         train_button_css = ttk.Style()
         train_button_css.configure("train_button.TLabel", background = '#CD5C5C', foreground = 'white', font=('Helvetica', 9), width = 30, borderwidth=3, focusthickness=7, relief='raised', focuscolor='none', anchor='c', height= 15)
-        self.send_data_button = ttk.Button(self, text="Send Dataset",width=14,style="train_button.TLabel",  command=self.send_data)
+        self.send_data_button = ttk.Button(self, text="Send Dataset",width=29,style="train_button.TLabel",  command=self.send_data)
         self.preprocess_tab = preprocess_tab
 
         ## image folder
@@ -509,7 +509,7 @@ class TrainFolderSelection(ttk.LabelFrame):
             self.img_outdir = FileDialog(self, mode='folder', textEntry="")
             self.msk_outdir = FileDialog(self, mode='folder', textEntry="")            
         ## number of classes
-        self.label3 = ttk.Label(self, text="Enter the number of classes:", anchor="sw", background='white')
+        self.label3 = ttk.Label(self, text="Enter the number of classes: ..................................................................................................................................................................", anchor="sw", background='white')
         self.num_classes = IntVar(value=1)
         self.classes = ttk.Entry(self, width=5,textvariable=self.num_classes)
 
@@ -522,10 +522,10 @@ class TrainFolderSelection(ttk.LabelFrame):
             self.img_outdir.grid(column=0, row=2, sticky=(W,E))
             self.label2.grid(column=0,row=3, sticky=W, pady=2)
             self.msk_outdir.grid(column=0,row=4, sticky=(W,E))
-            self.send_data_label.grid(column=0, row=7, sticky=(W), pady=2)
-            self.send_data_entry.grid(column=0,row=8, ipadx=180, sticky=W)
-            self.send_data_button.grid(column=0, row=8, sticky=(E), pady=5,ipady=4,)
-            self.data_dir_option_menu.grid(column=0, row=10, pady=2)
+            self.send_data_label.grid(column=0, row=7, sticky=(W,E), pady=2)
+            self.send_data_entry.grid(column=0,row=8, sticky=(W,E))
+            self.send_data_button.grid(column=0, row=9, pady=5,ipady=4,)
+            self.data_dir_option_menu.grid(column=0,sticky=E, row=10, pady=2)
             self.label4.grid(column=0,row=10, sticky=W, pady=2)
         else:
             self.img_outdir.grid(column=0, row=2, sticky=(W,E))
@@ -533,7 +533,7 @@ class TrainFolderSelection(ttk.LabelFrame):
             self.msk_outdir.grid(column=0,row=4, sticky=(W,E))
 
         self.label3.grid(column=0,row=5, sticky=W, pady=2)
-        self.classes.grid(column=0,row=5)
+        self.classes.grid(column=0,row=5,pady=5,sticky=E)
 
         
         # Configure columns
@@ -651,7 +651,7 @@ class ConfigFrame(ttk.LabelFrame):
         self.num_pools = [int(self.num_pools1.get()), int(self.num_pools2.get()), int(self.num_pools3.get())]
 
         # place widgets
-        self.auto_config_button.grid(column=0, columnspan=4,row=0 ,ipady=4, pady=2, sticky=E)
+        self.auto_config_button.grid(column=0, columnspan=4,row=0 ,ipady=4, pady=2,)
         self.auto_config_finished.grid(column=0, row=1, columnspan=2, sticky=(W,E))
 
         self.num_epochs_label.grid(column=0, row=2, sticky=(W,E))
@@ -796,13 +796,13 @@ class TrainTab(ttk.Frame):
         style = ttk.Style()
         style.configure("BW.TLabel", background = '#76D7C4', foreground = 'black', width = 10, borderwidth=3, focusthickness=7, focuscolor='none', anchor='c', height= 105)
         #####################################################
-        self.folder_selection = TrainFolderSelection(preprocess_tab=preprocess_tab, master=self, text="Preprocess & autoconfig ", padding=[10,10,10,10])
+        self.folder_selection = TrainFolderSelection(preprocess_tab=preprocess_tab, master=self, text="Preprocess & Autoconfig ", padding=[10,10,10,10])
         self.config_selection = ConfigFrame(train_folder_selection=self.folder_selection, master=self, text="Training configuration", padding=[10,10,10,10])
 
         self.builder_name_label = ttk.Label(self, text="Set a name for the builder folder (folder containing your future model):")
         self.builder_name = StringVar(value="unet_example")
         self.builder_name_entry = ttk.Entry(self, textvariable=self.builder_name)
-        self.train_button = ttk.Button(self, text="Start", style="train_button.TLabel", width=8, command=self.train)
+        self.train_button = ttk.Button(self, text="Start", style="train_button.TLabel", width =29, command=self.train)
         self.train_done = ttk.Label(self, text="")
 
         # set default values of train folders with the ones used for preprocess tab
@@ -817,8 +817,8 @@ class TrainTab(ttk.Frame):
         self.folder_selection.grid(column=0,row=0,sticky=(N,W,E), pady=3)
         self.config_selection.grid(column=0,row=1,sticky=(N,W,E), pady=20)
         self.builder_name_label.grid(column=0, row=2, sticky=(W,E), ipady=5,pady=3)
-        self.builder_name_entry.grid(column=0, row=3,ipadx=213,ipady=3,pady=3,sticky=(W))
-        self.train_button.grid(column=0, row=3,sticky=E, padx=15, ipady=4, pady= 10)
+        self.builder_name_entry.grid(column=0, row=3,ipadx=213,ipady=3,pady=3,sticky=(W,E))
+        self.train_button.grid(column=0, row=4, padx=15, ipady=4, pady= 10, sticky=(N))
         self.train_done.grid(column=0, row=5, sticky=W)
 
     
@@ -992,6 +992,7 @@ class InputDirectory(ttk.LabelFrame):
         self.input_folder_label.grid(column=0, row=0, sticky=(W,E))
 
         if REMOTE: 
+            """
             # if remote, print the list of available dataset or offer the option to send a local one on the server.
             to_pred_folder_path= 'ls {}/data/to_pred'.format(MAIN_DIR)
             test_folder_command= f'[ -d "{to_pred_folder_path}" ] && echo "Folder exists" || echo "Folder does not exist"'
@@ -1007,6 +1008,7 @@ class InputDirectory(ttk.LabelFrame):
                 REMOTE.exec_command(create_folder)
                 print("Folder created")
                 
+            """
 
 
             # define the dropdown menu
@@ -1027,7 +1029,7 @@ class InputDirectory(ttk.LabelFrame):
             self.data_dir_option_menu.grid(column=0, row=0, padx=12,ipadx=100,sticky=(E))
             self.send_data_label.grid(column=0, row=2, sticky=(W,E))
             self.send_data_folder.grid(column=0, row=3, sticky=(W,E))
-            self.send_data_button.grid(column=0, row=4, ipady=5,pady=5, sticky=(E))
+            self.send_data_button.grid(column=0, row=4, ipady=5,pady=5,)
 
             self.columnconfigure(0, weight=1)
             for i in range(5):
@@ -1210,7 +1212,7 @@ class DownloadPrediction(ttk.LabelFrame):
         self.button_update_list.grid(column=1, row=1,padx=5, sticky=(W,E))
         self.get_data_label.grid(column=0, row=2, columnspan=2, sticky=(W,E))
         self.get_data_folder.grid(column=0, row=3, columnspan=2, sticky=(W,E))
-        self.get_data_button.grid(column=0, row=4, columnspan=2, pady=5,ipady=5, sticky=(E))
+        self.get_data_button.grid(column=0, row=4, columnspan=2, pady=5,ipady=5, )
 
         self.columnconfigure(0, weight=10)
         self.columnconfigure(1, weight=1)
@@ -1250,7 +1252,7 @@ class PredictTab(ttk.Frame):
         self.input_dir = InputDirectory(self, text="Input directory", padding=[10,10,10,10])
         self.model_selection = ModelSelection(self, text="Model selection", padding=[10,10,10,10])
         if not REMOTE: self.output_dir = OutputDirectory(self, text="Output directory", padding=[10,10,10,10])
-        self.button = ttk.Button(self, width=8,style="train_button.TLabel", text="Start", command=self.predict)
+        self.button = ttk.Button(self, width=10,style="train_button.TLabel", text="Start", command=self.predict)
         if REMOTE: self.download_prediction = DownloadPrediction(self, text="Download predictions to local", padding=[10,10,10,10])
 
         # if platform=='linux' or REMOTE: # local Omero for linux only
@@ -1258,7 +1260,7 @@ class PredictTab(ttk.Frame):
         self.input_dir.grid(column=0,row=1,sticky=(W,E), pady=6)
         self.model_selection.grid(column=0,row=3,sticky=(W,E), pady=6)
         if not REMOTE: self.output_dir.grid(column=0,row=4,sticky=(W,E), pady=6)
-        self.button.grid(column=0,row=5,ipady=5, pady=4,padx=10, sticky=E)
+        self.button.grid(column=0,row=5,ipady=5, pady=4,padx=10,sticky=(S,N))
         if REMOTE: self.download_prediction.grid(column=0, row=6, sticky=(W,E), pady=6)
     
         self.columnconfigure(0, weight=1)
