@@ -28,7 +28,6 @@ import yaml
 from sys import platform 
 import sys
 # if platform=='linux': # only import if linux because windows omero plugin requires Visual Studio Install which is too big
-import argparse
 
 try:
     from biom3d.config_default import CONFIG
@@ -91,8 +90,7 @@ def init_styles():
         theme_style.configure(theme_style_list[i],background=white)
 
     ## Frame setup
-    # theme_style.configure('TFrame', paddind=)
-
+    
     ## Notebook tab setup
     theme_style.configure('TNotebook.Tab', padding=[25,5], background=red)
     # expand: enlarge the tab size when selected
@@ -406,59 +404,9 @@ class FileDialog(ttk.Frame):
     def get(self):
         return self.filenameText.get()
 
-#----------------------------------------------------------------------------
-# Preprocess tab
-
-class PreprocessFolderSelection(ttk.LabelFrame):
-    def __init__(self, *arg, **kw):
-        super(PreprocessFolderSelection, self).__init__(*arg, **kw)
-
-        # Define elements
-        ## image folder
-        self.label1 = ttk.Label(self, text="Select the folder containing the raw images:", anchor="sw", background='white')
-        self.img_dir = FileDialog(self, mode='folder', textEntry='D:/code/python/3dnucleus/data/img')
-
-        ## mask folder
-        self.label2 = ttk.Label(self, text="Select a folder containing the annotated masks:", anchor="sw", background='white')
-        self.msk_dir = FileDialog(self, mode='folder', textEntry="D:/code/python/3dnucleus/data/msk")
-
-        ## number of classes
-        self.label3 = ttk.Label(self, text="Enter the number of classes:", anchor="sw", background='white')
-        self.num_classes = IntVar(value=1)
-        self.classes = ttk.Entry(self, textvariable=self.num_classes)
-
-        ## Output folders for images
-        self.label4 = ttk.Label(self, text="(Optional) Select a folder to store the new preprocessed images:", anchor="sw", background='white')
-        self.img_outdir = FileDialog(self, mode='folder', textEntry="")
-    
-        ## Output folders for masks
-        self.label5 = ttk.Label(self, text="(Optional) Select a folder to store the new preprocessed masks:", anchor="sw", background='white')
-        self.msk_outdir = FileDialog(self, mode='folder', textEntry="")
-
-        # Position elements
-        self.label1.grid(column=0, row=0, sticky=W)
-        self.img_dir.grid(column=0, row=1, sticky=(W,E))
-
-        self.label2.grid(column=0,row=2, sticky=W)
-        self.msk_dir.grid(column=0,row=3, sticky=(W,E))
-
-        self.label3.grid(column=0,row=4, sticky=W)
-        self.classes.grid(column=0,row=5, pady=5,sticky=(E))
-
-        self.label4.grid(column=0,row=6, sticky=W)
-        self.img_outdir.grid(column=0,row=7, sticky=(W,E))
-
-        self.label5.grid(column=0,row=8, sticky=W)
-        self.msk_outdir.grid(column=0,row=9, sticky=(W,E))
-        
-        # Configure columns
-        self.columnconfigure(0, weight=1)
-
-        for i in range(10):
-            self.rowconfigure(i, weight=1)
 
 #----------------------------------------------------------------------------
-# train tab
+# Preprocess & Train tab
 
 class TrainFolderSelection(ttk.LabelFrame):
     def __init__(self, preprocess_tab=None, *arg, **kw):
@@ -499,16 +447,13 @@ class TrainFolderSelection(ttk.LabelFrame):
             
             self.label4 = ttk.Label(self, text="Select the Dataset to preprocess :", anchor="sw", background='white')
             self.data_dir.trace("w", self.option_selected)
-            self.heheNotanUpdate()
+            self.dataset_update()
     
           
         else:
-            #self.img_outdir = FileDialog(self, mode='folder', textEntry='D:/code/python/3dnucleus/data/img_out')        
-            #self.msk_outdir = FileDialog(self, mode='folder', textEntry="D:/code/python/3dnucleus/data/msk_out")
-            # TODO: change this
             self.img_outdir = FileDialog(self, mode='folder', textEntry="")
             self.msk_outdir = FileDialog(self, mode='folder', textEntry="")            
-        ## number of classes
+        # number of classes
         self.label3 = ttk.Label(self, text="Enter the number of classes: "+"."*screen_width, anchor="sw", background='white')
         self.num_classes = IntVar(value=1)
         self.classes = ttk.Entry(self, width=5,textvariable=self.num_classes)
@@ -546,14 +491,8 @@ class TrainFolderSelection(ttk.LabelFrame):
         selected_dataset = self.data_dir.get()
         print("Selected option:", selected_dataset)
         return selected_dataset
-        """
-    def _update_data_dir(self):
-        update the names of image and mask directories
-        base_name = "{}/data/{}/".format(MAIN_DIR, self.data_dir.get())
-        #self.img_outdir.set(base_name + "img_out")
-        #self.msk_outdir.set(base_name + "msk_out")
-        """
-    def heheNotanUpdate(self):
+
+    def dataset_update(self):
         # get updated dataset list from remote
         _, stdout, _ = REMOTE.exec_command('ls {}/data'.format(MAIN_DIR))
         self.data_list = [e.replace('\n','') for e in stdout.readlines()]
@@ -569,8 +508,6 @@ class TrainFolderSelection(ttk.LabelFrame):
 
     def use_preprocessing(self):
         if REMOTE:
-            # use remote dirs names
-            
             # update the list of data directories
             _,stdout,_ = REMOTE.exec_command('ls {}/data'.format(MAIN_DIR))
             self.data_list = [e.replace('\n','') for e in stdout.readlines()]
@@ -594,7 +531,7 @@ class TrainFolderSelection(ttk.LabelFrame):
         remote_dir_msk = "{}/data/{}/msk".format(MAIN_DIR,self.send_data_name.get())
         ftp_put_folder(ftp, localpath=self.img_outdir.get(), remotepath=remote_dir_img)
         ftp_put_folder(ftp, localpath=self.msk_outdir.get(), remotepath=remote_dir_msk)
-        self.heheNotanUpdate()
+        self.dataset_update()
         popupmsg("Data sent!")
         self.send_data_finish.config(text="Data sent!")
 
@@ -609,8 +546,7 @@ class ConfigFrame(ttk.LabelFrame):
         self.img_outdir = train_folder_selection.img_outdir
         self.msk_outdir = train_folder_selection.msk_outdir
         self.num_classes = train_folder_selection.num_classes
-        global laravel 
-        laravel = self.img_outdir
+
         self.auto_config_finished = ttk.Label(self, text="")
 
         self.num_epochs_label = ttk.Label(self, text='Number of epochs: '+"."*screen_width)
@@ -677,7 +613,6 @@ class ConfigFrame(ttk.LabelFrame):
 
         # grid config
         self.columnconfigure(0, weight=1)
-        #self.columnconfigure(1, weight=10)
         for i in range(6):
             self.rowconfigure(i, weight=1)
     def str2list(self, string):
@@ -719,7 +654,7 @@ class ConfigFrame(ttk.LabelFrame):
                     break
                 print(line, end="")
            
-           
+           # get auto config results
             batch = auto_config_results[5]
             aug_patch = self.str2list2(auto_config_results[7])
             patch = self.str2list(auto_config_results[6])
@@ -740,24 +675,14 @@ class ConfigFrame(ttk.LabelFrame):
             p.run()
             
             # img and mask output folders for the train section
-            
             img_dir_train = p.img_outdir
             msk_dir_train = p.msk_outdir
             fg_dir_train = p.fg_outdir
        
             # Run autoconfig
             batch, aug_patch, patch, pool = auto_config(img_dir=p.img_outdir)
-            
-            """
-            # Test if config folder exists
-            parent_dir= os.path.dirname(self.img_outdir.get())
-            path = os.path.join(parent_dir, "config")
-            if not os.path.isdir(path):
-                os.mkdir(path)
-            """
-                
+              
             # save the config file in config folder 
-            
             config_path = save_python_config(
             config_dir="config/",
             base_config=None,
@@ -768,7 +693,8 @@ class ConfigFrame(ttk.LabelFrame):
             AUG_PATCH_SIZE=aug_patch,
             PATCH_SIZE=patch,
             NUM_POOLS=pool
-            )    
+            )  
+              
         # Update Config Cells in Gui
         self.batch_size.set(batch)
         
@@ -798,13 +724,8 @@ class TrainTab(ttk.Frame):
     def __init__(self, preprocess_tab=None, *arg, **kw):
         super(TrainTab, self).__init__(*arg, **kw)
         global new_config_path
-        #####################################################
-        style = ttk.Style()
-        style.configure("BW.TLabel", background = '#76D7C4', foreground = 'black', width = 10, borderwidth=3, focusthickness=7, focuscolor='none', anchor='c', height= 105)
-        #####################################################
         self.folder_selection = TrainFolderSelection(preprocess_tab=preprocess_tab, master=self, text="Preprocess & Autoconfig ", padding=[10,10,10,10])
         self.config_selection = ConfigFrame(train_folder_selection=self.folder_selection, master=self, text="Training configuration", padding=[10,10,10,10])
-
         self.builder_name_label = ttk.Label(self, text="Set a name for the builder folder (folder containing your future model):")
         self.builder_name = StringVar(value="unet_example")
         self.builder_name_entry = ttk.Entry(self, textvariable=self.builder_name)
@@ -812,14 +733,7 @@ class TrainTab(ttk.Frame):
         self.train_done = ttk.Label(self, text="")
 
         # set default values of train folders with the ones used for preprocess tab
-        """
-        if REMOTE:
-            self.folder_selection.data_dir.set(preprocess_tab.send_data_name.get())
-        else: 
-            self.folder_selection.img_outdir.set(preprocess_tab.folder_selection.img_outdir.get())
-            self.folder_selection.msk_outdir.set(preprocess_tab.folder_selection.msk_outdir.get())
-        self.folder_selection.num_classes.set(preprocess_tab.folder_selection.num_classes.get())
-        """
+
         self.folder_selection.grid(column=0,row=0,sticky=(N,W,E), pady=3)
         self.config_selection.grid(column=0,row=1,sticky=(N,W,E), pady=20)
         self.builder_name_label.grid(column=0, row=2, sticky=(W,E), ipady=4,pady=3)
@@ -849,11 +763,7 @@ class TrainTab(ttk.Frame):
                 line_buf = ''
 
     def train(self):
-        #self.train_done.config(text="Training, please wait...")
-
-        #cfg = CONFIG
         if REMOTE:
-            #cfg = load_python_config("{}/{}".format(MAIN_DIR,config_path))
             import tempfile
             tempdir = tempfile.mkdtemp(prefix="tmp-config-")
             print(tempdir) 
@@ -896,7 +806,6 @@ class TrainTab(ttk.Frame):
         cfg.NB_EPOCHS = self.config_selection.num_epochs.get()
         cfg = nested_dict_change_value(cfg, 'nb_epochs', cfg.NB_EPOCHS)
         
-        # Pourquoi on change pas la valeur dans le dictionnaire ici ? 
         cfg.BATCH_SIZE = self.config_selection.batch_size.get()
         cfg = nested_dict_change_value(cfg, 'batch_size', cfg.BATCH_SIZE)
        
@@ -956,9 +865,6 @@ class TrainTab(ttk.Frame):
                 # TODO: copy the event file to local
             popupmsg(" Training Done ! ")
         else:  
-            # get path to config file
-            parent_dir= os.path.dirname(laravel.get())
-            path = os.path.join(parent_dir, "config")
             # save the new config file
             
             new_config_path = save_python_config(
@@ -974,8 +880,7 @@ class TrainTab(ttk.Frame):
             NB_EPOCHS=cfg.NB_EPOCHS
             
             )
-            """
-            """
+        
             if not torch.cuda.is_available():
                popupmsg("  No GPU detected, the training might take a longer time ")
         
@@ -998,25 +903,6 @@ class InputDirectory(ttk.LabelFrame):
         self.input_folder_label.grid(column=0, row=0, sticky=(W,E))
 
         if REMOTE: 
-            """
-            # if remote, print the list of available dataset or offer the option to send a local one on the server.
-            to_pred_folder_path= 'ls {}/data/to_pred'.format(MAIN_DIR)
-            test_folder_command= f'[ -d "{to_pred_folder_path}" ] && echo "Folder exists" || echo "Folder does not exist"'
-            stdin,stdout,stderr=REMOTE.exec_command(test_folder_command)
-            
-            # Read the output and check the result
-            output = stdout.read().decode().strip()
-            if output == 'Folder exists':
-                print("Folder exists")
-            else:
-                # Create the folder
-                create_folder = f'mkdir -p "{to_pred_folder_path}"'
-                REMOTE.exec_command(create_folder)
-                print("Folder created")
-                
-            """
-
-
             # define the dropdown menu
             _,stdout,_ = REMOTE.exec_command('ls {}/data/to_pred'.format(MAIN_DIR))     # Where should i search ??
             self.data_list = [e.replace('\n','') for e in stdout.readlines()]
@@ -1126,20 +1012,17 @@ class ModelSelection(ttk.LabelFrame):
             _,stdout,_ = REMOTE.exec_command('ls {}/logs'.format(MAIN_DIR))
             self.logs_list = [e.replace('\n','') for e in stdout.readlines()]
             
-
-            # define the dropdown menu
-        
-            
+            # define the dropdown menu    
             if(len(self.logs_list) == 0):
                 self.logs_dir = StringVar(value="Empty")
             else:   
                 self.logs_dir = StringVar(value=self.logs_list[0])
             self.logs_dir_option_menu = ttk.OptionMenu(self, self.logs_dir, self.logs_dir.get(), *self.logs_list)
             self.button_update_list = ttk.Button(self, text="Update", command=self._update_logs_list)
-
+            
             self.logs_dir_option_menu.grid(column=0, row=0, sticky=(W,E))
             self.button_update_list.grid(column=1, row=0, padx=5,sticky=(W,E))
-
+            
             self.columnconfigure(0, weight=10)
             self.columnconfigure(1, weight=1)
             self.rowconfigure(0, weight=1)
@@ -1150,7 +1033,6 @@ class ModelSelection(ttk.LabelFrame):
             self.logs_dir = FileDialog(self, mode='folder', textEntry='logs/')
 
             self.logs_dir.grid(column=0, row=0, sticky=(W,E))
-
             self.columnconfigure(0, weight=1)
             self.rowconfigure(0, weight=1)
         
@@ -1166,10 +1048,8 @@ class OutputDirectory(ttk.LabelFrame):
 
         if REMOTE: 
             # if remote, only print an information message indicating where to find the prediction folder on the server.
-            # self.default_label = ttk.Label(self, text="Impossible to change the default folders when using remote access. Default downloading folder is 'data/to_pred'; default predictions folder is 'data/pred'")
             self.default_label = ttk.Label(self, text="(Optional) Select a local folder to download the predictions:")
             self.data_dir = FileDialog(self, mode="folder", textEntry="")
-
             self.default_label.grid(column=0, row=0, sticky=(W,E))
             self.data_dir.grid(column=0, row=1, sticky=(W,E))
 
@@ -1319,7 +1199,6 @@ class PredictTab(ttk.Frame):
                 )
         else: # if not use Omero
             if REMOTE:
-                #popupmsg("Prediction is running ... !")
                 _, stdout, stderr = REMOTE.exec_command("cd {}; python -m biom3d.pred --log {} --dir_in {} --dir_out {}".format(
                     MAIN_DIR,
                     'logs/'+self.model_selection.logs_dir.get(), 
@@ -1343,7 +1222,6 @@ class PredictTab(ttk.Frame):
                 popupmsg("Prediction done !")
             else: 
                 self.prediction_messages.grid(column=0, row=6, columnspan=2, sticky=(W,E))
-                #popupmsg("Prediction is running ... !")
                 self.prediction_messages.config(text="Prediction is running ...!")
                 pred(
                     log=self.model_selection.logs_dir.get(),
@@ -1395,10 +1273,6 @@ class Connect2Remote(ttk.LabelFrame):
         self.password_label = ttk.Label(self, text='Password:')
         self.password = StringVar(value="")
         self.password_entry = ttk.Entry(self, textvariable=self.password, show='*')
-
-        
-
-        current_folder = os.getcwd()
         
         self.main_dir_label = ttk.Label(self, text='Folder of Biom3d repository on remote server:')
         self.main_dir = StringVar(value="/home/biome/biom3d")
@@ -1515,10 +1389,9 @@ class Root(Tk):
 
         ## Stage 2 (local_or_remote --> frame)
 
-        #####################################################
+    
         style = ttk.Style()
         style.configure("BW.TLabel",background = '#CD5C5C', foreground = 'white', font=('Helvetica', 9), width = 18, borderwidth=3, focusthickness=7, relief='raised', focuscolor='none', anchor='c', height= 15)
-        #####################################################
         self.title_label = ttk.Label(self.local_or_remote, text="Biom3d", font=("Montserrat", 18))
         self.welcome_message = ttk.Label(self.local_or_remote, text="Welcome!\n\nBiom3d is an easy-to-use tool to train and use deep learning models for segmenting three dimensional images. You can either start locally, if your computer has a good graphic card (NVIDIA Geforce RTX 1080 or higher) or connect remotelly on a computer with such a graphic card.\n\nIf you need help, check our GitHub repository here: https://github.com/GuillaumeMougeot/biom3d", anchor="w", justify=LEFT, wraplength=640)
 
@@ -1529,6 +1402,7 @@ class Root(Tk):
 
         self.title_label.grid(column=0, row=0, sticky=W)
         self.welcome_message.grid(column=0, row=1, sticky=(W,E), pady=12)
+        
         modulename='biom3d'
         if modulename in sys.modules :
             self.start_locally.grid(column=0, row=2, ipady=4, pady=12)
@@ -1585,6 +1459,7 @@ class Root(Tk):
                     password=self.start_remotelly_frame.password.get())
 
             MAIN_DIR = self.start_remotelly_frame.main_dir.get()
+            
         modulename='biom3d'
         if modulename not in sys.modules and not REMOTE :
             popupmsg(" you can't access local interface in international area please contact the national space agency")
@@ -1601,21 +1476,12 @@ class Root(Tk):
 
             # Stage 3 (notebook -> preprocess - train - predict - omero)
             
-            #self.preprocess_tab = ttk.Frame(self.tab_parent, padding=PADDING)
             self.train_tab = ttk.Frame(self.tab_parent, padding=PADDING)
             self.predict_tab = ttk.Frame(self.tab_parent, padding=PADDING)
-            # self.omero_tab = ttk.Frame(self.tab_parent, padding=PADDING)
-
-            #self.tab_parent.add(self.preprocess_tab, text="Preprocess")
+            
             self.tab_parent.add(self.train_tab, text="Preprocess & Train")
             self.tab_parent.add(self.predict_tab, text="Predict")
-            """"
-            # Stage 4 (preprocess_tab -> preprocess_tab_frame)
-            self.preprocess_tab_frame = PreprocessTab(self.preprocess_tab)
-            self.preprocess_tab_frame.grid(column=0, row=0, sticky=(N,W,E), pady=24, padx=12)
-            self.preprocess_tab.columnconfigure(0, weight=1)
-            self.preprocess_tab.rowconfigure(0, weight=1)
-            """
+     
             # Stage 4 (predict_tab -> predict_tab_frame)
             self.predict_tab_frame = PredictTab(self.predict_tab)
             self.predict_tab_frame.grid(column=0, row=0, sticky=(N,W,E), pady=24, padx=12)
@@ -1623,7 +1489,6 @@ class Root(Tk):
             self.predict_tab.rowconfigure(0, weight=1)
 
             # Stage 4 (train_tab -> train_tab_frame)
-            #self.train_tab_frame = TrainTab(master=self.train_tab, preprocess_tab=self.preprocess_tab_frame)
             self.train_tab_frame = TrainTab(master=self.train_tab)
             self.train_tab_frame.grid(column=0, row=0, sticky=(N,W,E), pady=24, padx=12)
             self.train_tab.columnconfigure(0, weight=1)
@@ -1641,7 +1506,6 @@ class Root(Tk):
             
             
 if __name__=='__main__':
-    parser = argparse.ArgumentParser(description="Graphical User Interface of Biom3d")
     
     root = Root()
 
