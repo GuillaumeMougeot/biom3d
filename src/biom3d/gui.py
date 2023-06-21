@@ -687,7 +687,13 @@ class ConfigFrame(ttk.LabelFrame):
         """
         # remove first and last element
         return [int(e) for e in string[1:-1].split(' ') if e!='']
-    
+    def str2list2(self, string):
+        """
+        convert a string like '[5, 5, 5]' into list of integers
+        we remove first and last element, as they are supposed to be '[' and ']' symbols.
+        """
+        # remove first and last element
+        return [int(e) for e in string[1:-1].split(', ') if e!='']
     def auto_config(self):
         self.auto_config_finished.config(text="Auto-configuration, please wait...")
         global config_path 
@@ -697,7 +703,6 @@ class ConfigFrame(ttk.LabelFrame):
         if REMOTE:
             # preprocessing
             _,stdout,stderr=REMOTE.exec_command("cd {}; python -m biom3d.preprocess --img_dir data/{}/img --msk_dir data/{}/msk --num_classes {} --remote".format(MAIN_DIR, selected_dataset, selected_dataset,TrainFolderSelection().classes.get()))  
-            #_,stdout,stderr=REMOTE.exec_command("cd {}; python -m biom3d.auto_config --img_dir data/{}/img --remote true".format(MAIN_DIR, selected_dataset))
             auto_config_results = stdout.readlines()
             auto_config_results = [e.replace('\n','') for e in auto_config_results]
          
@@ -705,7 +710,7 @@ class ConfigFrame(ttk.LabelFrame):
             msk_dir_train = "data/{}/msk_out".format(selected_dataset)
             fg_dir_train = "data/{}/fg_out".format(selected_dataset)
             # error management
-            if len(auto_config_results)!=12:
+            if len(auto_config_results)!=10:
                print("[Error] Auto-config error:", auto_config_results)
                popupmsg("[Error] Auto-config error: "+ str(auto_config_results))
             while True:
@@ -713,13 +718,14 @@ class ConfigFrame(ttk.LabelFrame):
                 if not line:
                     break
                 print(line, end="")
-
-            _,_,_,_,_,_,_, batch, patch, aug_patch, pool, config_path = auto_config_results
-            
+           
+           
+            batch = auto_config_results[5]
+            aug_patch = self.str2list2(auto_config_results[7])
+            patch = self.str2list(auto_config_results[6])
+            pool = self.str2list(auto_config_results[8])
+            config_path = auto_config_results[9]
     
-            aug_patch = self.str2list(aug_patch)
-            patch = self.str2list(patch)
-            pool = self.str2list(pool)
             print(batch,patch,pool,aug_patch,config_path)
           
             
@@ -1475,7 +1481,7 @@ class Root(Tk):
 
         # windows dimension and positioning
         window_width = 725
-        window_height = 775
+        window_height = 785
 
         ## get the screen dimension
         global screen_width

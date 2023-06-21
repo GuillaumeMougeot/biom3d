@@ -576,28 +576,6 @@ class Preprocessing:
         print("Done preprocessing!")
 
 #---------------------------------------------------------------------------
-def get_aug_patch(patch_size):
-    
-    """Return augmentation patch size.
-    The current solution is to increase the size of each dimension by 17% except for the eventual anisotropic dimension (meaning that this dimension is at least three time smaller than the others)... All of this sounds arbitrary... yes but it is pretty close to the original nnUNet solution.
-
-    Parameters
-    ----------
-    patch_size : tuple, list or numpy.ndarray
-        Patch size.
-
-    Returns
-    -------
-    aug_patch : numpy.ndarray
-        Augmentation patch size.
-    """
-    ps = np.array(patch_size)
-    aug_patch = np.round(1.17*ps).astype(int)
-    dummy_2d = ps/ps.min()
-    if np.any(dummy_2d>3): # then use dummy_2d
-        axis = np.argmin(dummy_2d)
-        aug_patch[axis] = patch_size[axis]
-    return aug_patch
 
 def auto_config_preprocess(
         img_dir, 
@@ -701,7 +679,6 @@ def auto_config_preprocess(
         if print_param:
             print(batch)
             print(patch)
-            aug_patch=get_aug_patch(patch)
             print(aug_patch)
             print(pool)
             print(config_path)
