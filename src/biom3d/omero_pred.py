@@ -31,21 +31,31 @@ def run(obj, target, log, dir_out, host=None, user=None, pwd=None, upload_id=Non
             os.makedirs(dir_out, exist_ok=True)
         dir_out = pred.pred(log, dir_in, dir_out)
 
-        # eventually upload the dataset back into Omero
-        if upload_id is not None and host is not None:
-            conn = BlitzGateway(user, pwd, host=host, port=4064)
-            conn.connect()
-            omero_uploader.omero_dataset_upload(conn, dir_out, dir_in, upload_id)
-            conn.close()
+        # eventually upload the dataset back into Omero [DEPRECATED]
+        # if upload_id is not None and host is not None:
+        #     conn = BlitzGateway(user, pwd, host=host, port=4064)
+        #     conn.connect()
+        #     omero_uploader.omero_dataset_upload(conn, dir_out, dir_in, upload_id)
+        #     conn.close()
+        print("Done prediction!")
+
+        # print for remote. Format TAG:key:value
+        print("REMOTE:dir_out:{}".format(dir_out))
+        return dir_out
 
     elif 'Project' in obj:
         dir_out = os.path.join(dir_out, os.path.split(dir_in)[-1])
         if not os.path.isdir(dir_out):
             os.makedirs(dir_out, exist_ok=True)
         pred.pred_multiple(log, dir_in, dir_out)
+        print("Done prediction!")
+
+        # print for remote. Format TAG:key:value
+        print("REMOTE:dir_out:{}".format(dir_out))
+        return dir_out
     else:
         print("[Error] Type of object unknown {}. It should be 'Dataset' or 'Project'".format(obj))
-    print("Done prediction!")
+    
     
 
 
