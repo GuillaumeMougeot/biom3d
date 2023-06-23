@@ -209,7 +209,8 @@ if __name__ == '__main__':
         parser.add_argument('--wait', type=int, default=-1, help=(
             'Wait for this number of seconds for each import to complete. '
             '0: return immediately, -1: wait indefinitely (default)'))
-        parser.add_argument('path', help='Files or directories')
+        parser.add_argument('--path', 
+            help='Files or directories')
         parser.add_argument('--username',
             help="User name")
         parser.add_argument('--password',
@@ -230,4 +231,4 @@ if __name__ == '__main__':
         Added option to create new client for omero 
         
         """ 
-        # python -m biom3d.upload_pred --username USERNAME --password PASSWORD --hostname omero.igred.fr --dataset 27276 'data/pred/20230623-100014-unet_default_fold0'
+        # python -m biom3d.upload_pred --username USERNAME --password PASSWORD --hostname omero.igred.fr --dataset 27276 --path 'data/pred/20230623-100014-unet_default_fold0'
