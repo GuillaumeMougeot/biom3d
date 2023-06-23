@@ -171,56 +171,63 @@ def full_import(client, fs_path, wait=-1):
         return assert_import(client, proc, files, wait)
     finally:
         proc.close()
-
-
-def main(argv):
-    parser = argparse.ArgumentParser()
-    # parser.addArgument('--session', type=int, help=(
-    #     'Connect with this session ID, default is to use or create a '
-    #     'session from the OMERO CLI'))
-    parser.add_argument('--dataset', type=int, help=(
-        'Add imported files to this Dataset ID (not valid when wait=-1)'))
-    parser.add_argument('--wait', type=int, default=-1, help=(
-        'Wait for this number of seconds for each import to complete. '
-        '0: return immediately, -1: wait indefinitely (default)'))
-    parser.add_argument('path', help='Files or directories')
-    parser.add_argument('--username',
-        help="User name")
-    parser.add_argument('--password',
-        help="Password")
-    parser.add_argument('--hostname',
-        help="Host name")
-    args = parser.parse_args(argv)
-    
-    os.system('omero login -u {} -w {} -s {} '.format(args.username,args.password,args.hostname))
+        
+        
+def run(user,pwd,host,dataset,path,wait):
+    os.system('omero login -u {} -w {} -s {} '.format(user,pwd,host))
     
     with cli_login() as cli:
         conn = BlitzGateway(client_obj=cli._client)
-        if args.dataset and not conn.getObject('Dataset', args.dataset):
-            print ('Dataset id not found: %s' % args.dataset)
+        if dataset and not conn.getObject('Dataset', dataset):
+            print ('Dataset id not found: %s' % dataset)
             sys.exit(1)
-        directory_path =str(args.path)    
+        directory_path =str(path)    
         filees = get_files_for_fileset(directory_path)
         for fs_path in filees:
                 print ('Importing: %s' % fs_path)
-                rsp = full_import(cli._client, fs_path, args.wait)
+                rsp = full_import(cli._client, fs_path, wait)
                 if rsp:
                     links = []
                     for p in rsp.pixels:
                         print ('Imported Image ID: %d' % p.image.id.val)
-                        if args.dataset:
+                        if dataset:
                             link = omero.model.DatasetImageLinkI()
-                            link.parent = omero.model.DatasetI(args.dataset, False)
+                            link.parent = omero.model.DatasetI(dataset, False)
                             link.child = omero.model.ImageI(p.image.id.val, False)
                             links.append(link)
                     conn.getUpdateService().saveArray(links, conn.SERVICE_OPTS)
 
-    os.system('omero logout')
-if __name__ == '__main__':
-    main(sys.argv[1:])
-
-    """
-    Modified it to do datasets, wasn't working
-    Added option to create new client for omero 
+    os.system('omero logout')    
     
-    """
+if __name__ == '__main__':
+        parser = argparse.ArgumentParser()
+        # parser.addArgument('--session', type=int, help=(
+        #     'Connect with this session ID, default is to use or create a '
+        #     'session from the OMERO CLI'))
+        parser.add_argument('--dataset', type=int, help=(
+            'Add imported files to this Dataset ID (not valid when wait=-1)'))
+        parser.add_argument('--wait', type=int, default=-1, help=(
+            'Wait for this number of seconds for each import to complete. '
+            '0: return immediately, -1: wait indefinitely (default)'))
+        parser.add_argument('path', help='Files or directories')
+        parser.add_argument('--username',
+            help="User name")
+        parser.add_argument('--password',
+            help="Password")
+        parser.add_argument('--hostname',
+            help="Host name")
+        args = parser.parse_args()
+
+        run(user=args.username,
+            pwd=args.password,
+            host=args.hostname,
+            dataset=args.dataset,
+            path=args.path,
+            wait=args.wait
+        )
+        """
+        Modified it to do datasets, wasn't working
+        Added option to create new client for omero 
+        
+        """ 
+        # python -m biom3d.upload_pred --username USERNAME --password PASSWORD --hostname omero.igred.fr --dataset 27276 'data/pred/20230623-100014-unet_default_fold0'
