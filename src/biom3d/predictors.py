@@ -85,7 +85,8 @@ class LoadImgPatch:
         
         # prepare image
         # load the image
-        img,self.spacing = adaptive_imread(self.fname)
+        img,metadata = adaptive_imread(self.fname)
+        self.spacing = None if not 'spacing' in metadata.keys() else metadata['spacing']
 
         # store img shape (for post processing)
         self.img_shape = img.shape

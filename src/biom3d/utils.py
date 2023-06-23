@@ -152,7 +152,7 @@ def sitk_imread(img_path, return_spacing=True, return_origin=False, return_direc
     img = sitk.ReadImage(img_path)
     img_np = sitk.GetArrayFromImage(img)
     dim = img.GetDimension()
-    returns = [img_np]
+
     spacing = np.array(img.GetSpacing())
     origin = np.array(img.GetOrigin())
     direction = np.array(img.GetDirection())
@@ -162,12 +162,9 @@ def sitk_imread(img_path, return_spacing=True, return_origin=False, return_direc
         direction = direction.reshape(4,4)[:-1, :-1].reshape(-1)
     elif dim != 4 and dim != 3: 
         raise RuntimeError("Unexpected dimensionality: %d of file %s, cannot split" % (dim, img_path))
-    if return_spacing: returns += [spacing]
-    if return_origin: returns += [origin]
-    if return_direction: returns += [direction]
-    return tuple(returns)
+    return img_np, {"spacing": spacing, "origin": origin, "direction": direction}
 
-def adaptive_imread(img_path, return_origin=False, return_direction=False):
+def adaptive_imread(img_path):
     """
     use skimage imread or sitk imread depending on the file extension:
     .tif --> skimage.io.imread
@@ -179,29 +176,29 @@ def adaptive_imread(img_path, return_origin=False, return_direction=False):
             spacing = tif_get_spacing(img_path)
         except:
             spacing = []
-        returns = [io.imread(img_path), spacing]  # TODO: spacing is set to empty but could be set from tif metadata
-        if return_origin: returns += [[]]
-        if return_direction: returns += [[]]
-        return tuple(returns)
+        return io.imread(img_path), {"spacing":spacing}  # TODO: spacing is set to empty but could be set from tif metadata
     elif extension == ".npy":
-        returns = [np.load(img_path), []]
-        if return_origin: returns += [[]]
-        if return_direction: returns += [[]]
-        return tuple(returns)
+        return io.imread(img_path), {}
     else:
-        return sitk_imread(img_path, return_origin=return_origin, return_direction=return_direction)
+        return sitk_imread(img_path)
 
-def sitk_imsave(img_path, img, spacing=(1,1,1), origin=(0,0,0), direction=(1., 0., 0., 0., 1., 0., 0., 0., 1.)):
+def sitk_imsave(img_path, img, metadata={}):
     """
     image saver for nii gz files
     """
+    if not 'spacing' in metadata.keys():
+        metadata['spacing']=(1,1,1)
+    if not 'origin' in metadata.keys():
+        metadata['origin']=(0,0,0)
+    if not 'direction' in metadata.keys():
+        metadata['direction']=(1., 0., 0., 0., 1., 0., 0., 0., 1.)
     img_out = sitk.GetImageFromArray(img)
-    img_out.SetSpacing(spacing)
-    img_out.SetOrigin(origin)
-    img_out.SetDirection(direction)
+    img_out.SetSpacing(metadata['spacing'])
+    img_out.SetOrigin(metadata['origin'])
+    img_out.SetDirection(metadata['direction'])
     sitk.WriteImage(img_out, img_path)
 
-def adaptive_imsave(img_path, img, spacing=(1.,1.,1.), origin=(0,0,0), direction=(1, 0, 0, 0, 1, 0, 0, 0, 1)):
+def adaptive_imsave(img_path, img, metadata={}):
     """Adaptive image saving. Use tifffile for `.tif`, use numpy for `.npy` and use SimpleITK for other format. 
 
     Parameters
@@ -239,7 +236,7 @@ def adaptive_imsave(img_path, img, spacing=(1.,1.,1.), origin=(0,0,0), direction
     elif extension == ".npy":
         np.save(img_path, img)
     else:
-        sitk_imsave(img_path, img, spacing, origin, direction)
+        sitk_imsave(img_path, img, metadata)
 
 # ----------------------------------------------------------------------------
 # tif metadata reader and writer
@@ -1092,7 +1089,7 @@ def versus_one(fct, in_path, tg_path, num_classes, single_class=None):
     """
     comparison function between in_path image and tg_path and using the criterion defined by fct
     """
-    img1,_ = adaptive_imread(in_path)
+    img1 = adaptive_imread(in_path)[0]
     print("input path",in_path)
     if len(img1.shape)==3:
         img1 = one_hot_fast(img1.astype(np.uint8), num_classes)[1:,...]
@@ -1100,7 +1097,7 @@ def versus_one(fct, in_path, tg_path, num_classes, single_class=None):
         img1 = img1[single_class,...]
     img1 = (img1 > 0).astype(int)
     
-    img2,_ = adaptive_imread(tg_path)
+    img2 = adaptive_imread(tg_path)[0]
     print("target path",tg_path)
     if len(img2.shape)==3:
         img2 = one_hot_fast(img2.astype(np.uint8), num_classes)[1:,...]

@@ -14,7 +14,6 @@ import numpy as np
 from biom3d import register
 from biom3d import callbacks as clbk
 from biom3d import utils
-from biom3d.utils import adaptive_imsave
 
 #---------------------------------------------------------------------------
 # utils to read config's functions in the function register
@@ -700,8 +699,8 @@ class Builder:
             pred = self.run_prediction_single(img_path=img_path, return_logit=return_logit)
 
             print("Saving images in", fnames_out[i])
-            _,spacing,origin,direction = utils.adaptive_imread(img_path, return_origin=True, return_direction=True)
-            adaptive_imsave(fnames_out[i], pred, spacing, origin, direction)
+            metadata = utils.adaptive_imread(img_path)[1]
+            utils.adaptive_imsave(fnames_out[i], pred, metadata)
                 
     def load_train(self, 
         path, 

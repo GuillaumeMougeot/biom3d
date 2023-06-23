@@ -205,9 +205,11 @@ def seg_preprocessor(
     do_msk = msk_path is not None
 
     # read image and mask
-    img,spacing = adaptive_imread(img_path)
+    img,metadata = adaptive_imread(img_path)
+    spacing = None if not 'spacing' in metadata.keys() else metadata['spacing']
+
     if do_msk: 
-        msk,_ = adaptive_imread(msk_path)
+        msk = adaptive_imread(msk_path)[0]
         # sanity check
         msk = sanity_check(msk, num_classes)
 
@@ -422,8 +424,8 @@ class Preprocessing:
         msk_path = os.path.join(self.msk_dir, img_fname) # mask must be present
 
         # read image and mask
-        img,_ = adaptive_imread(img_path)
-        msk,_ = adaptive_imread(msk_path)
+        img = adaptive_imread(img_path)[0]
+        msk = adaptive_imread(msk_path)[0]
 
         # determine the slicing indices to crop an image along its maximum dimension
         idx = lambda start,end,shape: tuple(slice(s) if s!=max(shape) else slice(start,end) for s in shape)

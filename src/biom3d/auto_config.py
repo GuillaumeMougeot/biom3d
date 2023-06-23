@@ -35,7 +35,10 @@ def compute_median(path, return_spacing=False):
     sizes = []
     if return_spacing: spacings = []
     for i in range(len(path_imgs)):
-        img,spacing = adaptive_imread(path_imgs[i])
+
+        img,metadata = adaptive_imread(path_imgs[i])
+        spacing = None if not 'spacing' in metadata.keys() else metadata['spacing']
+
         assert len(img.shape)>0, "[Error] Wrong image image."
         sizes += [list(img.shape)]
         if return_spacing and (spacing is not None): spacings+=[spacing]
@@ -86,7 +89,8 @@ def data_fingerprint(img_dir, msk_dir=None, num_samples=10000):
     samples = []
         
     for i in range(len(path_imgs)):
-        img,spacing = adaptive_imread(path_imgs[i])
+        img,metadata = adaptive_imread(path_imgs[i])
+        spacing = None if not 'spacing' in metadata.keys() else metadata['spacing']
 
         # store the size
         sizes += [list(img.shape)]
