@@ -35,7 +35,7 @@ Each of the remaining arguments will form a fileset:
 
 See http://www.openmicroscopy.org/community/viewtopic.php?f=6&t=8407
 Uses code from
-https://github.com/openmicroscopy/openmicroscopy/blob/develop/components/tools/OmeroPy/src/omero/testlib/__init__.py
+https://gitlab.com/openmicroscopy/incubator/omero-python-importer/-/blob/master/import.py
 """
 
 import argparse
