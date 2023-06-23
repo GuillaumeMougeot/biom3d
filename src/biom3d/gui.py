@@ -42,6 +42,7 @@ try:
     import biom3d.omero_pred
     from biom3d.utils import load_python_config
     from biom3d.train import train
+    import biom3d.upload_pred
     import torch
 except:
     pass
@@ -1066,7 +1067,55 @@ class OutputDirectory(ttk.LabelFrame):
             self.columnconfigure(0, weight=1)
             for i in range(2):
                 self.rowconfigure(i, weight=1)
+class OmeroUpload(ttk.LabelFrame):
+    def __init__(self,*arg, **kw):
+        super(OmeroUpload, self).__init__(*arg, **kw)
+        self.upload_label= ttk.Label(self, text="Send predictions to OMERO : ")
+       
+        # widgets definitions
+        self.hostname_label = ttk.Label(self, text='Omero server address:')
+        self.hostname = StringVar(value="omero.igred.fr")
+        self.hostname_entry = ttk.Entry(self, textvariable=self.hostname)
 
+        self.username_label = ttk.Label(self, text='User name:')
+        self.username = StringVar(value="demo")
+        self.username_entry = ttk.Entry(self, textvariable=self.username)
+
+        self.password_label = ttk.Label(self, text='Password:')
+        self.password = StringVar(value="Isim@42")
+        self.password_entry = ttk.Entry(self, textvariable=self.password, show='*')
+
+        self.prediction_folder_label = ttk.Label(self, text='Prediction Folder:')
+        self.prediction_folder= FileDialog(self, mode='folder', textEntry="data/pred")
+        
+        self.upload_dataset_label= ttk.Label(self, text="Dataset ID : ")
+        self.upload_dataset_entry= ttk.Entry(self)
+    
+        # place widgets
+        self.hostname_label.grid(column=0, row=0, sticky=(W,E))
+        self.hostname_entry.grid(column=1, row=0, sticky=(W,E))
+
+        self.username_label.grid(column=0, row=1, sticky=(W,E))
+        self.username_entry.grid(column=1, row=1, sticky=(W,E))
+
+        self.password_label.grid(column=0, row=2, sticky=(W,E))
+        self.password_entry.grid(column=1, row=2, sticky=(W,E))
+        
+        self.upload_dataset_label.grid(column=0, row=3, sticky=(W,E))
+        self.upload_dataset_entry.grid(column=1, row=3, sticky=(W,E))
+        
+        self.prediction_folder_label.grid(column=0, row=4, sticky=(W,E))
+        self.prediction_folder.grid(column=1,row=4, sticky=(W,E))
+        # grid config
+        self.columnconfigure(0, weight=1)
+        self.columnconfigure(1, weight=5)
+        for i in range(5):
+            self.rowconfigure(i, weight=1)
+
+       
+        # add send to omero button 
+
+            
 class DownloadPrediction(ttk.LabelFrame):
     """
     REMOTE only! download output after prediction
@@ -1133,10 +1182,12 @@ class PredictTab(ttk.Frame):
         super(PredictTab, self).__init__(*arg, **kw)
         self.prediction_messages = ttk.Label(self, text="")
         self.use_omero_state = IntVar(value=0) 
+        self.send_to_omero_state = IntVar(value=0) 
         # if platform=='linux' or REMOTE: # local Omero for linux only
         self.use_omero = ttk.Checkbutton(self, text="Use omero input directory", command=self.display_omero, variable=self.use_omero_state)
         self.input_dir = InputDirectory(self, text="Input directory", padding=[10,10,10,10])
         self.model_selection = ModelSelection(self, text="Model selection", padding=[10,10,10,10])
+        self.send_to_omero = ttk.Checkbutton(self, text="Send Predictions to omero ", command=self.display_send_to_omero, variable=self.send_to_omero_state)
         if not REMOTE: self.output_dir = OutputDirectory(self, text="Output directory", padding=[10,10,10,10])
         self.button = ttk.Button(self, width=10,style="train_button.TLabel", text="Start", command=self.predict)
         if REMOTE: self.download_prediction = DownloadPrediction(self, text="Download predictions to local", padding=[10,10,10,10])
@@ -1145,9 +1196,15 @@ class PredictTab(ttk.Frame):
         self.use_omero.grid(column=0,row=0,sticky=(W,E), pady=6)
         self.input_dir.grid(column=0,row=1,sticky=(W,E), pady=6)
         self.model_selection.grid(column=0,row=3,sticky=(W,E), pady=6)
-        if not REMOTE: self.output_dir.grid(column=0,row=4,sticky=(W,E), pady=6)
+        
+        if not REMOTE: 
+            self.output_dir.grid(column=0,row=4,sticky=(W,E), pady=6)
+            self.send_to_omero.grid(column=0,row=5,sticky=(W,E), pady=6)
+
         self.button.grid(column=0,row=5,ipady=4, pady=4,padx=10,sticky=(S,N))
-        if REMOTE: self.download_prediction.grid(column=0, row=6, sticky=(W,E), pady=6)
+        if REMOTE: 
+            self.download_prediction.grid(column=0, row=6, sticky=(W,E), pady=6)
+            self.send_to_omero.grid(column=0,row=7,sticky=(W,E), pady=6)
     
         self.columnconfigure(0, weight=1)
         for i in range(7):
@@ -1210,6 +1267,7 @@ class PredictTab(ttk.Frame):
                     if not line:
                         break
                     if line:
+                        print("ratzraddddddddddddddddddddddddtrtz   ",line)
                         print(line, end="")
                 while True: # print error messages if needed
                     line = stderr.readline()
@@ -1223,11 +1281,17 @@ class PredictTab(ttk.Frame):
             else: 
                 self.prediction_messages.grid(column=0, row=6, columnspan=2, sticky=(W,E))
                 self.prediction_messages.config(text="Prediction is running ...!")
-                pred(
+                p = pred(
                     log=self.model_selection.logs_dir.get(),
                     dir_in=self.input_dir.data_dir.get(),
                     dir_out=self.output_dir.data_dir.get())
                 self.prediction_messages.config(text="Prediction is Done !")
+                biom3d.upload_pred.run(user=self.send_to_omero_connection.username.get(),
+                    pwd=self.send_to_omero_connection.password.get(),
+                    host=self.send_to_omero_connection.hostname.get(),
+                    dataset=self.send_to_omero_connection.upload_dataset_entry.get(),
+                    path=p,
+                    wait=1)
                 popupmsg("Prediction done !")
 
     def display_omero(self):
@@ -1250,7 +1314,27 @@ class PredictTab(ttk.Frame):
 
             # reset the input dir
             self.input_dir.grid(column=0,row=1,sticky=(W,E))
+       
+    def display_send_to_omero(self):
+         if self.send_to_omero_state.get():
+             # place the new ones
+            self.send_to_omero_connection = OmeroUpload(self, text="Connection to Omero server", padding=[10,10,10,10])
+            self.send_to_omero_connection.grid(column=0,row=9,sticky=(W,E), pady=6)
+            
+            if REMOTE :
+                self.download_prediction.grid_remove()
+                self.send_to_omero_connection.grid(column=0,row=6,sticky=(W,E), pady=6)
+                
+            else :
+                self.output_dir.grid_remove()     
+                self.send_to_omero_connection.grid(column=0,row=4,sticky=(W,E), pady=6)
 
+         else:
+            # hide omero 
+            self.send_to_omero_connection.grid_remove()
+            if REMOTE : self.download_prediction.grid(column=0, row=6, sticky=(W,E), pady=6)
+            else: self.output_dir.grid(column=0,row=4,sticky=(W,E), pady=6)
+          
 #----------------------------------------------------------------------------
 # Main loop
 
