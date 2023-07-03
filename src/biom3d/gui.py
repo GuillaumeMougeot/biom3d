@@ -1078,38 +1078,57 @@ class OmeroUpload(ttk.LabelFrame):
         self.hostname_entry = ttk.Entry(self, textvariable=self.hostname)
 
         self.username_label = ttk.Label(self, text='User name:')
-        self.username = StringVar(value="demo")
+        self.username = StringVar(value="")
         self.username_entry = ttk.Entry(self, textvariable=self.username)
 
         self.password_label = ttk.Label(self, text='Password:')
-        self.password = StringVar(value="Isim@42")
+        self.password = StringVar(value="")
         self.password_entry = ttk.Entry(self, textvariable=self.password, show='*')
 
+        self.dataset_label = ttk.Label(self, text='Select the prediction Folder to send :')
+        
         self.prediction_folder_label = ttk.Label(self, text='Prediction Folder:')
         self.prediction_folder= FileDialog(self, mode='folder', textEntry="data/pred")
         
         self.upload_dataset_label= ttk.Label(self, text="Dataset ID : ")
         self.upload_dataset_entry= ttk.Entry(self)
-    
+        
+        if REMOTE :
+            # define the dropdown menu
+            _,stdout,_ = REMOTE.exec_command('ls {}/data/pred'.format(MAIN_DIR))
+            self.data_list = [e.replace('\n','') for e in stdout.readlines()]
+            if(len(self.data_list) == 0):
+                    self.data_dir = StringVar(value="Empty")
+            else:   
+                self.data_dir = StringVar(value=self.data_list[0])
+            self.data_dir_option_menu = ttk.OptionMenu(self, self.data_dir, self.data_dir.get(), *self.data_list)
+            self.button_update_list = ttk.Button(self, text="Update", command=DownloadPrediction()._update_pred_list)
+            self.dataset_label = ttk.Label(self, text='Select the dataset to send :')
+        self.send_data_omero = ttk.Button(self, width=15,text="Send to Omero", style="train_button.TLabel")
         # place widgets
         self.hostname_label.grid(column=0, row=0, sticky=(W,E))
-        self.hostname_entry.grid(column=1, row=0, sticky=(W,E))
+        self.hostname_entry.grid(column=1,columnspan=2, row=0, sticky=(W,E))
 
         self.username_label.grid(column=0, row=1, sticky=(W,E))
-        self.username_entry.grid(column=1, row=1, sticky=(W,E))
+        self.username_entry.grid(column=1,columnspan=2, row=1, sticky=(W,E))
 
         self.password_label.grid(column=0, row=2, sticky=(W,E))
-        self.password_entry.grid(column=1, row=2, sticky=(W,E))
+        self.password_entry.grid(column=1, columnspan=2,row=2, sticky=(W,E))
         
         self.upload_dataset_label.grid(column=0, row=3, sticky=(W,E))
-        self.upload_dataset_entry.grid(column=1, row=3, sticky=(W,E))
-        
-        self.prediction_folder_label.grid(column=0, row=4, sticky=(W,E))
-        self.prediction_folder.grid(column=1,row=4, sticky=(W,E))
+        self.upload_dataset_entry.grid(column=1, columnspan=2,row=3, sticky=(W,E))
+        self.dataset_label.grid(column=0,row=4, pady=5,padx=5, sticky=(W,E))
+        if REMOTE:
+            self.data_dir_option_menu.grid(column=0, row=5, columnspan=2, sticky=(W,E))
+            self.button_update_list.grid(column=2,row=5, padx=5, sticky=(W,E))
+            self.send_data_omero.grid(column=2,ipady=4,pady=5,row=6, sticky=(W,E))
+        else :
+            self.prediction_folder_label.grid(column=0, row=5,padx=5, sticky=(W,E))
+            self.prediction_folder.grid(column=1,columnspan=2,row=5, sticky=(W,E))
         # grid config
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=5)
-        for i in range(5):
+        for i in range(6):
             self.rowconfigure(i, weight=1)
 
        
