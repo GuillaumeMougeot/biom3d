@@ -182,20 +182,22 @@ def run(user,pwd,host,dataset,path,wait):
             print ('Dataset id not found: %s' % dataset)
             sys.exit(1)
         directory_path =str(path)    
-        filees = get_files_for_fileset(directory_path)
-        for fs_path in filees:
-                print ('Importing: %s' % fs_path)
-                rsp = full_import(cli._client, fs_path, wait)
-                if rsp:
-                    links = []
-                    for p in rsp.pixels:
-                        print ('Imported Image ID: %d' % p.image.id.val)
-                        if dataset:
-                            link = omero.model.DatasetImageLinkI()
-                            link.parent = omero.model.DatasetI(dataset, False)
-                            link.child = omero.model.ImageI(p.image.id.val, False)
-                            links.append(link)
-                    conn.getUpdateService().saveArray(links, conn.SERVICE_OPTS)
+        for file in os.listdir(directory_path):
+            sous_dossier = os.path.join(directory_path,file)
+            os.chdir(sous_dossier)
+            for fs_path in os.listdir(sous_dossier):
+                    print ('Importing: %s' % fs_path)
+                    rsp = full_import(cli._client, fs_path, wait)
+                    if rsp:
+                        links = []
+                        for p in rsp.pixels:
+                            print ('Imported Image ID: %d' % p.image.id.val)
+                            if dataset:
+                                link = omero.model.DatasetImageLinkI()
+                                link.parent = omero.model.DatasetI(dataset, False)
+                                link.child = omero.model.ImageI(p.image.id.val, False)
+                                links.append(link)
+                        conn.getUpdateService().saveArray(links, conn.SERVICE_OPTS)
 
     os.system('omero logout')    
     
@@ -209,7 +211,7 @@ if __name__ == '__main__':
         parser.add_argument('--wait', type=int, default=-1, help=(
             'Wait for this number of seconds for each import to complete. '
             '0: return immediately, -1: wait indefinitely (default)'))
-        parser.add_argument('path', help='Files or directories')
+        parser.add_argument('--path', help='Files or directories')
         parser.add_argument('--username',
             help="User name")
         parser.add_argument('--password',
@@ -228,6 +230,6 @@ if __name__ == '__main__':
         """
         Modified it to do datasets, wasn't working
         Added option to create new client for omero 
-        
         """ 
-        # python -m biom3d.upload_pred --username USERNAME --password PASSWORD --hostname omero.igred.fr --dataset 27276 'data/pred/20230623-100014-unet_default_fold0'
+        # python -m import --username USERNAME  --password PWD --hostname omero.igred.fr --dataset DATASET_ID  --path 'path_to_folder'
+
