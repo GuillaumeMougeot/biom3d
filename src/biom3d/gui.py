@@ -656,11 +656,13 @@ class ConfigFrame(ttk.LabelFrame):
                 print(line, end="")
            
            # get auto config results
-            batch = auto_config_results[5]
-            aug_patch = self.str2list2(auto_config_results[7])
-            patch = self.str2list(auto_config_results[6])
-            pool = self.str2list(auto_config_results[8])
-            config_path = auto_config_results[9]
+            reversed_auto_config_results = auto_config_results[::-1]
+        
+            batch = reversed_auto_config_results[4]
+            patch = self.str2list(reversed_auto_config_results[3])
+            aug_patch = self.str2list2(reversed_auto_config_results[2])
+            pool = self.str2list(reversed_auto_config_results[1])
+            config_path = reversed_auto_config_results[0]
     
             print(batch,patch,pool,aug_patch,config_path)
           
@@ -1085,7 +1087,7 @@ class OmeroUpload(ttk.LabelFrame):
         self.password = StringVar(value="")
         self.password_entry = ttk.Entry(self, textvariable=self.password, show='*')
 
-        self.dataset_label = ttk.Label(self, text='Select the prediction Folder to send :')
+        self.dataset_label = ttk.Label(self, text='Select a folder to save the prediction  :')
         
         self.prediction_folder_label = ttk.Label(self, text='Prediction Folder:')
         self.prediction_folder= FileDialog(self, mode='folder', textEntry="data/pred")
@@ -1102,9 +1104,9 @@ class OmeroUpload(ttk.LabelFrame):
             else:   
                 self.data_dir = StringVar(value=self.data_list[0])
             self.data_dir_option_menu = ttk.OptionMenu(self, self.data_dir, self.data_dir.get(), *self.data_list)
-            self.button_update_list = ttk.Button(self, text="Update", command=DownloadPrediction()._update_pred_list)
+            self.button_update_list = ttk.Button(self, text="Update", command=self._update_pred_list)
             self.dataset_label = ttk.Label(self, text='Select the dataset to send :')
-        self.send_data_omero = ttk.Button(self, width=15,text="Send to Omero", style="train_button.TLabel")
+        self.send_data_omero = ttk.Button(self, width=15,text="Send to Omero", style="train_button.TLabel", command=self.send_to_omero)
         # place widgets
         self.hostname_label.grid(column=0, row=0, sticky=(W,E))
         self.hostname_entry.grid(column=1,columnspan=2, row=0, sticky=(W,E))
@@ -1133,8 +1135,37 @@ class OmeroUpload(ttk.LabelFrame):
 
        
         # add send to omero button 
-
-            
+    def _update_pred_list(self):
+        _,stdout,_ = REMOTE.exec_command('ls {}/data/pred'.format(MAIN_DIR))
+        self.data_list = [e.replace('\n','') for e in stdout.readlines()]
+        self.data_dir_option_menu.set_menu(self.data_list[0], *self.data_list)       
+        popupmsg("Updated !")
+        
+        
+    def send_to_omero(self):
+        _,stdout,stderr=REMOTE.exec_command("cd {}; python -m biom3d.omero_uploader --username {} --password {} --hostname {} --dataset {} --path {}/data/pred/{}/ ".format(MAIN_DIR, self.username_entry.get(), self.password_entry.get(), self.hostname_entry.get(), self.upload_dataset_entry.get(), MAIN_DIR, self.dataset_selected_omero() ), get_pty=True)
+        
+        print(" all params : ",MAIN_DIR, self.username_entry.get(), self.password_entry.get(), self.hostname_entry.get(), self.upload_dataset_entry.get(), MAIN_DIR, self.dataset_selected_omero())
+        while True: 
+                    line = stdout.readline()
+                    if not line:
+                        break
+                    if line:
+                        print(line, end="")
+        while True: # print error messages if needed
+            line = stderr.readline()
+            if not line:
+                break
+            if line:
+                print(line, end="")
+       
+       
+       
+    def dataset_selected_omero(self, *args):
+        global selected_dataset
+        selected_dataset = self.data_dir.get()
+        #print("Selected option:", selected_dataset)
+        return selected_dataset  
 class DownloadPrediction(ttk.LabelFrame):
     """
     REMOTE only! download output after prediction
@@ -1258,13 +1289,12 @@ class PredictTab(ttk.Frame):
                         print(line, end="")
 
                 self.download_prediction._update_pred_list()
-                popupmsg("Prediction Done !")    
             else:
-                target = self.output_dir.data_dir.get()
+                target = "data/to_pred"
                 if not os.path.isdir(target):
                     os.makedirs(target, exist_ok=True)
                 print("Downloading Omero dataset into", target)
-                biom3d.omero_pred.run(
+                p=biom3d.omero_pred.run(
                     obj=obj,
                     target=target,
                     log=self.model_selection.logs_dir.get(), 
@@ -1273,6 +1303,13 @@ class PredictTab(ttk.Frame):
                     pwd=self.omero_connection.password.get(),
                     host=self.omero_connection.hostname.get()
                 )
+                if self.send_to_omero_state.get():
+                    biom3d.upload_pred.run(user=self.send_to_omero_connection.username.get(),
+                    pwd=self.send_to_omero_connection.password.get(),
+                    host=self.send_to_omero_connection.hostname.get(),
+                    dataset=self.send_to_omero_connection.upload_dataset_entry.get(),
+                    path=p,
+                    wait=1)
         else: # if not use Omero
             if REMOTE:
                 _, stdout, stderr = REMOTE.exec_command("cd {}; python -m biom3d.pred --log {} --dir_in {} --dir_out {}".format(
@@ -1286,7 +1323,6 @@ class PredictTab(ttk.Frame):
                     if not line:
                         break
                     if line:
-                        print("ratzraddddddddddddddddddddddddtrtz   ",line)
                         print(line, end="")
                 while True: # print error messages if needed
                     line = stderr.readline()
@@ -1296,16 +1332,20 @@ class PredictTab(ttk.Frame):
                         print(line, end="")
                 
                 self.download_prediction._update_pred_list()
-                popupmsg("Prediction done !")
             else: 
+                if self.send_to_omero_state.get():
+                    target= self.send_to_omero_connection.prediction_folder.get()
+                else :
+                    target = self.output_dir.data_dir.get()
                 self.prediction_messages.grid(column=0, row=6, columnspan=2, sticky=(W,E))
                 self.prediction_messages.config(text="Prediction is running ...!")
                 p = pred(
                     log=self.model_selection.logs_dir.get(),
                     dir_in=self.input_dir.data_dir.get(),
-                    dir_out=self.output_dir.data_dir.get())
+                    dir_out=target)
                 self.prediction_messages.config(text="Prediction is Done !")
-                biom3d.upload_pred.run(user=self.send_to_omero_connection.username.get(),
+                if self.send_to_omero_state.get():
+                    biom3d.upload_pred.run(user=self.send_to_omero_connection.username.get(),
                     pwd=self.send_to_omero_connection.password.get(),
                     host=self.send_to_omero_connection.hostname.get(),
                     dataset=self.send_to_omero_connection.upload_dataset_entry.get(),
