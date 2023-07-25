@@ -170,15 +170,19 @@ def adaptive_imread(img_path):
     .tif --> skimage.io.imread
     .nii.gz --> SimpleITK.imread
     """
-    extension = img_path[img_path.rfind('.'):]
-    if extension == ".tif":
-        try:
-            spacing = tif_get_spacing(img_path)
-        except:
-            spacing = []
-        return io.imread(img_path), {"spacing":spacing}  # TODO: spacing is set to empty but could be set from tif metadata
+    extension = img_path[img_path.rfind('.'):].lower()
+    if extension == ".tif" or extension == ".tiff":
+        try: 
+            img, img_meta = tif_read_imagej(img_path)  # try loading ImageJ metadata for tif files
+            return img, img_meta
+        except:   
+            img_meta = {}    
+            try: img_meta["spacing"] = tif_get_spacing(img_path)
+            except: img_meta["spacing"] = []
+    
+            return io.imread(img_path), img_meta 
     elif extension == ".npy":
-        return io.imread(img_path), {}
+        return np.load(img_path), {}
     else:
         return sitk_imread(img_path)
 
@@ -198,7 +202,7 @@ def sitk_imsave(img_path, img, metadata={}):
     img_out.SetDirection(metadata['direction'])
     sitk.WriteImage(img_out, img_path)
 
-def adaptive_imsave(img_path, img, metadata={}):
+def adaptive_imsave(img_path, img, img_meta={}):
     """Adaptive image saving. Use tifffile for `.tif`, use numpy for `.npy` and use SimpleITK for other format. 
 
     Parameters
@@ -210,8 +214,8 @@ def adaptive_imsave(img_path, img, metadata={}):
         spacing : tuple, default=(1,1,1)
             Optional spacing of the image. Only used with the SimpleITK library.
     """
-    extension = img_path[img_path.rfind('.'):]
-    if extension == ".tif":
+    extension = img_path[img_path.rfind('.'):].lower()
+    if extension == ".tif" or extension == ".tiff":
         # if not np.all(spacing==(1.,1.,1.)):
         #     res = int(1e6) # default resolution is MICROMETERS
         #     tiff.imwrite(
@@ -229,17 +233,95 @@ def adaptive_imsave(img_path, img, metadata={}):
         #         imagej=True,
         #         )
         # else:
-        tiff.imwrite(
-            img_path,
-            img,
-            compression=('zlib', 1))
+
+        # Current solution for tif files 
+        try:
+            tif_write_imagej(
+                img_path,
+                img,
+                img_meta)
+        except:
+            tiff.imwrite(
+                img_path,
+                img,
+                compression=('zlib', 1))
     elif extension == ".npy":
         np.save(img_path, img)
     else:
-        sitk_imsave(img_path, img, metadata)
+        sitk_imsave(img_path, img, img_meta)
 
 # ----------------------------------------------------------------------------
 # tif metadata reader and writer
+
+def tif_read_imagej(img_path):
+    """Read tif file metadata stored in a ImageJ format.
+    adapted from: https://forum.image.sc/t/python-copy-all-metadata-from-one-multipage-tif-to-another/26597/8
+
+    Parameters
+    ----------
+    img_path : str
+        Path to the input image.
+
+    Returns
+    -------
+    img : numpy.ndarray
+        Image.
+    img_meta : dict
+        Image metadata. 
+    """
+
+    with tiff.TiffFile(img_path) as tif:
+        # assert tif.is_imagej
+
+        # store img_meta
+        img_meta = {}
+
+        # get image resolution from TIFF tags
+        tags = tif.pages[0].tags
+        x_resolution = tags['XResolution'].value
+        y_resolution = tags['YResolution'].value
+        resolution_unit = tags['ResolutionUnit'].value
+        
+        img_meta["resolution"] = (x_resolution, y_resolution, resolution_unit)
+
+        # parse ImageJ metadata from the ImageDescription tag
+        ij_description = tags['ImageDescription'].value
+        ij_description_metadata = tiff.tifffile.imagej_description_metadata(ij_description)
+        # remove conflicting entries from the ImageJ metadata
+        ij_description_metadata = {k: v for k, v in ij_description_metadata.items()
+                                   if k not in 'ImageJ images channels slices frames'}
+
+        img_meta["description"] = ij_description_metadata
+        
+        # compute spacing
+        xres = (x_resolution[1]/x_resolution[0])
+        yres = (y_resolution[1]/y_resolution[0])
+        zres = float(ij_description_metadata["spacing"])
+        
+        img_meta["spacing"] = (xres, yres, zres)
+
+        # read the whole image stack and get the axes order
+        series = tif.series[0]
+        img = series.asarray()
+        
+        img_meta["axes"] = series.axes
+    
+    return img, img_meta
+
+def tif_write_imagej(img_path, img, img_meta):
+    """Write tif file using metadata in ImageJ format.
+    adapted from: https://forum.image.sc/t/python-copy-all-metadata-from-one-multipage-tif-to-another/26597/8
+    """
+    # saving ImageJ hyperstack requires a 6 dimensional array in axes order TZCYXS
+    img = tiff.tifffile.transpose_axes(img, img_meta["axes"], 'TZCYXS')
+
+    # write image and metadata to an ImageJ hyperstack compatible file
+    tiff.imwrite(img_path, img,
+            resolution=img_meta["resolution"],
+            imagej=True, 
+            metadata=img_meta["description"],
+            compression=('zlib', 1)
+            )
 
 def tif_read_meta(tif_path, display=False):
     """
@@ -427,7 +509,7 @@ def one_hot_fast(values, num_classes=None):
 
 def resize_segmentation(segmentation, new_shape, order=3):
     '''
-    Copied from batch_generator library. Copyright Fabian Insensee.
+    Copied from batch_generator library. Copyleft Fabian Insensee.
     Resizes a segmentation map. Supports all orders (see skimage documentation). Will transform segmentation map to one
     hot encoding which is resized and transformed back to a segmentation map.
     This prevents interpolation artifacts ([0, 0, 2] -> [0, 1, 2])

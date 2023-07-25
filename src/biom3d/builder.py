@@ -590,13 +590,18 @@ class Builder:
     #         join=True,
     #     )
 
-    def run_prediction_single(self, img_path, return_logit=True):
+    def run_prediction_single(self, img_path=None, img=None, img_meta=None, return_logit=True):
         """Compute a prediction for one image using the predictor defined in the configuration file.
+        Two input options are available: either give the image path or the image and its associated metadata.
 
         Parameters
         ----------
         img_path : str
             Path to the image.
+        img : numpy.ndarray
+            The entire image, required if the img_path is not provided.
+        img_meta : dict
+            Metadata of the image, required it the img_path is not provided.
         return_logit : bool, default=True
             Whether to return the logit, i.e. the model output before the final activation. 
         
@@ -605,15 +610,19 @@ class Builder:
         numpy.ndarray
             Output images.
         """
-        # load image with the preprocessor
-        # img, img_metadata = read_config(self.config.PREPROCESSOR, register.preprocessors, img_path=img_path)
+        # load image
+        if img_path is not None:
+            img, img_meta = utils.adaptive_imread(img_path=img_path)
+        else:
+            assert img is not None and img_meta is not None, '[Error] If the image path is not provided, provide the image array and its metadata'
+
         if type(self.config)==list: # multi-model mode!
             # check if the preprocessing are all equal, then only use one preprocessing
             # TODO: make it more flexible?
             assert np.all([config.PREPROCESSOR==self.config[0].PREPROCESSOR for config in self.config[1:]]), "[Error] For multi-model prediction, the current version of biom3d imposes that all preprocessor are identical."
             
             # preprocessing
-            img, img_meta = read_config(self.config[0].PREPROCESSOR, register.preprocessors, img_path=img_path)
+            img, img_meta = read_config(self.config[0].PREPROCESSOR, register.preprocessors, img=img, img_meta=img_meta)
 
             # same for postprocessors
             for i in range(len(self.config)):
@@ -647,11 +656,7 @@ class Builder:
                     return_logit = return_logit,
                     **img_meta) # all img_meta should be equal as we use the same preprocessors
         else:
-            img, img_meta = read_config(self.config.PREPROCESSOR, register.preprocessors, img_path=img_path)
-
-            # same for postprocessors
-            if not 'POSTPROCESSOR' in self.config.keys():
-                self.config.POSTPROCESSOR = utils.Dict(fct="Seg", kwargs=utils.Dict())
+            img, img_meta = read_config(self.config.PREPROCESSOR, register.preprocessors, img=img, img_meta=img_meta)
 
             # prediction
             out = read_config(
@@ -660,6 +665,10 @@ class Builder:
                 img = img,
                 model = self.model,
                 **img_meta)
+            
+            # retro-compatibility: use "Seg" post-processor as default 
+            if not 'POSTPROCESSOR' in self.config.keys():
+                self.config.POSTPROCESSOR = utils.Dict(fct="Seg", kwargs=utils.Dict())
             
             # postprocessing
             return read_config(
@@ -696,11 +705,11 @@ class Builder:
 
         for i, img_path in enumerate(fnames_in):
             print("running prediction for image: ", img_path)
-            pred = self.run_prediction_single(img_path=img_path, return_logit=return_logit)
+            img, img_meta = utils.adaptive_imread(img_path)
+            pred = self.run_prediction_single(img=img, img_meta=img_meta, return_logit=return_logit)
 
             print("Saving images in", fnames_out[i])
-            metadata = utils.adaptive_imread(img_path)[1]
-            utils.adaptive_imsave(fnames_out[i], pred, metadata)
+            utils.adaptive_imsave(fnames_out[i], pred, img_meta)
                 
     def load_train(self, 
         path, 

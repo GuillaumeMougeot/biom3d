@@ -49,6 +49,7 @@ docs = [
 gui = [
     "paramiko",
     "omero-py",
+    "ezomero",
     "netcat"
 ]
 

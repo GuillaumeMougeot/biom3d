@@ -301,9 +301,10 @@ def seg_predict_patch_2(
     enable_autocast=True, 
     use_softmax=True,   # DEPRECATED!
     keep_biggest_only=False, # DEPRECATED!
+    **kwargs, # just for handling other image metadata
     ):
     """
-    for one image path, load the image, compute the model prediction, return the prediction
+    for one image, compute the model prediction, return the predicted logit
     """
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     enable_autocast = torch.cuda.is_available() and enable_autocast # tmp, autocast seems to work only with gpu for now... 
@@ -388,7 +389,11 @@ def seg_postprocessing(
         keep_big_only=False,
         keep_biggest_only=False,
         return_logit=False,
+        **kwargs, # just for handling other image metadata
     ):
+    """
+    Post-process the logit (model output) to obtain the final segmentation mask. Can optionally remove some noise. 
+    """
     # make original_shape 3D
     original_shape = original_shape[-3:]
 

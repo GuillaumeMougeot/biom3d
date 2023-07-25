@@ -170,7 +170,7 @@ def full_import(client, fs_path, wait=-1):
     finally:
         proc.close()
         
-def run(conn,dataset,path,wait):
+def run(conn,dataset,path,wait=-1):
     if dataset and not conn.getObject('Dataset', dataset):
         print ('Dataset id not found: %s' % dataset)
         sys.exit(1)
