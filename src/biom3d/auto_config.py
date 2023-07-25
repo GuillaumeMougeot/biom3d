@@ -269,7 +269,7 @@ def auto_config(img_dir=None, median=None, max_dims=(128,128,128), max_batch=16,
 
     Parameters
     ----------
-    img_dir: str
+    img_dir : str
         Image folder path.
     median : list or tuple
         Median size of the images in the image directory.

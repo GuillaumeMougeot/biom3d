@@ -172,38 +172,28 @@ def full_import(client, fs_path, wait=-1):
     finally:
         proc.close()
         
-        
-def run(user,pwd,host,dataset,path,wait):
-    os.system('omero login -u {} -w {} -s {} '.format(user,pwd,host))
-    
-    with cli_login() as cli:
-        conn = BlitzGateway(client_obj=cli._client)
-        if dataset and not conn.getObject('Dataset', dataset):
-            print ('Dataset id not found: %s' % dataset)
-            sys.exit(1)
-        directory_path =str(path)    
-        filees = get_files_for_fileset(directory_path)
-        for fs_path in filees:
-                print ('Importing: %s' % fs_path)
-                rsp = full_import(cli._client, fs_path, wait)
-                if rsp:
-                    links = []
-                    for p in rsp.pixels:
-                        print ('Imported Image ID: %d' % p.image.id.val)
-                        if dataset:
-                            link = omero.model.DatasetImageLinkI()
-                            link.parent = omero.model.DatasetI(dataset, False)
-                            link.child = omero.model.ImageI(p.image.id.val, False)
-                            links.append(link)
-                    conn.getUpdateService().saveArray(links, conn.SERVICE_OPTS)
-
-    os.system('omero logout')    
+def run(conn,dataset,path,wait):
+    if dataset and not conn.getObject('Dataset', dataset):
+        print ('Dataset id not found: %s' % dataset)
+        sys.exit(1)
+    directory_path =str(path)    
+    filees = get_files_for_fileset(directory_path)
+    for fs_path in filees:
+            print ('Importing: %s' % fs_path)
+            rsp = full_import(conn.c, fs_path, wait)
+            if rsp:
+                links = []
+                for p in rsp.pixels:
+                    print ('Imported Image ID: %d' % p.image.id.val)
+                    if dataset:
+                        link = omero.model.DatasetImageLinkI()
+                        link.parent = omero.model.DatasetI(dataset, False)
+                        link.child = omero.model.ImageI(p.image.id.val, False)
+                        links.append(link)
+                conn.getUpdateService().saveArray(links, conn.SERVICE_OPTS) 
     
 if __name__ == '__main__':
         parser = argparse.ArgumentParser()
-        # parser.addArgument('--session', type=int, help=(
-        #     'Connect with this session ID, default is to use or create a '
-        #     'session from the OMERO CLI'))
         parser.add_argument('--dataset', type=int, help=(
             'Add imported files to this Dataset ID (not valid when wait=-1)'))
         parser.add_argument('--wait', type=int, default=-1, help=(
@@ -219,16 +209,11 @@ if __name__ == '__main__':
             help="Host name")
         args = parser.parse_args()
 
-        run(user=args.username,
-            pwd=args.password,
-            host=args.hostname,
+        conn = BlitzGateway(args.username, args.password, host=args.hostname, port=4064)
+        conn.connect()
+        run(conn=conn,
             dataset=args.dataset,
             path=args.path,
             wait=args.wait
         )
-        """
-        Modified it to do datasets, wasn't working
-        Added option to create new client for omero 
-        
-        """ 
-        # python -m biom3d.upload_pred --username USERNAME --password PASSWORD --hostname omero.igred.fr --dataset 27276 --path 'data/pred/20230623-100014-unet_default_fold0'
+        conn.close()

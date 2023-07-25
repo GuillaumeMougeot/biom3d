@@ -312,6 +312,7 @@ class LogSaver(Callback):
         
         # write in the output file
         f.write(template + "\n")
+        f.close()
 
 class ImageSaver(Callback):
     """The image saver callback saves a small snapshot of the raw image, the prediction and the ground truth. By default, it uses the validation dataloader to load a batch of 3D images, makes a prediction with the model, then uses the first images of the batch and the prediction and, to display a 2D image, uses the first channel of each image (input, prediction, ground truth).
