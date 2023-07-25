@@ -1143,7 +1143,7 @@ class OmeroUpload(ttk.LabelFrame):
         
         
     def send_to_omero(self):
-        _,stdout,stderr=REMOTE.exec_command("cd {}; python -m biom3d.omero_uploader --username {} --password {} --hostname {} --dataset {} --path {}/data/pred/{}/ ".format(MAIN_DIR, self.username_entry.get(), self.password_entry.get(), self.hostname_entry.get(), self.upload_dataset_entry.get(), MAIN_DIR, self.dataset_selected_omero() ), get_pty=True)
+        _,stdout,stderr=REMOTE.exec_command("cd {}; python -m biom3d.omero_uploader --username {} --password {} --hostname {} --dataset {} --path {}/data/pred/{}/ ".format(MAIN_DIR, self.username_entry.get(), self.password_entry.get(), self.hostname_entry.get(), self.upload_dataset_entry.get(), MAIN_DIR, self.dataset_selected_omero() ))
         
         print(" all params : ",MAIN_DIR, self.username_entry.get(), self.password_entry.get(), self.hostname_entry.get(), self.upload_dataset_entry.get(), MAIN_DIR, self.dataset_selected_omero())
         while True: 
