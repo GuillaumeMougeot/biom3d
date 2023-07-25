@@ -45,7 +45,6 @@ import platform
 import sys
 
 import omero.clients
-from omero.cli import cli_login
 from omero.model import ChecksumAlgorithmI
 from omero.model import NamedValue
 from omero.model.enums import ChecksumAlgorithmSHA1160
@@ -53,7 +52,6 @@ from omero.rtypes import rstring, rbool
 from omero_version import omero_version
 from omero.callbacks import CmdCallbackI
 from omero.gateway import BlitzGateway
-
 
 def get_files_for_fileset(fs_path):
     if os.path.isfile(fs_path):
