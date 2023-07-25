@@ -1,3 +1,9 @@
+#---------------------------------------------------------------------------
+# Predictions with Omero
+# This script can download data from Omero, compute predictions,
+# and upload back into Omero.
+#---------------------------------------------------------------------------
+
 import argparse
 import os
 from omero.cli import cli_login
