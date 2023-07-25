@@ -174,10 +174,10 @@ def full_import(client, fs_path, wait=-1):
         
         
 def run(user,pwd,host,dataset,path,wait):
-    os.system('omero login -u {} -w {} -s {} '.format(user,pwd,host))
-    
-    with cli_login() as cli:
-        conn = BlitzGateway(client_obj=cli._client)
+   
+        conn = BlitzGateway(username='{}'.format(user), passwd='{}'.format(pwd), host='{}'.format(host), port=4064)
+        conn.connect()
+        client = conn.c
         if dataset and not conn.getObject('Dataset', dataset):
             print ('Dataset id not found: %s' % dataset)
             sys.exit(1)
@@ -187,7 +187,7 @@ def run(user,pwd,host,dataset,path,wait):
             os.chdir(sous_dossier)
             for fs_path in os.listdir(sous_dossier):
                     print ('Importing: %s' % fs_path)
-                    rsp = full_import(cli._client, fs_path, wait)
+                    rsp = full_import(client, fs_path, wait)
                     if rsp:
                         links = []
                         for p in rsp.pixels:
@@ -199,7 +199,7 @@ def run(user,pwd,host,dataset,path,wait):
                                 links.append(link)
                         conn.getUpdateService().saveArray(links, conn.SERVICE_OPTS)
 
-    os.system('omero logout')    
+        conn.close()  
     
 if __name__ == '__main__':
         parser = argparse.ArgumentParser()
@@ -231,5 +231,5 @@ if __name__ == '__main__':
         Modified it to do datasets, wasn't working
         Added option to create new client for omero 
         """ 
-        # python -m import --username USERNAME  --password PWD --hostname omero.igred.fr --dataset DATASET_ID  --path 'path_to_folder'
+        # python -m omero_uploader --username USERNAME  --password PWD --hostname omero.igred.fr --dataset DATASET_ID  --path 'path_to_folder'
 
