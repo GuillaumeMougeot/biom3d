@@ -1639,10 +1639,10 @@ class Root(Tk):
             
             #Home button
             
-            self.home_button_train=ttk.Button(self.train_tab,text="Home",command=self.refresh)
+            self.home_button_train=ttk.Button(self.train_tab,text="Home",command=self.refresh) #TODO : refresh doesnt work properly !
             self.home_button_pred=ttk.Button(self.predict_tab,text="Home",command=self.refresh)
-            self.home_button_train.grid(column=0, row=0, sticky=(S,W))
-            self.home_button_pred.grid(column=0, row=0, sticky=(S,W))
+            #self.home_button_train.grid(column=0, row=0, sticky=(S,W)) 
+            #self.home_button_pred.grid(column=0, row=0, sticky=(S,W))
     def refresh(self):
             self.destroy()
             self.__init__()

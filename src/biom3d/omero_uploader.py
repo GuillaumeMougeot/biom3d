@@ -35,7 +35,7 @@ Each of the remaining arguments will form a fileset:
 
 See http://www.openmicroscopy.org/community/viewtopic.php?f=6&t=8407
 Uses code from
-https://github.com/openmicroscopy/openmicroscopy/blob/develop/components/tools/OmeroPy/src/omero/testlib/__init__.py
+https://gitlab.com/openmicroscopy/incubator/omero-python-importer/-/blob/master/import.py
 """
 
 import argparse
@@ -45,7 +45,6 @@ import platform
 import sys
 
 import omero.clients
-from omero.cli import cli_login
 from omero.model import ChecksumAlgorithmI
 from omero.model import NamedValue
 from omero.model.enums import ChecksumAlgorithmSHA1160
@@ -53,7 +52,6 @@ from omero.rtypes import rstring, rbool
 from omero_version import omero_version
 from omero.callbacks import CmdCallbackI
 from omero.gateway import BlitzGateway
-
 
 def get_files_for_fileset(fs_path):
     if os.path.isfile(fs_path):
@@ -172,64 +170,50 @@ def full_import(client, fs_path, wait=-1):
     finally:
         proc.close()
         
-        
-def run(user,pwd,host,dataset,path,wait):
-   
-        conn = BlitzGateway(username='{}'.format(user), passwd='{}'.format(pwd), host='{}'.format(host), port=4064)
-        conn.connect()
-        client = conn.c
-        if dataset and not conn.getObject('Dataset', dataset):
-            print ('Dataset id not found: %s' % dataset)
-            sys.exit(1)
-        directory_path =str(path)    
-        for file in os.listdir(directory_path):
-            sous_dossier = os.path.join(directory_path,file)
-            os.chdir(sous_dossier)
-            for fs_path in os.listdir(sous_dossier):
-                    print ('Importing: %s' % fs_path)
-                    rsp = full_import(client, fs_path, wait)
-                    if rsp:
-                        links = []
-                        for p in rsp.pixels:
-                            print ('Imported Image ID: %d' % p.image.id.val)
-                            if dataset:
-                                link = omero.model.DatasetImageLinkI()
-                                link.parent = omero.model.DatasetI(dataset, False)
-                                link.child = omero.model.ImageI(p.image.id.val, False)
-                                links.append(link)
-                        conn.getUpdateService().saveArray(links, conn.SERVICE_OPTS)
-
-        conn.close()  
+def run(conn,dataset,path,wait):
+    if dataset and not conn.getObject('Dataset', dataset):
+        print ('Dataset id not found: %s' % dataset)
+        sys.exit(1)
+    directory_path =str(path)    
+    filees = get_files_for_fileset(directory_path)
+    for fs_path in filees:
+            print ('Importing: %s' % fs_path)
+            rsp = full_import(conn.c, fs_path, wait)
+            if rsp:
+                links = []
+                for p in rsp.pixels:
+                    print ('Imported Image ID: %d' % p.image.id.val)
+                    if dataset:
+                        link = omero.model.DatasetImageLinkI()
+                        link.parent = omero.model.DatasetI(dataset, False)
+                        link.child = omero.model.ImageI(p.image.id.val, False)
+                        links.append(link)
+                conn.getUpdateService().saveArray(links, conn.SERVICE_OPTS) 
     
 if __name__ == '__main__':
-        parser = argparse.ArgumentParser()
-        # parser.addArgument('--session', type=int, help=(
-        #     'Connect with this session ID, default is to use or create a '
-        #     'session from the OMERO CLI'))
-        parser.add_argument('--dataset', type=int, help=(
-            'Add imported files to this Dataset ID (not valid when wait=-1)'))
-        parser.add_argument('--wait', type=int, default=-1, help=(
-            'Wait for this number of seconds for each import to complete. '
-            '0: return immediately, -1: wait indefinitely (default)'))
-        parser.add_argument('--path', help='Files or directories')
-        parser.add_argument('--username',
-            help="User name")
-        parser.add_argument('--password',
-            help="Password")
-        parser.add_argument('--hostname',
-            help="Host name")
-        args = parser.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dataset', type=int, help=(
+        'Add imported files to this Dataset ID (not valid when wait=-1)'))
+    parser.add_argument('--wait', type=int, default=-1, help=(
+        'Wait for this number of seconds for each import to complete. '
+        '0: return immediately, -1: wait indefinitely (default)'))
+    parser.add_argument('--path', 
+        help='Files or directories')
+    parser.add_argument('--username',
+        help="User name")
+    parser.add_argument('--password',
+        help="Password")
+    parser.add_argument('--hostname',
+        help="Host name")
+    args = parser.parse_args()
 
-        run(user=args.username,
-            pwd=args.password,
-            host=args.hostname,
-            dataset=args.dataset,
-            path=args.path,
-            wait=args.wait
-        )
-        """
-        Modified it to do datasets, wasn't working
-        Added option to create new client for omero 
-        """ 
-        # python -m omero_uploader --username USERNAME  --password PWD --hostname omero.igred.fr --dataset DATASET_ID  --path 'path_to_folder'
-
+    conn = BlitzGateway(args.username, args.password, host=args.hostname, port=4064)
+    conn.connect()
+    run(conn=conn,
+        dataset=args.dataset,
+        path=args.path,
+        wait=args.wait
+    )
+    conn.close()
+    
+    # python -m omero_uploader --username USERNAME  --password PWD --hostname omero.igred.fr --dataset DATASET_ID  --path 'path_to_folder'
