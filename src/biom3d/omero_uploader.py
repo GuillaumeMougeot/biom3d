@@ -193,27 +193,27 @@ def run(conn,dataset,path,wait):
                 conn.getUpdateService().saveArray(links, conn.SERVICE_OPTS) 
     
 if __name__ == '__main__':
-        parser = argparse.ArgumentParser()
-        parser.add_argument('--dataset', type=int, help=(
-            'Add imported files to this Dataset ID (not valid when wait=-1)'))
-        parser.add_argument('--wait', type=int, default=-1, help=(
-            'Wait for this number of seconds for each import to complete. '
-            '0: return immediately, -1: wait indefinitely (default)'))
-        parser.add_argument('--path', 
-            help='Files or directories')
-        parser.add_argument('--username',
-            help="User name")
-        parser.add_argument('--password',
-            help="Password")
-        parser.add_argument('--hostname',
-            help="Host name")
-        args = parser.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dataset', type=int, help=(
+        'Add imported files to this Dataset ID (not valid when wait=-1)'))
+    parser.add_argument('--wait', type=int, default=-1, help=(
+        'Wait for this number of seconds for each import to complete. '
+        '0: return immediately, -1: wait indefinitely (default)'))
+    parser.add_argument('--path', 
+        help='Files or directories')
+    parser.add_argument('--username',
+        help="User name")
+    parser.add_argument('--password',
+        help="Password")
+    parser.add_argument('--hostname',
+        help="Host name")
+    args = parser.parse_args()
 
-        conn = BlitzGateway(args.username, args.password, host=args.hostname, port=4064)
-        conn.connect()
-        run(conn=conn,
-            dataset=args.dataset,
-            path=args.path,
-            wait=args.wait
-        )
-        conn.close()
+    conn = BlitzGateway(args.username, args.password, host=args.hostname, port=4064)
+    conn.connect()
+    run(conn=conn,
+        dataset=args.dataset,
+        path=args.path,
+        wait=args.wait
+    )
+    conn.close()
