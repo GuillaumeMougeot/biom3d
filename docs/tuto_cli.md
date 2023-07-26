@@ -213,7 +213,8 @@ python -m biom3d.omero_pred\
  --dir_out folder/where/predictions/will/be/stored\
  --username your_username\
  --password your_password\
- --hostname your_hostname
+ --hostname your_hostname\
+ --upload_id your_project_id
 ```
 
 Please complete each of the field above. The Omero dataset ID can be found in your Omero browser here:
@@ -221,6 +222,8 @@ Please complete each of the field above. The Omero dataset ID can be found in yo
 <p align="center">
   <img src="_static/image/omero_dataset_id.PNG" />
 </p>
+
+The flag `--upload_id` is optional and can be use to upload the prediction results back into Omero. 
 
 ## Even more
 

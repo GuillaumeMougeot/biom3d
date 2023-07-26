@@ -152,7 +152,7 @@ def sitk_imread(img_path, return_spacing=True, return_origin=False, return_direc
     img = sitk.ReadImage(img_path)
     img_np = sitk.GetArrayFromImage(img)
     dim = img.GetDimension()
-    returns = [img_np]
+
     spacing = np.array(img.GetSpacing())
     origin = np.array(img.GetOrigin())
     direction = np.array(img.GetDirection())
@@ -162,46 +162,47 @@ def sitk_imread(img_path, return_spacing=True, return_origin=False, return_direc
         direction = direction.reshape(4,4)[:-1, :-1].reshape(-1)
     elif dim != 4 and dim != 3: 
         raise RuntimeError("Unexpected dimensionality: %d of file %s, cannot split" % (dim, img_path))
-    if return_spacing: returns += [spacing]
-    if return_origin: returns += [origin]
-    if return_direction: returns += [direction]
-    return tuple(returns)
+    return img_np, {"spacing": spacing, "origin": origin, "direction": direction}
 
-def adaptive_imread(img_path, return_origin=False, return_direction=False):
+def adaptive_imread(img_path):
     """
     use skimage imread or sitk imread depending on the file extension:
     .tif --> skimage.io.imread
     .nii.gz --> SimpleITK.imread
     """
-    extension = img_path[img_path.rfind('.'):]
-    if extension == ".tif":
-        try:
-            spacing = tif_get_spacing(img_path)
-        except:
-            spacing = []
-        returns = [io.imread(img_path), spacing]  # TODO: spacing is set to empty but could be set from tif metadata
-        if return_origin: returns += [[]]
-        if return_direction: returns += [[]]
-        return tuple(returns)
+    extension = img_path[img_path.rfind('.'):].lower()
+    if extension == ".tif" or extension == ".tiff":
+        try: 
+            img, img_meta = tif_read_imagej(img_path)  # try loading ImageJ metadata for tif files
+            return img, img_meta
+        except:   
+            img_meta = {}    
+            try: img_meta["spacing"] = tif_get_spacing(img_path)
+            except: img_meta["spacing"] = []
+    
+            return io.imread(img_path), img_meta 
     elif extension == ".npy":
-        returns = [np.load(img_path), []]
-        if return_origin: returns += [[]]
-        if return_direction: returns += [[]]
-        return tuple(returns)
+        return np.load(img_path), {}
     else:
-        return sitk_imread(img_path, return_origin=return_origin, return_direction=return_direction)
+        return sitk_imread(img_path)
 
-def sitk_imsave(img_path, img, spacing=(1,1,1), origin=(0,0,0), direction=(1., 0., 0., 0., 1., 0., 0., 0., 1.)):
+def sitk_imsave(img_path, img, metadata={}):
     """
     image saver for nii gz files
     """
+    if not 'spacing' in metadata.keys():
+        metadata['spacing']=(1,1,1)
+    if not 'origin' in metadata.keys():
+        metadata['origin']=(0,0,0)
+    if not 'direction' in metadata.keys():
+        metadata['direction']=(1., 0., 0., 0., 1., 0., 0., 0., 1.)
     img_out = sitk.GetImageFromArray(img)
-    img_out.SetSpacing(spacing)
-    img_out.SetOrigin(origin)
-    img_out.SetDirection(direction)
+    img_out.SetSpacing(metadata['spacing'])
+    img_out.SetOrigin(metadata['origin'])
+    img_out.SetDirection(metadata['direction'])
     sitk.WriteImage(img_out, img_path)
 
-def adaptive_imsave(img_path, img, spacing=(1.,1.,1.), origin=(0,0,0), direction=(1, 0, 0, 0, 1, 0, 0, 0, 1)):
+def adaptive_imsave(img_path, img, img_meta={}):
     """Adaptive image saving. Use tifffile for `.tif`, use numpy for `.npy` and use SimpleITK for other format. 
 
     Parameters
@@ -213,8 +214,8 @@ def adaptive_imsave(img_path, img, spacing=(1.,1.,1.), origin=(0,0,0), direction
         spacing : tuple, default=(1,1,1)
             Optional spacing of the image. Only used with the SimpleITK library.
     """
-    extension = img_path[img_path.rfind('.'):]
-    if extension == ".tif":
+    extension = img_path[img_path.rfind('.'):].lower()
+    if extension == ".tif" or extension == ".tiff":
         # if not np.all(spacing==(1.,1.,1.)):
         #     res = int(1e6) # default resolution is MICROMETERS
         #     tiff.imwrite(
@@ -232,17 +233,95 @@ def adaptive_imsave(img_path, img, spacing=(1.,1.,1.), origin=(0,0,0), direction
         #         imagej=True,
         #         )
         # else:
-        tiff.imwrite(
-            img_path,
-            img,
-            compression=('zlib', 1))
+
+        # Current solution for tif files 
+        try:
+            tif_write_imagej(
+                img_path,
+                img,
+                img_meta)
+        except:
+            tiff.imwrite(
+                img_path,
+                img,
+                compression=('zlib', 1))
     elif extension == ".npy":
         np.save(img_path, img)
     else:
-        sitk_imsave(img_path, img, spacing, origin, direction)
+        sitk_imsave(img_path, img, img_meta)
 
 # ----------------------------------------------------------------------------
 # tif metadata reader and writer
+
+def tif_read_imagej(img_path):
+    """Read tif file metadata stored in a ImageJ format.
+    adapted from: https://forum.image.sc/t/python-copy-all-metadata-from-one-multipage-tif-to-another/26597/8
+
+    Parameters
+    ----------
+    img_path : str
+        Path to the input image.
+
+    Returns
+    -------
+    img : numpy.ndarray
+        Image.
+    img_meta : dict
+        Image metadata. 
+    """
+
+    with tiff.TiffFile(img_path) as tif:
+        # assert tif.is_imagej
+
+        # store img_meta
+        img_meta = {}
+
+        # get image resolution from TIFF tags
+        tags = tif.pages[0].tags
+        x_resolution = tags['XResolution'].value
+        y_resolution = tags['YResolution'].value
+        resolution_unit = tags['ResolutionUnit'].value
+        
+        img_meta["resolution"] = (x_resolution, y_resolution, resolution_unit)
+
+        # parse ImageJ metadata from the ImageDescription tag
+        ij_description = tags['ImageDescription'].value
+        ij_description_metadata = tiff.tifffile.imagej_description_metadata(ij_description)
+        # remove conflicting entries from the ImageJ metadata
+        ij_description_metadata = {k: v for k, v in ij_description_metadata.items()
+                                   if k not in 'ImageJ images channels slices frames'}
+
+        img_meta["description"] = ij_description_metadata
+        
+        # compute spacing
+        xres = (x_resolution[1]/x_resolution[0])
+        yres = (y_resolution[1]/y_resolution[0])
+        zres = float(ij_description_metadata["spacing"])
+        
+        img_meta["spacing"] = (xres, yres, zres)
+
+        # read the whole image stack and get the axes order
+        series = tif.series[0]
+        img = series.asarray()
+        
+        img_meta["axes"] = series.axes
+    
+    return img, img_meta
+
+def tif_write_imagej(img_path, img, img_meta):
+    """Write tif file using metadata in ImageJ format.
+    adapted from: https://forum.image.sc/t/python-copy-all-metadata-from-one-multipage-tif-to-another/26597/8
+    """
+    # saving ImageJ hyperstack requires a 6 dimensional array in axes order TZCYXS
+    img = tiff.tifffile.transpose_axes(img, img_meta["axes"], 'TZCYXS')
+
+    # write image and metadata to an ImageJ hyperstack compatible file
+    tiff.imwrite(img_path, img,
+            resolution=img_meta["resolution"],
+            imagej=True, 
+            metadata=img_meta["description"],
+            compression=('zlib', 1)
+            )
 
 def tif_read_meta(tif_path, display=False):
     """
@@ -430,7 +509,7 @@ def one_hot_fast(values, num_classes=None):
 
 def resize_segmentation(segmentation, new_shape, order=3):
     '''
-    Copied from batch_generator library. Copyright Fabian Insensee.
+    Copied from batch_generator library. Copyleft Fabian Insensee.
     Resizes a segmentation map. Supports all orders (see skimage documentation). Will transform segmentation map to one
     hot encoding which is resized and transformed back to a segmentation map.
     This prevents interpolation artifacts ([0, 0, 2] -> [0, 1, 2])
@@ -1092,7 +1171,7 @@ def versus_one(fct, in_path, tg_path, num_classes, single_class=None):
     """
     comparison function between in_path image and tg_path and using the criterion defined by fct
     """
-    img1,_ = adaptive_imread(in_path)
+    img1 = adaptive_imread(in_path)[0]
     print("input path",in_path)
     if len(img1.shape)==3:
         img1 = one_hot_fast(img1.astype(np.uint8), num_classes)[1:,...]
@@ -1100,7 +1179,7 @@ def versus_one(fct, in_path, tg_path, num_classes, single_class=None):
         img1 = img1[single_class,...]
     img1 = (img1 > 0).astype(int)
     
-    img2,_ = adaptive_imread(tg_path)
+    img2 = adaptive_imread(tg_path)[0]
     print("target path",tg_path)
     if len(img2.shape)==3:
         img2 = one_hot_fast(img2.astype(np.uint8), num_classes)[1:,...]

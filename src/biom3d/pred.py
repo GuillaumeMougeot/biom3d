@@ -22,8 +22,8 @@ def pred_single(log, img_path, out_path):
     builder = Builder(config=None,path=log, training=False)
     img = builder.run_prediction_single(img_path, return_logit=False)
 
-    _, spacing, origin = adaptive_imread(img_path, return_origin=True)
-    adaptive_imsave(out_path, img, spacing, origin)
+    metadata = adaptive_imread(img_path)[1]
+    adaptive_imsave(out_path, img, metadata)
     return builder.config.NUM_CLASSES+1 # for pred_seg_eval_single
 
 def pred(log, dir_in, dir_out):

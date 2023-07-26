@@ -190,8 +190,9 @@ def sanity_check(msk, num_classes=None):
             raise RuntimeError
 
 def seg_preprocessor(
-    img_path, 
-    msk_path=None,
+    img, 
+    img_meta,
+    msk=None,
     num_classes=None,
     use_one_hot = False,
     remove_bg = False, 
@@ -202,12 +203,12 @@ def seg_preprocessor(
     """Segmentation pre-processing.
     """
 
-    do_msk = msk_path is not None
+    do_msk = msk is not None
 
     # read image and mask
-    img,spacing = adaptive_imread(img_path)
+    spacing = None if not 'spacing' in img_meta.keys() else img_meta['spacing']
+
     if do_msk: 
-        msk,_ = adaptive_imread(msk_path)
         # sanity check
         msk = sanity_check(msk, num_classes)
 
@@ -296,7 +297,8 @@ def seg_preprocessor(
     if do_msk:
         return img, msk, fg 
     else:
-        return img, {"original_shape": original_shape}
+        img_meta["original_shape"] = original_shape
+        return img, img_meta
 
 #---------------------------------------------------------------------------
 # 3D segmentation preprocessing
@@ -422,8 +424,8 @@ class Preprocessing:
         msk_path = os.path.join(self.msk_dir, img_fname) # mask must be present
 
         # read image and mask
-        img,_ = adaptive_imread(img_path)
-        msk,_ = adaptive_imread(msk_path)
+        img = adaptive_imread(img_path)[0]
+        msk = adaptive_imread(msk_path)[0]
 
         # determine the slicing indices to crop an image along its maximum dimension
         idx = lambda start,end,shape: tuple(slice(s) if s!=max(shape) else slice(start,end) for s in shape)
@@ -510,10 +512,13 @@ class Preprocessing:
             img_path = os.path.join(self.img_dir, img_fname)
             if self.msk_dir is not None: msk_path = os.path.join(self.msk_dir, img_fname)
 
+            img,img_meta = adaptive_imread(img_path)
             if self.msk_dir is not None:
+                msk,_=adaptive_imread(msk_path)[0]
                 img, msk, fg = seg_preprocessor(
-                    img_path            =img_path, 
-                    msk_path            =msk_path,
+                    img                 =img, 
+                    img_meta            =img_meta,
+                    msk                 =msk,
                     num_classes         =self.num_classes,
                     use_one_hot         =self.use_one_hot,
                     remove_bg           =self.remove_bg, 
@@ -522,8 +527,8 @@ class Preprocessing:
                     intensity_moments   =self.intensity_moments,)
             else:
                 img, _ = seg_preprocessor(
-                    img_path            =img_path, 
-                    msk_path            =None,
+                    img                 =img, 
+                    img_meta            =img_meta,
                     median_spacing      =self.median_spacing,
                     clipping_bounds     =self.clipping_bounds,
                     intensity_moments   =self.intensity_moments,)
