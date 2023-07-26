@@ -514,7 +514,7 @@ class Preprocessing:
 
             img,img_meta = adaptive_imread(img_path)
             if self.msk_dir is not None:
-                msk,_=adaptive_imread(msk_path)[0]
+                msk, _ = adaptive_imread(msk_path)
                 img, msk, fg = seg_preprocessor(
                     img                 =img, 
                     img_meta            =img_meta,
