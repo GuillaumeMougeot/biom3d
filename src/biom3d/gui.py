@@ -33,6 +33,7 @@ try:
     from biom3d.config_default import CONFIG
     from biom3d.preprocess import Preprocessing
     from biom3d.auto_config import auto_config
+    from biom3d.preprocess import auto_config_preprocess
     from biom3d.utils import save_python_config
     # the packages below are only needed for the local version of the GUI
     # WARNING! the lines below must be commented when deploying the remote version,
@@ -670,6 +671,7 @@ class ConfigFrame(ttk.LabelFrame):
         else: 
             # Preprocessing    
             TrainFolderSelection().use_preprocessing()
+            """
             p=Preprocessing(
             img_dir=self.img_outdir.get(),
             msk_dir=self.msk_outdir.get(),
@@ -697,7 +699,23 @@ class ConfigFrame(ttk.LabelFrame):
             PATCH_SIZE=patch,
             NUM_POOLS=pool
             )  
-              
+            """
+            
+            p= auto_config_preprocess(
+            img_dir=self.img_outdir.get(),
+            msk_dir=self.msk_outdir.get(),
+            num_classes=self.num_classes.get()+1,
+            remove_bg=False, 
+            use_tif=False,
+            config_dir="config/",
+            base_config=None,)
+            
+            batch = p.batch
+            aug_patch = p.aug_patch
+            patch = p.patch
+            pool = p.pool
+            config_path = p.config_path
+            
         # Update Config Cells in Gui
         self.batch_size.set(batch)
         
@@ -992,19 +1010,26 @@ class OmeroDataset(ttk.LabelFrame):
         self.option = StringVar(value=self.option_list[0])
         self.option_menu = ttk.OptionMenu(self, self.option, self.option_list[0], *self.option_list)
 
-        self.label_id = ttk.Label(self, text="ID:")
+        self.label_id = ttk.Label(self, text="Input ID:")
         self.id = StringVar(value="22")
         self.id_entry = ttk.Entry(self, textvariable=self.id)
 
+        self.p_label_id = ttk.Label(self, text="Output project ID:")
+        self.pid = StringVar(value="20")
+        self.pid_entry = ttk.Entry(self, textvariable=self.pid)
+        
         self.option_menu.grid(column=0, row=0, sticky=(W,E))
         self.label_id.grid(column=1, row=0, sticky=(E))
         self.id_entry.grid(column=2, row=0, sticky=(W,E))
 
+        self.p_label_id.grid(column=1, row=1, sticky=(E))
+        self.pid_entry.grid(column=2, row=1, sticky=(W,E))
+        
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=1)
         self.columnconfigure(2, weight=1)
         self.rowconfigure(0, weight=1)
-
+        self.rowconfigure(1, weight=1)
 class ModelSelection(ttk.LabelFrame):
     def __init__(self, *arg, **kw):
         super(ModelSelection, self).__init__(*arg, **kw)
@@ -1264,16 +1289,19 @@ class PredictTab(ttk.Frame):
         # if use Omero then use Omero prediction
         if self.use_omero_state.get():
             obj=self.omero_dataset.option.get()+":"+self.omero_dataset.id.get()
+            pid = self.omero_dataset.pid.get()
+            print("this is pid",pid)
             if REMOTE:
                 
                 # TODO: below, still OS dependant 
-                _, stdout, stderr = REMOTE.exec_command("cd {}; python -m biom3d.omero_pred --obj {} --log {} --username {} --password {} --hostname {}".format(
+                _, stdout, stderr = REMOTE.exec_command("cd {}; python -m biom3d.omero_pred --obj {} --log {} --username {} --password {} --hostname {} --upload_id {}".format(
                     MAIN_DIR,
                     obj,
                     MAIN_DIR+'/logs/'+self.model_selection.logs_dir.get(), 
                     self.omero_connection.username.get(),
                     self.omero_connection.password.get(),
-                    self.omero_connection.hostname.get()
+                    self.omero_connection.hostname.get(),
+                    pid
                     ))
                 while True: 
                     line = stdout.readline()
@@ -1301,7 +1329,8 @@ class PredictTab(ttk.Frame):
                     dir_out=self.output_dir.data_dir.get(),
                     user=self.omero_connection.username.get(),
                     pwd=self.omero_connection.password.get(),
-                    host=self.omero_connection.hostname.get()
+                    host=self.omero_connection.hostname.get(),
+                    upload_id=pid
                 )
                 if self.send_to_omero_state.get():
                     biom3d.upload_pred.run(user=self.send_to_omero_connection.username.get(),
