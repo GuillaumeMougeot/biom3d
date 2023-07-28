@@ -8,7 +8,6 @@ import argparse
 import os
 from omero.cli import cli_login
 from omero.gateway import BlitzGateway
-from ezomero import post_dataset
 
 from biom3d import omero_downloader 
 try:
@@ -48,9 +47,8 @@ def run(obj, target, log, dir_out, host=None, user=None, pwd=None, upload_id=Non
             if len(dataset_name)==0: # this might happen if pred_dir=='path/to/folder/'
                 dataset_name = os.path.basename(os.path.dirname(dir_in))
             dataset_name += ext
-            dataset_id = post_dataset(conn,dataset_name,upload_id)
 
-            omero_uploader.run(conn,dataset_id,dir_out)
+            omero_uploader.run(conn,upload_id,dataset_name,dir_out)
             conn.close()
         print("Done prediction!")
 
