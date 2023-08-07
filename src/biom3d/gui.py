@@ -639,7 +639,7 @@ class ConfigFrame(ttk.LabelFrame):
         global fg_dir_train
         if REMOTE:
             # preprocessing
-            _,stdout,stderr=REMOTE.exec_command("cd {}; python -m biom3d.preprocess --img_dir data/{}/img --msk_dir data/{}/msk --num_classes {} --remote".format(MAIN_DIR, selected_dataset, selected_dataset,TrainFolderSelection().classes.get()))  
+            _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {};  python -m biom3d.preprocess --img_dir data/{}/img --msk_dir data/{}/msk --num_classes {} --remote".format(venv,MAIN_DIR, selected_dataset, selected_dataset,TrainFolderSelection().classes.get()))  
             auto_config_results = stdout.readlines()
             auto_config_results = [e.replace('\n','') for e in auto_config_results]
          
@@ -671,7 +671,6 @@ class ConfigFrame(ttk.LabelFrame):
         else: 
             # Preprocessing    
             TrainFolderSelection().use_preprocessing()
-            """
             p=Preprocessing(
             img_dir=self.img_outdir.get(),
             msk_dir=self.msk_outdir.get(),
@@ -699,23 +698,8 @@ class ConfigFrame(ttk.LabelFrame):
             PATCH_SIZE=patch,
             NUM_POOLS=pool
             )  
-            """
             
-            p= auto_config_preprocess(
-            img_dir=self.img_outdir.get(),
-            msk_dir=self.msk_outdir.get(),
-            num_classes=self.num_classes.get()+1,
-            remove_bg=False, 
-            use_tif=False,
-            config_dir="config/",
-            base_config=None,)
-            
-            batch = p.batch
-            aug_patch = p.aug_patch
-            patch = p.patch
-            pool = p.pool
-            config_path = p.config_path
-            
+        
         # Update Config Cells in Gui
         self.batch_size.set(batch)
         
@@ -868,7 +852,7 @@ class TrainTab(ttk.Frame):
             
              # run the training and store the output in an output file 
             # https://askubuntu.com/questions/1336685/how-do-i-save-to-a-file-and-simultaneously-view-terminal-output 
-            _,stdout,stderr=REMOTE.exec_command("cd {}; python -m biom3d.train --config config1.py | tee log.out".format(MAIN_DIR))
+            _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {}; python -m biom3d.train --config config1.py | tee log.out".format(venv,MAIN_DIR))
             
             # print the stdout continuously
             # from https://stackoverflow.com/questions/55642555/real-time-output-for-paramiko-exec-command  
@@ -1006,19 +990,19 @@ class OmeroDataset(ttk.LabelFrame):
     def __init__(self, *arg, **kw):
         super(OmeroDataset, self).__init__(*arg, **kw)
 
-        self.option_list = ["Dataset", "Project"]
-        self.option = StringVar(value=self.option_list[0])
-        self.option_menu = ttk.OptionMenu(self, self.option, self.option_list[0], *self.option_list)
+        # self.option_list = ["Dataset", "Project"]
+        # self.option = StringVar(value=self.option_list[0])
+        # self.option_menu = ttk.OptionMenu(self, self.option, self.option_list[0], *self.option_list)
 
-        self.label_id = ttk.Label(self, text="Input ID:")
-        self.id = StringVar(value="22")
+        self.label_id = ttk.Label(self, text="Input Dataset ID:")
+        self.id = StringVar(value="19699")
         self.id_entry = ttk.Entry(self, textvariable=self.id)
 
         self.p_label_id = ttk.Label(self, text="Output project ID:")
-        self.pid = StringVar(value="20")
+        self.pid = StringVar(value="12906")
         self.pid_entry = ttk.Entry(self, textvariable=self.pid)
         
-        self.option_menu.grid(column=0, row=0, sticky=(W,E))
+        # self.option_menu.grid(column=0, row=0, sticky=(W,E))
         self.label_id.grid(column=1, row=0, sticky=(E))
         self.id_entry.grid(column=2, row=0, sticky=(W,E))
 
@@ -1167,8 +1151,8 @@ class OmeroUpload(ttk.LabelFrame):
         popupmsg("Updated !")
         
         
-    def send_to_omero(self):
-        _,stdout,stderr=REMOTE.exec_command("cd {}; python -m biom3d.omero_uploader --username {} --password {} --hostname {} --dataset {} --path {}/data/pred/{}/ ".format(MAIN_DIR, self.username_entry.get(), self.password_entry.get(), self.hostname_entry.get(), self.upload_dataset_entry.get(), MAIN_DIR, self.dataset_selected_omero() ))
+    def send_to_omero(self):   
+        _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {}; python -m biom3d.omero_uploader --username {} --password {} --hostname {} --dataset {} --path '{}/data/pred/{}/' ".format(venv,MAIN_DIR, self.username_entry.get(), self.password_entry.get(), self.hostname_entry.get(), self.upload_dataset_entry.get(), MAIN_DIR, self.dataset_selected_omero() ))
         
         print(" all params : ",MAIN_DIR, self.username_entry.get(), self.password_entry.get(), self.hostname_entry.get(), self.upload_dataset_entry.get(), MAIN_DIR, self.dataset_selected_omero())
         while True: 
@@ -1288,13 +1272,13 @@ class PredictTab(ttk.Frame):
     def predict(self):
         # if use Omero then use Omero prediction
         if self.use_omero_state.get():
-            obj=self.omero_dataset.option.get()+":"+self.omero_dataset.id.get()
-            pid = self.omero_dataset.pid.get()
+            obj="Dataset"+":"+self.omero_dataset.id.get()
+            pid = int(self.omero_dataset.pid.get())
             print("this is pid",pid)
             if REMOTE:
                 
                 # TODO: below, still OS dependant 
-                _, stdout, stderr = REMOTE.exec_command("cd {}; python -m biom3d.omero_pred --obj {} --log {} --username {} --password {} --hostname {} --upload_id {}".format(
+                _, stdout, stderr = REMOTE.exec_command("source {}/bin/activate; cd {}; python -m biom3d.omero_pred --obj {} --log {} --username {} --password {} --hostname {} --upload_id {}".format(venv,
                     MAIN_DIR,
                     obj,
                     MAIN_DIR+'/logs/'+self.model_selection.logs_dir.get(), 
@@ -1341,7 +1325,7 @@ class PredictTab(ttk.Frame):
                     wait=1)
         else: # if not use Omero
             if REMOTE:
-                _, stdout, stderr = REMOTE.exec_command("cd {}; python -m biom3d.pred --log {} --dir_in {} --dir_out {}".format(
+                _, stdout, stderr = REMOTE.exec_command("source {}/bin/activate; cd {}; python -m biom3d.pred --log {} --dir_in {} --dir_out {}".format(venv,
                     MAIN_DIR,
                     'logs/'+self.model_selection.logs_dir.get(), 
                     'data/to_pred/'+self.input_dir.data_dir.get(),
@@ -1450,6 +1434,10 @@ class Connect2Remote(ttk.LabelFrame):
         self.main_dir = StringVar(value="/home/biome/biom3d")
         self.main_dir_entry = ttk.Entry(self, textvariable=self.main_dir)
 
+        self.venv_label = ttk.Label(self, text='(Optional) Name of the virtual environement on remote server:')
+        self.venv_name = StringVar(value="")
+        self.venv_entry = ttk.Entry(self, textvariable=self.venv_name)
+        
         self.use_proxy_state = IntVar() 
         self.use_proxy = ttk.Checkbutton(self, text="Use proxy server for ssh connexion", command=self.display_proxy, variable=self.use_proxy_state)
         
@@ -1468,7 +1456,10 @@ class Connect2Remote(ttk.LabelFrame):
         self.main_dir_label.grid(column=0, row=3, sticky=(W,E))
         self.main_dir_entry.grid(column=1, row=3, sticky=(W,E))
 
-        self.use_proxy.grid(column=0, columnspan=2, row=4, sticky=(W))
+        self.venv_label.grid(column=0, row=4, sticky=(W,E))
+        self.venv_entry.grid(column=1, row=4, sticky=(W,E))
+        
+        self.use_proxy.grid(column=0, columnspan=2, row=5, sticky=(W))
 
         # grid config
         self.columnconfigure(0, weight=1)
@@ -1631,6 +1622,31 @@ class Root(Tk):
                     password=self.start_remotelly_frame.password.get())
 
             MAIN_DIR = self.start_remotelly_frame.main_dir.get()
+            
+            # Specify path
+            path1 = self.start_remotelly_frame.venv_entry.get()
+            path = "'"+path1+"'"
+            
+            # Check whether the specified
+            # path exists or not
+            _,stdout,stderr = REMOTE.exec_command('python -c "from pathlib import Path; obj = Path({}) ;print(obj.exists()) "  '.format(path)) 
+            
+            while True: 
+                    line = stdout.readline()
+                    if not line:
+                        break
+                    if line:
+                        print(line, end="")
+            while True: # print error messages if needed
+                line = stderr.readline()
+                if not line:
+                    break
+                if line:
+                    print(line, end="")
+            path_to_venv = path1.split("/")  
+            global venv 
+            venv = path_to_venv[-1]
+            print("virtual environment name: ",venv)
             
         modulename='biom3d'
         if modulename not in sys.modules and not REMOTE :
