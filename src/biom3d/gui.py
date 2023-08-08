@@ -848,27 +848,69 @@ class TrainTab(ttk.Frame):
             os.remove(new_config_path)
 
 
-
-            
-             # run the training and store the output in an output file 
-            # https://askubuntu.com/questions/1336685/how-do-i-save-to-a-file-and-simultaneously-view-terminal-output 
-            _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {}; python -m biom3d.train --config config1.py | tee log.out".format(venv,MAIN_DIR))
-            
-            # print the stdout continuously
-            # from https://stackoverflow.com/questions/55642555/real-time-output-for-paramiko-exec-command  
-            while True:
-                line = stdout.readline()
-                if not line:
-                    break
-                print(line, end="")
-            while True:
-                line = stderr.readline()
-                if not line:
-                    break
-                print(line, end="")
-
+            import threading
+            def sun():
+                
+                # run the training and store the output in an output file 
+                # https://askubuntu.com/questions/1336685/how-do-i-save-to-a-file-and-simultaneously-view-terminal-output 
+                _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {}; nohup  python -m biom3d.train --config config1.py | tee log.out &".format(venv,MAIN_DIR))
+                
+                # print the stdout continuously
+                # from https://stackoverflow.com/questions/55642555/real-time-output-for-paramiko-exec-command  
+                while True:
+                    line = stdout.readline()
+                    if not line:
+                        break
+                    print(line, end="")
+                while True:
+                    line = stderr.readline()
+                    if not line:
+                        break
+                    print(line, end="")
+                
                 # TODO: copy the event file to local
-            popupmsg(" Training Done ! ")
+            worker = threading.Thread(target=sun)
+            worker.start()
+            time.sleep(3)
+            
+            while worker.is_alive():
+                time.sleep(2)
+                _,stdout,stderr=REMOTE.exec_command("ls -td {}/logs/*/ | head -1".format(MAIN_DIR))
+                line= stdout.readline()
+                print("this is cwd",line)
+                print("Number of threads running ",threading.active_count())
+                
+                 # connect to remote
+                ftp = REMOTE.open_sftp()
+
+                # remote directory
+                remotedir =line.rstrip()+"/log"
+                print(remotedir)
+                # create local dir if it does not exist already
+                localdir = os.path.join("/home/safarbatis/chocolate-factory/tensor/")
+                if not os.path.exists(localdir):
+                    os.makedirs(localdir, exist_ok=True)
+                
+                # copy files from remote to local
+                ftp_get_folder(ftp, remotedir, localdir)
+                try:
+                    import matplotlib.pyplot as plt
+                    import pandas as pd
+
+                    df = pd.read_csv('/home/safarbatis/chocolate-factory/tensor/log.csv')
+                    df[['epoch', 'train_loss', 'val_loss']].plot(
+                        x='epoch',
+                        xlabel='x',
+                        ylabel='y',
+                        title='Accuracy VS Val_acc'
+                    )
+                    plt.ion()
+                    plt.show()
+                    plt.close()
+                except:
+                    pass
+            if not worker.is_alive() : popupmsg(" Training Done ! ")
+            worker.join()
         else:  
             # save the new config file
             
