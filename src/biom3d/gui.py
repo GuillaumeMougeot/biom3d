@@ -849,14 +849,12 @@ class TrainTab(ttk.Frame):
 
 
             import threading
-            def sun():
+            def train_nohup():
                 
                 # run the training and store the output in an output file 
-                # https://askubuntu.com/questions/1336685/how-do-i-save-to-a-file-and-simultaneously-view-terminal-output 
                 _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {}; nohup  python -m biom3d.train --config config1.py | tee log.out &".format(venv,MAIN_DIR))
                 
                 # print the stdout continuously
-                # from https://stackoverflow.com/questions/55642555/real-time-output-for-paramiko-exec-command  
                 while True:
                     line = stdout.readline()
                     if not line:
@@ -868,49 +866,88 @@ class TrainTab(ttk.Frame):
                         break
                     print(line, end="")
                 
-                # TODO: copy the event file to local
-            worker = threading.Thread(target=sun)
+        
+                
+            worker = threading.Thread(target=train_nohup)
             worker.start()
             time.sleep(3)
             
-            while worker.is_alive():
-                time.sleep(2)
-                _,stdout,stderr=REMOTE.exec_command("ls -td {}/logs/*/ | head -1".format(MAIN_DIR))
-                line= stdout.readline()
-                print("this is cwd",line)
-                print("Number of threads running ",threading.active_count())
-                
-                 # connect to remote
-                ftp = REMOTE.open_sftp()
+            
+            def plot():
+                import matplotlib.pyplot as plt
+                import pandas as pd
+                import os
+                import time
 
-                # remote directory
-                remotedir =line.rstrip()+"/log"
-                print(remotedir)
-                # create local dir if it does not exist already
-                localdir = os.path.join("/home/safarbatis/chocolate-factory/tensor/")
-                if not os.path.exists(localdir):
-                    os.makedirs(localdir, exist_ok=True)
-                
-                # copy files from remote to local
-                ftp_get_folder(ftp, remotedir, localdir)
-                try:
-                    import matplotlib.pyplot as plt
-                    import pandas as pd
+                # Function to update the plot
+                def update_plot(csv_file):
+                    data = pd.read_csv(csv_file)
+                    
+                    plt.clf()  # Clear the current plot
+                    plt.plot(data['epoch'], data['train_loss'])
+                    plt.xlabel('epoch')
+                    plt.ylabel('train_loss')
+                    plt.title('Dynamic Plot from CSV')
+                    plt.grid(True)
+                    plt.pause(0.1)  # Pause for a short duration to allow for updating
 
-                    df = pd.read_csv('/home/safarbatis/chocolate-factory/tensor/log.csv')
-                    df[['epoch', 'train_loss', 'val_loss']].plot(
-                        x='epoch',
-                        xlabel='x',
-                        ylabel='y',
-                        title='Accuracy VS Val_acc'
-                    )
-                    plt.ion()
-                    plt.show()
-                    plt.close()
-                except:
-                    pass
+                # CSV file path
+                csv_file = '/home/safarbatis/chocolate-factory/plots/log.csv'
+
+                # Get initial modification timestamp
+                prev_mod_time = os.path.getmtime(csv_file)
+
+                # Continuously update the plot
+                while worker2.is_alive():
+                    curr_mod_time = os.path.getmtime(csv_file)
+                    if curr_mod_time > prev_mod_time:
+                        prev_mod_time = curr_mod_time
+                        update_plot(csv_file)
+                    time.sleep(1)  # Wait for 1 second before checking again
+
+
+        
+            def get_logs():
+                while worker.is_alive():
+                    time.sleep(2)
+                    # get the last folder modified/created
+                    _,stdout,stderr=REMOTE.exec_command("ls -td {}/logs/*/ | head -1".format(MAIN_DIR))
+                    line= stdout.readline()
+                
+                    # connect to remote
+                    ftp = REMOTE.open_sftp()
+
+                    # remote directory
+                    remotedir =line.rstrip()+"/log"
+                    print(remotedir)
+                    # create local dir if it does not exist already
+                    localdir = os.path.join("/home/safarbatis/chocolate-factory/plots/")
+                    if not os.path.exists(localdir):
+                        os.makedirs(localdir, exist_ok=True)
+                    
+                    # copy files from remote to local
+                    ftp_get_folder(ftp, remotedir, localdir)
+            
+            
+            
+            
+            
+            
+            worker2 = threading.Thread(target=get_logs)
+            worker2.start()
+            time.sleep(3)
+            worker3 = threading.Thread(target=plot)
+            worker3.start()
+     
+                
+             
             if not worker.is_alive() : popupmsg(" Training Done ! ")
+            
+            worker2.join()
+            worker3.join()
             worker.join()
+            
+            
         else:  
             # save the new config file
             
@@ -1193,8 +1230,12 @@ class OmeroUpload(ttk.LabelFrame):
         popupmsg("Updated !")
         
         
-    def send_to_omero(self):   
-        _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {}; python -m biom3d.omero_uploader --username {} --password {} --hostname {} --dataset {} --path '{}/data/pred/{}/' ".format(venv,MAIN_DIR, self.username_entry.get(), self.password_entry.get(), self.hostname_entry.get(), self.upload_dataset_entry.get(), MAIN_DIR, self.dataset_selected_omero() ))
+    def send_to_omero(self): 
+        # get the last folder modified/created
+        _,stdout,stderr=REMOTE.exec_command("ls -td {}/data/pred/{}/*/ | head -1".format(MAIN_DIR, self.dataset_selected_omero() ))  
+        last_folder = stdout.readline().replace('\n','')
+        print("htis is last folder ",last_folder)
+        _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {}; python -m biom3d.omero_uploader --username {} --password {} --hostname {} --dataset {} --path '{}' ".format(venv,MAIN_DIR, self.username_entry.get(), self.password_entry.get(), self.hostname_entry.get(), self.upload_dataset_entry.get(), last_folder ))
         
         print(" all params : ",MAIN_DIR, self.username_entry.get(), self.password_entry.get(), self.hostname_entry.get(), self.upload_dataset_entry.get(), MAIN_DIR, self.dataset_selected_omero())
         while True: 
