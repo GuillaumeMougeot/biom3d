@@ -882,23 +882,24 @@ class TrainTab(ttk.Frame):
                 # Function to update the plot
                 def update_plot(csv_file):
                     data = pd.read_csv(csv_file)
-                    
                     plt.clf()  # Clear the current plot
-                    plt.plot(data['epoch'], data['train_loss'])
-                    plt.xlabel('epoch')
-                    plt.ylabel('train_loss')
-                    plt.title('Dynamic Plot from CSV')
+                    plt.plot(data['epoch'], data['train_loss'], label='Train loss')
+                    plt.plot(data['epoch'], data['val_loss'], label ='Validation loss')
+                    plt.xlabel('Epoch')
+                    plt.ylabel('Loss')
+                    plt.title('Learning Curves')
                     plt.grid(True)
+                    plt.legend()
                     plt.pause(0.1)  # Pause for a short duration to allow for updating
 
                 # CSV file path
-                csv_file = '/home/safarbatis/chocolate-factory/plots/log.csv'
+                csv_file = 'plots/log.csv'
 
                 # Get initial modification timestamp
                 prev_mod_time = os.path.getmtime(csv_file)
 
                 # Continuously update the plot
-                while worker2.is_alive():
+                while worker.is_alive():
                     curr_mod_time = os.path.getmtime(csv_file)
                     if curr_mod_time > prev_mod_time:
                         prev_mod_time = curr_mod_time
@@ -919,9 +920,9 @@ class TrainTab(ttk.Frame):
 
                     # remote directory
                     remotedir =line.rstrip()+"/log"
-                    print(remotedir)
+                    
                     # create local dir if it does not exist already
-                    localdir = os.path.join("/home/safarbatis/chocolate-factory/plots/")
+                    localdir = os.path.join("plots/")
                     if not os.path.exists(localdir):
                         os.makedirs(localdir, exist_ok=True)
                     
