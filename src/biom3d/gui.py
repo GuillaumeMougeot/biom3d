@@ -893,7 +893,7 @@ class TrainTab(ttk.Frame):
                     plt.pause(0.1)  # Pause for a short duration to allow for updating
 
                 # CSV file path
-                csv_file = 'plots/log.csv'
+                csv_file = os.path.join("plots/log.csv")
 
                 # Get initial modification timestamp
                 prev_mod_time = os.path.getmtime(csv_file)
