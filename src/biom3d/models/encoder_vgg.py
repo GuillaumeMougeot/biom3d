@@ -3,11 +3,11 @@
 # https://github.com/akamaster/pytorch_resnet_cifar10 
 #---------------------------------------------------------------------------
 
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torch.nn.init as init
 import numpy as np
+
+from biom3d.utils import convert_num_pools
 
 #---------------------------------------------------------------------------
 # 3D Resnet encoder
@@ -111,17 +111,19 @@ class VGGEncoder(nn.Module):
 
         # computes the strides
         # for example: convert [3,5,5] into [[1 1 1],[1 2 2],[2 2 2],[2 2 2],[2 2 2],[1 2 2]]
-        max_pool = max(num_pools)
-        strides = []
-        for i in range(len(num_pools)):
-            st = np.ones(max_pool)
-            num_zeros = max_pool-num_pools[i]
-            for j in range(num_zeros):
-                st[j]=0
-            # st=np.roll(st,-num_zeros//2)
-            strides += [st]
-        strides = np.array(strides).astype(int).T+1
+        # max_pool = max(num_pools)
+        # strides = []
+        # for i in range(len(num_pools)):
+        #     st = np.ones(max_pool)
+        #     num_zeros = max_pool-num_pools[i]
+        #     for j in range(num_zeros):
+        #         st[j]=0
+        #     st=np.roll(st,-num_zeros//2)
+        #     strides += [st]
+        # strides = np.array(strides).astype(int).T+1
+        strides = convert_num_pools(num_pools=num_pools)
         strides = np.vstack(([first_stride],strides)).tolist()
+        
 
         # computes the strides (old)
         # strides = [first_stride]

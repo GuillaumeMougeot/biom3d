@@ -619,7 +619,7 @@ def resize_3d(img, output_shape, order=3, is_msk=False, monitor_anisotropy=True,
 def convert_num_pools(num_pools):
     """
     Set adaptive number of pools
-        for example: convert [3,5,5] into [[1 1 1],[1 2 2],[2 2 2],[2 2 2],[2 2 2],[1 2 2]]
+        for example: convert [3,5,5] into [[1 2 2],[2 2 2],[2 2 2],[2 2 2],[1 2 2]]
     """
     max_pool = max(num_pools)
     strides = []
@@ -628,7 +628,7 @@ def convert_num_pools(num_pools):
         num_zeros = max_pool-num_pools[i]
         for j in range(num_zeros):
             st[j]=0
-        # st=np.roll(st,-num_zeros//2)
+        st=np.roll(st,-num_zeros//2)
         strides += [st]
     strides = np.array(strides).astype(int).T+1
     # kernels = (strides*3//2).tolist()

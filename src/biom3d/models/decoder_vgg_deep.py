@@ -9,7 +9,6 @@ import torch.nn.functional as F
 import torch.nn.init as init
 import numpy as np
 
-from biom3d.models.encoder_vgg import EncoderBlock
 from biom3d.utils import convert_num_pools
 
 #---------------------------------------------------------------------------

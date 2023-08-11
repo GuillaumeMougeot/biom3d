@@ -1,9 +1,9 @@
 Biom3d
 ===================================
 
-.. .. image:: _static/image/logo.png
-..     :align: right
-..     :width: 200
+.. image:: ../images/nucleus_segmentation.png
+    :align: right
+    :height: 300
 
 Congrats! You've just found Biom3d, a super easy-to-use tool for volumetric image semantic segmentation.
 

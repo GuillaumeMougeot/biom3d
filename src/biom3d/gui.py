@@ -852,7 +852,7 @@ class TrainTab(ttk.Frame):
             def train_nohup():
                 
                 # run the training and store the output in an output file 
-                _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {}; nohup  python -m biom3d.train --config config.py | tee log.out &".format(venv,MAIN_DIR))
+                _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {}; nohup python -m biom3d.train --config config.py &".format(venv,MAIN_DIR))
                 
                 # print the stdout continuously
                 while True:
