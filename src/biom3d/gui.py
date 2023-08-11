@@ -815,15 +815,15 @@ class TrainTab(ttk.Frame):
         cfg = nested_dict_change_value(cfg, 'batch_size', cfg.BATCH_SIZE)
        
         
-        cfg.PATCH_SIZE = np.array(self.config_selection.patch_size)
+        cfg.PATCH_SIZE = self.config_selection.patch_size
         cfg = nested_dict_change_value(cfg, 'patch_size', cfg.PATCH_SIZE)
         
         
-        cfg.AUG_PATCH_SIZE = np.array(self.config_selection.aug_patch_size)
+        cfg.AUG_PATCH_SIZE = self.config_selection.aug_patch_size
         cfg = nested_dict_change_value(cfg, 'aug_patch_size', cfg.AUG_PATCH_SIZE)
 
         self.config_selection.num_pools = [int(self.config_selection.num_pools1.get()), int(self.config_selection.num_pools2.get()), int(self.config_selection.num_pools3.get())]
-        cfg.NUM_POOLS = np.array(self.config_selection.num_pools)
+        cfg.NUM_POOLS = self.config_selection.num_pools
         cfg = nested_dict_change_value(cfg, 'num_pools', cfg.NUM_POOLS)
         
         if REMOTE:
@@ -891,6 +891,7 @@ class TrainTab(ttk.Frame):
                     plt.grid(True)
                     plt.legend()
                     plt.pause(0.1)  # Pause for a short duration to allow for updating
+                    plt.savefig('Learning_curves_plot.png')
 
                 # CSV file path
                 csv_file = os.path.join("plots/log.csv")
