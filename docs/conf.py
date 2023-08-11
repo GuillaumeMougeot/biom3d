@@ -80,6 +80,7 @@ html_theme = "furo"
 # html_theme_path = [pytorch_sphinx_theme.get_html_theme_path()]
 
 # html_title = "Biom3d"
+html_title = ""
 language = "en"
 
 html_static_path = ['_static']
