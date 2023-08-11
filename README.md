@@ -16,6 +16,8 @@ Biom3d automatically configures the training of a 3D U-Net for 3D semantic segme
 
 The default configuration matches the performance of [nnUNet](https://github.com/MIC-DKFZ/nnUNet) but is much easier to use both for community users and developers. Biom3d is flexible for developers: easy to understand and easy to edit. 
 
+Code architecture of Biom3d versus code architecture of nnU-Net:
+
 Biom3d modules             |  nnUNet modules
 :-------------------------:|:-------------------------:
 ![](https://github.com/GuillaumeMougeot/biom3d/blob/main/images/biom3d_train.png)  |  ![](https://github.com/GuillaumeMougeot/biom3d/blob/main/images/nnunet_run_run_training.png)
