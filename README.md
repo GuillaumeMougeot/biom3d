@@ -1,9 +1,14 @@
-<img src="https://github.com/GuillaumeMougeot/biom3d/blob/main/images/logo_biom3d_crop.png" width="200" title="biom3d" alt="biom3d" align="center" vspace = "0">
+<div align="center">
+  <img src="https://github.com/GuillaumeMougeot/biom3d/blob/main/images/logo_biom3d_crop.png" width="200" title="biom3d" alt="biom3d" vspace = "0">
+
+  [📘Documentation](https://biom3d.readthedocs.io/) | 
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/GuillaumeMougeot/biom3d/blob/master/docs/biom3d_colab.ipynb)
+</div>
 <img src="https://github.com/GuillaumeMougeot/biom3d/blob/main/images/nucleus_segmentation.png" width="200" title="nucleus" alt="nucleus" align="right" vspace = "0">
 
-[**Documentation**](https://biom3d.readthedocs.io/)
+<!-- [**Documentation**](https://biom3d.readthedocs.io/) -->
 
-**Try it online!** [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/GuillaumeMougeot/biom3d/blob/master/docs/biom3d_colab.ipynb)
+<!-- **Try it online!** [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/GuillaumeMougeot/biom3d/blob/master/docs/biom3d_colab.ipynb) -->
 
 Biom3d automatically configures the training of a 3D U-Net for 3D semantic segmentation.
 
