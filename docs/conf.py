@@ -79,12 +79,12 @@ html_theme = "furo"
 # html_theme = 'pytorch_sphinx_theme'
 # html_theme_path = [pytorch_sphinx_theme.get_html_theme_path()]
 
-html_title = "Biom3d"
+# html_title = "Biom3d"
 language = "en"
 
 html_static_path = ['_static']
 html_logo = '_static/image/logo_biom3d_crop.png' 
-html_favicon = 'favicon.ico'
+html_favicon = '_static/image/favicon.ico'
 html_css_files = ["css/readthedocs.css"]
 
 # html_css_files = [
