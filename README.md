@@ -1,5 +1,5 @@
-<img src="https://github.com/GuillaumeMougeot/biom3d/images/blob/main/logo_biom3d_crop.png" width="200" title="biom3d" alt="biom3d" align="center" vspace = "0">
-<img src="https://github.com/GuillaumeMougeot/biom3d/images/blob/main/images/nucleus_segmentation.png" width="200" title="nucleus" alt="nucleus" align="right" vspace = "0">
+<img src="https://github.com/GuillaumeMougeot/biom3d/blob/main/logo_biom3d_crop.png" width="200" title="biom3d" alt="biom3d" align="center" vspace = "0">
+<img src="https://github.com/GuillaumeMougeot/biom3d/blob/main/images/nucleus_segmentation.png" width="200" title="nucleus" alt="nucleus" align="right" vspace = "0">
 
 [**Documentation**](https://biom3d.readthedocs.io/)
 
@@ -11,7 +11,7 @@ The default configuration matches the performance of [nnUNet](https://github.com
 
 Biom3d modules             |  nnUNet modules
 :-------------------------:|:-------------------------:
-![](https://github.com/GuillaumeMougeot/biom3d/images/blob/main/images/biom3d_train.png)  |  ![](https://github.com/GuillaumeMougeot/biom3d/images/blob/main/images/nnunet_run_run_training.png)
+![](https://github.com/GuillaumeMougeot/biom3d/blob/main/images/biom3d_train.png)  |  ![](https://github.com/GuillaumeMougeot/biom3d/blob/main/images/nnunet_run_run_training.png)
 
 *Illustrations generated with `pydeps` module*
 
@@ -74,12 +74,12 @@ This project has been inspired by the following publication: "nnU-Net: a self-co
 This project has been supported by Oxford Brookes University and the European Regional Development Fund (FEDER). It was carried out between the laboratories of iGReD (France), Institut Pascal (France) and Plant Nuclear Envelop (UK).
 
 <p align="middle">
-  <img src="https://github.com/GuillaumeMougeot/biom3d/images/blob/main/images/Flag_of_Europe.svg.png" alt="Europe" width="100">
-  <img src="https://github.com/GuillaumeMougeot/biom3d/images/blob/main/images/brookes_logo_black.bmp" alt="Brookes" width="100">
-  <img src="https://github.com/GuillaumeMougeot/biom3d/images/blob/main/images/GReD_color_EN.png" alt="iGReD" width="100">
-  <img src="https://github.com/GuillaumeMougeot/biom3d/images/blob/main/images/logo_ip.png" alt="IP" width="100">
-  <img src="https://github.com/GuillaumeMougeot/biom3d/images/blob/main/images/logo_aura.PNG" alt="AURA" width="100">
-  <img src="https://github.com/GuillaumeMougeot/biom3d/images/blob/main/images/logo_UCA.jpg" alt="UCA" width="100">
+  <img src="https://github.com/GuillaumeMougeot/biom3d/blob/main/images/Flag_of_Europe.svg.png" alt="Europe" width="100">
+  <img src="https://github.com/GuillaumeMougeot/biom3d/blob/main/images/brookes_logo_black.bmp" alt="Brookes" width="100">
+  <img src="https://github.com/GuillaumeMougeot/biom3d/blob/main/images/GReD_color_EN.png" alt="iGReD" width="100">
+  <img src="https://github.com/GuillaumeMougeot/biom3d/blob/main/images/logo_ip.png" alt="IP" width="100">
+  <img src="https://github.com/GuillaumeMougeot/biom3d/blob/main/images/logo_aura.PNG" alt="AURA" width="100">
+  <img src="https://github.com/GuillaumeMougeot/biom3d/blob/main/images/logo_UCA.jpg" alt="UCA" width="100">
 </p>
 
 
