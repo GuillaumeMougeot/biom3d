@@ -1,4 +1,4 @@
-<img src="https://github.com/GuillaumeMougeot/biom3d/blob/main/logo_biom3d_crop.png" width="200" title="biom3d" alt="biom3d" align="center" vspace = "0">
+<img src="https://github.com/GuillaumeMougeot/biom3d/blob/main/images/logo_biom3d_crop.png" width="200" title="biom3d" alt="biom3d" align="center" vspace = "0">
 <img src="https://github.com/GuillaumeMougeot/biom3d/blob/main/images/nucleus_segmentation.png" width="200" title="nucleus" alt="nucleus" align="right" vspace = "0">
 
 [**Documentation**](https://biom3d.readthedocs.io/)
