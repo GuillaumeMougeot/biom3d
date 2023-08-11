@@ -1,7 +1,7 @@
 Biom3d
 ===================================
 
-.. image:: ../images/nucleus_segmentation.png
+.. image:: _static/image/nucleus_segmentation.png
     :align: right
     :height: 300
 

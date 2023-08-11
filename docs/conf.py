@@ -82,9 +82,9 @@ html_theme = "furo"
 html_title = "Biom3d"
 language = "en"
 
-html_logo = '_static/image/logo_biom3d_crop.png' 
-html_favicon = '_static/image/favicon.ico'
 html_static_path = ["_static"]
+html_logo = 'image/logo_biom3d_crop.png' 
+html_favicon = 'image/favicon.ico'
 html_css_files = ["css/readthedocs.css"]
 
 # html_css_files = [
