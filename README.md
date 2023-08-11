@@ -10,6 +10,8 @@
 
 <!-- **Try it online!** [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/GuillaumeMougeot/biom3d/blob/master/docs/biom3d_colab.ipynb) -->
 
+## Highlights
+
 Biom3d automatically configures the training of a 3D U-Net for 3D semantic segmentation.
 
 The default configuration matches the performance of [nnUNet](https://github.com/MIC-DKFZ/nnUNet) but is much easier to use both for community users and developers. Biom3d is flexible for developers: easy to understand and easy to edit. 
@@ -27,7 +29,7 @@ We target two main types of users:
 * Community users, who are interested in using the basic functionalities of Biom3d: GUI or CLI, predictions with ready-to-use models or default training.
 * Deep-learning developers, who are interested in more advanced features: changing default configuration, writing of new Biom3d modules, Biom3d core editing etc.
 
-## :hammer: Installation
+## 🔨 Installation
 
 **For the installation details, please check our documentation here:** [**Documentation-Installation**](https://biom3d.readthedocs.io/en/latest/installation.html)
 
@@ -37,7 +39,7 @@ TL;DR: here is a single line of code to install biom3d:
 pip install torch biom3d
 ```
 
-## :hand: Usage
+## ✋ Usage
 
 **For Graphical User Interface users, please check our documentation here:** [**Documentation-GUI**](https://biom3d.readthedocs.io/en/latest/quick_run_gui.html)
 
@@ -55,11 +57,11 @@ python -m biom3d.preprocess_train\
  --ct_norm
 ```
 
-## Disclaimer
+## ⚠ Disclaimer
 
-> **Warning**: This repository is still a work in progress!
+> **Warning**: This repository is still a work in progress and comes with no guarantees.
 
-## :bookmark_tabs: Citation
+## 📑 Citation
 
 If you find Biom3d useful in your research, please cite:
 
@@ -72,7 +74,7 @@ If you find Biom3d useful in your research, please cite:
   }
 ```
 
-## :moneybag: Fundings and Acknowledgements 
+## 💰 Fundings and Acknowledgements 
 
 This project has been inspired by the following publication: "nnU-Net: a self-configuring method for deep learning-based biomedical image segmentation", Fabian Isensee et al, Nature Method, 2021.
 
