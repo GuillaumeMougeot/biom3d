@@ -842,7 +842,7 @@ class TrainTab(ttk.Frame):
             NB_EPOCHS=cfg.NB_EPOCHS)
             # copy it
             ftp = REMOTE.open_sftp()
-            ftp.put(new_config_path, MAIN_DIR+"/config1.py")
+            ftp.put(new_config_path, MAIN_DIR+"/config.py")
             ftp.close()
             # delete the temp file
             os.remove(new_config_path)
@@ -852,7 +852,7 @@ class TrainTab(ttk.Frame):
             def train_nohup():
                 
                 # run the training and store the output in an output file 
-                _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {}; nohup  python -m biom3d.train --config config1.py | tee log.out &".format(venv,MAIN_DIR))
+                _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {}; nohup  python -m biom3d.train --config config.py | tee log.out &".format(venv,MAIN_DIR))
                 
                 # print the stdout continuously
                 while True:
