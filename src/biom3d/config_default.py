@@ -271,7 +271,8 @@ POSTPROCESSOR = Dict(
     fct="Seg",
     kwargs=Dict(
         use_softmax=USE_SOFTMAX,
-        keep_biggest_only=False
+        keep_biggest_only=False,
+        keep_big_only=False,
     ),
 )
 

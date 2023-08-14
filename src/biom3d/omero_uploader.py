@@ -52,6 +52,7 @@ from omero.rtypes import rstring, rbool
 from omero_version import omero_version
 from omero.callbacks import CmdCallbackI
 from omero.gateway import BlitzGateway
+from ezomero import post_dataset
 
 def get_files_for_fileset(fs_path):
     if os.path.isfile(fs_path):
@@ -170,10 +171,14 @@ def full_import(client, fs_path, wait=-1):
     finally:
         proc.close()
         
-def run(conn,dataset,path,wait=-1):
-    if dataset and not conn.getObject('Dataset', dataset):
-        print ('Dataset id not found: %s' % dataset)
+def run(conn,project,dataset_name,path,wait=-1):
+    if project and not conn.getObject('Project', project):
+        print ('Project id not found: %s' % project)
         sys.exit(1)
+
+    # create a new Omero Dataset
+    dataset = post_dataset(conn,dataset_name,project)
+
     directory_path =str(path)    
     filees = get_files_for_fileset(directory_path)
     for fs_path in filees:
@@ -192,11 +197,13 @@ def run(conn,dataset,path,wait=-1):
     
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=int, help=(
-        'Add imported files to this Dataset ID (not valid when wait=-1)'))
+    parser.add_argument('--project', type=int, help=(
+        'Add imported files to this Project ID (not valid when wait=-1)'))
     parser.add_argument('--wait', type=int, default=-1, help=(
         'Wait for this number of seconds for each import to complete. '
         '0: return immediately, -1: wait indefinitely (default)'))
+    parser.add_argument('--dataset_name', 
+        help='Name of the Omero dataset.')
     parser.add_argument('--path', 
         help='Files or directories')
     parser.add_argument('--username',
@@ -210,7 +217,8 @@ if __name__ == '__main__':
     conn = BlitzGateway(args.username, args.password, host=args.hostname, port=4064)
     conn.connect()
     run(conn=conn,
-        dataset=args.dataset,
+        project=args.project,
+        dataset_name=args.dataset_name,
         path=args.path,
         wait=args.wait
     )
