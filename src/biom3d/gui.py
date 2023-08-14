@@ -552,7 +552,7 @@ class ConfigFrame(ttk.LabelFrame):
         self.auto_config_finished = ttk.Label(self, text="")
 
         self.num_epochs_label = ttk.Label(self, text='Number of epochs: '+"."*screen_width)
-        self.num_epochs = IntVar(value=10)
+        self.num_epochs = IntVar(value=100)
         self.num_epochs_entry = ttk.Entry(self, width=4, textvariable=self.num_epochs)
         
 
@@ -639,7 +639,7 @@ class ConfigFrame(ttk.LabelFrame):
         global fg_dir_train
         if REMOTE:
             # preprocessing
-            _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {};  python -m biom3d.preprocess --img_dir data/{}/img --msk_dir data/{}/msk --num_classes {} --remote".format(venv,MAIN_DIR, selected_dataset, selected_dataset,TrainFolderSelection().classes.get()))  
+            _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {};  python -m biom3d.preprocess --img_dir data/{}/img --msk_dir data/{}/msk --num_classes {} --desc {} --remote".format(venv,MAIN_DIR, selected_dataset, selected_dataset,TrainFolderSelection().classes.get(),TrainTab().builder_name_entry.get()))  
             auto_config_results = stdout.readlines()
             auto_config_results = [e.replace('\n','') for e in auto_config_results]
          
@@ -852,7 +852,7 @@ class TrainTab(ttk.Frame):
             def train_nohup():
                 
                 # run the training and store the output in an output file 
-                _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {}; nohup  python -m biom3d.train --config config1.py | tee log.out &".format(venv,MAIN_DIR))
+                _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {}; nohup  python -m biom3d.train --config config1.py &".format(venv,MAIN_DIR))
                 
                 # print the stdout continuously
                 while True:
@@ -1001,10 +1001,10 @@ class InputDirectory(ttk.LabelFrame):
             # or send the dataset to server
             self.send_data_label = ttk.Label(self, text="Or send a new dataset of raw images to the server:")
             self.send_data_folder = FileDialog(self, mode='folder', textEntry="data/to_pred")
-            self.send_data_button = ttk.Button(self, width=10, style="train_button.TLabel", text="Send data", command=self.send_data)
+            self.send_data_button = ttk.Button(self, width=29, style="train_button.TLabel", text="Send data", command=self.send_data)
 
 
-            self.data_dir_option_menu.grid(column=0, row=0, padx=12,ipadx=100,sticky=(E))
+            self.data_dir_option_menu.grid(column=0, row=0, padx=12,sticky=(E))
             self.send_data_label.grid(column=0, row=2, sticky=(W,E))
             self.send_data_folder.grid(column=0, row=3, sticky=(W,E))
             self.send_data_button.grid(column=0, row=4, ipady=4,pady=5,)
@@ -1079,16 +1079,16 @@ class OmeroDataset(ttk.LabelFrame):
         self.id = StringVar(value="19699")
         self.id_entry = ttk.Entry(self, textvariable=self.id)
 
-        self.p_label_id = ttk.Label(self, text="Output project ID:")
+        self.p_label_id = ttk.Label(self, text="Output Project ID:")
         self.pid = StringVar(value="12906")
         self.pid_entry = ttk.Entry(self, textvariable=self.pid)
         
         # self.option_menu.grid(column=0, row=0, sticky=(W,E))
-        self.label_id.grid(column=1, row=0, sticky=(E))
-        self.id_entry.grid(column=2, row=0, sticky=(W,E))
+        self.label_id.grid(column=0, row=0, sticky=(W))
+        self.id_entry.grid(column=2, row=0, padx=0,sticky=(E))
 
-        self.p_label_id.grid(column=1, row=1, sticky=(E))
-        self.pid_entry.grid(column=2, row=1, sticky=(W,E))
+        self.p_label_id.grid(column=0, row=1, sticky=(W))
+        self.pid_entry.grid(column=2, row=1, sticky=(E))
         
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=1)
@@ -1196,7 +1196,7 @@ class OmeroUpload(ttk.LabelFrame):
             self.data_dir_option_menu = ttk.OptionMenu(self, self.data_dir, self.data_dir.get(), *self.data_list)
             self.button_update_list = ttk.Button(self, text="Update", command=self._update_pred_list)
             self.dataset_label = ttk.Label(self, text='Select the dataset to send :')
-        self.send_data_omero = ttk.Button(self, width=15,text="Send to Omero", style="train_button.TLabel", command=self.send_to_omero)
+        self.send_data_omero = ttk.Button(self, width=29,text="Send to Omero", style="train_button.TLabel", command=self.send_to_omero)
         # place widgets
         self.hostname_label.grid(column=0, row=0, sticky=(W,E))
         self.hostname_entry.grid(column=1,columnspan=2, row=0, sticky=(W,E))
@@ -1213,7 +1213,8 @@ class OmeroUpload(ttk.LabelFrame):
         if REMOTE:
             self.data_dir_option_menu.grid(column=0, row=5, columnspan=2, sticky=(W,E))
             self.button_update_list.grid(column=2,row=5, padx=5, sticky=(W,E))
-            self.send_data_omero.grid(column=2,ipady=4,pady=5,row=6, sticky=(W,E))
+            self.send_data_omero.grid(padx=(100, 10),columnspan=2,ipady=4,pady=5,row=6, )
+       
         else :
             self.prediction_folder_label.grid(column=0, row=5,padx=5, sticky=(W,E))
             self.prediction_folder.grid(column=1,columnspan=2,row=5, sticky=(W,E))
@@ -1284,7 +1285,7 @@ class DownloadPrediction(ttk.LabelFrame):
         # or send the dataset to server
         self.get_data_label = ttk.Label(self, text="Select local folder to download into:")
         self.get_data_folder = FileDialog(self, mode='folder', textEntry="data/pred")
-        self.get_data_button = ttk.Button(self,width=10,style="train_button.TLabel", text="Get data", command=self.get_data)
+        self.get_data_button = ttk.Button(self,width=29,style="train_button.TLabel", text="Get data", command=self.get_data)
 
         self.input_folder_label.grid(column=0, row=0, columnspan=2, sticky=(W,E))
         self.data_dir_option_menu.grid(column=0, row=1, sticky=(W,E))
@@ -1333,7 +1334,7 @@ class PredictTab(ttk.Frame):
         self.model_selection = ModelSelection(self, text="Model selection", padding=[10,10,10,10])
         self.send_to_omero = ttk.Checkbutton(self, text="Send Predictions to omero ", command=self.display_send_to_omero, variable=self.send_to_omero_state)
         if not REMOTE: self.output_dir = OutputDirectory(self, text="Output directory", padding=[10,10,10,10])
-        self.button = ttk.Button(self, width=10,style="train_button.TLabel", text="Start", command=self.predict)
+        self.button = ttk.Button(self, width=29,style="train_button.TLabel", text="Start", command=self.predict)
         if REMOTE: self.download_prediction = DownloadPrediction(self, text="Download predictions to local", padding=[10,10,10,10])
 
         # if platform=='linux' or REMOTE: # local Omero for linux only
@@ -1347,8 +1348,8 @@ class PredictTab(ttk.Frame):
 
         self.button.grid(column=0,row=5,ipady=4, pady=4,padx=10,sticky=(S,N))
         if REMOTE: 
-            self.download_prediction.grid(column=0, row=6, sticky=(W,E), pady=6)
-            self.send_to_omero.grid(column=0,row=7,sticky=(W,E), pady=6)
+            self.download_prediction.grid(column=0, row=7, sticky=(W,E), pady=6)
+            self.send_to_omero.grid(column=0,row=6,sticky=(W,E), pady=6)
     
         self.columnconfigure(0, weight=1)
         for i in range(7):
@@ -1480,7 +1481,7 @@ class PredictTab(ttk.Frame):
             
             if REMOTE :
                 self.download_prediction.grid_remove()
-                self.send_to_omero_connection.grid(column=0,row=6,sticky=(W,E), pady=6)
+                self.send_to_omero_connection.grid(column=0,row=7,sticky=(W,E), pady=6)
                 
             else :
                 self.output_dir.grid_remove()     
@@ -1489,7 +1490,7 @@ class PredictTab(ttk.Frame):
          else:
             # hide omero 
             self.send_to_omero_connection.grid_remove()
-            if REMOTE : self.download_prediction.grid(column=0, row=6, sticky=(W,E), pady=6)
+            if REMOTE : self.download_prediction.grid(column=0, row=7, sticky=(W,E), pady=6)
             else: self.output_dir.grid(column=0,row=4,sticky=(W,E), pady=6)
           
 #----------------------------------------------------------------------------
