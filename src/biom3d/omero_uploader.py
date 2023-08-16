@@ -171,7 +171,10 @@ def full_import(client, fs_path, wait=-1):
     finally:
         proc.close()
         
-def run(conn,project,dataset_name,path,wait=-1):
+def run(username, password, hostname, project, dataset_name, path, wait=-1):
+    conn = BlitzGateway(username, password, hostname, port=4064)
+    conn.connect()
+
     if project and not conn.getObject('Project', project):
         print ('Project id not found: %s' % project)
         sys.exit(1)
@@ -194,6 +197,7 @@ def run(conn,project,dataset_name,path,wait=-1):
                         link.child = omero.model.ImageI(p.image.id.val, False)
                         links.append(link)
                 conn.getUpdateService().saveArray(links, conn.SERVICE_OPTS) 
+    conn.close()
     
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -214,12 +218,11 @@ if __name__ == '__main__':
         help="Host name")
     args = parser.parse_args()
 
-    conn = BlitzGateway(args.username, args.password, host=args.hostname, port=4064)
-    conn.connect()
-    run(conn=conn,
+    
+    run(args.username, args.password, host=args.hostname,
         project=args.project,
         dataset_name=args.dataset_name,
         path=args.path,
         wait=args.wait
     )
-    conn.close()
+    
