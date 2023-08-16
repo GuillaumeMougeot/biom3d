@@ -96,7 +96,9 @@ def download_datasets(conn, datasets, target_dir):
                 continue
             dc.download_fileset(conn, fileset, dataset_dir)
 
-def download_object(conn, obj, target_dir):
+def download_object(username, password, hostname, obj, target_dir):
+    conn = BlitzGateway(username=username, passwd=password, host=hostname, port=4064)
+    conn.connect()
     try:
         obj_id = int(obj.split(":")[1])
         obj_type = obj.split(":")[0]
@@ -121,6 +123,8 @@ def download_object(conn, obj, target_dir):
 
     download_datasets(conn, datasets, target_dir)
 
+    conn.close()
+
     return datasets, target_dir
 
 
@@ -138,10 +142,7 @@ def main(argv):
         help="Host name")
     args = parser.parse_args(argv)
 
-    conn = BlitzGateway(args.username, args.password, host=args.hostname, port=4064)
-    conn.connect()
-    download_object(conn, args.obj, args.target)
-    conn.close()
+    download_object(args.username, args.password, args.hostname, args.obj, args.target)
 
 if __name__ == '__main__':
     main(sys.argv[1:])
