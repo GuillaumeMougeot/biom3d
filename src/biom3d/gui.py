@@ -1196,8 +1196,12 @@ class OmeroUpload(ttk.LabelFrame):
         self.prediction_folder= FileDialog(self, mode='folder', textEntry="data/pred")
         
         self.upload_project_label= ttk.Label(self, text="Project ID : ") #change to project id and send dataset name
-        self.upload_project_entry= ttk.Entry(self)
+        self.project_id= StringVar(value="12906")
+        self.upload_project_entry= ttk.Entry(self,textvariable=self.project_id)
         
+        self.upload_dataset_label= ttk.Label(self, text="Select a name for your dataset : ") #change to project id and send dataset name
+        self.dataset_name= StringVar(value="Biom3d_pred")
+        self.dataset_name_entry= ttk.Entry(self,textvariable=self.dataset_name)
         if REMOTE :
             # define the dropdown menu
             _,stdout,_ = REMOTE.exec_command('ls {}/data/pred'.format(MAIN_DIR))
@@ -1222,15 +1226,17 @@ class OmeroUpload(ttk.LabelFrame):
         
         self.upload_project_label.grid(column=0, row=3, sticky=(W,E))
         self.upload_project_entry.grid(column=1, columnspan=2,row=3, sticky=(W,E))
-        self.dataset_label.grid(column=0,row=4, pady=5,padx=5, sticky=(W,E))
+        self.upload_dataset_label.grid(column=0,row=4, pady=5, sticky=(W,E))
+        self.dataset_name_entry.grid(column=1,row=4,columnspan=2, pady=5, sticky=(W,E))
+        self.dataset_label.grid(column=0,row=5, pady=5, sticky=(W,E))
         if REMOTE:
-            self.data_dir_option_menu.grid(column=0, row=5, columnspan=2, sticky=(W,E))
-            self.button_update_list.grid(column=2,row=5, padx=5, sticky=(W,E))
-            self.send_data_omero.grid(padx=(100, 10),columnspan=2,ipady=4,pady=5,row=6, )
+            self.data_dir_option_menu.grid(column=0, row=6, columnspan=2, sticky=(W,E))
+            self.button_update_list.grid(column=2,row=6, padx=6, sticky=(W,E))
+            self.send_data_omero.grid(padx=(100, 10),columnspan=2,ipady=4,pady=5,row=7, )
        
         else :
-            self.prediction_folder_label.grid(column=0, row=5,padx=5, sticky=(W,E))
-            self.prediction_folder.grid(column=1,columnspan=2,row=5, sticky=(W,E))
+            self.prediction_folder_label.grid(column=0, row=6,padx=5, sticky=(W,E))
+            self.prediction_folder.grid(column=1,columnspan=2,row=6, sticky=(W,E))
         # grid config
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=5)
@@ -1250,7 +1256,6 @@ class OmeroUpload(ttk.LabelFrame):
         # get the last folder modified/created
         _,stdout,stderr=REMOTE.exec_command("ls -td {}/data/pred/{}/*/ | head -1".format(MAIN_DIR, self.dataset_selected_omero() ))  
         last_folder = stdout.readline().replace('\n','')
-        print("htis is last folder ",last_folder)
         _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {}; python -m biom3d.omero_uploader --username {} --password {} --hostname {} --project {} --path '{}' --dataset_name {}".format(venv,MAIN_DIR, self.username_entry.get(), self.password_entry.get(), self.hostname_entry.get(), self.upload_project_entry.get(), last_folder,self.dataset_selected_omero() ))
         
         print(" all params : ",MAIN_DIR, self.username_entry.get(), self.password_entry.get(), self.hostname_entry.get(), self.upload_project_entry.get(), MAIN_DIR, self.dataset_selected_omero())
@@ -1356,13 +1361,13 @@ class PredictTab(ttk.Frame):
         self.model_selection.grid(column=0,row=3,sticky=(W,E), pady=6)
         
         if not REMOTE: 
-            self.output_dir.grid(column=0,row=4,sticky=(W,E), pady=6)
-            self.send_to_omero.grid(column=0,row=5,sticky=(W,E), pady=6)
+            self.output_dir.grid(column=0,row=5,sticky=(W,E), pady=6)
+            self.send_to_omero.grid(column=0,row=4,sticky=(W,E), pady=6)
 
-        self.button.grid(column=0,row=5,ipady=4, pady=4,padx=10,sticky=(S,N))
+        self.button.grid(column=0,row=6,ipady=4, pady=4,padx=10,sticky=(S,N))
         if REMOTE: 
-            self.download_prediction.grid(column=0, row=7, sticky=(W,E), pady=6)
-            self.send_to_omero.grid(column=0,row=6,sticky=(W,E), pady=6)
+            self.download_prediction.grid(column=0, row=8, sticky=(W,E), pady=6)
+            self.send_to_omero.grid(column=0,row=7,sticky=(W,E), pady=6)
     
         self.columnconfigure(0, weight=1)
         for i in range(7):
@@ -1416,10 +1421,11 @@ class PredictTab(ttk.Frame):
                     upload_id=pid
                 )           
                 if self.send_to_omero_state.get():
-                    biom3d.omero_uploader(username=self.send_to_omero_connection.username.get(),
+                    biom3d.omero_uploader.run(username=self.send_to_omero_connection.username.get(),
                     password=self.send_to_omero_connection.password.get(),
                     hostname=self.send_to_omero_connection.hostname.get(),
-                    project=self.send_to_omero_connection.upload_project_entry.get(),
+                    project=int(self.send_to_omero_connection.upload_project_entry.get()),
+                    dataset_name=self.send_to_omero_connection.dataset_name_entry.get(),
                     path=p)
         else: # if not use Omero
             if REMOTE:
@@ -1456,13 +1462,12 @@ class PredictTab(ttk.Frame):
                     dir_out=target)
                 self.prediction_messages.config(text="Prediction is Done !")
                 if self.send_to_omero_state.get():
-                    dataset_name= os.path.basename(os.path.normpath(self.input_dir.data_dir.get()))
                     biom3d.omero_uploader.run(username=self.send_to_omero_connection.username.get(),
                     password=self.send_to_omero_connection.password.get(),
                     hostname=self.send_to_omero_connection.hostname.get(),
-                    project=self.send_to_omero_connection.upload_project_entry.get(),
-                    path=p,
-                    dataset_name=dataset_name)
+                    project=int(self.send_to_omero_connection.upload_project_entry.get()),
+                    dataset_name=self.send_to_omero_connection.dataset_name_entry.get(),
+                    path=p)
                 popupmsg("Prediction done !")
 
     def display_omero(self):
@@ -1494,17 +1499,17 @@ class PredictTab(ttk.Frame):
             
             if REMOTE :
                 self.download_prediction.grid_remove()
-                self.send_to_omero_connection.grid(column=0,row=7,sticky=(W,E), pady=6)
+                self.send_to_omero_connection.grid(column=0,row=8,sticky=(W,E), pady=6)
                 
             else :
                 self.output_dir.grid_remove()     
-                self.send_to_omero_connection.grid(column=0,row=4,sticky=(W,E), pady=6)
+                self.send_to_omero_connection.grid(column=0,row=5,sticky=(W,E), pady=6)
 
          else:
             # hide omero 
             self.send_to_omero_connection.grid_remove()
-            if REMOTE : self.download_prediction.grid(column=0, row=7, sticky=(W,E), pady=6)
-            else: self.output_dir.grid(column=0,row=4,sticky=(W,E), pady=6)
+            if REMOTE : self.download_prediction.grid(column=0, row=8, sticky=(W,E), pady=6)
+            else: self.output_dir.grid(column=0,row=5,sticky=(W,E), pady=6)
           
 #----------------------------------------------------------------------------
 # Main loop
