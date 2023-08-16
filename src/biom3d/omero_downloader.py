@@ -97,7 +97,7 @@ def download_datasets(conn, datasets, target_dir):
             dc.download_fileset(conn, fileset, dataset_dir)
 
 def download_object(username, password, hostname, obj, target_dir):
-    conn = BlitzGateway(username, password, hostname, port=4064)
+    conn = BlitzGateway(username=username, passwd=password, host=hostname, port=4064)
     conn.connect()
     try:
         obj_id = int(obj.split(":")[1])
