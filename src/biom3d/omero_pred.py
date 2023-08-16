@@ -39,8 +39,6 @@ def run(obj, target, log, dir_out, host=None, user=None, pwd=None, upload_id=Non
 
         # eventually upload the dataset back into Omero [DEPRECATED]
         if upload_id is not None and host is not None:
-            conn = BlitzGateway(user, pwd, host=host, port=4064)
-            conn.connect()
 
             # create a new Omero Dataset
             dataset_name = os.path.basename(dir_in)
@@ -48,8 +46,7 @@ def run(obj, target, log, dir_out, host=None, user=None, pwd=None, upload_id=Non
                 dataset_name = os.path.basename(os.path.dirname(dir_in))
             dataset_name += ext
 
-            omero_uploader.run(conn,upload_id,dataset_name,dir_out)
-            conn.close()
+            omero_uploader.run(user, pwd, host,upload_id,dataset_name,dir_out)
         print("Done prediction!")
 
         # print for remote. Format TAG:key:value
