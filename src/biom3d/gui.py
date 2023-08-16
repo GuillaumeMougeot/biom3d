@@ -1414,14 +1414,13 @@ class PredictTab(ttk.Frame):
                     pwd=self.omero_connection.password.get(),
                     host=self.omero_connection.hostname.get(),
                     upload_id=pid
-                )
+                )           
                 if self.send_to_omero_state.get():
-                    biom3d.upload_pred.run(user=self.send_to_omero_connection.username.get(),
-                    pwd=self.send_to_omero_connection.password.get(),
-                    host=self.send_to_omero_connection.hostname.get(),
-                    dataset=self.send_to_omero_connection.upload_dataset_entry.get(),
-                    path=p,
-                    wait=1)
+                    biom3d.omero_uploader(username=self.send_to_omero_connection.username.get(),
+                    password=self.send_to_omero_connection.password.get(),
+                    hostname=self.send_to_omero_connection.hostname.get(),
+                    project=self.send_to_omero_connection.upload_project_entry.get(),
+                    path=p)
         else: # if not use Omero
             if REMOTE:
                 _, stdout, stderr = REMOTE.exec_command("source {}/bin/activate; cd {}; python -m biom3d.pred --log {} --dir_in {} --dir_out {}".format(venv,
@@ -1457,11 +1456,13 @@ class PredictTab(ttk.Frame):
                     dir_out=target)
                 self.prediction_messages.config(text="Prediction is Done !")
                 if self.send_to_omero_state.get():
-                    biom3d.omero_uploader(username=self.send_to_omero_connection.username.get(),
+                    dataset_name= os.path.basename(os.path.normpath(self.input_dir.data_dir.get()))
+                    biom3d.omero_uploader.run(username=self.send_to_omero_connection.username.get(),
                     password=self.send_to_omero_connection.password.get(),
                     hostname=self.send_to_omero_connection.hostname.get(),
                     project=self.send_to_omero_connection.upload_project_entry.get(),
-                    path=p)
+                    path=p,
+                    dataset_name=dataset_name)
                 popupmsg("Prediction done !")
 
     def display_omero(self):

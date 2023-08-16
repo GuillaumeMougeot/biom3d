@@ -202,7 +202,7 @@ if __name__ == '__main__':
     parser.add_argument('--wait', type=int, default=-1, help=(
         'Wait for this number of seconds for each import to complete. '
         '0: return immediately, -1: wait indefinitely (default)'))
-    parser.add_argument('--dataset_name', 
+    parser.add_argument('--dataset_name',default="Biom3d_pred", 
         help='Name of the Omero dataset.')
     parser.add_argument('--path', 
         help='Files or directories')
