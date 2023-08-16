@@ -172,7 +172,7 @@ def full_import(client, fs_path, wait=-1):
         proc.close()
         
 def run(username, password, hostname, project, dataset_name, path, wait=-1):
-    conn = BlitzGateway(username, password, hostname, port=4064)
+    conn = BlitzGateway(username=username, passwd=password, host=hostname, port=4064)
     conn.connect()
 
     if project and not conn.getObject('Project', project):
