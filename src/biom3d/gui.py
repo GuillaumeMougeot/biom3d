@@ -1752,6 +1752,7 @@ class Root(Tk):
             # path_to_venv = path1.split("/")  
             global VENV 
             # VENV = path_to_venv[-1]
+            VENV = path
             print("virtual environment name: ",VENV)
             
         modulename='biom3d'
