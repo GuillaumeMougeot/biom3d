@@ -219,7 +219,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     
-    run(args.username, args.password, host=args.hostname,
+    run(args.username, args.password, args.hostname,
         project=args.project,
         dataset_name=args.dataset_name,
         path=args.path,
