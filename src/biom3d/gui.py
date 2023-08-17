@@ -537,7 +537,7 @@ class ConfigFrame(ttk.LabelFrame):
         
         
         
-        self.auto_config_button = ttk.Button(self, text="Preprocess & Auto-configure", style='train_button.TLabel',width =29,command=self.auto_config)
+        self.auto_config_button = ttk.Button(self, text="Auto-configure", style='train_button.TLabel',width =29,command=self.auto_config)
         self.img_outdir = train_folder_selection.img_outdir
         self.msk_outdir = train_folder_selection.msk_outdir
         self.num_classes = train_folder_selection.num_classes
@@ -748,7 +748,7 @@ class TrainTab(ttk.Frame):
     def __init__(self, preprocess_tab=None, *arg, **kw):
         super(TrainTab, self).__init__(*arg, **kw)
         global new_config_path
-        self.folder_selection = TrainFolderSelection(preprocess_tab=preprocess_tab, master=self, text="Preprocess & Autoconfig ", padding=[10,10,10,10])
+        self.folder_selection = TrainFolderSelection(preprocess_tab=preprocess_tab, master=self, text="Preprocess", padding=[10,10,10,10])
         self.config_selection = ConfigFrame(train_folder_selection=self.folder_selection, master=self, text="Training configuration", padding=[10,10,10,10])
         self.train_button = ttk.Button(self, text="Start", style="train_button.TLabel", width =29, command=self.train)
         self.train_done = ttk.Label(self, text="")
