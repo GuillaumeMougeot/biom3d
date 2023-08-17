@@ -435,21 +435,7 @@ class TrainFolderSelection(ttk.LabelFrame):
             self.send_data_name = StringVar(value="nucleus_0001")
             self.send_data_entry = ttk.Entry(self, textvariable=self.send_data_name)
             
-            # get dataset list
-            _,stdout,_ = REMOTE.exec_command('ls {}/data'.format(MAIN_DIR))
-            self.data_list = [e.replace('\n','') for e in stdout.readlines()]
-            # define the dropdown menu
-            if(len(self.data_list) == 0):
-                self.data_dir = StringVar(value="Empty")
-            else:   
-                self.data_dir = StringVar(value=self.data_list[0])
-            
-            self.data_dir_option_menu = ttk.OptionMenu(self, self.data_dir, self.data_dir.get(), *self.data_list, command= self.option_selected)
-            
-            
-            self.label4 = ttk.Label(self, text="Select the Dataset to preprocess :", anchor="sw", background='white')
-            self.data_dir.trace("w", self.option_selected)
-            self.dataset_update()
+
     
           
         else:
@@ -472,8 +458,7 @@ class TrainFolderSelection(ttk.LabelFrame):
             self.send_data_label.grid(column=0, row=7, sticky=(W,E), pady=2)
             self.send_data_entry.grid(column=0,row=8, sticky=(W,E))
             self.send_data_button.grid(column=0, row=9, pady=5,ipady=4,)
-            self.data_dir_option_menu.grid(column=0,sticky=E, row=10, pady=2)
-            self.label4.grid(column=0,row=10, sticky=W, pady=2)
+            
         else:
             self.img_outdir.grid(column=0, row=2, sticky=(W,E))
             self.label2.grid(column=0,row=3, sticky=W, pady=7)
@@ -486,27 +471,8 @@ class TrainFolderSelection(ttk.LabelFrame):
         # Configure columns
         self.columnconfigure(0, weight=1)
 
-        for i in range(7):
+        for i in range(6):
             self.rowconfigure(i, weight=1)
-    def option_selected(self, *args):
-        global selected_dataset
-        selected_dataset = self.data_dir.get()
-        print("Selected option:", selected_dataset)
-        return selected_dataset
-
-    def dataset_update(self):
-        # get updated dataset list from remote
-        _, stdout, _ = REMOTE.exec_command('ls {}/data'.format(MAIN_DIR))
-        self.data_list = [e.replace('\n','') for e in stdout.readlines()]
-
-        # clear existing menu
-        self.data_dir_option_menu['menu'].delete(0, 'end')
-
-        # add new options to menu
-        for option in self.data_list:
-            self.data_dir_option_menu['menu'].add_command(
-                label=option,
-                command=lambda opt=option: self.data_dir.set(opt))
 
     def use_preprocessing(self):
         if REMOTE:
@@ -544,6 +510,31 @@ class ConfigFrame(ttk.LabelFrame):
         # widgets definitions
         willy1 = ttk.Style()
         willy1.configure("auto_confing_button.TLabel", background = '#76D7C4', foreground = 'black', width = 25, borderwidth=3, focusthickness=7, focuscolor='red', relief="raised" , anchor='c')
+        if REMOTE:
+            # get dataset list
+            _,stdout,_ = REMOTE.exec_command('ls {}/data'.format(MAIN_DIR))
+            self.data_list = [e.replace('\n','') for e in stdout.readlines()]
+            # define the dropdown menu
+            if(len(self.data_list) == 0):
+                self.data_dir = StringVar(value="Empty")
+            else:   
+                self.data_dir = StringVar(value=self.data_list[0])
+
+            self.data_dir_option_menu = ttk.OptionMenu(self, self.data_dir, self.data_dir.get(), *self.data_list, command= self.option_selected)
+
+
+            self.label4 = ttk.Label(self, text="Select the Dataset to preprocess :", anchor="sw", background='white')
+            self.data_dir.trace("w", self.option_selected)
+            self.dataset_update()        
+        
+        
+        self.builder_name_label = ttk.Label(self, text="Set a name for the builder folder (folder containing your future model):")
+        self.builder_name = StringVar(value="unet_example")
+        self.builder_name_entry = ttk.Entry(self, textvariable=self.builder_name)
+
+        
+        
+        
         self.auto_config_button = ttk.Button(self, text="Preprocess & Auto-configure", style='train_button.TLabel',width =29,command=self.auto_config)
         self.img_outdir = train_folder_selection.img_outdir
         self.msk_outdir = train_folder_selection.msk_outdir
@@ -552,7 +543,7 @@ class ConfigFrame(ttk.LabelFrame):
         self.auto_config_finished = ttk.Label(self, text="")
 
         self.num_epochs_label = ttk.Label(self, text='Number of epochs: '+"."*screen_width)
-        self.num_epochs = IntVar(value=10)
+        self.num_epochs = IntVar(value=100)
         self.num_epochs_entry = ttk.Entry(self, width=4, textvariable=self.num_epochs)
         
 
@@ -589,34 +580,59 @@ class ConfigFrame(ttk.LabelFrame):
         self.num_pools = [int(self.num_pools1.get()), int(self.num_pools2.get()), int(self.num_pools3.get())]
 
         # place widgets
-        self.auto_config_button.grid(column=0, columnspan=4,row=0 ,ipady=4, pady=2,)
-        self.auto_config_finished.grid(column=0, row=1, columnspan=2, sticky=(W,E))
+        if REMOTE:
+            self.data_dir_option_menu.grid(column=0,sticky=E, row=0, pady=2)
+            self.label4.grid(column=0,row=0, sticky=W, pady=2)
+        self.builder_name_label.grid(column=0, row=1, sticky=(W,E), ipady=4,pady=3)
+        self.builder_name_entry.grid(column=0, row=2,ipadx=213,ipady=4,pady=3,sticky=(W,E))
+        self.auto_config_button.grid(column=0, columnspan=4,row=3 ,ipady=4, pady=2,)
+        self.auto_config_finished.grid(column=0, row=4, columnspan=2, sticky=(W,E))
 
-        self.num_epochs_label.grid(column=0, row=2, sticky=(W))
-        self.num_epochs_entry.grid(column=0, row=2, padx= 0, sticky=E)
+        self.num_epochs_label.grid(column=0, row=5, sticky=(W))
+        self.num_epochs_entry.grid(column=0, row=5, padx= 0, sticky=E)
 
-        self.batch_size_label.grid(column=0, row=3, sticky=(W,E))
-        self.batch_size_entry.grid(column=0, row=3, padx= 0, sticky=E)
+        self.batch_size_label.grid(column=0, row=6, sticky=(W,E))
+        self.batch_size_entry.grid(column=0, row=6, padx= 0, sticky=E)
         
-        self.patch_size_label.grid(column=0, row=4, sticky=(W,E))
-        self.patch_size_entry1.grid(column=0, row=4,padx= 60, sticky=E)
-        self.patch_size_entry2.grid(column=0, row=4,padx= 30, sticky=E)
-        self.patch_size_entry3.grid(column=0, row=4, padx= 0, sticky=E)
+        self.patch_size_label.grid(column=0, row=7, sticky=(W,E))
+        self.patch_size_entry1.grid(column=0, row=7,padx= 60, sticky=E)
+        self.patch_size_entry2.grid(column=0, row=7,padx= 30, sticky=E)
+        self.patch_size_entry3.grid(column=0, row=7, padx= 0, sticky=E)
 
-        self.aug_patch_size_label.grid(column=0, row=5, sticky=(W,E))
-        self.aug_patch_size_entry1.grid(column=0, row=5,padx= 60, sticky=E)
-        self.aug_patch_size_entry2.grid(column=0, row=5, padx= 30,sticky=E)
-        self.aug_patch_size_entry3.grid(column=0, row=5,padx= 0, sticky=E)
+        self.aug_patch_size_label.grid(column=0, row=8, sticky=(W,E))
+        self.aug_patch_size_entry1.grid(column=0, row=8,padx= 60, sticky=E)
+        self.aug_patch_size_entry2.grid(column=0, row=8, padx= 30,sticky=E)
+        self.aug_patch_size_entry3.grid(column=0, row=8,padx= 0, sticky=E)
 
-        self.num_pools_label.grid(column=0, row=6, sticky=(W,E))
-        self.num_pools_entry1.grid(column=0, row=6,padx= 60, sticky=E)
-        self.num_pools_entry2.grid(column=0, row=6, padx= 30,sticky=E)
-        self.num_pools_entry3.grid(column=0, row=6,padx= 0, sticky=E)
+        self.num_pools_label.grid(column=0, row=9, sticky=(W,E))
+        self.num_pools_entry1.grid(column=0, row=9,padx= 60, sticky=E)
+        self.num_pools_entry2.grid(column=0, row=9, padx= 30,sticky=E)
+        self.num_pools_entry3.grid(column=0, row=9,padx= 0, sticky=E)
 
         # grid config
         self.columnconfigure(0, weight=1)
-        for i in range(6):
+        for i in range(9):
             self.rowconfigure(i, weight=1)
+    def option_selected(self, *args):
+        global selected_dataset
+        selected_dataset = self.data_dir.get()
+        print("Selected option:", selected_dataset)
+        return selected_dataset
+
+    def dataset_update(self):
+        # get updated dataset list from remote
+        _, stdout, _ = REMOTE.exec_command('ls {}/data'.format(MAIN_DIR))
+        self.data_list = [e.replace('\n','') for e in stdout.readlines()]
+
+        # clear existing menu
+        self.data_dir_option_menu['menu'].delete(0, 'end')
+
+        # add new options to menu
+        for option in self.data_list:
+            self.data_dir_option_menu['menu'].add_command(
+                label=option,
+                command=lambda opt=option: self.data_dir.set(opt))
+            
     def str2list(self, string):
         """
         convert a string like '[5 5 5]' into list of integers
@@ -639,7 +655,7 @@ class ConfigFrame(ttk.LabelFrame):
         global fg_dir_train
         if REMOTE:
             # preprocessing
-            _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {};  python -m biom3d.preprocess --img_dir data/{}/img --msk_dir data/{}/msk --num_classes {} --remote".format(venv,MAIN_DIR, selected_dataset, selected_dataset,TrainFolderSelection().classes.get()))  
+            _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {};  python -m biom3d.preprocess --img_dir data/{}/img --msk_dir data/{}/msk --num_classes {} --desc {} --remote".format(venv,MAIN_DIR, selected_dataset, selected_dataset,TrainFolderSelection().classes.get(),self.builder_name_entry.get()))  
             auto_config_results = stdout.readlines()
             auto_config_results = [e.replace('\n','') for e in auto_config_results]
          
@@ -674,6 +690,7 @@ class ConfigFrame(ttk.LabelFrame):
             p=Preprocessing(
             img_dir=self.img_outdir.get(),
             msk_dir=self.msk_outdir.get(),
+            desc=self.builder_name_entry.get(),
             num_classes=self.num_classes.get()+1,
             remove_bg=False, use_tif=False)
             p.run()
@@ -731,9 +748,6 @@ class TrainTab(ttk.Frame):
         global new_config_path
         self.folder_selection = TrainFolderSelection(preprocess_tab=preprocess_tab, master=self, text="Preprocess & Autoconfig ", padding=[10,10,10,10])
         self.config_selection = ConfigFrame(train_folder_selection=self.folder_selection, master=self, text="Training configuration", padding=[10,10,10,10])
-        self.builder_name_label = ttk.Label(self, text="Set a name for the builder folder (folder containing your future model):")
-        self.builder_name = StringVar(value="unet_example")
-        self.builder_name_entry = ttk.Entry(self, textvariable=self.builder_name)
         self.train_button = ttk.Button(self, text="Start", style="train_button.TLabel", width =29, command=self.train)
         self.train_done = ttk.Label(self, text="")
 
@@ -741,14 +755,12 @@ class TrainTab(ttk.Frame):
 
         self.folder_selection.grid(column=0,row=0,sticky=(N,W,E), pady=3)
         self.config_selection.grid(column=0,row=1,sticky=(N,W,E), pady=20)
-        self.builder_name_label.grid(column=0, row=2, sticky=(W,E), ipady=4,pady=3)
-        self.builder_name_entry.grid(column=0, row=3,ipadx=213,ipady=4,pady=3,sticky=(W,E))
-        self.train_button.grid(column=0, row=4, padx=15, ipady=4, pady= 10, sticky=(N))
-        self.train_done.grid(column=0, row=5, sticky=W)
+        self.train_button.grid(column=0, row=2, padx=15, ipady=4, pady= 2, sticky=(N))
+        self.train_done.grid(column=0, row=3, sticky=W)
 
     
         self.columnconfigure(0, weight=1)
-        for i in range(6):
+        for i in range(4):
             self.rowconfigure(i, weight=1)
     
     def str2list(self, string):
@@ -803,7 +815,7 @@ class TrainTab(ttk.Frame):
         cfg.FG_DIR = fg_dir_train
         cfg = nested_dict_change_value(cfg, 'fg_dir', cfg.FG_DIR)
 
-        cfg.DESC = self.builder_name.get()
+        cfg.DESC = self.config_selection.builder_name.get()
         
         cfg.NUM_CLASSES = self.folder_selection.num_classes.get()
         cfg = nested_dict_change_value(cfg, 'num_classes', cfg.NUM_CLASSES)
@@ -815,15 +827,15 @@ class TrainTab(ttk.Frame):
         cfg = nested_dict_change_value(cfg, 'batch_size', cfg.BATCH_SIZE)
        
         
-        cfg.PATCH_SIZE = np.array(self.config_selection.patch_size)
+        cfg.PATCH_SIZE = self.config_selection.patch_size
         cfg = nested_dict_change_value(cfg, 'patch_size', cfg.PATCH_SIZE)
         
         
-        cfg.AUG_PATCH_SIZE = np.array(self.config_selection.aug_patch_size)
+        cfg.AUG_PATCH_SIZE = self.config_selection.aug_patch_size
         cfg = nested_dict_change_value(cfg, 'aug_patch_size', cfg.AUG_PATCH_SIZE)
 
         self.config_selection.num_pools = [int(self.config_selection.num_pools1.get()), int(self.config_selection.num_pools2.get()), int(self.config_selection.num_pools3.get())]
-        cfg.NUM_POOLS = np.array(self.config_selection.num_pools)
+        cfg.NUM_POOLS = self.config_selection.num_pools
         cfg = nested_dict_change_value(cfg, 'num_pools', cfg.NUM_POOLS)
         
         if REMOTE:
@@ -842,7 +854,7 @@ class TrainTab(ttk.Frame):
             NB_EPOCHS=cfg.NB_EPOCHS)
             # copy it
             ftp = REMOTE.open_sftp()
-            ftp.put(new_config_path, MAIN_DIR+"/config.py")
+            ftp.put(new_config_path, MAIN_DIR+"/config1.py")
             ftp.close()
             # delete the temp file
             os.remove(new_config_path)
@@ -852,7 +864,7 @@ class TrainTab(ttk.Frame):
             def train_nohup():
                 
                 # run the training and store the output in an output file 
-                _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {}; nohup python -m biom3d.train --config config.py &".format(venv,MAIN_DIR))
+                _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {}; nohup  python -m biom3d.train --config config1.py &".format(venv,MAIN_DIR))
                 
                 # print the stdout continuously
                 while True:
@@ -877,10 +889,9 @@ class TrainTab(ttk.Frame):
                 import matplotlib.pyplot as plt
                 import pandas as pd
                 import os
-                import time
-
+                import time              
                 # Function to update the plot
-                def update_plot(csv_file):
+                def update_plot(csv_file):                   
                     data = pd.read_csv(csv_file)
                     plt.clf()  # Clear the current plot
                     plt.plot(data['epoch'], data['train_loss'], label='Train loss')
@@ -890,10 +901,11 @@ class TrainTab(ttk.Frame):
                     plt.title('Learning Curves')
                     plt.grid(True)
                     plt.legend()
-                    plt.pause(0.1)  # Pause for a short duration to allow for updating
-
+                    plt.pause(0.1)  # Pause for a short duration to allow for updating               
+                    plt.savefig('Learning_curves_plot.png')
+                    
                 # CSV file path
-                csv_file = 'plots/log.csv'
+                csv_file = os.path.join("plots/log.csv")
 
                 # Get initial modification timestamp
                 prev_mod_time = os.path.getmtime(csv_file)
@@ -946,6 +958,8 @@ class TrainTab(ttk.Frame):
             
             worker2.join()
             worker3.join()
+            get_logs()
+            plot()
             worker.join()
             
             
@@ -1000,10 +1014,10 @@ class InputDirectory(ttk.LabelFrame):
             # or send the dataset to server
             self.send_data_label = ttk.Label(self, text="Or send a new dataset of raw images to the server:")
             self.send_data_folder = FileDialog(self, mode='folder', textEntry="data/to_pred")
-            self.send_data_button = ttk.Button(self, width=10, style="train_button.TLabel", text="Send data", command=self.send_data)
+            self.send_data_button = ttk.Button(self, width=29, style="train_button.TLabel", text="Send data", command=self.send_data)
 
 
-            self.data_dir_option_menu.grid(column=0, row=0, padx=12,ipadx=100,sticky=(E))
+            self.data_dir_option_menu.grid(column=0, row=0, padx=12,sticky=(E))
             self.send_data_label.grid(column=0, row=2, sticky=(W,E))
             self.send_data_folder.grid(column=0, row=3, sticky=(W,E))
             self.send_data_button.grid(column=0, row=4, ipady=4,pady=5,)
@@ -1078,16 +1092,16 @@ class OmeroDataset(ttk.LabelFrame):
         self.id = StringVar(value="19699")
         self.id_entry = ttk.Entry(self, textvariable=self.id)
 
-        self.p_label_id = ttk.Label(self, text="Output project ID:")
+        self.p_label_id = ttk.Label(self, text="Output Project ID:")
         self.pid = StringVar(value="12906")
         self.pid_entry = ttk.Entry(self, textvariable=self.pid)
         
         # self.option_menu.grid(column=0, row=0, sticky=(W,E))
-        self.label_id.grid(column=1, row=0, sticky=(E))
-        self.id_entry.grid(column=2, row=0, sticky=(W,E))
+        self.label_id.grid(column=0, row=0, sticky=(W))
+        self.id_entry.grid(column=2, row=0, padx=0,sticky=(E))
 
-        self.p_label_id.grid(column=1, row=1, sticky=(E))
-        self.pid_entry.grid(column=2, row=1, sticky=(W,E))
+        self.p_label_id.grid(column=0, row=1, sticky=(W))
+        self.pid_entry.grid(column=2, row=1, sticky=(E))
         
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=1)
@@ -1181,9 +1195,13 @@ class OmeroUpload(ttk.LabelFrame):
         self.prediction_folder_label = ttk.Label(self, text='Prediction Folder:')
         self.prediction_folder= FileDialog(self, mode='folder', textEntry="data/pred")
         
-        self.upload_dataset_label= ttk.Label(self, text="Dataset ID : ")
-        self.upload_dataset_entry= ttk.Entry(self)
+        self.upload_project_label= ttk.Label(self, text="Project ID : ") #change to project id and send dataset name
+        self.project_id= StringVar(value="12906")
+        self.upload_project_entry= ttk.Entry(self,textvariable=self.project_id)
         
+        self.upload_dataset_label= ttk.Label(self, text="Select a name for your dataset : ") #change to project id and send dataset name
+        self.dataset_name= StringVar(value="Biom3d_pred")
+        self.dataset_name_entry= ttk.Entry(self,textvariable=self.dataset_name)
         if REMOTE :
             # define the dropdown menu
             _,stdout,_ = REMOTE.exec_command('ls {}/data/pred'.format(MAIN_DIR))
@@ -1195,7 +1213,7 @@ class OmeroUpload(ttk.LabelFrame):
             self.data_dir_option_menu = ttk.OptionMenu(self, self.data_dir, self.data_dir.get(), *self.data_list)
             self.button_update_list = ttk.Button(self, text="Update", command=self._update_pred_list)
             self.dataset_label = ttk.Label(self, text='Select the dataset to send :')
-        self.send_data_omero = ttk.Button(self, width=15,text="Send to Omero", style="train_button.TLabel", command=self.send_to_omero)
+        self.send_data_omero = ttk.Button(self, width=29,text="Send to Omero", style="train_button.TLabel", command=self.send_to_omero)
         # place widgets
         self.hostname_label.grid(column=0, row=0, sticky=(W,E))
         self.hostname_entry.grid(column=1,columnspan=2, row=0, sticky=(W,E))
@@ -1206,16 +1224,19 @@ class OmeroUpload(ttk.LabelFrame):
         self.password_label.grid(column=0, row=2, sticky=(W,E))
         self.password_entry.grid(column=1, columnspan=2,row=2, sticky=(W,E))
         
-        self.upload_dataset_label.grid(column=0, row=3, sticky=(W,E))
-        self.upload_dataset_entry.grid(column=1, columnspan=2,row=3, sticky=(W,E))
-        self.dataset_label.grid(column=0,row=4, pady=5,padx=5, sticky=(W,E))
+        self.upload_project_label.grid(column=0, row=3, sticky=(W,E))
+        self.upload_project_entry.grid(column=1, columnspan=2,row=3, sticky=(W,E))
+        self.upload_dataset_label.grid(column=0,row=4, pady=5, sticky=(W,E))
+        self.dataset_name_entry.grid(column=1,row=4,columnspan=2, pady=5, sticky=(W,E))
+        self.dataset_label.grid(column=0,row=5, pady=5, sticky=(W,E))
         if REMOTE:
-            self.data_dir_option_menu.grid(column=0, row=5, columnspan=2, sticky=(W,E))
-            self.button_update_list.grid(column=2,row=5, padx=5, sticky=(W,E))
-            self.send_data_omero.grid(column=2,ipady=4,pady=5,row=6, sticky=(W,E))
+            self.data_dir_option_menu.grid(column=0, row=6, columnspan=2, sticky=(W,E))
+            self.button_update_list.grid(column=2,row=6, padx=6, sticky=(W,E))
+            self.send_data_omero.grid(padx=(100, 10),columnspan=2,ipady=4,pady=5,row=7, )
+       
         else :
-            self.prediction_folder_label.grid(column=0, row=5,padx=5, sticky=(W,E))
-            self.prediction_folder.grid(column=1,columnspan=2,row=5, sticky=(W,E))
+            self.prediction_folder_label.grid(column=0, row=6,padx=5, sticky=(W,E))
+            self.prediction_folder.grid(column=1,columnspan=2,row=6, sticky=(W,E))
         # grid config
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=5)
@@ -1235,10 +1256,9 @@ class OmeroUpload(ttk.LabelFrame):
         # get the last folder modified/created
         _,stdout,stderr=REMOTE.exec_command("ls -td {}/data/pred/{}/*/ | head -1".format(MAIN_DIR, self.dataset_selected_omero() ))  
         last_folder = stdout.readline().replace('\n','')
-        print("htis is last folder ",last_folder)
-        _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {}; python -m biom3d.omero_uploader --username {} --password {} --hostname {} --dataset {} --path '{}' ".format(venv,MAIN_DIR, self.username_entry.get(), self.password_entry.get(), self.hostname_entry.get(), self.upload_dataset_entry.get(), last_folder ))
+        _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {}; python -m biom3d.omero_uploader --username {} --password {} --hostname {} --project {} --path '{}' --dataset_name {}".format(venv,MAIN_DIR, self.username_entry.get(), self.password_entry.get(), self.hostname_entry.get(), self.upload_project_entry.get(), last_folder,self.dataset_selected_omero() ))
         
-        print(" all params : ",MAIN_DIR, self.username_entry.get(), self.password_entry.get(), self.hostname_entry.get(), self.upload_dataset_entry.get(), MAIN_DIR, self.dataset_selected_omero())
+        print(" all params : ",MAIN_DIR, self.username_entry.get(), self.password_entry.get(), self.hostname_entry.get(), self.upload_project_entry.get(), MAIN_DIR, self.dataset_selected_omero())
         while True: 
                     line = stdout.readline()
                     if not line:
@@ -1283,7 +1303,7 @@ class DownloadPrediction(ttk.LabelFrame):
         # or send the dataset to server
         self.get_data_label = ttk.Label(self, text="Select local folder to download into:")
         self.get_data_folder = FileDialog(self, mode='folder', textEntry="data/pred")
-        self.get_data_button = ttk.Button(self,width=10,style="train_button.TLabel", text="Get data", command=self.get_data)
+        self.get_data_button = ttk.Button(self,width=29,style="train_button.TLabel", text="Get data", command=self.get_data)
 
         self.input_folder_label.grid(column=0, row=0, columnspan=2, sticky=(W,E))
         self.data_dir_option_menu.grid(column=0, row=1, sticky=(W,E))
@@ -1332,7 +1352,7 @@ class PredictTab(ttk.Frame):
         self.model_selection = ModelSelection(self, text="Model selection", padding=[10,10,10,10])
         self.send_to_omero = ttk.Checkbutton(self, text="Send Predictions to omero ", command=self.display_send_to_omero, variable=self.send_to_omero_state)
         if not REMOTE: self.output_dir = OutputDirectory(self, text="Output directory", padding=[10,10,10,10])
-        self.button = ttk.Button(self, width=10,style="train_button.TLabel", text="Start", command=self.predict)
+        self.button = ttk.Button(self, width=29,style="train_button.TLabel", text="Start", command=self.predict)
         if REMOTE: self.download_prediction = DownloadPrediction(self, text="Download predictions to local", padding=[10,10,10,10])
 
         # if platform=='linux' or REMOTE: # local Omero for linux only
@@ -1341,12 +1361,12 @@ class PredictTab(ttk.Frame):
         self.model_selection.grid(column=0,row=3,sticky=(W,E), pady=6)
         
         if not REMOTE: 
-            self.output_dir.grid(column=0,row=4,sticky=(W,E), pady=6)
-            self.send_to_omero.grid(column=0,row=5,sticky=(W,E), pady=6)
+            self.output_dir.grid(column=0,row=5,sticky=(W,E), pady=6)
+            self.send_to_omero.grid(column=0,row=4,sticky=(W,E), pady=6)
 
-        self.button.grid(column=0,row=5,ipady=4, pady=4,padx=10,sticky=(S,N))
+        self.button.grid(column=0,row=6,ipady=4, pady=4,padx=10,sticky=(S,N))
         if REMOTE: 
-            self.download_prediction.grid(column=0, row=6, sticky=(W,E), pady=6)
+            self.download_prediction.grid(column=0, row=8, sticky=(W,E), pady=6)
             self.send_to_omero.grid(column=0,row=7,sticky=(W,E), pady=6)
     
         self.columnconfigure(0, weight=1)
@@ -1399,14 +1419,14 @@ class PredictTab(ttk.Frame):
                     pwd=self.omero_connection.password.get(),
                     host=self.omero_connection.hostname.get(),
                     upload_id=pid
-                )
+                )           
                 if self.send_to_omero_state.get():
-                    biom3d.upload_pred.run(user=self.send_to_omero_connection.username.get(),
-                    pwd=self.send_to_omero_connection.password.get(),
-                    host=self.send_to_omero_connection.hostname.get(),
-                    dataset=self.send_to_omero_connection.upload_dataset_entry.get(),
-                    path=p,
-                    wait=1)
+                    biom3d.omero_uploader.run(username=self.send_to_omero_connection.username.get(),
+                    password=self.send_to_omero_connection.password.get(),
+                    hostname=self.send_to_omero_connection.hostname.get(),
+                    project=int(self.send_to_omero_connection.upload_project_entry.get()),
+                    dataset_name=self.send_to_omero_connection.dataset_name_entry.get(),
+                    path=p)
         else: # if not use Omero
             if REMOTE:
                 _, stdout, stderr = REMOTE.exec_command("source {}/bin/activate; cd {}; python -m biom3d.pred --log {} --dir_in {} --dir_out {}".format(venv,
@@ -1442,12 +1462,12 @@ class PredictTab(ttk.Frame):
                     dir_out=target)
                 self.prediction_messages.config(text="Prediction is Done !")
                 if self.send_to_omero_state.get():
-                    biom3d.upload_pred.run(user=self.send_to_omero_connection.username.get(),
-                    pwd=self.send_to_omero_connection.password.get(),
-                    host=self.send_to_omero_connection.hostname.get(),
-                    dataset=self.send_to_omero_connection.upload_dataset_entry.get(),
-                    path=p,
-                    wait=1)
+                    biom3d.omero_uploader.run(username=self.send_to_omero_connection.username.get(),
+                    password=self.send_to_omero_connection.password.get(),
+                    hostname=self.send_to_omero_connection.hostname.get(),
+                    project=int(self.send_to_omero_connection.upload_project_entry.get()),
+                    dataset_name=self.send_to_omero_connection.dataset_name_entry.get(),
+                    path=p)
                 popupmsg("Prediction done !")
 
     def display_omero(self):
@@ -1479,17 +1499,17 @@ class PredictTab(ttk.Frame):
             
             if REMOTE :
                 self.download_prediction.grid_remove()
-                self.send_to_omero_connection.grid(column=0,row=6,sticky=(W,E), pady=6)
+                self.send_to_omero_connection.grid(column=0,row=8,sticky=(W,E), pady=6)
                 
             else :
                 self.output_dir.grid_remove()     
-                self.send_to_omero_connection.grid(column=0,row=4,sticky=(W,E), pady=6)
+                self.send_to_omero_connection.grid(column=0,row=5,sticky=(W,E), pady=6)
 
          else:
             # hide omero 
             self.send_to_omero_connection.grid_remove()
-            if REMOTE : self.download_prediction.grid(column=0, row=6, sticky=(W,E), pady=6)
-            else: self.output_dir.grid(column=0,row=4,sticky=(W,E), pady=6)
+            if REMOTE : self.download_prediction.grid(column=0, row=8, sticky=(W,E), pady=6)
+            else: self.output_dir.grid(column=0,row=5,sticky=(W,E), pady=6)
           
 #----------------------------------------------------------------------------
 # Main loop
