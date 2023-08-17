@@ -1064,43 +1064,6 @@ def adaptive_load_config(config_path):
 # ----------------------------------------------------------------------------
 # postprocessing utils
 
-def compute_otsu_criteria(im, th):
-    """Otsu's method to compute criteria.
-    Found here: https://en.wikipedia.org/wiki/Otsu%27s_method
-    """
-    # create the thresholded image
-    thresholded_im = np.zeros(im.shape)
-    thresholded_im[im >= th] = 1
-
-    # compute weights
-    nb_pixels = im.size
-    nb_pixels1 = np.count_nonzero(thresholded_im)
-    weight1 = nb_pixels1 / nb_pixels
-    weight0 = 1 - weight1
-
-    # if one of the classes is empty, eg all pixels are below or above the threshold, that threshold will not be considered
-    # in the search for the best threshold
-    if weight1 == 0 or weight0 == 0:
-        return np.inf
-
-    # find all pixels belonging to each class
-    val_pixels1 = im[thresholded_im == 1]
-    val_pixels0 = im[thresholded_im == 0]
-
-    # compute variance of these classes
-    var1 = np.var(val_pixels1) if len(val_pixels1) > 0 else 0
-    var0 = np.var(val_pixels0) if len(val_pixels0) > 0 else 0
-
-    return weight0 * var0 + weight1 * var1
-
-def otsu_thresholding(im):
-    """Otsu's thresholding.
-    """
-    threshold_range = np.linspace(im.min(), im.max()+1, num=255)
-    criterias = [compute_otsu_criteria(im, th) for th in threshold_range]
-    best_th = threshold_range[np.argmin(criterias)]
-    return best_th
-
 def dist_vec(v1,v2):
     """
     euclidean distance between two vectors (np.array)
@@ -1140,7 +1103,7 @@ def volumes(labels):
     # return [((labels==idx).astype(int)).sum() for idx in np.unique(labels)]
     return np.unique(labels, return_counts=True)[1]
 
-def keep_big_volumes(msk, thres_rate=0.3):
+def keep_big_volumes(msk, thres_rate=0.1):
     """
     Return the mask (msk) with less labels/volumes. Select only the biggest volumes with
     the following strategy: minimum_volume = thres_rate * np.sum(np.square(vol))/np.sum(vol)
@@ -1158,9 +1121,8 @@ def keep_big_volumes(msk, thres_rate=0.3):
     vol = vol[1:]
 
     # compute the expected volume
-    # expected_vol = np.sum(np.square(vol))/np.sum(vol)
-    # min_vol = expected_vol * thres_rate
-    min_vol = thres_rate*otsu_thresholding(vol)
+    expected_vol = np.sum(np.square(vol))/np.sum(vol)
+    min_vol = expected_vol * thres_rate
 
     # keep only the labels for which the volume is big enough
     unq_labels = unq_labels[vol > min_vol]

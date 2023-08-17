@@ -19,7 +19,10 @@ from biom3d import pred
 def run(obj, target, log, dir_out, host=None, user=None, pwd=None, upload_id=None, ext="_predictions"):
     print("Start dataset/project downloading...")
     if host is not None:
-        datasets, dir_in = omero_downloader.download_object(user, pwd, host, obj, target)
+        conn = BlitzGateway(user, pwd, host=host, port=4064)
+        conn.connect()
+        datasets, dir_in = omero_downloader.download_object(conn, obj, target)
+        conn.close()
     else:
         with cli_login() as cli:
             datasets, dir_in = omero_downloader.download_object_cli(cli, obj, target)
