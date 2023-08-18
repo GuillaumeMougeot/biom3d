@@ -659,7 +659,7 @@ class ConfigFrame(ttk.LabelFrame):
         global fg_dir_train
         if REMOTE:
             # preprocessing
-            _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {};  python -m biom3d.preprocess --img_dir data/{}/img --msk_dir data/{}/msk --num_classes {} --desc {} --remote".format(VENV,MAIN_DIR, selected_dataset, selected_dataset,TrainFolderSelection().classes.get(),self.builder_name_entry.get()))  
+            _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {};  python -m biom3d.preprocess --img_dir data/{}/img --msk_dir data/{}/msk --num_classes {} --desc {} --remote".format(VENV,MAIN_DIR, selected_dataset, selected_dataset,self.classes.get(),self.builder_name_entry.get()))  
             auto_config_results = stdout.readlines()
             auto_config_results = [e.replace('\n','') for e in auto_config_results]
          
@@ -843,7 +843,7 @@ class TrainTab(ttk.Frame):
             IMG_DIR=cfg.IMG_DIR,
             MSK_DIR=cfg.MSK_DIR,
             FG_DIR=cfg.FG_DIR,
-            NUM_CLASSES=self.folder_selection.num_classes.get(),
+            NUM_CLASSES=cfg.NUM_CLASSES,
             BATCH_SIZE=cfg.BATCH_SIZE,
             AUG_PATCH_SIZE=cfg.AUG_PATCH_SIZE,
             PATCH_SIZE=cfg.PATCH_SIZE,
