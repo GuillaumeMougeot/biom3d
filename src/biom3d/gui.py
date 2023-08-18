@@ -56,6 +56,8 @@ import numpy as np
 
 REMOTE = False
 
+VENV = "" # virtual environment path
+
 # The option below is made to remove the 'start locally' button in the gui. This is
 # useful for the deployment only in order to reduce the size of the 
 # distribution we only allow remote access. 
@@ -535,7 +537,7 @@ class ConfigFrame(ttk.LabelFrame):
         
         
         
-        self.auto_config_button = ttk.Button(self, text="Preprocess & Auto-configure", style='train_button.TLabel',width =29,command=self.auto_config)
+        self.auto_config_button = ttk.Button(self, text="Auto-configure", style='train_button.TLabel',width =29,command=self.auto_config)
         self.img_outdir = train_folder_selection.img_outdir
         self.msk_outdir = train_folder_selection.msk_outdir
         self.num_classes = train_folder_selection.num_classes
@@ -655,7 +657,7 @@ class ConfigFrame(ttk.LabelFrame):
         global fg_dir_train
         if REMOTE:
             # preprocessing
-            _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {};  python -m biom3d.preprocess --img_dir data/{}/img --msk_dir data/{}/msk --num_classes {} --desc {} --remote".format(venv,MAIN_DIR, selected_dataset, selected_dataset,TrainFolderSelection().classes.get(),self.builder_name_entry.get()))  
+            _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {};  python -m biom3d.preprocess --img_dir data/{}/img --msk_dir data/{}/msk --num_classes {} --desc {} --remote".format(VENV,MAIN_DIR, selected_dataset, selected_dataset,TrainFolderSelection().classes.get(),self.builder_name_entry.get()))  
             auto_config_results = stdout.readlines()
             auto_config_results = [e.replace('\n','') for e in auto_config_results]
          
@@ -746,7 +748,7 @@ class TrainTab(ttk.Frame):
     def __init__(self, preprocess_tab=None, *arg, **kw):
         super(TrainTab, self).__init__(*arg, **kw)
         global new_config_path
-        self.folder_selection = TrainFolderSelection(preprocess_tab=preprocess_tab, master=self, text="Preprocess & Autoconfig ", padding=[10,10,10,10])
+        self.folder_selection = TrainFolderSelection(preprocess_tab=preprocess_tab, master=self, text="Preprocess", padding=[10,10,10,10])
         self.config_selection = ConfigFrame(train_folder_selection=self.folder_selection, master=self, text="Training configuration", padding=[10,10,10,10])
         self.train_button = ttk.Button(self, text="Start", style="train_button.TLabel", width =29, command=self.train)
         self.train_done = ttk.Label(self, text="")
@@ -864,7 +866,7 @@ class TrainTab(ttk.Frame):
             def train_nohup():
                 
                 # run the training and store the output in an output file 
-                _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {}; nohup  python -m biom3d.train --config config1.py &".format(venv,MAIN_DIR))
+                _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {}; nohup  python -m biom3d.train --config config1.py &".format(VENV,MAIN_DIR))
                 
                 # print the stdout continuously
                 while True:
@@ -1256,7 +1258,7 @@ class OmeroUpload(ttk.LabelFrame):
         # get the last folder modified/created
         _,stdout,stderr=REMOTE.exec_command("ls -td {}/data/pred/{}/*/ | head -1".format(MAIN_DIR, self.dataset_selected_omero() ))  
         last_folder = stdout.readline().replace('\n','')
-        _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {}; python -m biom3d.omero_uploader --username {} --password {} --hostname {} --project {} --path '{}' --dataset_name {}".format(venv,MAIN_DIR, self.username_entry.get(), self.password_entry.get(), self.hostname_entry.get(), self.upload_project_entry.get(), last_folder,self.dataset_selected_omero() ))
+        _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {}; python -m biom3d.omero_uploader --username {} --password {} --hostname {} --project {} --path '{}' --dataset_name {}".format(VENV,MAIN_DIR, self.username_entry.get(), self.password_entry.get(), self.hostname_entry.get(), self.upload_project_entry.get(), last_folder,self.dataset_selected_omero() ))
         
         print(" all params : ",MAIN_DIR, self.username_entry.get(), self.password_entry.get(), self.hostname_entry.get(), self.upload_project_entry.get(), MAIN_DIR, self.dataset_selected_omero())
         while True: 
@@ -1382,7 +1384,7 @@ class PredictTab(ttk.Frame):
             if REMOTE:
                 
                 # TODO: below, still OS dependant 
-                _, stdout, stderr = REMOTE.exec_command("source {}/bin/activate; cd {}; python -m biom3d.omero_pred --obj {} --log {} --username {} --password {} --hostname {} --upload_id {}".format(venv,
+                _, stdout, stderr = REMOTE.exec_command("source {}/bin/activate; cd {}; python -m biom3d.omero_pred --obj {} --log {} --username {} --password {} --hostname {} --upload_id {}".format(VENV,
                     MAIN_DIR,
                     obj,
                     MAIN_DIR+'/logs/'+self.model_selection.logs_dir.get(), 
@@ -1429,7 +1431,7 @@ class PredictTab(ttk.Frame):
                     path=p)
         else: # if not use Omero
             if REMOTE:
-                _, stdout, stderr = REMOTE.exec_command("source {}/bin/activate; cd {}; python -m biom3d.pred --log {} --dir_in {} --dir_out {}".format(venv,
+                _, stdout, stderr = REMOTE.exec_command("source {}/bin/activate; cd {}; python -m biom3d.pred --log {} --dir_in {} --dir_out {}".format(VENV,
                     MAIN_DIR,
                     'logs/'+self.model_selection.logs_dir.get(), 
                     'data/to_pred/'+self.input_dir.data_dir.get(),
@@ -1747,10 +1749,11 @@ class Root(Tk):
                     break
                 if line:
                     print(line, end="")
-            path_to_venv = path1.split("/")  
-            global venv 
-            venv = path_to_venv[-1]
-            print("virtual environment name: ",venv)
+            # path_to_venv = path1.split("/")  
+            global VENV 
+            # VENV = path_to_venv[-1]
+            VENV = path
+            print("virtual environment name: ",VENV)
             
         modulename='biom3d'
         if modulename not in sys.modules and not REMOTE :
