@@ -886,7 +886,8 @@ class TrainTab(ttk.Frame):
                 import matplotlib.pyplot as plt
                 import pandas as pd
                 import os
-                import time              
+                import time  
+                plt.switch_backend('agg')            
                 # Function to update the plot
                 def update_plot(csv_file):                   
                     data = pd.read_csv(csv_file)
@@ -898,7 +899,7 @@ class TrainTab(ttk.Frame):
                     plt.title('Learning Curves')
                     plt.grid(True)
                     plt.legend()
-                    plt.pause(0.1)  # Pause for a short duration to allow for updating               
+                   #plt.pause(0.1)  # Pause for a short duration to allow for updating               
                     plt.savefig('Learning_curves_plot.png')
                     
                 # CSV file path
@@ -908,17 +909,18 @@ class TrainTab(ttk.Frame):
                 prev_mod_time = os.path.getmtime(csv_file)
 
                 # Continuously update the plot
-                while worker.is_alive():
+                while True:
                     curr_mod_time = os.path.getmtime(csv_file)
                     if curr_mod_time > prev_mod_time:
                         prev_mod_time = curr_mod_time
                         update_plot(csv_file)
                     time.sleep(1)  # Wait for 1 second before checking again
-
+                    if not worker.is_alive():
+                        break
 
         
             def get_logs():
-                while worker.is_alive():
+                while True:
                     time.sleep(2)
                     # get the last folder modified/created
                     _,stdout,stderr=REMOTE.exec_command("ls -td {}/logs/*/ | head -1".format(MAIN_DIR))
@@ -937,7 +939,8 @@ class TrainTab(ttk.Frame):
                     
                     # copy files from remote to local
                     ftp_get_folder(ftp, remotedir, localdir)
-            
+                    if not worker.is_alive():
+                        break
             
             
             
@@ -951,13 +954,14 @@ class TrainTab(ttk.Frame):
      
                 
              
+            worker.join()
             if not worker.is_alive() : popupmsg(" Training Done ! ")
             
-            worker2.join()
-            worker3.join()
-            get_logs()
-            plot()
-            worker.join()
+            #worker2.join()
+            #worker3.join()
+            #get_logs()
+            #plot()
+            
             
             
         else:  
