@@ -31,10 +31,10 @@ import sys
 
 try:
     from biom3d.config_default import CONFIG
-    from biom3d.preprocess import Preprocessing
-    from biom3d.auto_config import auto_config
+
     from biom3d.preprocess import auto_config_preprocess
     from biom3d.utils import save_python_config
+    from biom3d.utils import adaptive_load_config
     # the packages below are only needed for the local version of the GUI
     # WARNING! the lines below must be commented when deploying the remote version,
     # and uncommented when installing the local version.
@@ -441,12 +441,9 @@ class TrainFolderSelection(ttk.LabelFrame):
     
           
         else:
-            self.img_outdir = FileDialog(self, mode='folder', textEntry="")
-            self.msk_outdir = FileDialog(self, mode='folder', textEntry="")            
-        # number of classes
-        self.label3 = ttk.Label(self, text="Enter the number of classes: "+"."*screen_width, anchor="sw", background='white')
-        self.num_classes = IntVar(value=1)
-        self.classes = ttk.Entry(self, width=5,textvariable=self.num_classes)
+            self.img_outdir = FileDialog(self, mode='folder', textEntry="/home/safarbatis/chocolate-factory/data/raw")
+            self.msk_outdir = FileDialog(self, mode='folder', textEntry="/home/safarbatis/chocolate-factory/data/seg")            
+       
 
         # Position elements
 
@@ -466,9 +463,7 @@ class TrainFolderSelection(ttk.LabelFrame):
             self.label2.grid(column=0,row=3, sticky=W, pady=7)
             self.msk_outdir.grid(column=0,row=4, sticky=(W,E))
 
-        self.label3.grid(column=0,row=5, sticky=W, pady=2)
-        self.classes.grid(column=0,row=5,pady=5,sticky=E)
-
+        
         
         # Configure columns
         self.columnconfigure(0, weight=1)
@@ -534,13 +529,16 @@ class ConfigFrame(ttk.LabelFrame):
         self.builder_name = StringVar(value="unet_example")
         self.builder_name_entry = ttk.Entry(self, textvariable=self.builder_name)
 
-        
+        # number of classes
+        self.num_classes_label = ttk.Label(self, text="Enter the number of classes: "+"."*screen_width, anchor="sw", background='white')
+        self.num_classes = IntVar(value=1)
+        self.classes = ttk.Entry(self, width=5,textvariable=self.num_classes)
         
         
         self.auto_config_button = ttk.Button(self, text="Auto-configure", style='train_button.TLabel',width =29,command=self.auto_config)
         self.img_outdir = train_folder_selection.img_outdir
         self.msk_outdir = train_folder_selection.msk_outdir
-        self.num_classes = train_folder_selection.num_classes
+        
 
         self.auto_config_finished = ttk.Label(self, text="")
 
@@ -588,33 +586,35 @@ class ConfigFrame(ttk.LabelFrame):
             self.button_dataset_list.grid(column=0,sticky=E, row=0, pady=2)
         self.builder_name_label.grid(column=0, row=1, sticky=(W,E), ipady=4,pady=3)
         self.builder_name_entry.grid(column=0, row=2,ipadx=213,ipady=4,pady=3,sticky=(W,E))
-        self.auto_config_button.grid(column=0, columnspan=4,row=3 ,ipady=4, pady=2,)
-        self.auto_config_finished.grid(column=0, row=4, columnspan=2, sticky=(W,E))
+        self.num_classes_label.grid(column=0,row=3, sticky=W, pady=2)
+        self.classes.grid(column=0,row=3,pady=5,sticky=E)
+        self.auto_config_button.grid(column=0, columnspan=4,row=4 ,ipady=4, pady=2,)
+        self.auto_config_finished.grid(column=0, row=5, columnspan=2, sticky=(W,E))
 
-        self.num_epochs_label.grid(column=0, row=5, sticky=(W))
-        self.num_epochs_entry.grid(column=0, row=5, padx= 0, sticky=E)
+        self.num_epochs_label.grid(column=0, row=6, sticky=(W))
+        self.num_epochs_entry.grid(column=0, row=6, padx= 0, sticky=E)
 
-        self.batch_size_label.grid(column=0, row=6, sticky=(W,E))
-        self.batch_size_entry.grid(column=0, row=6, padx= 0, sticky=E)
+        self.batch_size_label.grid(column=0, row=7, sticky=(W,E))
+        self.batch_size_entry.grid(column=0, row=7, padx= 0, sticky=E)
         
-        self.patch_size_label.grid(column=0, row=7, sticky=(W,E))
-        self.patch_size_entry1.grid(column=0, row=7,padx= 60, sticky=E)
-        self.patch_size_entry2.grid(column=0, row=7,padx= 30, sticky=E)
-        self.patch_size_entry3.grid(column=0, row=7, padx= 0, sticky=E)
+        self.patch_size_label.grid(column=0, row=8, sticky=(W,E))
+        self.patch_size_entry1.grid(column=0, row=8,padx= 60, sticky=E)
+        self.patch_size_entry2.grid(column=0, row=8,padx= 30, sticky=E)
+        self.patch_size_entry3.grid(column=0, row=8, padx= 0, sticky=E)
 
-        self.aug_patch_size_label.grid(column=0, row=8, sticky=(W,E))
-        self.aug_patch_size_entry1.grid(column=0, row=8,padx= 60, sticky=E)
-        self.aug_patch_size_entry2.grid(column=0, row=8, padx= 30,sticky=E)
-        self.aug_patch_size_entry3.grid(column=0, row=8,padx= 0, sticky=E)
+        self.aug_patch_size_label.grid(column=0, row=9, sticky=(W,E))
+        self.aug_patch_size_entry1.grid(column=0, row=9,padx= 60, sticky=E)
+        self.aug_patch_size_entry2.grid(column=0, row=9, padx= 30,sticky=E)
+        self.aug_patch_size_entry3.grid(column=0, row=9,padx= 0, sticky=E)
 
-        self.num_pools_label.grid(column=0, row=9, sticky=(W,E))
-        self.num_pools_entry1.grid(column=0, row=9,padx= 60, sticky=E)
-        self.num_pools_entry2.grid(column=0, row=9, padx= 30,sticky=E)
-        self.num_pools_entry3.grid(column=0, row=9,padx= 0, sticky=E)
+        self.num_pools_label.grid(column=0, row=10, sticky=(W,E))
+        self.num_pools_entry1.grid(column=0, row=10,padx= 60, sticky=E)
+        self.num_pools_entry2.grid(column=0, row=10, padx= 30,sticky=E)
+        self.num_pools_entry3.grid(column=0, row=10,padx= 0, sticky=E)
 
         # grid config
         self.columnconfigure(0, weight=1)
-        for i in range(9):
+        for i in range(10):
             self.rowconfigure(i, weight=1)
     def option_selected(self, *args):
         global selected_dataset
@@ -689,37 +689,30 @@ class ConfigFrame(ttk.LabelFrame):
           
             
         else: 
-            # Preprocessing    
-            TrainFolderSelection().use_preprocessing()
-            p=Preprocessing(
-            img_dir=self.img_outdir.get(),
+            # Preprocessing & autoconfiguration    
+            config_path=auto_config_preprocess(img_dir=self.img_outdir.get(),
             msk_dir=self.msk_outdir.get(),
             desc=self.builder_name_entry.get(),
             num_classes=self.num_classes.get()+1,
-            remove_bg=False, use_tif=False)
-            p.run()
-            
-            # img and mask output folders for the train section
-            img_dir_train = p.img_outdir
-            msk_dir_train = p.msk_outdir
-            fg_dir_train = p.fg_outdir
-       
-            # Run autoconfig
-            batch, aug_patch, patch, pool = auto_config(img_dir=p.img_outdir)
-              
-            # save the config file in config folder 
-            config_path = save_python_config(
+            remove_bg=False, use_tif=False,
             config_dir="config/",
             base_config=None,
-            IMG_DIR=p.img_outdir,
-            MSK_DIR=p.msk_outdir,
-            NUM_CLASSES=self.num_classes.get(),
-            BATCH_SIZE=batch,
-            AUG_PATCH_SIZE=aug_patch,
-            PATCH_SIZE=patch,
-            NUM_POOLS=pool
-            )  
+                
+            )
+            # Read the config file
+            self.train_parameters = adaptive_load_config(config_path)
             
+            batch= self.train_parameters.BATCH_SIZE
+            aug_patch= self.train_parameters.AUG_PATCH_SIZE
+            patch= self.train_parameters.PATCH_SIZE
+            pool = self.train_parameters.NUM_POOLS
+            
+            img_dir_train = self.train_parameters.IMG_DIR
+            msk_dir_train = self.train_parameters.MSK_DIR
+            fg_dir_train = self.train_parameters.FG_DIR
+         
+            print("Train Parameters :  ",batch,aug_patch,patch,pool,config_path)
+           
         
         # Update Config Cells in Gui
         self.batch_size.set(batch)
@@ -787,10 +780,10 @@ class TrainTab(ttk.Frame):
         if REMOTE:
             import tempfile
             tempdir = tempfile.mkdtemp(prefix="tmp-config-")
-            print(tempdir) 
+    
             saved_config = tempdir+"/tmp-config.py"
             ftp = REMOTE.open_sftp()
-            print(MAIN_DIR+"/"+config_path)
+          
             ftp.get(MAIN_DIR+"/"+config_path, saved_config)
             
             cfg = load_python_config(saved_config)
@@ -821,7 +814,7 @@ class TrainTab(ttk.Frame):
 
         cfg.DESC = self.config_selection.builder_name.get()
         
-        cfg.NUM_CLASSES = self.folder_selection.num_classes.get()
+        cfg.NUM_CLASSES = self.config_selection.num_classes.get()
         cfg = nested_dict_change_value(cfg, 'num_classes', cfg.NUM_CLASSES)
        
         cfg.NB_EPOCHS = self.config_selection.num_epochs.get()
@@ -975,7 +968,7 @@ class TrainTab(ttk.Frame):
             base_config=config_path,
             IMG_DIR=cfg.IMG_DIR,
             MSK_DIR=cfg.MSK_DIR,
-            NUM_CLASSES=self.folder_selection.num_classes.get(),
+            NUM_CLASSES=self.config_selection.num_classes.get(),
             BATCH_SIZE=cfg.BATCH_SIZE,
             AUG_PATCH_SIZE=cfg.AUG_PATCH_SIZE,
             PATCH_SIZE=cfg.PATCH_SIZE,
@@ -1061,7 +1054,7 @@ class Connect2Omero(ttk.LabelFrame):
         self.hostname_entry = ttk.Entry(self, textvariable=self.hostname)
 
         self.username_label = ttk.Label(self, text='User name:')
-        self.username = StringVar(value="biome")
+        self.username = StringVar(value="")
         self.username_entry = ttk.Entry(self, textvariable=self.username)
 
         self.password_label = ttk.Label(self, text='Password:')
@@ -1088,28 +1081,19 @@ class OmeroDataset(ttk.LabelFrame):
     def __init__(self, *arg, **kw):
         super(OmeroDataset, self).__init__(*arg, **kw)
 
-        # self.option_list = ["Dataset", "Project"]
-        # self.option = StringVar(value=self.option_list[0])
-        # self.option_menu = ttk.OptionMenu(self, self.option, self.option_list[0], *self.option_list)
-
+    
         self.label_id = ttk.Label(self, text="Input Dataset ID:")
         self.id = StringVar(value="19699")
         self.id_entry = ttk.Entry(self, textvariable=self.id)
 
-        self.p_label_id = ttk.Label(self, text="Output Project ID:")
-        self.pid = StringVar(value="12906")
-        self.pid_entry = ttk.Entry(self, textvariable=self.pid)
+   
         
-        # self.option_menu.grid(column=0, row=0, sticky=(W,E))
-        self.label_id.grid(column=0, row=0, sticky=(W))
-        self.id_entry.grid(column=2, row=0, padx=0,sticky=(E))
+        self.label_id.grid(column=0, row=0, sticky=(W,E))
+        self.id_entry.grid(column=1,row=0,sticky=(W,E))
 
-        self.p_label_id.grid(column=0, row=1, sticky=(W))
-        self.pid_entry.grid(column=2, row=1, sticky=(E))
         
         self.columnconfigure(0, weight=1)
-        self.columnconfigure(1, weight=1)
-        self.columnconfigure(2, weight=1)
+        self.columnconfigure(1, weight=5)
         self.rowconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
 class ModelSelection(ttk.LabelFrame):
@@ -1260,9 +1244,9 @@ class OmeroUpload(ttk.LabelFrame):
         # get the last folder modified/created
         _,stdout,stderr=REMOTE.exec_command("ls -td {}/data/pred/{}/*/ | head -1".format(MAIN_DIR, self.dataset_selected_omero() ))  
         last_folder = stdout.readline().replace('\n','')
-        _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {}; python -m biom3d.omero_uploader --username {} --password {} --hostname {} --project {} --path '{}' --dataset_name {}".format(VENV,MAIN_DIR, self.username_entry.get(), self.password_entry.get(), self.hostname_entry.get(), self.upload_project_entry.get(), last_folder,self.dataset_selected_omero() ))
+        _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {}; python -m biom3d.omero_uploader --username {} --password {} --hostname {} --project {} --path '{}' --dataset_name {}".format(VENV,MAIN_DIR, self.username_entry.get(), self.password_entry.get(), self.hostname_entry.get(), self.upload_project_entry.get(), last_folder,self.dataset_name_entry.get() ))
         
-        print(" all params : ",MAIN_DIR, self.username_entry.get(), self.password_entry.get(), self.hostname_entry.get(), self.upload_project_entry.get(), MAIN_DIR, self.dataset_selected_omero())
+       
         while True: 
                     line = stdout.readline()
                     if not line:
@@ -1381,19 +1365,17 @@ class PredictTab(ttk.Frame):
         # if use Omero then use Omero prediction
         if self.use_omero_state.get():
             obj="Dataset"+":"+self.omero_dataset.id.get()
-            pid = int(self.omero_dataset.pid.get())
-            print("this is pid",pid)
+         
             if REMOTE:
                 
                 # TODO: below, still OS dependant 
-                _, stdout, stderr = REMOTE.exec_command("source {}/bin/activate; cd {}; python -m biom3d.omero_pred --obj {} --log {} --username {} --password {} --hostname {} --upload_id {}".format(VENV,
+                _, stdout, stderr = REMOTE.exec_command("source {}/bin/activate; cd {}; python -m biom3d.omero_pred --obj {} --log {} --username {} --password {} --hostname {} ".format(VENV,
                     MAIN_DIR,
                     obj,
                     MAIN_DIR+'/logs/'+self.model_selection.logs_dir.get(), 
                     self.omero_connection.username.get(),
                     self.omero_connection.password.get(),
-                    self.omero_connection.hostname.get(),
-                    pid
+                    self.omero_connection.hostname.get()
                     ))
                 while True: 
                     line = stdout.readline()
@@ -1421,8 +1403,7 @@ class PredictTab(ttk.Frame):
                     dir_out=self.output_dir.data_dir.get(),
                     user=self.omero_connection.username.get(),
                     pwd=self.omero_connection.password.get(),
-                    host=self.omero_connection.hostname.get(),
-                    upload_id=pid
+                    host=self.omero_connection.hostname.get()
                 )           
                 if self.send_to_omero_state.get():
                     biom3d.omero_uploader.run(username=self.send_to_omero_connection.username.get(),
