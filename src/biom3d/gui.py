@@ -501,10 +501,9 @@ class TrainFolderSelection(ttk.LabelFrame):
         remote_dir_msk = "{}/data/{}/msk".format(MAIN_DIR,self.send_data_name.get())
         ftp_put_folder(ftp, localpath=self.img_outdir.get(), remotepath=remote_dir_img)
         ftp_put_folder(ftp, localpath=self.msk_outdir.get(), remotepath=remote_dir_msk)
-        self.dataset_update()
         popupmsg("Data sent!")
-        self.send_data_finish.config(text="Data sent!")
-
+     
+   
 class ConfigFrame(ttk.LabelFrame):
     def __init__(self, train_folder_selection=None, *arg, **kw):
         super(ConfigFrame, self).__init__(*arg, **kw)
@@ -520,7 +519,8 @@ class ConfigFrame(ttk.LabelFrame):
             if(len(self.data_list) == 0):
                 self.data_dir = StringVar(value="Empty")
             else:   
-                self.data_dir = StringVar(value=self.data_list[0])
+                #self.data_dir = StringVar(value=self.data_list[0])
+                self.data_dir = StringVar(value="Choose a dataset")
 
             self.data_dir_option_menu = ttk.OptionMenu(self, self.data_dir, self.data_dir.get(), *self.data_list, command= self.option_selected)
 
@@ -528,7 +528,7 @@ class ConfigFrame(ttk.LabelFrame):
             self.label4 = ttk.Label(self, text="Select the Dataset to preprocess :", anchor="sw", background='white')
             self.data_dir.trace("w", self.option_selected)
             self.dataset_update()        
-        
+            self.button_dataset_list = ttk.Button(self, text="Update", command=self.dataset_update)
         
         self.builder_name_label = ttk.Label(self, text="Set a name for the builder folder (folder containing your future model):")
         self.builder_name = StringVar(value="unet_example")
@@ -583,8 +583,9 @@ class ConfigFrame(ttk.LabelFrame):
 
         # place widgets
         if REMOTE:
-            self.data_dir_option_menu.grid(column=0,sticky=E, row=0, pady=2)
+            self.data_dir_option_menu.grid(column=0,sticky=E,padx=75 ,row=0, pady=2)
             self.label4.grid(column=0,row=0, sticky=W, pady=2)
+            self.button_dataset_list.grid(column=0,sticky=E, row=0, pady=2)
         self.builder_name_label.grid(column=0, row=1, sticky=(W,E), ipady=4,pady=3)
         self.builder_name_entry.grid(column=0, row=2,ipadx=213,ipady=4,pady=3,sticky=(W,E))
         self.auto_config_button.grid(column=0, columnspan=4,row=3 ,ipady=4, pady=2,)
@@ -634,7 +635,8 @@ class ConfigFrame(ttk.LabelFrame):
             self.data_dir_option_menu['menu'].add_command(
                 label=option,
                 command=lambda opt=option: self.data_dir.set(opt))
-            
+        
+        
     def str2list(self, string):
         """
         convert a string like '[5 5 5]' into list of integers
