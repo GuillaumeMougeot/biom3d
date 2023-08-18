@@ -75,13 +75,13 @@ if __name__=='__main__':
         help="Path of the builder directory")
     parser.add_argument("--dir_out", type=str, default="data/pred/",
         help="Path to the output prediction directory")
-    parser.add_argument('--hostname', type=str, 
+    parser.add_argument('--hostname', type=str, default=None,
         help="(optional) Host name for Omero server. If not mentioned use the CLI.")
-    parser.add_argument('--username', type=str, 
+    parser.add_argument('--username', type=str, default=None,
         help="(optional) User name for Omero server")
-    parser.add_argument('--password', type=str, 
+    parser.add_argument('--password', type=str, default=None,
         help="(optional) Password for Omero server")
-    parser.add_argument('--upload_id', type=int, 
+    parser.add_argument('--upload_id', type=int, default=None,
         help="(optional) Id of Omero Project in which to upload the dataset. Only works with Omero Project Id and folder of images.")
     # parser.add_argument("-e", "--eval_only", default=False,  action='store_true', dest='eval_only',
     #     help="Do only the evaluation and skip the prediction (predictions must have been done already.)") 
