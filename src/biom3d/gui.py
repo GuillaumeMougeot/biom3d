@@ -898,7 +898,7 @@ class TrainTab(ttk.Frame):
                     plt.title('Learning Curves')
                     plt.grid(True)
                     plt.legend()
-                    plt.pause(0.1)  # Pause for a short duration to allow for updating               
+                    #plt.pause(0.1)  # Pause for a short duration to allow for updating               
                     plt.savefig('Learning_curves_plot.png')
                     
                 # CSV file path
