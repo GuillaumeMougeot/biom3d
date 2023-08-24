@@ -271,7 +271,7 @@ def tif_read_imagej(img_path):
     """
 
     with tiff.TiffFile(img_path) as tif:
-        # assert tif.is_imagej
+        assert tif.is_imagej
 
         # store img_meta
         img_meta = {}
