@@ -25,10 +25,13 @@
 #  --desc unet_spleen\
 #  --ct_norm
 
-# python -m biom3d.preprocess\
-#  --img_dir data/nucleus/aline_nucleus_48h24hL/img\
-#  --msk_dir data/nucleus/aline_nucleus_48h24hL/msk_chromo\
-#  --num_classes 1
+python -m biom3d.preprocess\
+ --img_dir data/nucleus/aline_nucleus_48h24hL/img\
+ --msk_dir data/nucleus/aline_nucleus_48h24hL/msk_chromo\
+ --num_classes 1\
+ --desc chromo_48h24hL\
+ --use_tif\
+ --debug
 
 # python -m biom3d.preprocess\
 #  --img_dir data/msd/Task06_Lung/imagesTr_train\
@@ -37,9 +40,9 @@
 #  --desc unet_lung\
 #  --ct_norm
 
-python -m biom3d.preprocess\
- --img_dir data/msd/Task05_Prostate/imagesTr\
- --msk_dir data/msd/Task05_Prostate/labelsTr\
- --num_classes 2\
- --max_dim 128\
- --desc unet_prostate
+# python -m biom3d.preprocess\
+#  --img_dir data/msd/Task05_Prostate/imagesTr\
+#  --msk_dir data/msd/Task05_Prostate/labelsTr\
+#  --num_classes 2\
+#  --max_dim 128\
+#  --desc unet_prostate

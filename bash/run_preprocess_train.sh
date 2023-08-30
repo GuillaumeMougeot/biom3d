@@ -46,14 +46,14 @@
 #  --num_classes 3\
 #  --desc unet_brain
 
-# python -m biom3d.preprocess_train\
-#  --img_dir data/nucleus/aline_nucleus_48h24hL/img\
-#  --msk_dir data/nucleus/aline_nucleus_48h24hL/msk_chromo\
-#  --num_classes 1\
-#  --desc nucleus_48h24hL
-
 python -m biom3d.preprocess_train\
- --img_dir data/nucleus/chromo/img\
- --msk_dir data/nucleus/chromo/msk\
+ --img_dir data/nucleus/aline_nucleus_48h24hL/img\
+ --msk_dir data/nucleus/aline_nucleus_48h24hL/msk_chromo\
  --num_classes 1\
- --desc nucleus_chromo
+ --desc nucleus_48h24hL
+
+# python -m biom3d.preprocess_train\
+#  --img_dir data/nucleus/chromo/img\
+#  --msk_dir data/nucleus/chromo/msk\
+#  --num_classes 1\
+#  --desc nucleus_chromo

@@ -495,8 +495,13 @@ class Preprocessing:
         df['fold'] = [1,0]
         df.to_csv(self.csv_path, index=False)
     
-    def run(self):
+    def run(self, debug=False):
         """Start the preprocessing.
+
+        Parameters
+        ----------
+        debug : boolean, default=False
+            Whether to display image filenames while preprocessing.
         """
         print("Preprocessing...")
         # if there is only a single image/mask, then split them both in two portions
@@ -505,12 +510,18 @@ class Preprocessing:
             print("Single image found per folder. Split the images...")
             self._split_single()
             image_was_split = True
-            
-        for i in tqdm(range(len(self.img_fnames))):
+        
+        if debug: ran = range(len(self.img_fnames))
+        else: ran = tqdm(range(len(self.img_fnames)))
+        for i in ran:
             # set image and mask name
             img_fname = self.img_fnames[i]
             img_path = os.path.join(self.img_dir, img_fname)
             if self.msk_dir is not None: msk_path = os.path.join(self.msk_dir, img_fname)
+
+            # print image name if debug mode
+            if debug: 
+                print("[{}/{}] Preprocessing:".format(i,len(self.img_fnames)),img_fname)
 
             img,img_meta = adaptive_imread(img_path)
             if self.msk_dir is not None:
@@ -601,6 +612,7 @@ def auto_config_preprocess(
         no_auto_config=False,
         logs_dir='logs/',
         print_param=False,
+        debug=False,
         ):
     """Helper function to do auto-config and preprocessing.
     """
@@ -644,7 +656,7 @@ def auto_config_preprocess(
     )
 
     if not skip_preprocessing:
-        p.run()
+        p.run(debug=debug)
 
     if not no_auto_config:
         if not print_param: print("Start auto-configuration")
@@ -729,6 +741,8 @@ if __name__=='__main__':
         help="(default=False) Whether to skip the preprocessing. Only for debugging.") 
     parser.add_argument("--remote", default=False,  action='store_true', dest='remote',
         help="(default=False) Whether to print auto-config parameters. Used for remote preprocessing using the GUI.") 
+    parser.add_argument("--debug", default=False,  action='store_true', dest='debug',
+        help="(default=False) Debug mode. Whether to print all image filenames while preprocessing.") 
     args = parser.parse_args()
 
     auto_config_preprocess(
@@ -750,6 +764,7 @@ if __name__=='__main__':
         no_auto_config=args.no_auto_config,
         logs_dir=args.logs_dir,
         print_param=args.remote,
+        debug=args.debug,
         )
 
 #---------------------------------------------------------------------------
