@@ -21,6 +21,7 @@ class UNet(nn.Module):
         model_ckpt = None,
         use_deep=True,
         in_planes = 1,
+        flip_strides = False,
         ):
         super(UNet, self).__init__()
         self.encoder = VGGEncoder(
@@ -28,6 +29,7 @@ class UNet(nn.Module):
             num_pools=num_pools,
             factor=factor,
             in_planes=in_planes,
+            flip_strides=flip_strides,
             )
         self.decoder = VGGDecoder(
             EncoderBlock,
@@ -36,6 +38,7 @@ class UNet(nn.Module):
             factor_e=factor,
             factor_d=factor,
             use_deep=use_deep,
+            flip_strides=flip_strides,
             )
 
         # load encoder if needed

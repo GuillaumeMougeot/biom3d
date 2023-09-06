@@ -159,7 +159,7 @@ def sanity_check(msk, num_classes=None):
             sanity_check(msk[i], num_classes=2)
             
     cls = np.arange(num_classes)
-    if np.all(uni==cls):
+    if np.array_equal(uni,cls):
         # the mask is correctly annotated
         return msk
     else:
@@ -168,10 +168,13 @@ def sanity_check(msk, num_classes=None):
         # or we through an error message
         print("[Warning] There is something abnormal with the annotations. Each voxel value must be in range {} but is in range {}.".format(cls, uni))
         if num_classes==2:
-            print("[Warning] Applying a thresholding.")
+            # thr = np.maximum(msk.min(),0)
+            uni2, counts = np.unique(msk,return_counts=True)
+            thr = uni2[np.argmax(counts)]
+            print("[Warning] All values equal to the most frequent value ({}) will be set to zero.".format(thr))
             # then we apply a threshold to the data
             # for instance: unique [2,127,232] becomes [0,1], 0 being 2 and 1 being 127 and 232
-            return (msk > msk.min()).astype(np.uint8)
+            return (msk != thr).astype(np.uint8)
         elif np.all(np.isin(uni, cls)):
             # then one label is missing in the current mask... but it should work
             print("[Warning] One or more labels are missing.")
@@ -521,7 +524,7 @@ class Preprocessing:
 
             # print image name if debug mode
             if debug: 
-                print("[{}/{}] Preprocessing:".format(i,len(self.img_fnames)),img_fname)
+                print("[{}/{}] Preprocessing:".format(i,len(self.img_fnames)),img_path)
 
             img,img_meta = adaptive_imread(img_path)
             if self.msk_dir is not None:

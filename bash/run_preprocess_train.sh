@@ -46,14 +46,28 @@
 #  --num_classes 3\
 #  --desc unet_brain
 
-python -m biom3d.preprocess_train\
- --img_dir data/nucleus/aline_nucleus_48h24hL/img\
- --msk_dir data/nucleus/aline_nucleus_48h24hL/msk_chromo\
- --num_classes 1\
- --desc nucleus_48h24hL
+# python -m biom3d.preprocess_train\
+#  --img_dir data/nucleus/aline_nucleus_48h24hL/img\
+#  --msk_dir data/nucleus/aline_nucleus_48h24hL/msk_chromo\
+#  --num_classes 1\
+#  --desc nucleus_48h24hL
 
 # python -m biom3d.preprocess_train\
 #  --img_dir data/nucleus/chromo/img\
 #  --msk_dir data/nucleus/chromo/msk\
 #  --num_classes 1\
 #  --desc nucleus_chromo
+
+python -m biom3d.preprocess_train\
+ --img_dir data/nucleus/official/train/img\
+ --msk_dir data/nucleus/official/train/msk\
+ --num_classes 1\
+ --desc nucleus_official
+
+
+# python -m biom3d.preprocess_train\
+#  --img_dir data/nucleus/aline_48h72hL/img\
+#  --msk_dir data/nucleus/aline_48h72hL/msk_chromo\
+#  --num_classes 1\
+#  --desc nucleus_48h72hL\
+#  --num_epochs 300

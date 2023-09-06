@@ -41,8 +41,15 @@
 #  --dir_in data/nucleus/to_pred/tiny_data\
 #  --dir_out data/nucleus/preds/tiny_data
 
+# python -m biom3d.pred\
+#  --name seg\
+#  --log logs/20230127-144947-unet_nadine\
+#  --dir_in data/to_pred\
+#  --dir_out data/pred
+
 python -m biom3d.pred\
- --name seg\
- --log logs/20230127-144947-unet_nadine\
- --dir_in data/to_pred\
- --dir_out data/pred
+ --name seg_eval\
+ --log logs/20230905-183206-nucleus_official_fold0\
+ --dir_in data/nucleus/official/test/img\
+ --dir_out data/nucleus/official/test/preds\
+ --dir_lab data/nucleus/official/test/msk

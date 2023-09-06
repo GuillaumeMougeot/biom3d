@@ -97,6 +97,7 @@ class VGGEncoder(nn.Module):
         num_pools, 
         factor = 32,
         first_stride=[1,1,1], # the stride of the first layer convolution
+        flip_strides = False, # whether to invert strides order. Flipped strides creates larger feature maps.
         use_emb=False, # use the embedding output (along with the existing ones)
         emb_dim=320,
         use_head=False,
@@ -122,7 +123,9 @@ class VGGEncoder(nn.Module):
         #     strides += [st]
         # strides = np.array(strides).astype(int).T+1
         strides = convert_num_pools(num_pools=num_pools)
-        strides = np.vstack(([first_stride],strides)).tolist()
+        if flip_strides: strides = np.flip(strides, axis=0)
+        strides = np.vstack(([first_stride],strides))
+        strides = strides.tolist()
         
 
         # computes the strides (old)

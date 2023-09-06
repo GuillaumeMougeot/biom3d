@@ -97,7 +97,7 @@ SAVE_BEST = True
 # the number of epochs can be reduced for small training set (e.g. a set of 10 images/masks of 128x128x64)
 NB_EPOCHS = 1000
 
-# optimizer paramaters
+# optimizer parameters
 LR_START = 1e-2 # comment if need to reload learning rate after training interruption
 WEIGHT_DECAY = 3e-5
 

@@ -62,6 +62,7 @@ class VGGDecoder(nn.Module):
         num_pools, 
         factor_e = 32, # factor encoder
         factor_d = 32, # factor decoder
+        flip_strides = False, # whether to invert strides order. Flipped strides creates larger feature maps.
         num_classes=1,
         use_deep=True,      # use deep supervision
         use_emb=False, # will only output the third level of the decoder
@@ -96,7 +97,8 @@ class VGGDecoder(nn.Module):
             
         # computes the strides for the scale factors
         self.strides = convert_num_pools(num_pools=num_pools)
-        self.strides = np.flip(self.strides, axis=0).tolist()
+        # if the encoder strides are flipped, the decoder strides are not
+        if not flip_strides: self.strides = np.flip(self.strides, axis=0).tolist()
 
         # max_pool = max(num_pools)
         # strides = []
