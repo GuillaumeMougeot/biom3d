@@ -223,7 +223,9 @@ if __name__=='__main__':
     parser.add_argument("-o", "--dir_out", type=str, default=None,
         help="Path to the output prediction directory")  
     parser.add_argument("-a", "--dir_lab", type=str, default=None,
-        help="Path to the input image directory")  
+        help="Path to the label image directory")  
+    # parser.add_argument("-f", "--fold", type=int, default=0,
+    #     help="(default=0) Fold index for cross-validation.")  
     args = parser.parse_args()
 
     # run the method

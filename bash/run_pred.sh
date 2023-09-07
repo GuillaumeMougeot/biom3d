@@ -49,7 +49,7 @@
 
 python -m biom3d.pred\
  --name seg_eval\
- --log logs/20230905-183206-nucleus_official_fold0\
+ --log logs/20230907-002954-nucleus_official_fold1 logs/20230906-101825-nucleus_official_fold0\
  --dir_in data/nucleus/official/test/img\
  --dir_out data/nucleus/official/test/preds\
  --dir_lab data/nucleus/official/test/msk
