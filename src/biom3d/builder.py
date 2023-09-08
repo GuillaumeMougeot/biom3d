@@ -3,6 +3,7 @@
 # The main purpose of this class is to easily reload a training 
 #---------------------------------------------------------------------------
 
+import sys # printing into file
 import os 
 import shutil
 import torch
@@ -46,6 +47,21 @@ def read_config(config_fct, register_cat, **kwargs):
     # run the function with its kwargs
     return register_fct(**register_kwargs) 
 
+#---------------------------------------------------------------------------
+# class to redirect prints to file and to terminal simultaneously
+# source: https://stackoverflow.com/questions/14906764/how-to-redirect-stdout-to-both-file-and-console-with-scripting
+
+class Logger(object):
+    def __init__(self, filename):
+        self.terminal = sys.stdout
+        self.log = open(filename, "w")
+   
+    def write(self, message):
+        self.terminal.write(message)
+        self.log.write(message)  
+
+    def flush(self):
+        pass   
 
 #---------------------------------------------------------------------------
 # for distributed data parallel
@@ -512,6 +528,9 @@ class Builder:
             folder_name += '_fold'+str(self.config.FOLD)
         self.base_dir, self.image_dir, self.log_dir, self.model_dir = utils.create_save_dirs(
             self.config.LOG_DIR, folder_name, dir_names=['image', 'log', 'model'], return_base_dir=True) 
+        
+        # redirect all prints to file and to terminal
+        sys.stdout = Logger(os.path.join(self.log_dir,'prints.txt'))
     
         # save the config file
         if self.config_path is not None:
