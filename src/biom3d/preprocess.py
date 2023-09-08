@@ -387,9 +387,9 @@ class Preprocessing:
                 fg_outdir = os.path.join(os.path.dirname(msk_dir), 'fg_out')
                 print("Foreground output path:", fg_outdir)
 
-        self.img_outdir=os.path.normpath(img_outdir)
-        self.msk_outdir=os.path.normpath(msk_outdir)
-        self.fg_outdir =os.path.normpath(fg_outdir)
+        self.img_outdir=img_outdir 
+        self.msk_outdir=msk_outdir
+        self.fg_outdir =fg_outdir
 
         # create output directory if needed
         if not os.path.exists(self.img_outdir):
