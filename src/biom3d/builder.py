@@ -54,7 +54,7 @@ def read_config(config_fct, register_cat, **kwargs):
 class Logger(object):
     def __init__(self, filename):
         self.terminal = sys.stdout
-        self.log = open(filename, "w")
+        self.log = open(filename, "a")
    
     def write(self, message):
         self.terminal.write(message)
@@ -757,6 +757,9 @@ class Builder:
         # self.log_best_path = os.path.join(self.log_dir, 'log_best.csv')
 
         self.model_path = os.path.join(self.model_dir, self.config.DESC)
+
+        # redirect all prints to file and to terminal
+        sys.stdout = Logger(os.path.join(self.log_dir,'prints.txt'))
 
         # call the build method
         self.build_model()
