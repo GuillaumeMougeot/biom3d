@@ -3,9 +3,12 @@
 # The main purpose of this class is to easily reload a training 
 #---------------------------------------------------------------------------
 
-import sys # printing into file
+import sys # for printing into file (Logger)
+from datetime import datetime
+
 import os 
 import shutil
+
 import torch
 from torch.utils.data import DataLoader
 # from monai.data import ThreadDataLoader
@@ -530,7 +533,7 @@ class Builder:
             self.config.LOG_DIR, folder_name, dir_names=['image', 'log', 'model'], return_base_dir=True) 
         
         # redirect all prints to file and to terminal
-        sys.stdout = Logger(os.path.join(self.log_dir,'prints.txt'))
+        sys.stdout = Logger(os.path.join(self.log_dir,datetime.now().strftime("%Y%m%d-%H%M%S")+'-prints.txt'))
     
         # save the config file
         if self.config_path is not None:
@@ -759,7 +762,7 @@ class Builder:
         self.model_path = os.path.join(self.model_dir, self.config.DESC)
 
         # redirect all prints to file and to terminal
-        sys.stdout = Logger(os.path.join(self.log_dir,'prints.txt'))
+        sys.stdout = Logger(os.path.join(self.log_dir,datetime.now().strftime("%Y%m%d-%H%M%S")+'-prints.txt'))
 
         # call the build method
         self.build_model()
