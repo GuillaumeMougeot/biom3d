@@ -961,7 +961,7 @@ class TrainTab(ttk.Frame):
             #worker3.join()
             #get_logs()
             #plot()
-            
+
             
             
         else:  
