@@ -202,6 +202,7 @@ def seg_preprocessor(
     median_spacing=[],
     clipping_bounds=[],
     intensity_moments=[],
+    channel_axis=0,
     ):
     """Segmentation pre-processing.
     """
@@ -223,14 +224,14 @@ def seg_preprocessor(
         img = np.expand_dims(img, 0)
     elif len(img.shape)==4:
         # we consider as the channel dimension, the smallest dimension
-        # it should be either the first or the last dim
         # if it is the last dim, then we move it to the first
-        if np.argmin(img.shape)==3:
-            img = np.moveaxis(img, -1, 0)
-        elif np.argmin(img.shape)!=0:
+        # the size of other dimensions of the image should be bigger than the channel dim.
+        if np.argmin(img.shape)==channel_axis and channel_axis!=0:
+            img = np.swapaxes(img, 0, channel_axis)
+        else:
             print("[Error] Invalid image shape:", img.shape)
     else:
-        print("[Error] Invalid image shape:", img.shape)
+        print("[Error] Invalid image shape for 3D image:", img.shape)
 
     # one hot encoding for the mask if needed
     if do_msk and len(msk.shape)!=4: 
@@ -265,7 +266,7 @@ def seg_preprocessor(
     # img = (img - img.min())/(img.max()-img.min()) * 2 - 1
 
     # resample the image and mask if needed
-    if len(median_spacing)>0:
+    if len(median_spacing)>0 and spacing is not None and len(spacing)>0:
         output_shape = get_resample_shape(img.shape, spacing, median_spacing)
         if do_msk:
             # img, msk = resample_img_msk(img, msk, spacing, median_spacing)
@@ -330,6 +331,8 @@ class Preprocessing:
         Number of classes (channel) in the masks. Required by the 
     remove_bg : bool, default=True
         Whether to remove the background in the one-hot encoded mask. Remove the background is done when training with sigmoid activations instead of softmax.
+    median_size : list, optional
+        Median size of the image dataset. Is used to check the channel axis.
     median_spacing : list, optional
         A list of length 3 containing the median spacing of the input images. Median_spacing must not be transposed: for example, median_spacing might be [0.8, 0.8, 2.5] if median shape of the training image is [40,224,224].
     clipping_bounds : list, optional
@@ -353,6 +356,7 @@ class Preprocessing:
         num_classes = None, # just for debug when empty masks are provided
         use_one_hot = False,
         remove_bg = False, # keep the background in labels 
+        median_size = [],
         median_spacing=[],
         clipping_bounds=[],
         intensity_moments=[],
@@ -383,9 +387,9 @@ class Preprocessing:
                 fg_outdir = os.path.join(os.path.dirname(msk_dir), 'fg_out')
                 print("Foreground output path:", fg_outdir)
 
-        self.img_outdir=img_outdir 
-        self.msk_outdir=msk_outdir
-        self.fg_outdir =fg_outdir
+        self.img_outdir=os.path.normpath(img_outdir)
+        self.msk_outdir=os.path.normpath(msk_outdir)
+        self.fg_outdir =os.path.normpath(fg_outdir)
 
         # create output directory if needed
         if not os.path.exists(self.img_outdir):
@@ -399,9 +403,26 @@ class Preprocessing:
         self.csv_path = os.path.join(os.path.dirname(img_dir), 'folds.csv')
 
         self.num_classes = num_classes
-        self.num_channels = 1
 
         self.remove_bg = remove_bg
+
+        # median size serves to determine the number of channel
+        # and the channel axis
+        self.median_size = np.array(median_size)
+
+        self.num_channels = 1
+        self.channel_axis = 0
+
+        # if the 3D image has 4 dimensions then there is a channel dimension.
+        if len(self.median_size)==4:
+            # the channel dimension is consider to be the smallest dimension
+            # this could cause problem in case where there are more z than c for instance...
+            self.num_channels = np.min(median_size)
+            self.channel_axis = np.argmin(self.median_size)
+            if self.channel_axis != 0:
+                print("[Warning] 4 dimensions detected and channel axis is {}. All image dimensions will be swapped.".format(self.channel_axis))
+            self.median_size[[0,self.channel_axis]] = self.median_size[[self.channel_axis,0]]
+            self.median_size = self.median_size[1:]
 
         self.median_spacing = np.array(median_spacing)
         self.clipping_bounds = np.array(clipping_bounds)
@@ -427,7 +448,7 @@ class Preprocessing:
         msk_path = os.path.join(self.msk_dir, img_fname) # mask must be present
 
         # read image and mask
-        img = adaptive_imread(img_path)[0]
+        img, metadata = adaptive_imread(img_path)
         msk = adaptive_imread(msk_path)[0]
 
         # determine the slicing indices to crop an image along its maximum dimension
@@ -497,6 +518,7 @@ class Preprocessing:
         df['hold_out'] = [0,0]
         df['fold'] = [1,0]
         df.to_csv(self.csv_path, index=False)
+        return metadata
     
     def run(self, debug=False):
         """Start the preprocessing.
@@ -511,7 +533,7 @@ class Preprocessing:
         image_was_split = False
         if len(self.img_fnames)==1 and self.msk_dir is not None:
             print("Single image found per folder. Split the images...")
-            self._split_single()
+            split_meta = self._split_single()
             image_was_split = True
         
         if debug: ran = range(len(self.img_fnames))
@@ -531,21 +553,25 @@ class Preprocessing:
                 msk, _ = adaptive_imread(msk_path)
                 img, msk, fg = seg_preprocessor(
                     img                 =img, 
-                    img_meta            =img_meta,
+                    img_meta            =img_meta if not image_was_split else split_meta,
                     msk                 =msk,
                     num_classes         =self.num_classes,
                     use_one_hot         =self.use_one_hot,
                     remove_bg           =self.remove_bg, 
                     median_spacing      =self.median_spacing,
                     clipping_bounds     =self.clipping_bounds,
-                    intensity_moments   =self.intensity_moments,)
+                    intensity_moments   =self.intensity_moments,
+                    channel_axis        =self.channel_axis,
+                    )
             else:
                 img, _ = seg_preprocessor(
                     img                 =img, 
                     img_meta            =img_meta,
                     median_spacing      =self.median_spacing,
                     clipping_bounds     =self.clipping_bounds,
-                    intensity_moments   =self.intensity_moments,)
+                    intensity_moments   =self.intensity_moments,
+                    channel_axis        =self.channel_axis,
+                    )
 
             # sanity check to be sure that all images have the save number of channel
             s = img.shape
@@ -654,6 +680,7 @@ def auto_config_preprocess(
         remove_bg=remove_bg,
         use_tif=use_tif,
         median_spacing=median_spacing,
+        median_size=median_size,
         clipping_bounds=clipping_bounds,
         intensity_moments=intensity_moments,
     )
@@ -666,8 +693,8 @@ def auto_config_preprocess(
         
 
         batch, aug_patch, patch, pool = auto_config(
-            median=median_size,
-            img_dir=img_dir if median_size is None else None,
+            median=p.median_size,
+            img_dir=img_dir if p.median_size is None else None,
             max_dims=(max_dim, max_dim, max_dim),
             max_batch = len(os.listdir(img_dir))//20, # we limit batch to avoid overfitting
             )
@@ -683,6 +710,7 @@ def auto_config_preprocess(
             CSV_DIR=p.csv_path,
             NUM_CLASSES=num_classes,
             NUM_CHANNELS=p.num_channels,
+            CHANNEL_AXIS=p.channel_axis,
             BATCH_SIZE=batch,
             AUG_PATCH_SIZE=aug_patch,
             PATCH_SIZE=patch,

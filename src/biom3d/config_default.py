@@ -57,6 +57,10 @@ NUM_CLASSES = 1
 # number of channels in the input images
 NUM_CHANNELS = 1
 
+# channel axis, needed to preprocess images in ZCXY or XYZC format 
+# (instead of CZXY format)
+CHANNEL_AXIS = 0
+
 #---------------------------------------------------------------------------
 # Auto-config builder-parameters
 # PASTE AUTO-CONFIG RESULTS HERE
@@ -257,6 +261,7 @@ PREPROCESSOR = Dict(
         median_spacing=MEDIAN_SPACING,
         clipping_bounds=CLIPPING_BOUNDS,
         intensity_moments=INTENSITY_MOMENTS,
+        channel_axis=CHANNEL_AXIS,
     )
 )
 
