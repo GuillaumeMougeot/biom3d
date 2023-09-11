@@ -1016,7 +1016,7 @@ def save_python_config(
             # edit the line
             line = replace_line_multiple(line, kwargs)
             # write back in the input file
-            print(line, end='') 
+            print(r'{}'.format(line), end='') 
     return new_config_name
 
 def load_python_config(config_path):

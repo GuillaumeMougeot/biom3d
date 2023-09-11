@@ -706,11 +706,11 @@ def auto_config_preprocess(
             )
         
         # convert path for windows systems before writing them
-        if platform=='win32':
-            p.img_outdir = r'{}'.format(p.img_outdir).replace('\\','\\\\')
-            p.msk_outdir = r'{}'.format(p.msk_outdir).replace('\\','\\\\')
-            p.fg_outdir = r'{}'.format(p.fg_outdir).replace('\\','\\\\')
-            p.csv_path = r'{}'.format(p.csv_path).replace('\\','\\\\')
+        # if platform=='win32':
+        #     p.img_outdir = R'{}'.format(p.img_outdir).replace('\\','\\\\')
+        #     p.msk_outdir = R'{}'.format(p.msk_outdir).replace('\\','\\\\')
+        #     p.fg_outdir = R'{}'.format(p.fg_outdir).replace('\\','\\\\')
+        #     p.csv_path = R'{}'.format(p.csv_path).replace('\\','\\\\')
 
             # p.img_outdir.encode('unicode_escape'),
             # p.msk_outdir.encode('unicode_escape'),
