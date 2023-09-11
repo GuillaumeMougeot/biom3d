@@ -204,11 +204,10 @@ def seg_preprocessor(
     clipping_bounds=[],
     intensity_moments=[],
     channel_axis=0,
-    num_channel=1,
+    num_channels=1,
     ):
     """Segmentation pre-processing.
     """
-
     do_msk = msk is not None
 
     # read image and mask
@@ -228,14 +227,14 @@ def seg_preprocessor(
         # we consider as the channel dimension, the smallest dimension
         # if it is the last dim, then we move it to the first
         # the size of other dimensions of the image should be bigger than the channel dim.
-        if np.argmin(img.shape)==channel_axis and channel_axis==num_channel:
+        if np.argmin(img.shape)==channel_axis and img.shape[channel_axis]==num_channels:
             img = np.swapaxes(img, 0, channel_axis)
         else:
             print("[Error] Invalid image shape:", img.shape)
     else:
         print("[Error] Invalid image shape for 3D image:", img.shape)
 
-    assert img.shape[channel_axis]==num_channel, "[Error] Invalid image shape {}. Expected to have {} numbers of channel at {} channel axis.".format(img.shape, num_channel, channel_axis)
+    assert img.shape[0]==num_channels, "[Error] Invalid image shape {}. Expected to have {} numbers of channel at {} channel axis.".format(img.shape, num_channels, channel_axis)
 
     # one hot encoding for the mask if needed
     if do_msk and len(msk.shape)!=4: 
@@ -566,7 +565,7 @@ class Preprocessing:
                     clipping_bounds     =self.clipping_bounds,
                     intensity_moments   =self.intensity_moments,
                     channel_axis        =self.channel_axis,
-                    num_channel         =self.num_channels,
+                    num_channels        =self.num_channels,
                     )
             else:
                 img, _ = seg_preprocessor(
@@ -576,7 +575,7 @@ class Preprocessing:
                     clipping_bounds     =self.clipping_bounds,
                     intensity_moments   =self.intensity_moments,
                     channel_axis        =self.channel_axis,
-                    num_channel         =self.num_channels,
+                    num_channels        =self.num_channels,
                     )
 
             # sanity check to be sure that all images have the save number of channel
@@ -706,11 +705,15 @@ def auto_config_preprocess(
             )
         
         # convert path for windows systems before writing them
-        # if platform=='win32':
-        #     p.img_outdir = R'{}'.format(p.img_outdir).replace('\\','\\\\')
-        #     p.msk_outdir = R'{}'.format(p.msk_outdir).replace('\\','\\\\')
-        #     p.fg_outdir = R'{}'.format(p.fg_outdir).replace('\\','\\\\')
-        #     p.csv_path = R'{}'.format(p.csv_path).replace('\\','\\\\')
+        if platform=='win32':
+        #     p.img_outdir = r'{}'.format(p.img_outdir).replace('\\','\\\\')
+        #     p.msk_outdir = r'{}'.format(p.msk_outdir).replace('\\','\\\\')
+        #     p.fg_outdir = r'{}'.format(p.fg_outdir).replace('\\','\\\\')
+        #     p.csv_path = r'{}'.format(p.csv_path).replace('\\','\\\\')
+            p.img_outdir = 'r{}'.format(p.img_outdir)
+            p.msk_outdir = 'r{}'.format(p.msk_outdir)
+            p.fg_outdir = 'r{}'.format(p.fg_outdir)
+            p.csv_path = 'r{}'.format(p.csv_path)
 
             # p.img_outdir.encode('unicode_escape'),
             # p.msk_outdir.encode('unicode_escape'),
