@@ -746,6 +746,7 @@ class TrainTab(ttk.Frame):
         self.folder_selection = TrainFolderSelection(preprocess_tab=preprocess_tab, master=self, text="Preprocess", padding=[10,10,10,10])
         self.config_selection = ConfigFrame(train_folder_selection=self.folder_selection, master=self, text="Training configuration", padding=[10,10,10,10])
         self.train_button = ttk.Button(self, text="Start", style="train_button.TLabel", width =29, command=self.train)
+        self.plot_button = ttk.Button(self, text="Refresh Learning Curves", style="train_button.TLabel", width =29, command=self.get_logs_plot)
         self.train_done = ttk.Label(self, text="")
 
         # set default values of train folders with the ones used for preprocess tab
@@ -753,13 +754,58 @@ class TrainTab(ttk.Frame):
         self.folder_selection.grid(column=0,row=0,sticky=(N,W,E), pady=3)
         self.config_selection.grid(column=0,row=1,sticky=(N,W,E), pady=20)
         self.train_button.grid(column=0, row=2, padx=15, ipady=4, pady= 2, sticky=(N))
-        self.train_done.grid(column=0, row=3, sticky=W)
+        self.plot_button.grid(column=0, row=3, padx=15, ipady=4, pady= 2, sticky=(N))
+        self.train_done.grid(column=0, row=4, sticky=W)
 
     
         self.columnconfigure(0, weight=1)
         for i in range(4):
             self.rowconfigure(i, weight=1)
     
+    def get_logs_plot(self):
+        import matplotlib.pyplot as plt
+        import pandas as pd
+        import os
+        import time         
+          
+        # get the last folder modified/created
+        _,stdout,stderr=REMOTE.exec_command("ls -td {}/logs/*/ | head -1".format(MAIN_DIR))
+        line= stdout.readline()
+    
+        # connect to remote
+        ftp = REMOTE.open_sftp()
+
+        # remote directory
+        remotedir =line.rstrip()+"/log"
+        
+        # create local dir if it does not exist already
+        localdir = os.path.join("plots/")
+        if not os.path.exists(localdir):
+            os.makedirs(localdir, exist_ok=True)
+        
+        # copy files from remote to local
+        ftp_get_folder(ftp, remotedir, localdir)
+        
+        # PLOT
+        # CSV file path
+        csv_file = os.path.join("plots/log.csv")
+
+        data = pd.read_csv(csv_file)
+        plt.clf()  # Clear the current plot
+        plt.plot(data['epoch'], data['train_loss'], label='Train loss')
+        plt.plot(data['epoch'], data['val_loss'], label ='Validation loss')
+        plt.xlabel('Epoch')
+        plt.ylabel('Loss')
+        plt.title('Learning Curves')
+        plt.grid(True)
+        plt.legend()
+        plt.pause(0.1)  # Pause for a short duration to allow for updating               
+        
+        plt.savefig('Learning_curves_plot.png')
+        
+        
+
+                    
     def str2list(self, string):
         """
         convert a string like '[5 5 5]' into list of integers
@@ -857,11 +903,12 @@ class TrainTab(ttk.Frame):
             os.remove(new_config_path)
 
 
-            import threading
+
             def train_nohup():
                 
                 # run the training and store the output in an output file 
-                _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {}; nohup  python -m biom3d.train --config config1.py &".format(VENV,MAIN_DIR))
+            
+                _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {}; nohup  python -m biom3d.train --config config1.py >/dev/null 2>&1 &".format(VENV,MAIN_DIR))
                 
                 # print the stdout continuously
                 while True:
@@ -874,92 +921,12 @@ class TrainTab(ttk.Frame):
                     if not line:
                         break
                     print(line, end="")
+      
+            train_nohup()
+            self.get_logs_plot()
+         
+          
                 
-        
-                
-            worker = threading.Thread(target=train_nohup)
-            worker.start()
-            time.sleep(3)
-            
-            
-            def plot():
-                import matplotlib.pyplot as plt
-                import pandas as pd
-                import os
-                import time  
-                plt.switch_backend('agg')            
-                # Function to update the plot
-                def update_plot(csv_file):                   
-                    data = pd.read_csv(csv_file)
-                    plt.clf()  # Clear the current plot
-                    plt.plot(data['epoch'], data['train_loss'], label='Train loss')
-                    plt.plot(data['epoch'], data['val_loss'], label ='Validation loss')
-                    plt.xlabel('Epoch')
-                    plt.ylabel('Loss')
-                    plt.title('Learning Curves')
-                    plt.grid(True)
-                    plt.legend()
-                   #plt.pause(0.1)  # Pause for a short duration to allow for updating               
-                    plt.savefig('Learning_curves_plot.png')
-                    
-                # CSV file path
-                csv_file = os.path.join("plots/log.csv")
-
-                # Get initial modification timestamp
-                prev_mod_time = os.path.getmtime(csv_file)
-
-                # Continuously update the plot
-                while True:
-                    curr_mod_time = os.path.getmtime(csv_file)
-                    if curr_mod_time > prev_mod_time:
-                        prev_mod_time = curr_mod_time
-                        update_plot(csv_file)
-                    time.sleep(1)  # Wait for 1 second before checking again
-                    if not worker.is_alive():
-                        break
-
-        
-            def get_logs():
-                while True:
-                    time.sleep(2)
-                    # get the last folder modified/created
-                    _,stdout,stderr=REMOTE.exec_command("ls -td {}/logs/*/ | head -1".format(MAIN_DIR))
-                    line= stdout.readline()
-                
-                    # connect to remote
-                    ftp = REMOTE.open_sftp()
-
-                    # remote directory
-                    remotedir =line.rstrip()+"/log"
-                    
-                    # create local dir if it does not exist already
-                    localdir = os.path.join("plots/")
-                    if not os.path.exists(localdir):
-                        os.makedirs(localdir, exist_ok=True)
-                    
-                    # copy files from remote to local
-                    ftp_get_folder(ftp, remotedir, localdir)
-                    if not worker.is_alive():
-                        break
-            
-            
-            
-            
-            
-            worker2 = threading.Thread(target=get_logs)
-            worker2.start()
-            time.sleep(3)
-            worker3 = threading.Thread(target=plot)
-            worker3.start()
-     
-                
-             
-            worker.join()
-            if not worker.is_alive() : popupmsg(" Training Done ! ")
-            
-    
-
-            
             
         else:  
             # save the new config file
