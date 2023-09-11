@@ -17,7 +17,7 @@
 #  --num_classes 13
 
 python -m biom3d.eval\
- --dir_pred data/nucleus/official/test/preds/20230907-002954-nucleus_official_fold1\
+ --dir_pred data/nucleus/official/test/preds/20230908-202124-nucleus_official_fold4\
  --dir_lab data/nucleus/official/test/msk\
  --num_classes 1
 

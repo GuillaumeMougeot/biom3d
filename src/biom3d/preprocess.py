@@ -203,6 +203,7 @@ def seg_preprocessor(
     clipping_bounds=[],
     intensity_moments=[],
     channel_axis=0,
+    num_channel=1,
     ):
     """Segmentation pre-processing.
     """
@@ -226,12 +227,14 @@ def seg_preprocessor(
         # we consider as the channel dimension, the smallest dimension
         # if it is the last dim, then we move it to the first
         # the size of other dimensions of the image should be bigger than the channel dim.
-        if np.argmin(img.shape)==channel_axis and channel_axis!=0:
+        if np.argmin(img.shape)==channel_axis and channel_axis==num_channel:
             img = np.swapaxes(img, 0, channel_axis)
         else:
             print("[Error] Invalid image shape:", img.shape)
     else:
         print("[Error] Invalid image shape for 3D image:", img.shape)
+
+    assert img.shape[channel_axis]==num_channel, "[Error] Invalid image shape {}. Expected to have {} numbers of channel at {} channel axis.".format(img.shape, num_channel, channel_axis)
 
     # one hot encoding for the mask if needed
     if do_msk and len(msk.shape)!=4: 
@@ -562,6 +565,7 @@ class Preprocessing:
                     clipping_bounds     =self.clipping_bounds,
                     intensity_moments   =self.intensity_moments,
                     channel_axis        =self.channel_axis,
+                    num_channel         =self.num_channels,
                     )
             else:
                 img, _ = seg_preprocessor(
@@ -571,6 +575,7 @@ class Preprocessing:
                     clipping_bounds     =self.clipping_bounds,
                     intensity_moments   =self.intensity_moments,
                     channel_axis        =self.channel_axis,
+                    num_channel         =self.num_channels,
                     )
 
             # sanity check to be sure that all images have the save number of channel

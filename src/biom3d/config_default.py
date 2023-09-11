@@ -262,6 +262,7 @@ PREPROCESSOR = Dict(
         clipping_bounds=CLIPPING_BOUNDS,
         intensity_moments=INTENSITY_MOMENTS,
         channel_axis=CHANNEL_AXIS,
+        num_channels=NUM_CHANNELS,
     )
 )
 
