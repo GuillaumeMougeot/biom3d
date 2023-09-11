@@ -316,8 +316,16 @@ def seg_predict_patch_2(
     # get grid sampler
     overlap = 0.5
     patch_size = np.array(patch_size)
+
+    # check that overlap is smaller or equal to image shape
     patch_overlap = np.maximum(patch_size*overlap, patch_size-np.array(img.shape[-3:]))
+
+    # round patch_overlap
     patch_overlap = (np.ceil(patch_overlap*overlap)/overlap).astype(int)
+
+    # if patch_overlap is equal to one of the patch_size dimension then torchio throw an error
+    patch_overlap = np.minimum(patch_overlap, patch_size-1)
+
     sub = tio.Subject(img=tio.ScalarImage(tensor=img))
     sampler= tio.data.GridSampler(subject=sub, 
                             patch_size=patch_size, 

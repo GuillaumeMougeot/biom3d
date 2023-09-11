@@ -11,7 +11,17 @@ from biom3d.auto_config import auto_config, data_fingerprint
 from biom3d.utils import load_python_config, save_python_config
 from biom3d.builder import Builder
 
-def preprocess_train(img_dir, msk_dir, num_classes, config_dir="configs/", base_config=None, ct_norm=False, desc="unet", max_dim=128):
+def preprocess_train(
+        img_dir,
+        msk_dir,
+        num_classes,
+        config_dir="configs/",
+        base_config=None,
+        ct_norm=False,
+        desc="unet",
+        max_dim=128,
+        num_epochs=1000,
+        ):
     # preprocessing
     config_path = auto_config_preprocess(
         img_dir=img_dir, 
@@ -22,6 +32,7 @@ def preprocess_train(img_dir, msk_dir, num_classes, config_dir="configs/", base_
         ct_norm=ct_norm,
         desc=desc, 
         max_dim=max_dim,
+        num_epochs=num_epochs,
     )
 
     # training
@@ -40,6 +51,8 @@ if __name__=='__main__':
         help="(default=1) Number of classes (types of objects) in the dataset. The background is not included.")
     parser.add_argument("--max_dim", type=int, default=128,
         help="(default=128) max_dim^3 determines the maximum size of patch for auto-config.")
+    parser.add_argument("--num_epochs", type=int, default=1000,
+        help="(default=1000) Number of epochs for the training.")
     parser.add_argument("--config_dir", type=str, default='configs/',
         help="(default=\'configs/\') Configuration folder to save the auto-configuration.")
     parser.add_argument("--base_config", type=str, default=None,
@@ -59,4 +72,5 @@ if __name__=='__main__':
         ct_norm=args.ct_norm,
         desc=args.desc,
         max_dim=args.max_dim,
+        num_epochs=args.num_epochs,
     )

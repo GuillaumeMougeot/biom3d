@@ -4,7 +4,7 @@ Biom3d has different entry points with which you will be able to interact. We wi
 
 You can find examples of command lines [in the bash folder on the GitHub repo of Biom3d](https://github.com/GuillaumeMougeot/biom3d/tree/main/bash) starting with `run_`. 
 
-> **Warning**: For Windows users, the paths are here written in "linux-like format". You will have to change '/' symbols to '\\' symbols in the command lines. 
+> **Warning**: For Windows users, the paths are here written in "linux-like format". You will have to change '/' symbols to '``\``' symbols in the command lines. 
 
 ## The quickest way
 

@@ -70,7 +70,7 @@ def located_crop(img, msk, location, crop_shape, margin=np.zeros(3)):
 def foreground_crop(img, msk, final_size, fg_margin, fg=None, use_softmax=True):
     """Do a foreground crop.
     """
-    if fg is not None:
+    if fg is not None and len(list(fg.keys()))>0:
         locations = fg[random.choice(list(fg.keys()))]
     else:
         if tuple(msk.shape)[0]==1:

@@ -5,6 +5,7 @@
 #   -saving to tif file
 #---------------------------------------------------------------------------
 
+from sys import platform 
 import numpy as np
 import os 
 import pickle # for foreground storage
@@ -159,7 +160,7 @@ def sanity_check(msk, num_classes=None):
             sanity_check(msk[i], num_classes=2)
             
     cls = np.arange(num_classes)
-    if np.all(uni==cls):
+    if np.array_equal(uni,cls):
         # the mask is correctly annotated
         return msk
     else:
@@ -168,10 +169,13 @@ def sanity_check(msk, num_classes=None):
         # or we through an error message
         print("[Warning] There is something abnormal with the annotations. Each voxel value must be in range {} but is in range {}.".format(cls, uni))
         if num_classes==2:
-            print("[Warning] Applying a thresholding.")
+            # thr = np.maximum(msk.min(),0)
+            uni2, counts = np.unique(msk,return_counts=True)
+            thr = uni2[np.argmax(counts)]
+            print("[Warning] All values equal to the most frequent value ({}) will be set to zero.".format(thr))
             # then we apply a threshold to the data
             # for instance: unique [2,127,232] becomes [0,1], 0 being 2 and 1 being 127 and 232
-            return (msk > msk.min()).astype(np.uint8)
+            return (msk != thr).astype(np.uint8)
         elif np.all(np.isin(uni, cls)):
             # then one label is missing in the current mask... but it should work
             print("[Warning] One or more labels are missing.")
@@ -199,10 +203,11 @@ def seg_preprocessor(
     median_spacing=[],
     clipping_bounds=[],
     intensity_moments=[],
+    channel_axis=0,
+    num_channels=1,
     ):
     """Segmentation pre-processing.
     """
-
     do_msk = msk is not None
 
     # read image and mask
@@ -212,22 +217,27 @@ def seg_preprocessor(
         # sanity check
         msk = sanity_check(msk, num_classes)
 
-    # keep the input shape, used for preprocessing before prediction
-    original_shape = img.shape
-    
     # expand image dim
     if len(img.shape)==3:
+        # keep the input shape, used for preprocessing before prediction
+        original_shape = img.shape
         img = np.expand_dims(img, 0)
     elif len(img.shape)==4:
         # we consider as the channel dimension, the smallest dimension
-        # it should be either the first or the last dim
         # if it is the last dim, then we move it to the first
-        if np.argmin(img.shape)==3:
-            img = np.moveaxis(img, -1, 0)
-        elif np.argmin(img.shape)!=0:
+        # the size of other dimensions of the image should be bigger than the channel dim.
+        if np.argmin(img.shape)==channel_axis and img.shape[channel_axis]==num_channels:
+            img = np.swapaxes(img, 0, channel_axis)
+        else:
             print("[Error] Invalid image shape:", img.shape)
+        
+        # keep the input shape, used for preprocessing before prediction
+        original_shape = img.shape
     else:
-        print("[Error] Invalid image shape:", img.shape)
+        print("[Error] Invalid image shape for 3D image:", img.shape)
+        raise ValueError
+
+    assert img.shape[0]==num_channels, "[Error] Invalid image shape {}. Expected to have {} numbers of channel at {} channel axis.".format(img.shape, num_channels, channel_axis)
 
     # one hot encoding for the mask if needed
     if do_msk and len(msk.shape)!=4: 
@@ -262,7 +272,7 @@ def seg_preprocessor(
     # img = (img - img.min())/(img.max()-img.min()) * 2 - 1
 
     # resample the image and mask if needed
-    if len(median_spacing)>0:
+    if len(median_spacing)>0 and spacing is not None and len(spacing)>0:
         output_shape = get_resample_shape(img.shape, spacing, median_spacing)
         if do_msk:
             # img, msk = resample_img_msk(img, msk, spacing, median_spacing)
@@ -327,6 +337,8 @@ class Preprocessing:
         Number of classes (channel) in the masks. Required by the 
     remove_bg : bool, default=True
         Whether to remove the background in the one-hot encoded mask. Remove the background is done when training with sigmoid activations instead of softmax.
+    median_size : list, optional
+        Median size of the image dataset. Is used to check the channel axis.
     median_spacing : list, optional
         A list of length 3 containing the median spacing of the input images. Median_spacing must not be transposed: for example, median_spacing might be [0.8, 0.8, 2.5] if median shape of the training image is [40,224,224].
     clipping_bounds : list, optional
@@ -350,6 +362,7 @@ class Preprocessing:
         num_classes = None, # just for debug when empty masks are provided
         use_one_hot = False,
         remove_bg = False, # keep the background in labels 
+        median_size = [],
         median_spacing=[],
         clipping_bounds=[],
         intensity_moments=[],
@@ -396,9 +409,26 @@ class Preprocessing:
         self.csv_path = os.path.join(os.path.dirname(img_dir), 'folds.csv')
 
         self.num_classes = num_classes
-        self.num_channels = 1
 
         self.remove_bg = remove_bg
+
+        # median size serves to determine the number of channel
+        # and the channel axis
+        self.median_size = np.array(median_size)
+
+        self.num_channels = 1
+        self.channel_axis = 0
+
+        # if the 3D image has 4 dimensions then there is a channel dimension.
+        if len(self.median_size)==4:
+            # the channel dimension is consider to be the smallest dimension
+            # this could cause problem in case where there are more z than c for instance...
+            self.num_channels = np.min(median_size)
+            self.channel_axis = np.argmin(self.median_size)
+            if self.channel_axis != 0:
+                print("[Warning] 4 dimensions detected and channel axis is {}. All image dimensions will be swapped.".format(self.channel_axis))
+            self.median_size[[0,self.channel_axis]] = self.median_size[[self.channel_axis,0]]
+            self.median_size = self.median_size[1:]
 
         self.median_spacing = np.array(median_spacing)
         self.clipping_bounds = np.array(clipping_bounds)
@@ -424,7 +454,7 @@ class Preprocessing:
         msk_path = os.path.join(self.msk_dir, img_fname) # mask must be present
 
         # read image and mask
-        img = adaptive_imread(img_path)[0]
+        img, metadata = adaptive_imread(img_path)
         msk = adaptive_imread(msk_path)[0]
 
         # determine the slicing indices to crop an image along its maximum dimension
@@ -494,44 +524,62 @@ class Preprocessing:
         df['hold_out'] = [0,0]
         df['fold'] = [1,0]
         df.to_csv(self.csv_path, index=False)
+        return metadata
     
-    def run(self):
+    def run(self, debug=False):
         """Start the preprocessing.
+
+        Parameters
+        ----------
+        debug : boolean, default=False
+            Whether to display image filenames while preprocessing.
         """
         print("Preprocessing...")
         # if there is only a single image/mask, then split them both in two portions
         image_was_split = False
         if len(self.img_fnames)==1 and self.msk_dir is not None:
             print("Single image found per folder. Split the images...")
-            self._split_single()
+            split_meta = self._split_single()
             image_was_split = True
-            
-        for i in tqdm(range(len(self.img_fnames))):
+        
+        if debug: ran = range(len(self.img_fnames))
+        else: ran = tqdm(range(len(self.img_fnames)))
+        for i in ran:
             # set image and mask name
             img_fname = self.img_fnames[i]
             img_path = os.path.join(self.img_dir, img_fname)
             if self.msk_dir is not None: msk_path = os.path.join(self.msk_dir, img_fname)
+
+            # print image name if debug mode
+            if debug: 
+                print("[{}/{}] Preprocessing:".format(i,len(self.img_fnames)),img_path)
 
             img,img_meta = adaptive_imread(img_path)
             if self.msk_dir is not None:
                 msk, _ = adaptive_imread(msk_path)
                 img, msk, fg = seg_preprocessor(
                     img                 =img, 
-                    img_meta            =img_meta,
+                    img_meta            =img_meta if not image_was_split else split_meta,
                     msk                 =msk,
                     num_classes         =self.num_classes,
                     use_one_hot         =self.use_one_hot,
                     remove_bg           =self.remove_bg, 
                     median_spacing      =self.median_spacing,
                     clipping_bounds     =self.clipping_bounds,
-                    intensity_moments   =self.intensity_moments,)
+                    intensity_moments   =self.intensity_moments,
+                    channel_axis        =self.channel_axis,
+                    num_channels        =self.num_channels,
+                    )
             else:
                 img, _ = seg_preprocessor(
                     img                 =img, 
                     img_meta            =img_meta,
                     median_spacing      =self.median_spacing,
                     clipping_bounds     =self.clipping_bounds,
-                    intensity_moments   =self.intensity_moments,)
+                    intensity_moments   =self.intensity_moments,
+                    channel_axis        =self.channel_axis,
+                    num_channels        =self.num_channels,
+                    )
 
             # sanity check to be sure that all images have the save number of channel
             s = img.shape
@@ -601,6 +649,7 @@ def auto_config_preprocess(
         no_auto_config=False,
         logs_dir='logs/',
         print_param=False,
+        debug=False,
         ):
     """Helper function to do auto-config and preprocessing.
     """
@@ -639,23 +688,31 @@ def auto_config_preprocess(
         remove_bg=remove_bg,
         use_tif=use_tif,
         median_spacing=median_spacing,
+        median_size=median_size,
         clipping_bounds=clipping_bounds,
         intensity_moments=intensity_moments,
     )
 
     if not skip_preprocessing:
-        p.run()
+        p.run(debug=debug)
 
     if not no_auto_config:
         if not print_param: print("Start auto-configuration")
         
 
         batch, aug_patch, patch, pool = auto_config(
-            median=median_size,
-            img_dir=img_dir if median_size is None else None,
+            median=p.median_size,
+            img_dir=img_dir if p.median_size is None else None,
             max_dims=(max_dim, max_dim, max_dim),
             max_batch = len(os.listdir(img_dir))//20, # we limit batch to avoid overfitting
             )
+        
+        # convert path for windows systems before writing them
+        if platform=='win32':
+            p.img_outdir = p.img_outdir.replace('\\','\\\\')
+            p.msk_outdir = p.msk_outdir.replace('\\','\\\\')
+            p.fg_outdir = p.fg_outdir.replace('\\','\\\\')
+            p.csv_path = p.csv_path.replace('\\','\\\\')
 
         config_path = save_python_config(
             config_dir=config_dir,
@@ -668,6 +725,7 @@ def auto_config_preprocess(
             CSV_DIR=p.csv_path,
             NUM_CLASSES=num_classes,
             NUM_CHANNELS=p.num_channels,
+            CHANNEL_AXIS=p.channel_axis,
             BATCH_SIZE=batch,
             AUG_PATCH_SIZE=aug_patch,
             PATCH_SIZE=patch,
@@ -729,6 +787,8 @@ if __name__=='__main__':
         help="(default=False) Whether to skip the preprocessing. Only for debugging.") 
     parser.add_argument("--remote", default=False,  action='store_true', dest='remote',
         help="(default=False) Whether to print auto-config parameters. Used for remote preprocessing using the GUI.") 
+    parser.add_argument("--debug", default=False,  action='store_true', dest='debug',
+        help="(default=False) Debug mode. Whether to print all image filenames while preprocessing.") 
     args = parser.parse_args()
 
     auto_config_preprocess(
@@ -750,6 +810,7 @@ if __name__=='__main__':
         no_auto_config=args.no_auto_config,
         logs_dir=args.logs_dir,
         print_param=args.remote,
+        debug=args.debug,
         )
 
 #---------------------------------------------------------------------------

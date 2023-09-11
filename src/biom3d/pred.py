@@ -84,13 +84,17 @@ def pred_seg_eval(log=pathlib.Path.home(), dir_in=pathlib.Path.home(), dir_out=p
         results = []
         for idx in range(len(list_abs[0])):
             print("Metric computation for:", list_abs[1][idx])
+            if type(builder_pred.config)==list:
+                num_classes = builder_pred.config[0].NUM_CLASSES+1
+            else:
+                num_classes = builder_pred.config.NUM_CLASSES+1
             results += [versus_one(
                 fct=dice, 
                 in_path=list_abs[1][idx], 
                 tg_path=list_abs[0][idx], 
                 # num_classes=2, 
                 # single_class=-1,
-                num_classes=(builder_pred.config.NUM_CLASSES+1), 
+                num_classes=num_classes, 
                 single_class=None,
                 )]
             print("Metric result:", results[-1])

@@ -271,7 +271,7 @@ def tif_read_imagej(img_path):
     """
 
     with tiff.TiffFile(img_path) as tif:
-        # assert tif.is_imagej
+        assert tif.is_imagej
 
         # store img_meta
         img_meta = {}
@@ -940,6 +940,7 @@ def replace_line_single(line, key, value):
             line += str(value.tolist())
         else:
             line += str(value)
+        line += "\n"
     return line
 
 def replace_line_multiple(line, dic):
@@ -989,6 +990,9 @@ def save_python_config(
     if not os.path.exists(config_dir):
         os.makedirs(config_dir, exist_ok=True)
 
+    # name config path with the current date 
+    current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
+
     # copy default config file or use the one given by the user
     if base_config == None:
         try:
@@ -998,10 +1002,8 @@ def save_python_config(
             print("[Error] Please provide a base config file or install biom3d.")
             raise RuntimeError
     else: 
-        config_path = base_config
-
-    # rename it with date included
-    current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
+        # config_path = shutil.copy(base_config, config_dir)
+        config_path = base_config # WARNING: overwriting!
 
     # if DESC is in kwargs, then it will be used to rename the config file
     basename = os.path.basename(config_path) if "DESC" not in kwargs.keys() else kwargs['DESC']+'.py'
