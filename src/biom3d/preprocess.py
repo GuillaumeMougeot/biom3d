@@ -5,6 +5,7 @@
 #   -saving to tif file
 #---------------------------------------------------------------------------
 
+from sys import platform 
 import numpy as np
 import os 
 import pickle # for foreground storage
@@ -703,6 +704,13 @@ def auto_config_preprocess(
             max_dims=(max_dim, max_dim, max_dim),
             max_batch = len(os.listdir(img_dir))//20, # we limit batch to avoid overfitting
             )
+        
+        # convert path for windows systems before writing them
+        if platform=='win32':
+            p.img_outdir.encode('unicode_escape'),
+            p.msk_outdir.encode('unicode_escape'),
+            p.fg_outdir.encode('unicode_escape'),
+            p.csv_path.encode('unicode_escape'),
 
         config_path = save_python_config(
             config_dir=config_dir,
