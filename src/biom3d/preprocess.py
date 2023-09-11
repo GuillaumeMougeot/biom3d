@@ -707,10 +707,15 @@ def auto_config_preprocess(
         
         # convert path for windows systems before writing them
         if platform=='win32':
-            p.img_outdir.encode('unicode_escape'),
-            p.msk_outdir.encode('unicode_escape'),
-            p.fg_outdir.encode('unicode_escape'),
-            p.csv_path.encode('unicode_escape'),
+            p.img_outdir = r'{}'.format(p.img_outdir)
+            p.msk_outdir = r'{}'.format(p.msk_outdir)
+            p.fg_outdir = r'{}'.format(p.fg_outdir)
+            p.csv_path = r'{}'.format(p.csv_path)
+
+            # p.img_outdir.encode('unicode_escape'),
+            # p.msk_outdir.encode('unicode_escape'),
+            # p.fg_outdir.encode('unicode_escape'),
+            # p.csv_path.encode('unicode_escape'),
 
         config_path = save_python_config(
             config_dir=config_dir,
