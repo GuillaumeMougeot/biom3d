@@ -217,11 +217,10 @@ def seg_preprocessor(
         # sanity check
         msk = sanity_check(msk, num_classes)
 
-    # keep the input shape, used for preprocessing before prediction
-    original_shape = img.shape
-    
     # expand image dim
     if len(img.shape)==3:
+        # keep the input shape, used for preprocessing before prediction
+        original_shape = img.shape
         img = np.expand_dims(img, 0)
     elif len(img.shape)==4:
         # we consider as the channel dimension, the smallest dimension
@@ -231,6 +230,9 @@ def seg_preprocessor(
             img = np.swapaxes(img, 0, channel_axis)
         else:
             print("[Error] Invalid image shape:", img.shape)
+        
+        # keep the input shape, used for preprocessing before prediction
+        original_shape = img.shape
     else:
         print("[Error] Invalid image shape for 3D image:", img.shape)
 

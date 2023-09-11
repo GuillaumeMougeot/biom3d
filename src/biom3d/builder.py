@@ -677,7 +677,8 @@ class Builder:
                     logit = logit, 
                     return_logit = return_logit,
                     **img_meta) # all img_meta should be equal as we use the same preprocessors
-        else:
+        
+        else: # single model prediction
             img, img_meta = read_config(self.config.PREPROCESSOR, register.preprocessors, img=img, img_meta=img_meta)
 
             # prediction
