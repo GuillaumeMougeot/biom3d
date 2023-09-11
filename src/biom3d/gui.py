@@ -693,7 +693,7 @@ class ConfigFrame(ttk.LabelFrame):
             config_path=auto_config_preprocess(img_dir=self.img_outdir.get(),
             msk_dir=self.msk_outdir.get(),
             desc=self.builder_name_entry.get(),
-            num_classes=self.num_classes.get()+1,
+            num_classes=self.num_classes.get(),
             remove_bg=False, use_tif=False,
             config_dir="config/",
             base_config=None,
@@ -957,10 +957,7 @@ class TrainTab(ttk.Frame):
             worker.join()
             if not worker.is_alive() : popupmsg(" Training Done ! ")
             
-            #worker2.join()
-            #worker3.join()
-            #get_logs()
-            #plot()
+    
 
             
             
@@ -1331,6 +1328,39 @@ class DownloadPrediction(ttk.LabelFrame):
         self.data_list = [e.replace('\n','') for e in stdout.readlines()]
         self.data_dir_option_menu.set_menu(self.data_list[0], *self.data_list)
         popupmsg("Prediction list updated !")
+        
+class Dict(dict):
+    def __init__(self, *args, **kwargs): super().__init__(*args, **kwargs)
+    def __getattr__(self, name): return self[name]
+    def __setattr__(self, name, value): self[name] = value
+    def __delattr__(self, name): del self[name]
+
+def config_to_type(cfg, new_type):
+    """Change config type to a new type. This function is recursive and can be use to change the type of nested dictionaries. 
+    """
+    old_type = type(cfg)
+    cfg = new_type(cfg)
+    for k,i in cfg.items():
+        if type(i)==old_type:
+            cfg[k] = config_to_type(cfg[k], new_type)
+    return cfg
+
+def save_yaml_config(path, cfg):
+    """
+    save a configuration in a yaml file.
+    path must thus contains a yaml extension.
+    example: path='logs/test.yaml'
+    """
+    cfg = config_to_type(cfg, dict)
+    with open(path, "w") as f:
+        yaml.dump(cfg, f, sort_keys=False)
+    
+def load_yaml_config(path):
+    """
+    load a yaml stored with the self.save method.
+    """
+    return config_to_type(yaml.load(open(path),Loader=yaml.FullLoader), Dict)
+
 
 class PredictTab(ttk.Frame):
     def __init__(self, *arg, **kw):
@@ -1343,6 +1373,11 @@ class PredictTab(ttk.Frame):
         self.input_dir = InputDirectory(self, text="Input directory", padding=[10,10,10,10])
         self.model_selection = ModelSelection(self, text="Model selection", padding=[10,10,10,10])
         self.send_to_omero = ttk.Checkbutton(self, text="Send Predictions to omero ", command=self.display_send_to_omero, variable=self.send_to_omero_state)
+        self.keep_biggest_only_state= IntVar(value=0)
+        self.keep_big_only_state = IntVar(value=0)
+        self.keep_biggest_only_button = ttk.Checkbutton(self, text="Keep the biggest object only ? ", variable=self.keep_biggest_only_state)        
+        self.keep_big_only_button = ttk.Checkbutton(self, text="Keep big objects only ? ", variable=self.keep_big_only_state)        
+        
         if not REMOTE: self.output_dir = OutputDirectory(self, text="Output directory", padding=[10,10,10,10])
         self.button = ttk.Button(self, width=29,style="train_button.TLabel", text="Start", command=self.predict)
         if REMOTE: self.download_prediction = DownloadPrediction(self, text="Download predictions to local", padding=[10,10,10,10])
@@ -1355,11 +1390,14 @@ class PredictTab(ttk.Frame):
         if not REMOTE: 
             self.output_dir.grid(column=0,row=5,sticky=(W,E), pady=6)
             self.send_to_omero.grid(column=0,row=4,sticky=(W,E), pady=6)
-
-        self.button.grid(column=0,row=6,ipady=4, pady=4,padx=10,sticky=(S,N))
+            
+        self.keep_biggest_only_button.grid(column=0,row=6,ipady=4, pady=4,padx=10,sticky=(S,N,W))
+        self.keep_big_only_button.grid(column=0,row=6,ipady=4, pady=4,padx=10,sticky=(S,N,E))
+        self.button.grid(column=0,row=8,ipady=4, pady=4,padx=10,sticky=(S,N))
+        
         if REMOTE: 
-            self.download_prediction.grid(column=0, row=8, sticky=(W,E), pady=6)
-            self.send_to_omero.grid(column=0,row=7,sticky=(W,E), pady=6)
+            self.download_prediction.grid(column=0, row=10, sticky=(W,E), pady=6)
+            self.send_to_omero.grid(column=0,row=9,sticky=(W,E), pady=6)
     
         self.columnconfigure(0, weight=1)
         for i in range(7):
@@ -1367,6 +1405,57 @@ class PredictTab(ttk.Frame):
     
     def predict(self):
         # if use Omero then use Omero prediction
+        if REMOTE :
+            # To Filter objects in Prediction
+            selected_model = self.model_selection.logs_dir.get()
+            
+            # connect to remote
+            ftp = REMOTE.open_sftp()
+
+            # remote directory
+            remotedir = "{}/logs/{}/log/".format(MAIN_DIR,selected_model)
+            
+            # create local dir if it does not exist already
+            localdir = os.path.join("config_keep_big/")
+            if not os.path.exists(localdir):
+                os.makedirs(localdir, exist_ok=True)
+            # copy files from remote to local
+            ftp_get_folder(ftp, remotedir, localdir)
+            
+            yaml_conf_path = localdir+"config.yaml"
+            cfg = load_yaml_config(yaml_conf_path)
+            if self.keep_biggest_only_state.get() :
+                cfg.POSTPROCESSOR.kwargs.keep_biggest_only = True
+            else: cfg.POSTPROCESSOR.kwargs.keep_biggest_only = False
+                    
+            if self.keep_big_only_state.get() :   
+                cfg.POSTPROCESSOR.kwargs.keep_big_only = True
+            else : cfg.POSTPROCESSOR.kwargs.keep_big_only = False
+            # if remote store the config file in a temp file
+            save_yaml_config(yaml_conf_path,cfg)
+            # copy it
+            ftp = REMOTE.open_sftp()
+            ftp.put(yaml_conf_path, remotedir+"/config.yaml")
+            ftp.close()
+            # delete the temp file
+            import shutil
+            shutil.rmtree(localdir)
+            
+        if not REMOTE :
+            yaml_conf_path = self.model_selection.logs_dir.get()+"/log/config.yaml"
+            #load config
+            cfg = load_yaml_config(yaml_conf_path)
+            if self.keep_biggest_only_state.get() :
+                cfg.POSTPROCESSOR.kwargs.keep_biggest_only = True
+            else: cfg.POSTPROCESSOR.kwargs.keep_biggest_only = False
+                    
+            if self.keep_big_only_state.get() :   
+                cfg.POSTPROCESSOR.kwargs.keep_big_only = True
+            else : cfg.POSTPROCESSOR.kwargs.keep_big_only = False
+            #save it 
+            save_yaml_config(yaml_conf_path,cfg)
+                
+            
         if self.use_omero_state.get():
             obj="Dataset"+":"+self.omero_dataset.id.get()
          
@@ -1488,7 +1577,7 @@ class PredictTab(ttk.Frame):
             
             if REMOTE :
                 self.download_prediction.grid_remove()
-                self.send_to_omero_connection.grid(column=0,row=8,sticky=(W,E), pady=6)
+                self.send_to_omero_connection.grid(column=0,row=10,sticky=(W,E), pady=6)
                 
             else :
                 self.output_dir.grid_remove()     
@@ -1497,7 +1586,7 @@ class PredictTab(ttk.Frame):
          else:
             # hide omero 
             self.send_to_omero_connection.grid_remove()
-            if REMOTE : self.download_prediction.grid(column=0, row=8, sticky=(W,E), pady=6)
+            if REMOTE : self.download_prediction.grid(column=0, row=10, sticky=(W,E), pady=6)
             else: self.output_dir.grid(column=0,row=5,sticky=(W,E), pady=6)
           
 #----------------------------------------------------------------------------
