@@ -388,35 +388,36 @@ class SoftDiceLoss(nn.Module):
 
         return -dc
 
-# class RobustCrossEntropyLoss(nn.CrossEntropyLoss):
-#     """
-#     this is just a compatibility layer because my target tensor is float and has an extra dimension
-#     """
+class RobustCrossEntropyLoss(nn.CrossEntropyLoss):
+    """
+    this is just a compatibility layer because my target tensor is float and has an extra dimension
+    """
+    def forward(self, input, target):
+        if len(target.shape) == len(input.shape):
+            assert target.shape[1] == 1
+            target = target[:, 0]
+        return super().forward(input, target.long())
+
+# class RobustCrossEntropyLoss(nn.NLLLoss):
+#     def __init__(self):
+#         super(RobustCrossEntropyLoss, self).__init__()
+#         # self.log_softmax = torch.nn.LogSoftmax(dim=-1)
+#         self.criterion = torch.nn.NLLLoss()
+
 #     def forward(self, input, target):
 #         if len(target.shape) == len(input.shape):
 #             assert target.shape[1] == 1
 #             target = target[:, 0]
-#         return super().forward(input, target.long())
-
-class RobustCrossEntropyLoss(nn.CrossEntropy):
-    def __init__(self):
-        super(CrossEntropy, self).__init__()
-        # self.log_softmax = torch.nn.LogSoftmax(dim=-1)
-        self.criterion = torch.nn.NLLLoss()
-
-    def forward(self, inputs, targets):
-        if len(target.shape) == len(input.shape):
-            assert target.shape[1] == 1
-            target = target[:, 0]
-        # self.val = self.ce(inputs, targets)
-        # yhat = torch.sigmoid(inputs).clamp(min=1e-3, max=1-1e-3)
-        # print("metric: inputs shape and target", inputs.shape, targets)
-        # yhat = torch.log(inputs.softmax(dim=1).clamp(min=1e-3, max=1-1e-3))
-        yhat = torch.log(inputs.softmax(dim=1).type(torch.float32))
-        # y = F.one_hot(y, num_classes=self.num_class).float()
-        # self.val = -y*((1-yhat) ** self.gamma) * torch.log(yhat) - (1-y) * (yhat ** self.gamma) * torch.log(1-yhat)
-        self.val = self.criterion(yhat, targets.long())
-        return self.val
+#         # self.val = self.ce(inputs, targets)
+#         # yhat = torch.sigmoid(inputs).clamp(min=1e-3, max=1-1e-3)
+#         # print("metric: inputs shape and target", inputs.shape, targets)
+#         # yhat = torch.log(inputs.softmax(dim=1).clamp(min=1e-3, max=1-1e-3))
+#         yhat = torch.log(input.type(torch.float32).softmax(dim=1))
+#         # y = F.one_hot(y, num_classes=self.num_class).float()
+#         # self.val = -y*((1-yhat) ** self.gamma) * torch.log(yhat) - (1-y) * (yhat ** self.gamma) * torch.log(1-yhat)
+#         # self.val = self.criterion(yhat, targets.long())
+#         return super().forward(yhat, target.long())
+#         # return self.val
 
 
 class DC_and_CE_loss(Metric):
