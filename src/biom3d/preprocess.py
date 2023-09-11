@@ -235,6 +235,7 @@ def seg_preprocessor(
         original_shape = img.shape
     else:
         print("[Error] Invalid image shape for 3D image:", img.shape)
+        raise ValueError
 
     assert img.shape[0]==num_channels, "[Error] Invalid image shape {}. Expected to have {} numbers of channel at {} channel axis.".format(img.shape, num_channels, channel_axis)
 
