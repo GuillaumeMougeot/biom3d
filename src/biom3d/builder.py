@@ -55,8 +55,8 @@ def read_config(config_fct, register_cat, **kwargs):
 # source: https://stackoverflow.com/questions/14906764/how-to-redirect-stdout-to-both-file-and-console-with-scripting
 
 class Logger(object):
-    def __init__(self, filename):
-        self.terminal = sys.stdout
+    def __init__(self, terminal, filename):
+        self.terminal = terminal
         self.log = open(filename, "a")
    
     def write(self, message):
@@ -65,6 +65,18 @@ class Logger(object):
 
     def flush(self):
         pass   
+
+# class ErrorLogger(object):
+#     def __init__(self, filename):
+#         self.terminal = sys.stderr
+#         self.log = open(filename, "a")
+   
+#     def write(self, message):
+#         self.terminal.write(message)
+#         self.log.write(message)  
+
+#     def flush(self):
+#         pass  
 
 #---------------------------------------------------------------------------
 # for distributed data parallel
@@ -533,8 +545,10 @@ class Builder:
             self.config.LOG_DIR, folder_name, dir_names=['image', 'log', 'model'], return_base_dir=True) 
         
         # redirect all prints to file and to terminal
-        sys.stdout = Logger(os.path.join(self.log_dir,datetime.now().strftime("%Y%m%d-%H%M%S")+'-prints.txt'))
-    
+        logger = Logger(sys.stdout, os.path.join(self.log_dir,datetime.now().strftime("%Y%m%d-%H%M%S")+'-prints.txt'))
+        sys.stdout = logger
+        # sys.stderr = logger
+        
         # save the config file
         if self.config_path is not None:
             basename = os.path.basename(self.config_path)
@@ -763,7 +777,9 @@ class Builder:
         self.model_path = os.path.join(self.model_dir, self.config.DESC)
 
         # redirect all prints to file and to terminal
-        sys.stdout = Logger(os.path.join(self.log_dir,datetime.now().strftime("%Y%m%d-%H%M%S")+'-prints.txt'))
+        logger = Logger(sys.stdout, os.path.join(self.log_dir,datetime.now().strftime("%Y%m%d-%H%M%S")+'-prints.txt'))
+        sys.stdout = logger
+        # sys.stderr = logger
 
         # call the build method
         self.build_model()
