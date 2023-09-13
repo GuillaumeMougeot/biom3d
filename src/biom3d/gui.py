@@ -427,7 +427,11 @@ class TrainFolderSelection(ttk.LabelFrame):
         self.label1 = ttk.Label(self, text="Select the folder containing the images:", anchor="sw", background='white')
         ## mask folder
         self.label2 = ttk.Label(self, text="Select the folder containing the masks:", anchor="sw", background='white')
-
+        ## config folder
+        self.use_conf_state = IntVar(value=0) 
+        global conf_clicked 
+        conf_clicked = self.use_conf_state.get()
+        self.label3 = ttk.Label(self, text="Dataset is already preprocessed ? Select the configuration file  ", anchor="sw", background='white')
         if REMOTE:
 
             self.label0 = ttk.Label(self, text="Send a new Dataset :", anchor="sw", background='white')
@@ -441,27 +445,28 @@ class TrainFolderSelection(ttk.LabelFrame):
     
           
         else:
-            self.img_outdir = FileDialog(self, mode='folder', textEntry="/home/safarbatis/chocolate-factory/data/raw")
-            self.msk_outdir = FileDialog(self, mode='folder', textEntry="/home/safarbatis/chocolate-factory/data/seg")            
-       
+            self.img_outdir = FileDialog(self, mode='folder', textEntry="")
+            self.msk_outdir = FileDialog(self, mode='folder', textEntry="")            
+        self.config_dir = FileDialog(self, mode='file', textEntry="")      
 
         # Position elements
 
-        self.label1.grid(column=0, row=1, sticky=W, pady=5)
-        
+        self.label1.grid(column=0, row=2, sticky=W, pady=5)
         if REMOTE:
             self.label0.grid(column=0,row=0, sticky=W, pady=2)
-            self.img_outdir.grid(column=0, row=2, sticky=(W,E))
-            self.label2.grid(column=0,row=3, sticky=W, pady=2)
-            self.msk_outdir.grid(column=0,row=4, sticky=(W,E))
+            self.img_outdir.grid(column=0, row=3, sticky=(W,E))
+            self.label2.grid(column=0,row=4, sticky=W, pady=2)
+            self.msk_outdir.grid(column=0,row=5, sticky=(W,E))
             self.send_data_label.grid(column=0, row=7, sticky=(W,E), pady=2)
             self.send_data_entry.grid(column=0,row=8, sticky=(W,E))
             self.send_data_button.grid(column=0, row=9, pady=5,ipady=4,)
             
         else:
-            self.img_outdir.grid(column=0, row=2, sticky=(W,E))
-            self.label2.grid(column=0,row=3, sticky=W, pady=7)
-            self.msk_outdir.grid(column=0,row=4, sticky=(W,E))
+            self.img_outdir.grid(column=0, row=3, sticky=(W,E))
+            self.label2.grid(column=0,row=4, sticky=W, pady=7)
+            self.msk_outdir.grid(column=0,row=5, sticky=(W,E))
+            
+           
 
         
         
@@ -534,11 +539,11 @@ class ConfigFrame(ttk.LabelFrame):
         self.num_classes = IntVar(value=1)
         self.classes = ttk.Entry(self, width=5,textvariable=self.num_classes)
         
-        
+        self.load_config_button = ttk.Button(self, text="Load config",style='train_button.TLabel',width =29,command=self.load_config )
         self.auto_config_button = ttk.Button(self, text="Auto-configure", style='train_button.TLabel',width =29,command=self.auto_config)
         self.img_outdir = train_folder_selection.img_outdir
         self.msk_outdir = train_folder_selection.msk_outdir
-        
+        self.config_dir = train_folder_selection.config_dir
 
         self.auto_config_finished = ttk.Label(self, text="")
 
@@ -589,6 +594,7 @@ class ConfigFrame(ttk.LabelFrame):
         self.num_classes_label.grid(column=0,row=3, sticky=W, pady=2)
         self.classes.grid(column=0,row=3,pady=5,sticky=E)
         self.auto_config_button.grid(column=0, columnspan=4,row=4 ,ipady=4, pady=2,)
+        if not REMOTE :self.load_config_button.grid(column=0, columnspan=4,row=4 ,ipady=4, pady=2,)     
         self.auto_config_finished.grid(column=0, row=5, columnspan=2, sticky=(W,E))
 
         self.num_epochs_label.grid(column=0, row=6, sticky=(W))
@@ -615,7 +621,7 @@ class ConfigFrame(ttk.LabelFrame):
         # grid config
         self.columnconfigure(0, weight=1)
         for i in range(10):
-            self.rowconfigure(i, weight=1)
+            self.rowconfigure(i, weight=1)   
     def option_selected(self, *args):
         global selected_dataset
         selected_dataset = self.data_dir.get()
@@ -651,6 +657,48 @@ class ConfigFrame(ttk.LabelFrame):
         """
         # remove first and last element
         return [int(e) for e in string[1:-1].split(', ') if e!='']
+    
+    def load_config(self):
+        # Read the config file
+        global config_path
+        global img_dir_train
+        global msk_dir_train
+        global fg_dir_train
+        config_path = self.config_dir.get()
+        print("ssssssssssssssssssss ",config_path)
+        self.train_parameters = load_python_config(config_path)
+        
+        batch= self.train_parameters.BATCH_SIZE
+        aug_patch= self.train_parameters.AUG_PATCH_SIZE
+        patch= self.train_parameters.PATCH_SIZE
+        pool = self.train_parameters.NUM_POOLS
+        
+        img_dir_train = self.train_parameters.IMG_DIR
+        msk_dir_train = self.train_parameters.MSK_DIR
+        fg_dir_train = self.train_parameters.FG_DIR
+        
+        print("Train Parameters :  ",batch,aug_patch,patch,pool,config_path)
+        
+        # Update Config Cells in Gui
+        self.batch_size.set(batch)
+        
+        self.aug_patch_size= aug_patch
+        self.aug_patch_size1.set(aug_patch[0])
+        self.aug_patch_size2.set(aug_patch[1])
+        self.aug_patch_size3.set(aug_patch[2])
+        
+        self.patch_size = patch
+        self.patch_size1.set(patch[0])
+        self.patch_size2.set(patch[1])
+        self.patch_size3.set(patch[2])
+        
+        self.num_pools = pool
+        self.num_pools1.set(pool[0])
+        self.num_pools2.set(pool[1])
+        self.num_pools3.set(pool[2])
+        self.auto_config_finished.config(text="Configuration loaded sucessfully ! ")
+        popupmsg("Configuration loaded sucessfully ! ")
+
     def auto_config(self):
         self.auto_config_finished.config(text="Auto-configuration, please wait...")
         global config_path 
@@ -746,22 +794,59 @@ class TrainTab(ttk.Frame):
         self.folder_selection = TrainFolderSelection(preprocess_tab=preprocess_tab, master=self, text="Preprocess", padding=[10,10,10,10])
         self.config_selection = ConfigFrame(train_folder_selection=self.folder_selection, master=self, text="Training configuration", padding=[10,10,10,10])
         self.train_button = ttk.Button(self, text="Start", style="train_button.TLabel", width =29, command=self.train)
-        self.plot_button = ttk.Button(self, text="Refresh Learning Curves", style="train_button.TLabel", width =29, command=self.get_logs_plot)
+        self.plot_button = ttk.Button(self, text="Plot Learning Curves", style="train_button.TLabel", width =29, command=self.get_logs_plot)
         self.train_done = ttk.Label(self, text="")
+        # config folder
+        self.use_conf_state = IntVar(value=0) 
+        self.use_conf_button = ttk.Checkbutton(self, text="Dataset is already preprocessed ? ", command=self.display_conf, variable=self.use_conf_state)
 
         # set default values of train folders with the ones used for preprocess tab
+        if not REMOTE :
+            self.use_conf_button.grid(column=0,row=0,sticky=(N,W,E), pady=3)
+        else : self.plot_button.grid(column=0, row=4, padx=15, ipady=4, pady= 2, sticky=(N))
+        self.folder_selection.grid(column=0,row=1,sticky=(N,W,E), pady=3)
+        self.config_selection.grid(column=0,row=2,sticky=(N,W,E), pady=20)
+        self.train_button.grid(column=0, row=3, padx=15, ipady=4, pady= 2, sticky=(N))
+        self.train_done.grid(column=0, row=5, sticky=W)
 
-        self.folder_selection.grid(column=0,row=0,sticky=(N,W,E), pady=3)
-        self.config_selection.grid(column=0,row=1,sticky=(N,W,E), pady=20)
-        self.train_button.grid(column=0, row=2, padx=15, ipady=4, pady= 2, sticky=(N))
-        self.plot_button.grid(column=0, row=3, padx=15, ipady=4, pady= 2, sticky=(N))
-        self.train_done.grid(column=0, row=4, sticky=W)
-
-    
+        
         self.columnconfigure(0, weight=1)
-        for i in range(4):
+        for i in range(5):
             self.rowconfigure(i, weight=1)
-    
+            
+    def display_conf(self):
+        if not REMOTE : 
+            if self.use_conf_state.get():
+                
+                self.config_selection.builder_name_label.grid_remove()
+                self.config_selection.builder_name_entry.grid_remove()
+                self.config_selection.num_classes_label.grid_remove()
+                self.config_selection.classes.grid_remove() 
+                self.config_selection.auto_config_button.grid_remove()
+                self.config_selection.load_config_button.grid(column=0, columnspan=4,row=4 ,ipady=4, pady=2,)
+                self.folder_selection.label1.grid_remove()
+                self.folder_selection.img_outdir.grid_remove()
+                self.folder_selection.label2.grid_remove()
+                self.folder_selection.msk_outdir.grid_remove()
+                # place the new ones
+                self.folder_selection.config_dir.grid(column=0,row=6, sticky=(W,E))
+                self.folder_selection.label3.grid(column=0, row=1, sticky=W, pady=5)
+            else:
+                self.config_selection.builder_name_label.grid(column=0, row=1, sticky=(W,E), ipady=4,pady=3)
+                self.config_selection.builder_name_entry.grid(column=0, row=2,ipadx=213,ipady=4,pady=3,sticky=(W,E))
+                self.config_selection.num_classes_label.grid(column=0,row=3, sticky=W, pady=2)
+                self.config_selection.classes.grid(column=0,row=3,pady=5,sticky=E)
+                self.config_selection.load_config_button.grid_remove()
+                self.config_selection.auto_config_button.grid(column=0, columnspan=4,row=4 ,ipady=4, pady=2,)   
+                self.folder_selection.config_dir.grid_remove()
+                self.folder_selection.label3.grid_remove()
+                # reset the input dir
+                self.folder_selection.label1.grid(column=0,row=2, sticky=W, pady=7)
+                self.folder_selection.img_outdir.grid(column=0, row=3, sticky=(W,E))
+                self.folder_selection.label2.grid(column=0,row=4, sticky=W, pady=7)
+                self.folder_selection.msk_outdir.grid(column=0,row=5, sticky=(W,E))       
+            
+                   
     def get_logs_plot(self):
         import matplotlib.pyplot as plt
         import pandas as pd
@@ -948,7 +1033,7 @@ class TrainTab(ttk.Frame):
             if not torch.cuda.is_available():
                popupmsg("  No GPU detected, the training might take a longer time ")
         
-            # run the training
+            # run the training           
             train(config=new_config_path)
             popupmsg(" Training Done ! ")
             self.train_done.config(text="Training done!")
@@ -1357,14 +1442,17 @@ class PredictTab(ttk.Frame):
         if not REMOTE: 
             self.output_dir.grid(column=0,row=5,sticky=(W,E), pady=6)
             self.send_to_omero.grid(column=0,row=4,sticky=(W,E), pady=6)
-            
-        self.keep_biggest_only_button.grid(column=0,row=6,ipady=4, pady=4,padx=10,sticky=(S,N,W))
-        self.keep_big_only_button.grid(column=0,row=6,ipady=4, pady=4,padx=10,sticky=(S,N,E))
-        self.button.grid(column=0,row=8,ipady=4, pady=4,padx=10,sticky=(S,N))
+            self.keep_biggest_only_button.grid(column=0,row=8,ipady=4, padx=10,sticky=(S,N,W))
+            self.keep_big_only_button.grid(column=0,row=9,ipady=4, pady=4,padx=10,sticky=(S,N,W))
+        
+            self.button.grid(column=0,row=10,ipady=4,padx=10,sticky=(S,N))
         
         if REMOTE: 
-            self.download_prediction.grid(column=0, row=10, sticky=(W,E), pady=6)
-            self.send_to_omero.grid(column=0,row=9,sticky=(W,E), pady=6)
+            self.keep_biggest_only_button.grid(column=0,row=7,ipady=4, padx=10,sticky=(S,N,W))
+            self.keep_big_only_button.grid(column=0,row=8,ipady=4, pady=4,padx=10,sticky=(S,N,W))
+            self.button.grid(column=0,row=9,ipady=4,padx=10,sticky=(S,N))
+            self.download_prediction.grid(column=0, row=11, sticky=(W,E), pady=6)
+            self.send_to_omero.grid(column=0,row=10,sticky=(W,E), pady=6)
     
         self.columnconfigure(0, weight=1)
         for i in range(7):
@@ -1544,7 +1632,7 @@ class PredictTab(ttk.Frame):
             
             if REMOTE :
                 self.download_prediction.grid_remove()
-                self.send_to_omero_connection.grid(column=0,row=10,sticky=(W,E), pady=6)
+                self.send_to_omero_connection.grid(column=0,row=11,sticky=(W,E), pady=6)
                 
             else :
                 self.output_dir.grid_remove()     
@@ -1553,7 +1641,7 @@ class PredictTab(ttk.Frame):
          else:
             # hide omero 
             self.send_to_omero_connection.grid_remove()
-            if REMOTE : self.download_prediction.grid(column=0, row=10, sticky=(W,E), pady=6)
+            if REMOTE : self.download_prediction.grid(column=0, row=11, sticky=(W,E), pady=6)
             else: self.output_dir.grid(column=0,row=5,sticky=(W,E), pady=6)
           
 #----------------------------------------------------------------------------
