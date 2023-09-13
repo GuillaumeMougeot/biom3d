@@ -85,6 +85,8 @@ if __name__=='__main__':
         help="(optional) Id of Omero Project in which to upload the dataset. Only works with Omero Project Id and folder of images.")
     # parser.add_argument("-e", "--eval_only", default=False,  action='store_true', dest='eval_only',
     #     help="Do only the evaluation and skip the prediction (predictions must have been done already.)") 
+    parser.add_argument('--ext', type=str, default='_predictions',
+        help='Name of the extension added to the future uploaded Omero dataset.')
     args = parser.parse_args()
 
     run(
@@ -96,4 +98,5 @@ if __name__=='__main__':
         user=args.username,
         pwd=args.password,
         upload_id=args.upload_id,
+        ext=args.ext,
     )
