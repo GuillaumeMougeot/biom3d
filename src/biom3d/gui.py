@@ -40,14 +40,20 @@ try:
     # and uncommented when installing the local version.
     from biom3d.pred import pred
     from biom3d.builder import Builder
-    import biom3d.omero_pred
     from biom3d.utils import load_python_config
     from biom3d.train import train
-    import biom3d.upload_pred
+    
     import torch
 except:
+    print("Couldn't import Biom3d modules")
     pass
 
+try:
+    import biom3d.omero_pred
+    import biom3d.upload_pred
+except:
+    print("Couldn't import Omero modules")
+    pass    
 import numpy as np
 
 #----------------------------------------------------------------------------
@@ -294,7 +300,31 @@ def popupmsg(msg):
     
  
 def replace_line_single(line, key, value):
- 
+    """Given a line, replace the value if the key is in the line. This function follows the following format:
+    \'key = value\'. The line must follow this format and the output will respect this format. 
+    
+    Parameters
+    ----------
+    line : str
+        The input line that follows the format: \'key = value\'.
+    key : str
+        The key to look for in the line.
+    value : str
+        The new value that will replace the previous one.
+    
+    Returns
+    -------
+    line : str
+        The modified line.
+    
+    Examples
+    --------
+    >>> line = "IMG_DIR = None"
+    >>> key = "IMG_DIR"
+    >>> value = "path/img"
+    >>> replace_line_single(line, key, value)
+    IMG_DIR = 'path/img'
+    """
     if key==line[:len(key)]:
         assert line[len(key):len(key)+3]==" = ", "[Error] Invalid line. A valid line must contains \' = \'. Line:"+line
         line = line[:len(key)]
@@ -307,8 +337,8 @@ def replace_line_single(line, key, value):
             line += str(value.tolist())
         else:
             line += str(value)
+        line += "\n"
     return line
-
 def replace_line_multiple(line, dic):
 
     for key, value in dic.items():
@@ -476,23 +506,7 @@ class TrainFolderSelection(ttk.LabelFrame):
         for i in range(6):
             self.rowconfigure(i, weight=1)
 
-    def use_preprocessing(self):
-        if REMOTE:
-            # update the list of data directories
-            _,stdout,_ = REMOTE.exec_command('ls {}/data'.format(MAIN_DIR))
-            self.data_list = [e.replace('\n','') for e in stdout.readlines()]
-
-            # update option menu list 
-            self.data_dir_option_menu.set_menu(self.data_list[0], *self.data_list)
-            
-            self.data_dir.set(self.preprocess_tab.send_data_name.get())
-            self._update_data_dir()
-        else:
-            self.img_outdir.set(self.img_outdir.get())
-            self.msk_outdir.set(self.msk_outdir.get())
-
-        self.num_classes.set(self.num_classes.get())
-    
+   
     def send_data(self):
         ftp = REMOTE.open_sftp()
 
@@ -509,8 +523,7 @@ class ConfigFrame(ttk.LabelFrame):
         super(ConfigFrame, self).__init__(*arg, **kw)
 
         # widgets definitions
-        willy1 = ttk.Style()
-        willy1.configure("auto_confing_button.TLabel", background = '#76D7C4', foreground = 'black', width = 25, borderwidth=3, focusthickness=7, focuscolor='red', relief="raised" , anchor='c')
+
         if REMOTE:
             # get dataset list
             _,stdout,_ = REMOTE.exec_command('ls {}/data'.format(MAIN_DIR))
@@ -623,12 +636,21 @@ class ConfigFrame(ttk.LabelFrame):
         for i in range(10):
             self.rowconfigure(i, weight=1)   
     def option_selected(self, *args):
+        """ Getter for selected Dataset
+        
+        Returns
+        -------
+        selected_dataset : string
+            value of the selected dataset
+        """
         global selected_dataset
         selected_dataset = self.data_dir.get()
         print("Selected option:", selected_dataset)
         return selected_dataset
 
     def dataset_update(self):
+        """ Updates Datasets
+        """
         # get updated dataset list from remote
         _, stdout, _ = REMOTE.exec_command('ls {}/data'.format(MAIN_DIR))
         self.data_list = [e.replace('\n','') for e in stdout.readlines()]
@@ -659,13 +681,15 @@ class ConfigFrame(ttk.LabelFrame):
         return [int(e) for e in string[1:-1].split(', ') if e!='']
     
     def load_config(self):
+        """ Load from a configuration file the training parameters and displays them in the GUI
+        """
         # Read the config file
         global config_path
         global img_dir_train
         global msk_dir_train
         global fg_dir_train
         config_path = self.config_dir.get()
-        print("ssssssssssssssssssss ",config_path)
+ 
         self.train_parameters = load_python_config(config_path)
         
         batch= self.train_parameters.BATCH_SIZE
@@ -680,6 +704,7 @@ class ConfigFrame(ttk.LabelFrame):
         print("Train Parameters :  ",batch,aug_patch,patch,pool,config_path)
         
         # Update Config Cells in Gui
+        self.num_epochs.set(self.train_parameters.NB_EPOCHS)
         self.batch_size.set(batch)
         
         self.aug_patch_size= aug_patch
@@ -700,6 +725,8 @@ class ConfigFrame(ttk.LabelFrame):
         popupmsg("Configuration loaded sucessfully ! ")
 
     def auto_config(self):
+        """Preprocess Dataset and Auto configure training parameters
+        """
         self.auto_config_finished.config(text="Auto-configuration, please wait...")
         global config_path 
         global img_dir_train
@@ -738,12 +765,20 @@ class ConfigFrame(ttk.LabelFrame):
             
         else: 
             # Preprocessing & autoconfiguration    
+          
+            if  LOCAL_PATH.endswith('/') : 
+                local_config_dir = LOCAL_PATH+"/config/"
+                local_logs_dir = LOCAL_PATH+"/logs/"
+            else : 
+                local_config_dir = LOCAL_PATH+"config/"
+                local_logs_dir = LOCAL_PATH+"logs/"
             config_path=auto_config_preprocess(img_dir=self.img_outdir.get(),
             msk_dir=self.msk_outdir.get(),
             desc=self.builder_name_entry.get(),
             num_classes=self.num_classes.get(),
             remove_bg=False, use_tif=False,
-            config_dir="config/",
+            config_dir=local_config_dir,
+            logs_dir=local_logs_dir,
             base_config=None,
                 
             )
@@ -848,11 +883,15 @@ class TrainTab(ttk.Frame):
             
                    
     def get_logs_plot(self):
+        """
+        Function to get log file from REMOTE server and plot Learning curves (Saves fig in local too)
+        """
         import matplotlib.pyplot as plt
         import pandas as pd
         import os
         import time         
-          
+        
+        matplotlib.pyplot.switch_backend('Agg')  
         # get the last folder modified/created
         _,stdout,stderr=REMOTE.exec_command("ls -td {}/logs/*/ | head -1".format(MAIN_DIR))
         line= stdout.readline()
@@ -966,6 +1005,12 @@ class TrainTab(ttk.Frame):
         cfg.NUM_POOLS = self.config_selection.num_pools
         cfg = nested_dict_change_value(cfg, 'num_pools', cfg.NUM_POOLS)
         
+        if platform=='win32':
+                cfg.IMG_DIR = cfg.IMG_DIR.replace('\\','\\\\')
+                cfg.MSK_DIR = cfg.MSK_DIR.replace('\\','\\\\')
+                cfg.FG_DIR = cfg.FG_DIR.replace('\\','\\\\')
+                cfg.CSV_DIR = cfg.CSV_DIR.replace('\\','\\\\')    
+                
         if REMOTE:
             # if remote store the config file in a temp file
     
@@ -1015,9 +1060,16 @@ class TrainTab(ttk.Frame):
             
         else:  
             # save the new config file
+            if  LOCAL_PATH.endswith('/') : 
+                local_config_dir = LOCAL_PATH+"/config/"
+                local_logs_dir = LOCAL_PATH+"/logs/"
+            else : 
+                local_config_dir = LOCAL_PATH+"config/"
+                local_logs_dir = LOCAL_PATH+"logs/"
+                
             
             new_config_path = save_python_config(
-            config_dir="config/",
+            config_dir=local_config_dir,
             base_config=config_path,
             IMG_DIR=cfg.IMG_DIR,
             MSK_DIR=cfg.MSK_DIR,
@@ -1036,7 +1088,7 @@ class TrainTab(ttk.Frame):
             # run the training           
             train(config=new_config_path)
             popupmsg(" Training Done ! ")
-            self.train_done.config(text="Training done!")
+            
               
 
         
@@ -1045,6 +1097,8 @@ class TrainTab(ttk.Frame):
 # Precition tab
 
 class InputDirectory(ttk.LabelFrame):
+    """ Class to choose input datasets and masks in local, or send them to remote server
+    """
     def __init__(self, *arg, **kw):
         super(InputDirectory, self).__init__(*arg, **kw)
 
@@ -1098,6 +1152,8 @@ class InputDirectory(ttk.LabelFrame):
         popupmsg("Data sent !")
 
 class Connect2Omero(ttk.LabelFrame):
+    """ To establish connection with OMERO server
+    """
     def __init__(self, *arg, **kw):
         super(Connect2Omero, self).__init__(*arg, **kw)
 
@@ -1150,6 +1206,8 @@ class OmeroDataset(ttk.LabelFrame):
         self.rowconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
 class ModelSelection(ttk.LabelFrame):
+    """ To Select a Model for predictions
+    """
     def __init__(self, *arg, **kw):
         super(ModelSelection, self).__init__(*arg, **kw)
 
@@ -1190,6 +1248,8 @@ class ModelSelection(ttk.LabelFrame):
         popupmsg("Models list updated !")
 
 class OutputDirectory(ttk.LabelFrame):
+    """ Choose a Local output directory or send prediction to OMERO
+    """
     def __init__(self, *arg, **kw):
         super(OutputDirectory, self).__init__(*arg, **kw)
 
@@ -1214,6 +1274,8 @@ class OutputDirectory(ttk.LabelFrame):
             for i in range(2):
                 self.rowconfigure(i, weight=1)
 class OmeroUpload(ttk.LabelFrame):
+    """ For Uploading Predictions to OMERO server
+        """
     def __init__(self,*arg, **kw):
         super(OmeroUpload, self).__init__(*arg, **kw)
         self.upload_label= ttk.Label(self, text="Send predictions to OMERO : ")
@@ -1318,7 +1380,6 @@ class OmeroUpload(ttk.LabelFrame):
     def dataset_selected_omero(self, *args):
         global selected_dataset
         selected_dataset = self.data_dir.get()
-        #print("Selected option:", selected_dataset)
         return selected_dataset  
 class DownloadPrediction(ttk.LabelFrame):
     """
@@ -1359,6 +1420,8 @@ class DownloadPrediction(ttk.LabelFrame):
             self.rowconfigure(i, weight=1)
     
     def get_data(self):
+        """ Gets Dataset from REMOTE server to local directory
+        """
         # download dataset from the remote server to the local server
         
         # connect to remote
@@ -1604,6 +1667,8 @@ class PredictTab(ttk.Frame):
                 popupmsg("Prediction done !")
 
     def display_omero(self):
+        """ For displaying and hiding OMERO tab
+        """
         if self.use_omero_state.get():
             # hide the standard input dir and replace it by the Omero dir
             # hide
@@ -1625,6 +1690,8 @@ class PredictTab(ttk.Frame):
             self.input_dir.grid(column=0,row=1,sticky=(W,E))
        
     def display_send_to_omero(self):
+        
+         """ For displaying and hiding OMERO tab"""
          if self.send_to_omero_state.get():
              # place the new ones
             self.send_to_omero_connection = OmeroUpload(self, text="Connection to Omero server", padding=[10,10,10,10])
@@ -1794,7 +1861,11 @@ class Root(Tk):
         style.configure("BW.TLabel",background = '#CD5C5C', foreground = 'white', font=('Helvetica', 9), width = 18, borderwidth=3, focusthickness=7, relief='raised', focuscolor='none', anchor='c', height= 15)
         self.title_label = ttk.Label(self.local_or_remote, text="Biom3d", font=("Montserrat", 18))
         self.welcome_message = ttk.Label(self.local_or_remote, text="Welcome!\n\nBiom3d is an easy-to-use tool to train and use deep learning models for segmenting three dimensional images. You can either start locally, if your computer has a good graphic card (NVIDIA Geforce RTX 1080 or higher) or connect remotelly on a computer with such a graphic card.\n\nIf you need help, check our GitHub repository here: https://github.com/GuillaumeMougeot/biom3d", anchor="w", justify=LEFT, wraplength=640)
-
+        
+        self.local_path_label = ttk.Label(self.local_or_remote, text='Enter path to where you want to stock logs : \n(by default its Biom3d directory )')
+        self.local_path = StringVar(value="")
+        self.local_path_entry = ttk.Entry(self.local_or_remote, textvariable=self.local_path)
+       
         self.start_locally = ttk.Button(self.local_or_remote, text="Start locally", style='BW.TLabel', command=lambda: self.main(remote=False))
 
         self.start_remotelly_frame = Connect2Remote(self.local_or_remote, text="Connect to remote server", padding=[10,10,10,10])
@@ -1802,13 +1873,14 @@ class Root(Tk):
 
         self.title_label.grid(column=0, row=0, sticky=W)
         self.welcome_message.grid(column=0, row=1, sticky=(W,E), pady=12)
-        
+        self.local_path_label.grid(column=0, row=2, sticky=(W), pady=12)
+        self.local_path_entry.grid(column=0, row=2, sticky=(E),ipadx=85,padx=10, pady=12) 
         modulename='biom3d'
         if modulename in sys.modules :
-            self.start_locally.grid(column=0, row=2, ipady=4, pady=12)
+            self.start_locally.grid(column=0, row=3, ipady=4, pady=12)
 
-        self.start_remotelly_frame.grid(column=0, row=3, sticky=(W,E), pady=12)
-        self.start_remotelly_button.grid(column=0, row=4, ipady=4, pady=5)
+        self.start_remotelly_frame.grid(column=0, row=4, sticky=(W,E), pady=12)
+        self.start_remotelly_button.grid(column=0, row=5, ipady=4, pady=5)
 
         # grid config
         self.local_or_remote.columnconfigure(0, weight=1)
@@ -1824,7 +1896,7 @@ class Root(Tk):
         if remote:
             global REMOTE
             global MAIN_DIR
-
+            
             print('Connecting to server...')
             
 
@@ -1885,7 +1957,9 @@ class Root(Tk):
             # VENV = path_to_venv[-1]
             VENV = path
             print("virtual environment name: ",VENV)
-            
+        global LOCAL_PATH
+        LOCAL_PATH = self.local_path_entry.get()
+        print("Local Directory to store config and logs ",LOCAL_PATH)    
         modulename='biom3d'
         if modulename not in sys.modules and not REMOTE :
             popupmsg(" you can't access local interface in international area please contact the national space agency")
