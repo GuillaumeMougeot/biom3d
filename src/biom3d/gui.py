@@ -33,14 +33,14 @@ try:
     from biom3d.config_default import CONFIG
 
     from biom3d.preprocess import auto_config_preprocess
-    from biom3d.utils import save_python_config
-    from biom3d.utils import adaptive_load_config
+    from biom3d.utils import save_python_config # might remove this
+    from biom3d.utils import adaptive_load_config # might remove this
     # the packages below are only needed for the local version of the GUI
     # WARNING! the lines below must be commented when deploying the remote version,
     # and uncommented when installing the local version.
     from biom3d.pred import pred
-    from biom3d.builder import Builder
-    from biom3d.utils import load_python_config
+    from biom3d.builder import Builder # might remove this (Useless)
+    from biom3d.utils import load_python_config 
     from biom3d.train import train
     
     import torch
@@ -50,7 +50,6 @@ except:
 
 try:
     import biom3d.omero_pred
-    import biom3d.upload_pred
 except:
     print("Couldn't import Omero modules")
     pass    
@@ -288,6 +287,13 @@ def nested_dict_change_value(dic, key, value):
     return dic
 
 def popupmsg(msg):
+    """
+    Pop up message.
+    Parameters
+    ----------
+    msg : str
+        Text to be printed.
+    """
     popup = tk.Tk()
     popup.wm_title("!")
     label = ttk.Label(popup, text=msg)
@@ -508,6 +514,9 @@ class TrainFolderSelection(ttk.LabelFrame):
 
    
     def send_data(self):
+        """
+        To send data to remote server.
+        """
         ftp = REMOTE.open_sftp()
 
         # copy folders 
@@ -519,6 +528,8 @@ class TrainFolderSelection(ttk.LabelFrame):
      
    
 class ConfigFrame(ttk.LabelFrame):
+    """ Load or auto configure training parameters
+    """
     def __init__(self, train_folder_selection=None, *arg, **kw):
         super(ConfigFrame, self).__init__(*arg, **kw)
 
@@ -559,16 +570,16 @@ class ConfigFrame(ttk.LabelFrame):
         self.config_dir = train_folder_selection.config_dir
 
         self.auto_config_finished = ttk.Label(self, text="")
-
+        # Number of epochs
         self.num_epochs_label = ttk.Label(self, text='Number of epochs: '+"."*screen_width)
         self.num_epochs = IntVar(value=100)
         self.num_epochs_entry = ttk.Entry(self, width=4, textvariable=self.num_epochs)
         
-
+        # Batch size
         self.batch_size_label = ttk.Label(self, text='Batch size (int): '+"."*screen_width)
         self.batch_size = IntVar(value=2)
         self.batch_size_entry = ttk.Entry(self, width=4, textvariable=self.batch_size)
-
+        # Patch size
         self.patch_size_label = ttk.Label(self, text='Patch size ([int int int]): '+"."*screen_width)
         self.patch_size1 = StringVar(value="128")
         self.patch_size_entry1 = ttk.Entry(self, width=4, textvariable=self.patch_size1)
@@ -578,7 +589,7 @@ class ConfigFrame(ttk.LabelFrame):
         self.patch_size_entry3 = ttk.Entry(self, width=4, textvariable=self.patch_size3)
         self.patch_size = [int(self.patch_size1.get()), int(self.patch_size2.get()), int(self.patch_size3.get())]
        
-
+        # Augmentation patch size
         self.aug_patch_size_label = ttk.Label(self, text='Augmentation patch size ([int int int]): '+"."*screen_width)
         self.aug_patch_size1 = StringVar(value="160")
         self.aug_patch_size_entry1 = ttk.Entry(self, width=4, textvariable=self.aug_patch_size1)
@@ -587,7 +598,7 @@ class ConfigFrame(ttk.LabelFrame):
         self.aug_patch_size3 = StringVar(value="160")
         self.aug_patch_size_entry3 = ttk.Entry(self, width=4, textvariable=self.aug_patch_size3)
         self.aug_patch_size = [int(self.aug_patch_size1.get()), int(self.aug_patch_size2.get()), int(self.aug_patch_size3.get())]
-        
+        # Number of pools
         self.num_pools_label = ttk.Label(self, text='Number of pool in the U-Net model ([int int int]): '+"."*screen_width)
         self.num_pools1 = StringVar(value="5")
         self.num_pools_entry1 = ttk.Entry(self, width=4, textvariable=self.num_pools1)
@@ -649,7 +660,7 @@ class ConfigFrame(ttk.LabelFrame):
         return selected_dataset
 
     def dataset_update(self):
-        """ Updates Datasets
+        """ Update Dataset list in GUI
         """
         # get updated dataset list from remote
         _, stdout, _ = REMOTE.exec_command('ls {}/data'.format(MAIN_DIR))
@@ -671,14 +682,10 @@ class ConfigFrame(ttk.LabelFrame):
         we remove first and last element, as they are supposed to be '[' and ']' symbols.
         """
         # remove first and last element
-        return [int(e) for e in string[1:-1].split(' ') if e!='']
-    def str2list2(self, string):
-        """
-        convert a string like '[5, 5, 5]' into list of integers
-        we remove first and last element, as they are supposed to be '[' and ']' symbols.
-        """
-        # remove first and last element
-        return [int(e) for e in string[1:-1].split(', ') if e!='']
+        if ', ' in string :
+            return [int(e) for e in string[1:-1].split(', ') if e!='']
+        else :  
+            return [int(e) for e in string[1:-1].split(' ') if e!=''] 
     
     def load_config(self):
         """ Load from a configuration file the training parameters and displays them in the GUI
@@ -689,9 +696,9 @@ class ConfigFrame(ttk.LabelFrame):
         global msk_dir_train
         global fg_dir_train
         config_path = self.config_dir.get()
- 
-        self.train_parameters = load_python_config(config_path)
-        
+        # Load configuration file
+        self.train_parameters = adaptive_load_config(config_path)
+        # Load parameters
         batch= self.train_parameters.BATCH_SIZE
         aug_patch= self.train_parameters.AUG_PATCH_SIZE
         patch= self.train_parameters.PATCH_SIZE
@@ -706,17 +713,17 @@ class ConfigFrame(ttk.LabelFrame):
         # Update Config Cells in Gui
         self.num_epochs.set(self.train_parameters.NB_EPOCHS)
         self.batch_size.set(batch)
-        
+        # Update Augmentation size in Gui
         self.aug_patch_size= aug_patch
         self.aug_patch_size1.set(aug_patch[0])
         self.aug_patch_size2.set(aug_patch[1])
         self.aug_patch_size3.set(aug_patch[2])
-        
+        # Update Patch size in Gui
         self.patch_size = patch
         self.patch_size1.set(patch[0])
         self.patch_size2.set(patch[1])
         self.patch_size3.set(patch[2])
-        
+        # Update Number of pools in Gui
         self.num_pools = pool
         self.num_pools1.set(pool[0])
         self.num_pools2.set(pool[1])
@@ -756,7 +763,7 @@ class ConfigFrame(ttk.LabelFrame):
         
             batch = reversed_auto_config_results[4]
             patch = self.str2list(reversed_auto_config_results[3])
-            aug_patch = self.str2list2(reversed_auto_config_results[2])
+            aug_patch = self.str2list(reversed_auto_config_results[2])
             pool = self.str2list(reversed_auto_config_results[1])
             config_path = reversed_auto_config_results[0]
     
@@ -765,12 +772,12 @@ class ConfigFrame(ttk.LabelFrame):
             
         else: 
             # Preprocessing & autoconfiguration    
-          
+            # Change storing paths
             if  LOCAL_PATH.endswith('/') : 
-                local_config_dir = LOCAL_PATH+"/config/"
+                local_config_dir = LOCAL_PATH+"/configs/"
                 local_logs_dir = LOCAL_PATH+"/logs/"
             else : 
-                local_config_dir = LOCAL_PATH+"config/"
+                local_config_dir = LOCAL_PATH+"configs/"
                 local_logs_dir = LOCAL_PATH+"logs/"
             config_path=auto_config_preprocess(img_dir=self.img_outdir.get(),
             msk_dir=self.msk_outdir.get(),
@@ -799,17 +806,17 @@ class ConfigFrame(ttk.LabelFrame):
         
         # Update Config Cells in Gui
         self.batch_size.set(batch)
-        
+        # Update Augmentation patch size in GUI
         self.aug_patch_size= aug_patch
         self.aug_patch_size1.set(aug_patch[0])
         self.aug_patch_size2.set(aug_patch[1])
         self.aug_patch_size3.set(aug_patch[2])
-        
+        # Update patch size in GUI
         self.patch_size = patch
         self.patch_size1.set(patch[0])
         self.patch_size2.set(patch[1])
         self.patch_size3.set(patch[2])
-        
+        # Update number of pools in GUI
         self.num_pools = pool
         self.num_pools1.set(pool[0])
         self.num_pools2.set(pool[1])
@@ -821,7 +828,8 @@ class ConfigFrame(ttk.LabelFrame):
         else :
             self.auto_config_finished.config(text="Auto-configuration done! and saved in config folder : \n" +config_path)
             popupmsg("Auto-configuration done! and saved in config folder : \n" +config_path)
-
+            
+"""----------------------------------------------------------------------- TRAINING TAB ---------------------------------------------------------------------------------------"""
 class TrainTab(ttk.Frame):
     def __init__(self, preprocess_tab=None, *arg, **kw):
         super(TrainTab, self).__init__(*arg, **kw)
@@ -850,6 +858,9 @@ class TrainTab(ttk.Frame):
             self.rowconfigure(i, weight=1)
             
     def display_conf(self):
+        """
+        Display and Hide tab to select configuration file in preprocess and train tab  
+        """
         if not REMOTE : 
             if self.use_conf_state.get():
                 
@@ -890,8 +901,8 @@ class TrainTab(ttk.Frame):
         import pandas as pd
         import os
         import time         
-        
-        matplotlib.pyplot.switch_backend('Agg')  
+        import matplotlib
+        #matplotlib.pyplot.switch_backend('Agg')  
         # get the last folder modified/created
         _,stdout,stderr=REMOTE.exec_command("ls -td {}/logs/*/ | head -1".format(MAIN_DIR))
         line= stdout.readline()
@@ -910,10 +921,10 @@ class TrainTab(ttk.Frame):
         # copy files from remote to local
         ftp_get_folder(ftp, remotedir, localdir)
         
-        # PLOT
         # CSV file path
         csv_file = os.path.join("plots/log.csv")
 
+        # PLOT
         data = pd.read_csv(csv_file)
         plt.clf()  # Clear the current plot
         plt.plot(data['epoch'], data['train_loss'], label='Train loss')
@@ -924,30 +935,17 @@ class TrainTab(ttk.Frame):
         plt.grid(True)
         plt.legend()
         plt.pause(0.1)  # Pause for a short duration to allow for updating               
-        
+        # save figure locally
         plt.savefig('Learning_curves_plot.png')
         
         
 
-                    
-    def str2list(self, string):
-        """
-        convert a string like '[5 5 5]' into list of integers
-        we remove first and last element, as they are supposed to be '[' and ']' symbols.
-        """
-        # remove first and last element
-        return [int(e) for e in string[1:-1].split(' ') if e!='']
-
-    def line_buffered(self, f):
-        line_buf = ""
-        while not f.channel.exit_status_ready():
-            line_buf += str(f.read(1))
-            if line_buf.endswith('\n'):
-                yield line_buf
-                line_buf = ''
-
     def train(self):
+        """
+        Load the configuration file, modify it, save it, launch training, saves everything in logs folder
+        """
         if REMOTE:
+            #load the config file in local 
             import tempfile
             tempdir = tempfile.mkdtemp(prefix="tmp-config-")
     
@@ -1004,7 +1002,7 @@ class TrainTab(ttk.Frame):
         self.config_selection.num_pools = [int(self.config_selection.num_pools1.get()), int(self.config_selection.num_pools2.get()), int(self.config_selection.num_pools3.get())]
         cfg.NUM_POOLS = self.config_selection.num_pools
         cfg = nested_dict_change_value(cfg, 'num_pools', cfg.NUM_POOLS)
-        
+        # test if operating system is windows to change paths
         if platform=='win32':
                 cfg.IMG_DIR = cfg.IMG_DIR.replace('\\','\\\\')
                 cfg.MSK_DIR = cfg.MSK_DIR.replace('\\','\\\\')
@@ -1035,6 +1033,9 @@ class TrainTab(ttk.Frame):
 
 
             def train_nohup():
+                """
+                run the training in remote server and disown it
+                """
                 
                 # run the training and store the output in an output file 
             
@@ -1059,15 +1060,16 @@ class TrainTab(ttk.Frame):
                 
             
         else:  
-            # save the new config file
+            # Change storing paths
             if  LOCAL_PATH.endswith('/') : 
-                local_config_dir = LOCAL_PATH+"/config/"
+                local_config_dir = LOCAL_PATH+"/configs/"
                 local_logs_dir = LOCAL_PATH+"/logs/"
             else : 
-                local_config_dir = LOCAL_PATH+"config/"
+                local_config_dir = LOCAL_PATH+"configs/"
                 local_logs_dir = LOCAL_PATH+"logs/"
                 
             
+            # save the new config file
             new_config_path = save_python_config(
             config_dir=local_config_dir,
             base_config=config_path,
@@ -1093,9 +1095,8 @@ class TrainTab(ttk.Frame):
 
         
 
-#----------------------------------------------------------------------------
-# Precition tab
-
+#---------------------------------------------------------------------------------- prediction tab --------------------------------------------------------------
+"""-------------------------------------------------------------------------------- Prediction tab -------------------------------------------------------------------------"""
 class InputDirectory(ttk.LabelFrame):
     """ Class to choose input datasets and masks in local, or send them to remote server
     """
@@ -1139,6 +1140,9 @@ class InputDirectory(ttk.LabelFrame):
                 self.rowconfigure(i, weight=1)
 
     def send_data(self):
+        """
+        Send a dataset to remote for prediction
+        """
         # send data to server
         ftp = REMOTE.open_sftp()
         remotepath="{}/data/to_pred/{}".format(MAIN_DIR, os.path.basename(self.send_data_folder.get()))
@@ -1187,6 +1191,9 @@ class Connect2Omero(ttk.LabelFrame):
             self.rowconfigure(i, weight=1)
 
 class OmeroDataset(ttk.LabelFrame):
+    """
+    Choose an input Dataset from OMERO for Predictions
+    """
     def __init__(self, *arg, **kw):
         super(OmeroDataset, self).__init__(*arg, **kw)
 
@@ -1205,6 +1212,7 @@ class OmeroDataset(ttk.LabelFrame):
         self.columnconfigure(1, weight=5)
         self.rowconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
+        
 class ModelSelection(ttk.LabelFrame):
     """ To Select a Model for predictions
     """
@@ -1242,6 +1250,9 @@ class ModelSelection(ttk.LabelFrame):
             self.rowconfigure(0, weight=1)
         
     def _update_logs_list(self):
+        """
+        Upload the log list in remote
+        """
         _,stdout,_ = REMOTE.exec_command('ls {}/logs'.format(MAIN_DIR))
         self.logs_list = [e.replace('\n','') for e in stdout.readlines()]
         self.logs_dir_option_menu.set_menu(self.logs_list[0], *self.logs_list)
@@ -1275,7 +1286,7 @@ class OutputDirectory(ttk.LabelFrame):
                 self.rowconfigure(i, weight=1)
 class OmeroUpload(ttk.LabelFrame):
     """ For Uploading Predictions to OMERO server
-        """
+    """
     def __init__(self,*arg, **kw):
         super(OmeroUpload, self).__init__(*arg, **kw)
         self.upload_label= ttk.Label(self, text="Send predictions to OMERO : ")
@@ -1406,7 +1417,7 @@ class DownloadPrediction(ttk.LabelFrame):
         self.get_data_label = ttk.Label(self, text="Select local folder to download into:")
         self.get_data_folder = FileDialog(self, mode='folder', textEntry="data/pred")
         self.get_data_button = ttk.Button(self,width=29,style="train_button.TLabel", text="Get data", command=self.get_data)
-
+        # Grid placement
         self.input_folder_label.grid(column=0, row=0, columnspan=2, sticky=(W,E))
         self.data_dir_option_menu.grid(column=0, row=1, sticky=(W,E))
         self.button_update_list.grid(column=1, row=1,padx=5, sticky=(W,E))
@@ -1439,6 +1450,9 @@ class DownloadPrediction(ttk.LabelFrame):
         ftp_get_folder(ftp, remotedir, localdir)
         popupmsg("Data sent to local !")
     def _update_pred_list(self):
+        """
+        Update the prediction list in Remote
+        """
         _,stdout,_ = REMOTE.exec_command('ls {}/data/pred'.format(MAIN_DIR))
         self.data_list = [e.replace('\n','') for e in stdout.readlines()]
         self.data_dir_option_menu.set_menu(self.data_list[0], *self.data_list)
@@ -1476,7 +1490,7 @@ def load_yaml_config(path):
     """
     return config_to_type(yaml.load(open(path),Loader=yaml.FullLoader), Dict)
 
-
+"""----------------------------------------------------------------------- PREDICTION TAB ---------------------------------------------------------------------------"""
 class PredictTab(ttk.Frame):
     def __init__(self, *arg, **kw):
         super(PredictTab, self).__init__(*arg, **kw)
@@ -1580,6 +1594,7 @@ class PredictTab(ttk.Frame):
             if REMOTE:
                 
                 # TODO: below, still OS dependant 
+                # Run OMERO prediction
                 _, stdout, stderr = REMOTE.exec_command("source {}/bin/activate; cd {}; python -m biom3d.omero_pred --obj {} --log {} --username {} --password {} --hostname {} ".format(VENV,
                     MAIN_DIR,
                     obj,
@@ -1607,6 +1622,7 @@ class PredictTab(ttk.Frame):
                 if not os.path.isdir(target):
                     os.makedirs(target, exist_ok=True)
                 print("Downloading Omero dataset into", target)
+                # run OMERO prediction
                 p=biom3d.omero_pred.run(
                     obj=obj,
                     target=target,
@@ -1643,7 +1659,7 @@ class PredictTab(ttk.Frame):
                         break
                     if line:
                         print(line, end="")
-                
+                # Upload the prediction list
                 self.download_prediction._update_pred_list()
             else: 
                 if self.send_to_omero_state.get():
@@ -1652,12 +1668,14 @@ class PredictTab(ttk.Frame):
                     target = self.output_dir.data_dir.get()
                 self.prediction_messages.grid(column=0, row=6, columnspan=2, sticky=(W,E))
                 self.prediction_messages.config(text="Prediction is running ...!")
+                # Run prediction
                 p = pred(
                     log=self.model_selection.logs_dir.get(),
                     dir_in=self.input_dir.data_dir.get(),
                     dir_out=target)
                 self.prediction_messages.config(text="Prediction is Done !")
                 if self.send_to_omero_state.get():
+                    # Upload results to OMERO
                     biom3d.omero_uploader.run(username=self.send_to_omero_connection.username.get(),
                     password=self.send_to_omero_connection.password.get(),
                     hostname=self.send_to_omero_connection.hostname.get(),
@@ -1691,7 +1709,8 @@ class PredictTab(ttk.Frame):
        
     def display_send_to_omero(self):
         
-         """ For displaying and hiding OMERO tab"""
+         """ For displaying and hiding OMERO tab
+         """
          if self.send_to_omero_state.get():
              # place the new ones
             self.send_to_omero_connection = OmeroUpload(self, text="Connection to Omero server", padding=[10,10,10,10])
@@ -1959,7 +1978,7 @@ class Root(Tk):
             print("virtual environment name: ",VENV)
         global LOCAL_PATH
         LOCAL_PATH = self.local_path_entry.get()
-        print("Local Directory to store config and logs ",LOCAL_PATH)    
+        if not REMOTE : print("Local Directory to store config and logs ",LOCAL_PATH)    
         modulename='biom3d'
         if modulename not in sys.modules and not REMOTE :
             popupmsg(" you can't access local interface in international area please contact the national space agency")
