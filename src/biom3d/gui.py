@@ -289,6 +289,7 @@ def nested_dict_change_value(dic, key, value):
 def popupmsg(msg):
     """
     Pop up message.
+    
     Parameters
     ----------
     msg : str
@@ -357,6 +358,13 @@ def save_python_config(
     base_config = None,
     **kwargs,
     ):
+    """ Saves a python configuration locally
+
+    Parameters
+    ----------
+        config_dir (str): Path to save config
+        base_config (str, optional): to load base configuration if exists. Defaults to None.
+    """
     import shutil
     import fileinput
     from datetime import datetime
@@ -403,6 +411,15 @@ def config_to_type(cfg, new_type):
             cfg[k] = config_to_type(cfg[k], new_type)
     return cfg
 def load_python_config(config_path):
+    """ Loads a python config file 
+
+    Parameters
+    ----------
+        config_path (str): path to configuration file with a given path. 
+    Returns
+    -------
+        dict: Change type from config.Dict to Dict
+    """
     import importlib.util
     import sys
     spec = importlib.util.spec_from_file_location("config", config_path)
@@ -415,6 +432,12 @@ def load_python_config(config_path):
 # File dialog
 
 class FileDialog(ttk.Frame):
+    """Opens a folder or a file with the given path.
+
+    Parameters
+    ----------
+        ttk (Frame): Parent frame 
+    """
     def __init__(self, *arg, mode='folder', textEntry="", **kw):
         super(FileDialog, self).__init__(*arg, **kw)
         assert mode in ['folder','file']
@@ -449,6 +472,12 @@ class FileDialog(ttk.Frame):
 # Preprocess & Train tab
 
 class TrainFolderSelection(ttk.LabelFrame):
+    """ Folder selection tab
+
+    Parameters
+    ----------
+        ttk (frame): Parent frame
+    """
     def __init__(self, preprocess_tab=None, *arg, **kw):
         super(TrainFolderSelection, self).__init__(*arg, **kw)
 
@@ -553,16 +582,16 @@ class ConfigFrame(ttk.LabelFrame):
             self.data_dir.trace("w", self.option_selected)
             self.dataset_update()        
             self.button_dataset_list = ttk.Button(self, text="Update", command=self.dataset_update)
-        
+        # Name of the builder
         self.builder_name_label = ttk.Label(self, text="Set a name for the builder folder (folder containing your future model):")
         self.builder_name = StringVar(value="unet_example")
         self.builder_name_entry = ttk.Entry(self, textvariable=self.builder_name)
 
-        # number of classes
+        # Number of classes
         self.num_classes_label = ttk.Label(self, text="Enter the number of classes: "+"."*screen_width, anchor="sw", background='white')
         self.num_classes = IntVar(value=1)
         self.classes = ttk.Entry(self, width=5,textvariable=self.num_classes)
-        
+        # Load and auto-configure Buttons
         self.load_config_button = ttk.Button(self, text="Load config",style='train_button.TLabel',width =29,command=self.load_config )
         self.auto_config_button = ttk.Button(self, text="Auto-configure", style='train_button.TLabel',width =29,command=self.auto_config)
         self.img_outdir = train_folder_selection.img_outdir
@@ -678,7 +707,7 @@ class ConfigFrame(ttk.LabelFrame):
         
     def str2list(self, string):
         """
-        convert a string like '[5 5 5]' into list of integers
+        convert a string like '[5 5 5]' or '[5, 5, 5]'  into list of integers
         we remove first and last element, as they are supposed to be '[' and ']' symbols.
         """
         # remove first and last element
@@ -831,6 +860,20 @@ class ConfigFrame(ttk.LabelFrame):
             
 """----------------------------------------------------------------------- TRAINING TAB ---------------------------------------------------------------------------------------"""
 class TrainTab(ttk.Frame):
+    """
+    Class to run training, contains folder selection and configuration frame. 
+    
+    workflow : 
+        1. Select the dataset to preprocess 
+        2. Run auto-configuration to get training parameters
+        OR 
+        1. Select the configuration file
+        2. Load the training parameters
+        Finally :
+            3. Run training
+
+    
+    """
     def __init__(self, preprocess_tab=None, *arg, **kw):
         super(TrainTab, self).__init__(*arg, **kw)
         global new_config_path
@@ -895,7 +938,7 @@ class TrainTab(ttk.Frame):
                    
     def get_logs_plot(self):
         """
-        Function to get log file from REMOTE server and plot Learning curves (Saves fig in local too)
+        Function to get log files from REMOTE server and plot the Learning curves (Saves figure in local too)
         """
         import matplotlib.pyplot as plt
         import pandas as pd
@@ -1098,7 +1141,7 @@ class TrainTab(ttk.Frame):
 #---------------------------------------------------------------------------------- prediction tab --------------------------------------------------------------
 """-------------------------------------------------------------------------------- Prediction tab -------------------------------------------------------------------------"""
 class InputDirectory(ttk.LabelFrame):
-    """ Class to choose input datasets and masks in local, or send them to remote server
+    """ Class to choose input datasets and masks, or send them to remote server
     """
     def __init__(self, *arg, **kw):
         super(InputDirectory, self).__init__(*arg, **kw)
@@ -1360,6 +1403,8 @@ class OmeroUpload(ttk.LabelFrame):
        
         # add send to omero button 
     def _update_pred_list(self):
+        """Update the prediction list
+        """
         _,stdout,_ = REMOTE.exec_command('ls {}/data/pred'.format(MAIN_DIR))
         self.data_list = [e.replace('\n','') for e in stdout.readlines()]
         self.data_dir_option_menu.set_menu(self.data_list[0], *self.data_list)       
@@ -1367,6 +1412,10 @@ class OmeroUpload(ttk.LabelFrame):
         
         
     def send_to_omero(self): 
+        """
+        Send last prediction results to OMERO
+        
+        """
         # get the last folder modified/created
         _,stdout,stderr=REMOTE.exec_command("ls -td {}/data/pred/{}/*/ | head -1".format(MAIN_DIR, self.dataset_selected_omero() ))  
         last_folder = stdout.readline().replace('\n','')
@@ -1389,6 +1438,11 @@ class OmeroUpload(ttk.LabelFrame):
        
        
     def dataset_selected_omero(self, *args):
+        """ Getter for selected Dataset
+
+        Returns:
+            str: the selected dataset
+        """
         global selected_dataset
         selected_dataset = self.data_dir.get()
         return selected_dataset  
@@ -1492,6 +1546,17 @@ def load_yaml_config(path):
 
 """----------------------------------------------------------------------- PREDICTION TAB ---------------------------------------------------------------------------"""
 class PredictTab(ttk.Frame):
+    """ Prediction tab.
+    Workflow :
+        1. Choose the dataset for prediction.
+        2. Select a model.
+        3. Run the prediction
+        4. Download the prediction results locally or send them to OMERO.
+
+    Parameters
+    ----------
+        ttk (frame): parent frame
+    """
     def __init__(self, *arg, **kw):
         super(PredictTab, self).__init__(*arg, **kw)
         self.prediction_messages = ttk.Label(self, text="")
