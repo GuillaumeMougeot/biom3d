@@ -29,7 +29,7 @@ def run(obj, target, log, dir_out, host=None, user=None, pwd=None, upload_id=Non
     print("Start prediction...")
     if 'Dataset' in obj:
         dir_in = os.path.join(dir_in, datasets[0].name)
-        dir_out = os.path.join(dir_out, datasets[0].name)
+        dir_out = os.path.join(dir_out, datasets[0].name + ext)
         if not os.path.isdir(dir_out):
             os.makedirs(dir_out, exist_ok=True)
         dir_out = pred.pred(log, dir_in, dir_out)
