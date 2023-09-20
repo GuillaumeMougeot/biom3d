@@ -39,20 +39,22 @@ try:
     # WARNING! the lines below must be commented when deploying the remote version,
     # and uncommented when installing the local version.
     from biom3d.pred import pred
-    from biom3d.builder import Builder # might remove this (Useless)
     from biom3d.utils import load_python_config 
     from biom3d.train import train
     
     import torch
-except:
+except ImportError as e:
     print("Couldn't import Biom3d modules")
-    pass
+    raise e
 
 try:
     import biom3d.omero_pred
-except:
+except  ImportError as e:
     print("Couldn't import Omero modules")
+    raise e
+finally:
     pass    
+
 import numpy as np
 
 #----------------------------------------------------------------------------
