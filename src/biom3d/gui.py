@@ -44,8 +44,8 @@ try:
     
     import torch
 except ImportError as e:
-    print("Couldn't import Biom3d modules")
-    raise e
+    print("Couldn't import Biom3d modules," ,e)
+    pass
 
 try:
     import biom3d.omero_pred
@@ -231,7 +231,24 @@ class ParaProxy(paramiko.proxy.ProxyCommand):
 
 #----------------------------------------------------------------------------
 # general utils
-
+def ressources_computing():
+    
+    # try to compute a suggested max number of worker based on system's resource
+    max_num_worker_suggest = None
+    cpuset_checked = False
+    if hasattr(os, 'sched_getaffinity'):
+        try:
+            max_num_worker_suggest = len(os.sched_getaffinity(0))
+            cpuset_checked = True
+        except Exception:
+            pass
+    if max_num_worker_suggest is None:
+        # os.cpu_count() could return Optional[int]
+        # get cpu count first and check None in order to satify mypy check
+        cpu_count = os.cpu_count()
+        if cpu_count is not None:
+            max_num_worker_suggest = cpu_count
+    return max_num_worker_suggest
 class Dict(dict):
     def __init__(self, *args, **kwargs): super().__init__(*args, **kwargs)
     def __getattr__(self, name): return self[name]
@@ -2045,7 +2062,9 @@ class Root(Tk):
             print("virtual environment name: ",VENV)
         global LOCAL_PATH
         LOCAL_PATH = self.local_path_entry.get()
-        if not REMOTE : print("Local Directory to store config and logs ",LOCAL_PATH)    
+        if not REMOTE : 
+            print("Local Directory to store config and logs  ",LOCAL_PATH)    
+            print("The suggested max number of worker based on system's resource is : ",ressources_computing())
         modulename='biom3d'
         if modulename not in sys.modules and not REMOTE :
             popupmsg(" you can't access local interface in international area please contact the national space agency")
