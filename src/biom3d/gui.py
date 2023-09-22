@@ -961,8 +961,8 @@ class TrainTab(ttk.Frame):
         Function to get log files from REMOTE server and plot the Learning curves (Saves figure in local too)
         """
         import matplotlib.pyplot as plt
-        import pandas as pd
-      
+        
+        from pandas import read_csv
         #matplotlib.pyplot.switch_backend('Agg')  
         # get the last folder modified/created
         _,stdout,stderr=REMOTE.exec_command("ls -td {}/logs/*/ | head -1".format(MAIN_DIR))
@@ -986,7 +986,7 @@ class TrainTab(ttk.Frame):
         csv_file = os.path.join("plots/log.csv")
 
         # PLOT
-        data = pd.read_csv(csv_file)
+        data = read_csv(csv_file)
         plt.clf()  # Clear the current plot
         plt.plot(data['epoch'], data['train_loss'], label='Train loss')
         plt.plot(data['epoch'], data['val_loss'], label ='Validation loss')
