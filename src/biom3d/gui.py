@@ -55,7 +55,7 @@ except  ImportError as e:
 finally:
     pass    
 
-import numpy as np
+
 
 #----------------------------------------------------------------------------
 # Constants 
@@ -326,6 +326,7 @@ def popupmsg(msg):
     
  
 def replace_line_single(line, key, value):
+    import numpy as np
     """Given a line, replace the value if the key is in the line. This function follows the following format:
     \'key = value\'. The line must follow this format and the output will respect this format. 
     
@@ -440,7 +441,7 @@ def load_python_config(config_path):
         dict: Change type from config.Dict to Dict
     """
     import importlib.util
-    import sys
+
     spec = importlib.util.spec_from_file_location("config", config_path)
     config = importlib.util.module_from_spec(spec)
     sys.modules["config"] = config
@@ -961,9 +962,7 @@ class TrainTab(ttk.Frame):
         """
         import matplotlib.pyplot as plt
         import pandas as pd
-        import os
-        import time         
-        import matplotlib
+      
         #matplotlib.pyplot.switch_backend('Agg')  
         # get the last folder modified/created
         _,stdout,stderr=REMOTE.exec_command("ls -td {}/logs/*/ | head -1".format(MAIN_DIR))
@@ -1170,7 +1169,7 @@ class InputDirectory(ttk.LabelFrame):
 
         if REMOTE: 
             # define the dropdown menu
-            _,stdout,_ = REMOTE.exec_command('ls {}/data/to_pred'.format(MAIN_DIR))     # Where should i search ??
+            _,stdout,_ = REMOTE.exec_command('ls {}/data/to_pred'.format(MAIN_DIR))     
             self.data_list = [e.replace('\n','') for e in stdout.readlines()]
             if(len(self.data_list) == 0):
                 self.data_dir = StringVar(value="Empty")
