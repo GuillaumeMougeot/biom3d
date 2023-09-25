@@ -29,7 +29,7 @@ def run(obj, target, log, dir_out, host=None, user=None, pwd=None, upload_id=Non
     print("Start prediction...")
     if 'Dataset' in obj:
         dir_in = os.path.join(dir_in, datasets[0].name)
-        dir_out = os.path.join(dir_out, datasets[0].name)
+        dir_out = os.path.join(dir_out, datasets[0].name + ext)
         if not os.path.isdir(dir_out):
             os.makedirs(dir_out, exist_ok=True)
         dir_out = pred.pred(log, dir_in, dir_out)
@@ -85,6 +85,8 @@ if __name__=='__main__':
         help="(optional) Id of Omero Project in which to upload the dataset. Only works with Omero Project Id and folder of images.")
     # parser.add_argument("-e", "--eval_only", default=False,  action='store_true', dest='eval_only',
     #     help="Do only the evaluation and skip the prediction (predictions must have been done already.)") 
+    parser.add_argument('--ext', type=str, default='_predictions',
+        help='Name of the extension added to the future uploaded Omero dataset.')
     args = parser.parse_args()
 
     run(
@@ -96,4 +98,5 @@ if __name__=='__main__':
         user=args.username,
         pwd=args.password,
         upload_id=args.upload_id,
+        ext=args.ext,
     )

@@ -10,6 +10,7 @@ import torch
 import os
 # from telegram_send import send
 import matplotlib.pyplot as plt
+plt.switch_backend('Agg')  # bug fix: change matplotlib backend 
 from torch.utils.tensorboard import SummaryWriter
 
 import numpy as np
