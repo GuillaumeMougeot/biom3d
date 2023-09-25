@@ -55,7 +55,7 @@ except  ImportError as e:
 finally:
     pass    
 
-import numpy as np
+
 
 #----------------------------------------------------------------------------
 # Constants 
@@ -326,6 +326,7 @@ def popupmsg(msg):
     
  
 def replace_line_single(line, key, value):
+    import numpy as np
     """Given a line, replace the value if the key is in the line. This function follows the following format:
     \'key = value\'. The line must follow this format and the output will respect this format. 
     
@@ -440,7 +441,7 @@ def load_python_config(config_path):
         dict: Change type from config.Dict to Dict
     """
     import importlib.util
-    import sys
+
     spec = importlib.util.spec_from_file_location("config", config_path)
     config = importlib.util.module_from_spec(spec)
     sys.modules["config"] = config
@@ -960,10 +961,22 @@ class TrainTab(ttk.Frame):
         Function to get log files from REMOTE server and plot the Learning curves (Saves figure in local too)
         """
         import matplotlib.pyplot as plt
-        import pandas as pd
-        import os
-        import time         
-        import matplotlib
+        
+        #from pandas import read_csv
+        
+        # Import reader module from csv Library
+        from csv import reader
+
+        # read the CSV file
+        def load_csv(filename):
+            # Open file in read mode
+            file = open(filename,"r")
+            # Reading file 
+            lines = reader(file)
+            
+            # Converting into a list 
+            data = list(lines)
+            return data
         #matplotlib.pyplot.switch_backend('Agg')  
         # get the last folder modified/created
         _,stdout,stderr=REMOTE.exec_command("ls -td {}/logs/*/ | head -1".format(MAIN_DIR))
@@ -987,10 +1000,15 @@ class TrainTab(ttk.Frame):
         csv_file = os.path.join("plots/log.csv")
 
         # PLOT
-        data = pd.read_csv(csv_file)
+        data = load_csv(csv_file)
+        # Extract epoch and train_loss, val_loss values
+        epochs = [int(row[0]) for row in data[1:]]  # Skip the header row
+        train_losses = [float(row[1]) for row in data[1:]]  # Skip the header row
+        val_losses = [float(row[2]) for row in data[1:]]  # Skip the header row
+        
         plt.clf()  # Clear the current plot
-        plt.plot(data['epoch'], data['train_loss'], label='Train loss')
-        plt.plot(data['epoch'], data['val_loss'], label ='Validation loss')
+        plt.plot(epochs, train_losses ,label='Train loss')
+        plt.plot(epochs, val_losses , label ='Validation loss')
         plt.xlabel('Epoch')
         plt.ylabel('Loss')
         plt.title('Learning Curves')
@@ -1066,10 +1084,10 @@ class TrainTab(ttk.Frame):
         cfg = nested_dict_change_value(cfg, 'num_pools', cfg.NUM_POOLS)
         # test if operating system is windows to change paths
         if platform=='win32':
-                cfg.IMG_DIR = cfg.IMG_DIR.replace('\\','\\\\')
-                cfg.MSK_DIR = cfg.MSK_DIR.replace('\\','\\\\')
-                cfg.FG_DIR = cfg.FG_DIR.replace('\\','\\\\')
-                cfg.CSV_DIR = cfg.CSV_DIR.replace('\\','\\\\')    
+                if not cfg.IMG_DIR == None : cfg.IMG_DIR = cfg.IMG_DIR.replace('\\','\\\\')
+                if not cfg.MSK_DIR == None : cfg.MSK_DIR = cfg.MSK_DIR.replace('\\','\\\\')
+                if not cfg.FG_DIR == None : cfg.FG_DIR = cfg.FG_DIR.replace('\\','\\\\')
+                if not cfg.CSV_DIR  == None : cfg.CSV_DIR = cfg.CSV_DIR.replace('\\','\\\\')    
                 
         if REMOTE:
             # if remote store the config file in a temp file
@@ -1170,7 +1188,7 @@ class InputDirectory(ttk.LabelFrame):
 
         if REMOTE: 
             # define the dropdown menu
-            _,stdout,_ = REMOTE.exec_command('ls {}/data/to_pred'.format(MAIN_DIR))     # Where should i search ??
+            _,stdout,_ = REMOTE.exec_command('ls {}/data/to_pred'.format(MAIN_DIR))     
             self.data_list = [e.replace('\n','') for e in stdout.readlines()]
             if(len(self.data_list) == 0):
                 self.data_dir = StringVar(value="Empty")
@@ -1892,15 +1910,15 @@ class Connect2Remote(ttk.LabelFrame):
             self.proxy_password_entry = ttk.Entry(self, textvariable=self.proxy_password, show='*')
 
 
-            self.proxy_hostname_label.grid(column=0, row=5, sticky=(W,E))
-            self.proxy_hostname_entry.grid(column=1, row=5, sticky=(W,E))
+            self.use_proxy.grid(column=0, row=5, sticky=(W))
+            self.proxy_hostname_label.grid(column=0, row=6, sticky=(W,E))
+            self.proxy_hostname_entry.grid(column=1, row=6, sticky=(W,E))
 
-            self.proxy_username_label.grid(column=0, row=6, sticky=(W,E))
-            self.proxy_username_entry.grid(column=1, row=6, sticky=(W,E))
+            self.proxy_username_label.grid(column=0, row=7, sticky=(W,E))
+            self.proxy_username_entry.grid(column=1, row=7, sticky=(W,E))
 
-            self.proxy_password_label.grid(column=0, row=7, sticky=(W,E))
-            self.proxy_password_entry.grid(column=1, row=7, sticky=(W,E))
-
+            self.proxy_password_label.grid(column=0, row=8, sticky=(W,E))
+            self.proxy_password_entry.grid(column=1, row=8, sticky=(W,E))
             for i in range(5,8):
                 self.rowconfigure(i, weight=1)
         else: # remove the widget
