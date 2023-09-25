@@ -50,9 +50,7 @@ except ImportError as e:
 try:
     import biom3d.omero_pred
 except  ImportError as e:
-    print("Couldn't import Omero modules")
-    raise e
-finally:
+    print("Couldn't import Omero modules", e)
     pass    
 
 
@@ -659,7 +657,7 @@ class ConfigFrame(ttk.LabelFrame):
 
         # place widgets
         if REMOTE:
-            self.data_dir_option_menu.grid(column=0,sticky=E,padx=75 ,row=0, pady=2)
+            self.data_dir_option_menu.grid(column=0,sticky=E,padx=85 ,row=0, pady=2)
             self.label4.grid(column=0,row=0, sticky=W, pady=2)
             self.button_dataset_list.grid(column=0,sticky=E, row=0, pady=2)
         self.builder_name_label.grid(column=0, row=1, sticky=(W,E), ipady=4,pady=3)
@@ -1943,7 +1941,7 @@ class Root(Tk):
 
         # windows dimension and positioning
         window_width = 725
-        window_height = 785
+        window_height = 795
 
         ## get the screen dimension
         global screen_width
