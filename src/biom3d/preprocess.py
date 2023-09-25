@@ -709,10 +709,10 @@ def auto_config_preprocess(
         
         # convert path for windows systems before writing them
         if platform=='win32':
-            p.img_outdir = p.img_outdir.replace('\\','\\\\')
-            p.msk_outdir = p.msk_outdir.replace('\\','\\\\')
-            p.fg_outdir = p.fg_outdir.replace('\\','\\\\')
-            p.csv_path = p.csv_path.replace('\\','\\\\')
+            if p.img_outdir is not None: p.img_outdir = p.img_outdir.replace('\\','\\\\')
+            if p.msk_outdir is not None: p.msk_outdir = p.msk_outdir.replace('\\','\\\\')
+            if p.fg_outdir is not None: p.fg_outdir = p.fg_outdir.replace('\\','\\\\')
+            if p.csv_path is not None: p.csv_path = p.csv_path.replace('\\','\\\\')
 
         config_path = save_python_config(
             config_dir=config_dir,
