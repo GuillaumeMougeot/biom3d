@@ -17,6 +17,8 @@ import shutil
 import fileinput
 import tifffile as tiff
 import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Agg') # bug fix: change matplotlib backend
 import yaml # pip install pyyaml
 from skimage import io
 from skimage.transform import resize
