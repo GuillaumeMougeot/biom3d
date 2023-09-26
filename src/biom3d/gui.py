@@ -1857,7 +1857,7 @@ class Connect2Remote(ttk.LabelFrame):
         self.main_dir = StringVar(value="/home/biome/biom3d")
         self.main_dir_entry = ttk.Entry(self, textvariable=self.main_dir)
 
-        self.venv_label = ttk.Label(self, text='(Optional) Name of the virtual environement on remote server:')
+        self.venv_label = ttk.Label(self, text='(Optional) Name of the virtual environment on remote server:')
         self.venv_name = StringVar(value="")
         self.venv_entry = ttk.Entry(self, textvariable=self.venv_name)
         
