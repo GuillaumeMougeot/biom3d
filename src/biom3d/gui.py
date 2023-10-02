@@ -895,29 +895,47 @@ class TrainTab(ttk.Frame):
     def __init__(self, preprocess_tab=None, *arg, **kw):
         super(TrainTab, self).__init__(*arg, **kw)
         global new_config_path
+        
         self.folder_selection = TrainFolderSelection(preprocess_tab=preprocess_tab, master=self, text="Preprocess", padding=[10,10,10,10])
         self.config_selection = ConfigFrame(train_folder_selection=self.folder_selection, master=self, text="Training configuration", padding=[10,10,10,10])
         self.train_button = ttk.Button(self, text="Start", style="train_button.TLabel", width =29, command=self.train)
         self.plot_button = ttk.Button(self, text="Plot Learning Curves", style="train_button.TLabel", width =29, command=self.get_logs_plot)
+        self.fine_tune_button = ttk.Button(self,   text="Fine tune", style="train_button.TLabel", width=29, command=self.fine_tune)
         self.train_done = ttk.Label(self, text="")
         # config folder
         self.use_conf_state = IntVar(value=0) 
         self.use_conf_button = ttk.Checkbutton(self, text="Dataset is already preprocessed ? ", command=self.display_conf, variable=self.use_conf_state)
-
+        #Fine tuning
+        self.fine_tune_state = IntVar(value=0) 
+        self.use_tune_button = ttk.Checkbutton(self, text="Use Fine tuning ? ", command=self.display_fine_tuning ,variable=self.fine_tune_state)
+        
+        self.FineTuning= FineTuning( master=self, text="Fine Tuning !", padding=[10,10,10,10])
         # set default values of train folders with the ones used for preprocess tab
         if not REMOTE :
             self.use_conf_button.grid(column=0,row=0,sticky=(N,W,E), pady=3)
         else : self.plot_button.grid(column=0, row=4, padx=15, ipady=4, pady= 2, sticky=(N))
-        self.folder_selection.grid(column=0,row=1,sticky=(N,W,E), pady=3)
-        self.config_selection.grid(column=0,row=2,sticky=(N,W,E), pady=20)
-        self.train_button.grid(column=0, row=3, padx=15, ipady=4, pady= 2, sticky=(N))
+        self.use_tune_button.grid(column=0,row=1,sticky=(N,W,E), pady=3)
+        self.folder_selection.grid(column=0,row=2,sticky=(N,W,E), pady=3)
+        self.config_selection.grid(column=0,row=3,sticky=(N,W,E), pady=20)
+        self.train_button.grid(column=0, row=4,padx=15, ipady=4, pady= 2, sticky=(N))
         self.train_done.grid(column=0, row=5, sticky=W)
-
         
         self.columnconfigure(0, weight=1)
         for i in range(5):
             self.rowconfigure(i, weight=1)
-            
+    def display_fine_tuning(self):
+        if self.fine_tune_state.get() : 
+            self.FineTuning.grid(column=0,row=2,sticky=(N,W,E), pady=20)
+            self.fine_tune_button.grid(column=0, row=4,padx=15, ipady=4, pady= 2, sticky=(N))
+            self.folder_selection.grid_remove()
+            self.config_selection.grid_remove()
+            self.train_button.grid_remove()
+        else :
+            self.FineTuning.grid_remove()  
+            self.fine_tune_button.grid_remove()
+            self.folder_selection.grid(column=0,row=2,sticky=(N,W,E), pady=3)   
+            self.config_selection.grid(column=0,row=3,sticky=(N,W,E), pady=20)
+            self.train_button.grid(column=0, row=4,padx=15, ipady=4, pady= 2, sticky=(N))
     def display_conf(self):
         """
         Display and Hide tab to select configuration file in preprocess and train tab  
@@ -953,7 +971,11 @@ class TrainTab(ttk.Frame):
                 self.folder_selection.label2.grid(column=0,row=4, sticky=W, pady=7)
                 self.folder_selection.msk_outdir.grid(column=0,row=5, sticky=(W,E))       
             
-                   
+    def fine_tune(self):
+        # run the training           
+            train(config=self.FineTuning.config_folder.get(),
+                  path=self.FineTuning.log_folder.get())
+                       
     def get_logs_plot(self):
         """
         Function to get log files from REMOTE server and plot the Learning curves (Saves figure in local too)
@@ -1171,8 +1193,25 @@ class TrainTab(ttk.Frame):
             
               
 
+class FineTuning(ttk.LabelFrame):
+    def __init__(self, *arg, **kw):
+        super(FineTuning, self).__init__(*arg,**kw)
         
-
+        self.config_label = ttk.Label(self, text="Select the configuration file : ")
+        self.log_label = ttk.Label(self, text="Select the folder containing the log files : ")
+        
+        self.config_folder = FileDialog(self, mode='file', textEntry="")
+        self.log_folder = FileDialog(self, mode='folder', textEntry="")
+        
+        # place widgets
+        self.config_label.grid(column=0, row=0, sticky=(W,E))  
+        self.config_folder.grid(column=0, row=1, columnspan=2 ,sticky=(W,E))  
+        self.log_label.grid(column=0, row=2, sticky=(W,E))  
+        self.log_folder.grid(column=0, row=3, columnspan=2,sticky=(W,E))    
+        
+        self.columnconfigure(0, weight=1)
+        for i in range(4):
+            self.rowconfigure(i, weight=1)
 #---------------------------------------------------------------------------------- prediction tab --------------------------------------------------------------
 """-------------------------------------------------------------------------------- Prediction tab -------------------------------------------------------------------------"""
 class InputDirectory(ttk.LabelFrame):
