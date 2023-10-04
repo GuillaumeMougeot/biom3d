@@ -785,8 +785,26 @@ class ConfigFrame(ttk.LabelFrame):
         global msk_dir_train
         global fg_dir_train
         if REMOTE:
+            # get the last folder modified/created
+            _,stdout,stderr=REMOTE.exec_command("ls -td {}/data/*/ | head -1".format(MAIN_DIR))
+            last_dataset_modified = stdout.readline()
+            last_dataset_modified = last_dataset_modified.rstrip()
+            print("The dataset that's being pre-processed is : ",last_dataset_modified)
+            
+            selected_dataset = self.data_dir.get()
+            
+            
+            if selected_dataset == "Choose a dataset" :
+                raw_dir = last_dataset_modified+"img"
+                msk_dir = last_dataset_modified+"msk"
+            else :
+                raw_dir = "data/{}/img".format(selected_dataset)
+                msk_dir = "data/{}/msk".format(selected_dataset)
+            print(" Raw dir: ",raw_dir)
+            print(" Mask dir: ",msk_dir)
+                 
             # preprocessing
-            _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {};  python -m biom3d.preprocess --img_dir data/{}/img --msk_dir data/{}/msk --num_classes {} --desc {} --remote".format(VENV,MAIN_DIR, selected_dataset, selected_dataset,self.classes.get(),self.builder_name_entry.get()))  
+            _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {};  python -m biom3d.preprocess --img_dir {} --msk_dir {} --num_classes {} --desc {} --remote".format(VENV,MAIN_DIR,raw_dir,msk_dir,self.classes.get(),self.builder_name_entry.get()))  
             auto_config_results = stdout.readlines()
             auto_config_results = [e.replace('\n','') for e in auto_config_results]
          
@@ -893,7 +911,7 @@ class TrainTab(ttk.Frame):
     def __init__(self, preprocess_tab=None, *arg, **kw):
         super(TrainTab, self).__init__(*arg, **kw)
         global new_config_path
-        
+        global sent_dataset
         self.folder_selection = TrainFolderSelection(preprocess_tab=preprocess_tab, master=self, text="Preprocess", padding=[10,10,10,10])
         self.config_selection = ConfigFrame(train_folder_selection=self.folder_selection, master=self, text="Training configuration", padding=[10,10,10,10])
         self.train_button = ttk.Button(self, text="Start", style="train_button.TLabel", width =29, command=self.train)
@@ -912,11 +930,11 @@ class TrainTab(ttk.Frame):
         # set default values of train folders with the ones used for preprocess tab
         if not REMOTE :
             self.use_conf_button.grid(column=0,row=0,sticky=(N,W,E), pady=3)
-        else : self.plot_button.grid(column=0, row=4, padx=15, ipady=4, pady= 2, sticky=(N))
-        self.use_tune_button.grid(column=0,row=1,sticky=(N,W,E), pady=3)
+        else : self.plot_button.grid(column=0, row=5, padx=15, ipady=4, pady= 2, sticky=(N))
+        self.use_tune_button.grid(column=0,row=1,sticky=(N,W,E), ipady=5)
         self.folder_selection.grid(column=0,row=2,sticky=(N,W,E), pady=3)
         self.config_selection.grid(column=0,row=3,sticky=(N,W,E), pady=20)
-        self.train_button.grid(column=0, row=5,padx=15, ipady=4, pady= 2, sticky=(N))
+        self.train_button.grid(column=0, row=4,padx=15, ipady=4, pady= 2, sticky=(N))
         self.train_done.grid(column=0, row=6, sticky=W)
         
         self.columnconfigure(0, weight=1)
@@ -975,22 +993,22 @@ class TrainTab(ttk.Frame):
                     self.rowconfigure(i, weight=1)   
         else :
             if self.fine_tune_state.get(): 
+                self.folder_selection.grid(column=0, row=2, sticky=(W,E))
                 # Fine tuning label
                 self.fine_tune_label = ttk.Label(self, text="Select a Model to fine-tuning : ")
-                self.fine_tune_label.grid(column=0, row=2,sticky=(W))
+                #self.fine_tune_label.grid(column=0, row=3,sticky=(W))
                 # Add model selection frame
-                self.model_selection.grid(column=0, row=3, sticky=(W,E,N), pady=20)
+                self.model_selection.grid(column=0, row=4, sticky=(W,E), ipady=5)
                 # Add configuration frame
-                self.config_selection.grid(column=0,row=4,sticky=(N,W,E), pady=20)
-                # Add plot button
-                self.plot_button.grid(column=0, row=5, padx=15, ipady=4, pady= 2, sticky=(N))
+                self.config_selection.grid(column=0,row=5,sticky=(N,W,E))
+                
                 # Add fine tuning button
                 self.fine_tune_button.grid(column=0, row=6, padx=15, ipady=4, pady= 2, sticky=(N))
-                
+                # Add plot button
+                self.plot_button.grid(column=0, row=7, padx=15, ipady=4, pady= 2, sticky=(N))
                 # Remove train button
                 self.train_button.grid_remove()         
-                # Remove preprocessing
-                self.folder_selection.grid_remove()
+                
                 
                 self.columnconfigure(0, weight=1)
                 for i in range(6):
@@ -1003,7 +1021,7 @@ class TrainTab(ttk.Frame):
                 self.fine_tune_button.grid_remove()   
                 self.folder_selection.grid(column=0,row=2, pady= 2, sticky=(W,E))        
                 self.config_selection.grid(column=0,row=3,sticky=(N,W,E), pady=20)
-                self.train_button.grid(column=0, row=6,padx=15, ipady=4, pady= 2, sticky=(N))
+                self.train_button.grid(column=0, row=5,padx=15, ipady=4, pady= 2, sticky=(N))
                 
     def display_one(self):
         # Folder selection
