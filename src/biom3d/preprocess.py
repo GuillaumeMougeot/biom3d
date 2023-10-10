@@ -234,8 +234,7 @@ def seg_preprocessor(
         # keep the input shape, used for preprocessing before prediction
         original_shape = img.shape
     else:
-        print("[Error] Invalid image shape for 3D image {}. Skipping image...".format(img.shape))
-        return None
+        raise ValueError("[Error] Invalid image shape for 3D image {}. Skipping image...".format(img.shape))
 
     assert img.shape[0]==num_channels, "[Error] Invalid image shape {}. Expected to have {} numbers of channel at {} channel axis.".format(img.shape, num_channels, channel_axis)
 
@@ -557,7 +556,7 @@ class Preprocessing:
             img,img_meta = adaptive_imread(img_path)
             if self.msk_dir is not None:
                 msk, _ = adaptive_imread(msk_path)
-                out = seg_preprocessor(
+                img, msk, fg = seg_preprocessor(
                     img                 =img, 
                     img_meta            =img_meta if not image_was_split else split_meta,
                     msk                 =msk,
@@ -570,10 +569,8 @@ class Preprocessing:
                     channel_axis        =self.channel_axis,
                     num_channels        =self.num_channels,
                     )
-                if out is None: continue
-                img, msk, fg = out
             else:
-                out = seg_preprocessor(
+                img, _ = seg_preprocessor(
                     img                 =img, 
                     img_meta            =img_meta,
                     median_spacing      =self.median_spacing,
@@ -582,8 +579,6 @@ class Preprocessing:
                     channel_axis        =self.channel_axis,
                     num_channels        =self.num_channels,
                     )
-                if out is None: continue
-                img, _ = out
 
             # sanity check to be sure that all images have the save number of channel
             s = img.shape
