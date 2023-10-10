@@ -708,6 +708,8 @@ class Builder:
                 self.config.POSTPROCESSOR = utils.Dict(fct="Seg", kwargs=utils.Dict())
             
             # postprocessing
+            if "return_logit" in self.config.POSTPROCESSOR.kwargs.keys():
+                return_logit = self.config.POSTPROCESSOR.kwargs.return_logit
             return read_config(
                 self.config.POSTPROCESSOR, 
                 register.postprocessors,

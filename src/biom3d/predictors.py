@@ -410,7 +410,8 @@ def seg_postprocessing(
 
     if return_logit: 
         if original_shape is not None:
-            logit = resize_3d(logit, original_shape, order=3)
+            logit = resize_3d(logit, original_shape, order=3).numpy()
+        print("Returning logit...")
         print("Post-processing done!")
         return logit
 
