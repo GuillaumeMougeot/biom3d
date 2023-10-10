@@ -18,7 +18,7 @@ Biom3d comes with 2 modes: local or remote. 'Local' means that the computation w
 
 If you have installed biom3d with the local version simply click on the 'Start locally' button to start.
 
-If you have installed biom3d with the remote version, you must then complete the required fields. The first one is the IP address of your remote computer (where the API of biom3d is installed). The second and third one is your user name and password to connect to the remote computer. (Please ignore the forth one, it is deprecated).
+If you have installed biom3d with the remote version, you must then complete the required fields. The first one is the IP address of your remote computer (where the API of biom3d is installed). The second and third one is your user name and password to connect to the remote computer, the forth one is the path to your virtual environment (if you don't have a virtual environment leave it empty ).
 
 ## Preprocessing 
 

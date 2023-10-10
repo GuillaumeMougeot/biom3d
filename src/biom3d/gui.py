@@ -836,7 +836,7 @@ class ConfigFrame(ttk.LabelFrame):
         else: 
             # Preprocessing & autoconfiguration    
             # Change storing paths
-            if  LOCAL_PATH.endswith('/') : 
+            if not LOCAL_PATH.endswith('/') : 
                 local_config_dir = LOCAL_PATH+"/configs/"
                 local_logs_dir = LOCAL_PATH+"/logs/"
             else : 
@@ -1201,9 +1201,10 @@ class TrainTab(ttk.Frame):
 
         cfg.DESC = self.config_selection.builder_name.get()
         
-        cfg.NUM_CLASSES = self.config_selection.num_classes.get()
-        cfg = nested_dict_change_value(cfg, 'num_classes', cfg.NUM_CLASSES)
-       
+        if not self.dataset_preprocessed_state.get():
+            cfg.NUM_CLASSES = self.config_selection.num_classes.get()
+            cfg = nested_dict_change_value(cfg, 'num_classes', cfg.NUM_CLASSES)
+        
         cfg.NB_EPOCHS = self.config_selection.num_epochs.get()
         cfg = nested_dict_change_value(cfg, 'nb_epochs', cfg.NB_EPOCHS)
         
@@ -1283,7 +1284,7 @@ class TrainTab(ttk.Frame):
             
         else:  
             # Change storing paths
-            if  LOCAL_PATH.endswith('/') : 
+            if not LOCAL_PATH.endswith('/') : 
                 local_config_dir = LOCAL_PATH+"/configs/"
                 local_logs_dir = LOCAL_PATH+"/logs/"
             else : 
