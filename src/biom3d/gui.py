@@ -865,8 +865,8 @@ class ConfigFrame(ttk.LabelFrame):
             # else : 
             #     local_config_dir = LOCAL_PATH+"configs/"
             #     local_logs_dir = LOCAL_PATH+"logs/"
-            local_config_dir = os.path.join(LOCAL_PATH,"configs", "")
-            local_logs_dir = os.path.join(LOCAL_PATH,"logs", "")
+            local_config_dir = os.path.join(LOCAL_PATH,"configs")
+            local_logs_dir = os.path.join(LOCAL_PATH,"logs")
 
             config_path=auto_config_preprocess(img_dir=self.img_outdir.get(),
             msk_dir=self.msk_outdir.get(),
@@ -1316,7 +1316,7 @@ class TrainTab(ttk.Frame):
             # else : 
             #     local_config_dir = LOCAL_PATH+"configs/"
             #     local_logs_dir = LOCAL_PATH+"logs/"
-            local_config_dir = os.path.join(LOCAL_PATH, "configs", "")
+            local_config_dir = os.path.join(LOCAL_PATH, "configs")
             # local_logs_dir = os.path.join(LOCAL_PATH, "logs")
             
             # save the new config file
