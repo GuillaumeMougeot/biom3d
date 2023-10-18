@@ -1337,7 +1337,9 @@ class TrainTab(ttk.Frame):
             NUM_POOLS=cfg.NUM_POOLS,
             NB_EPOCHS=cfg.NB_EPOCHS
             )
-            print(new_config_path)
+
+            if platform=="win32" and not "\\\\" in new_config_path:
+                new_config_path = new_config_path.replace("\\", "\\\\")
         
             if not torch.cuda.is_available():
                popupmsg("  No GPU detected, the training might take a longer time ")
