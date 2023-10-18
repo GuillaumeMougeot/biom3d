@@ -1011,6 +1011,9 @@ def save_python_config(
     new_config_name = os.path.join(config_dir, current_time+"-"+basename)
     os.rename(config_path, new_config_name)
 
+    # keep a copy of the old file
+    shutil.copy(new_config_name, config_path)
+
     # edit the new config file with the auto-config values
     with fileinput.input(files=(new_config_name), inplace=True) as f:
         for line in f:
