@@ -1981,7 +1981,7 @@ class Root(Tk):
         self.title_label = ttk.Label(self.local_or_remote, text="Biom3d", font=("Montserrat", 18))
         self.welcome_message = ttk.Label(self.local_or_remote, text="Welcome!\n\nBiom3d is an easy-to-use tool to train and use deep learning models for segmenting three dimensional images. You can either start locally, if your computer has a good graphic card (NVIDIA Geforce RTX 1080 or higher) or connect remotelly on a computer with such a graphic card.\n\nIf you need help, check our GitHub repository here: https://github.com/GuillaumeMougeot/biom3d", anchor="w", justify=LEFT, wraplength=640)
         
-        self.local_path_label = ttk.Label(self.local_or_remote, text='Enter path to where you want to stock logs : \n(by default its Biom3d directory )')
+        self.local_path_label = ttk.Label(self.local_or_remote, text='Enter path to where you want to store logs : \n(by default, it is the current directory.)')
         self.local_path = StringVar(value="")
         self.local_path_entry = ttk.Entry(self.local_or_remote, textvariable=self.local_path)
        
