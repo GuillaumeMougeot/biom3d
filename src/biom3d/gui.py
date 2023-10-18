@@ -1331,8 +1331,8 @@ class TrainTab(ttk.Frame):
             PATCH_SIZE=cfg.PATCH_SIZE,
             NUM_POOLS=cfg.NUM_POOLS,
             NB_EPOCHS=cfg.NB_EPOCHS
-            
             )
+            print(new_config_path)
         
             if not torch.cuda.is_available():
                popupmsg("  No GPU detected, the training might take a longer time ")
