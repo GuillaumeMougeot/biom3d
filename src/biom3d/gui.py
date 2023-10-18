@@ -1185,7 +1185,7 @@ class TrainTab(ttk.Frame):
        
         for i in range(len(self.config_selection.patch_size)):
          if self.config_selection.patch_size[i] > self.config_selection.aug_patch_size[i]:
-             popupmsg(f" ERREUR ! Le patch size N°{i} est inferieur a l'élément {i} de l'augmentation patch size !")
+             popupmsg(f"[Error] Patch size {i} is lower than element {i} of the augmentation patch size.")
        
         # set the configuration
         
@@ -2245,11 +2245,16 @@ class Root(Tk):
             print("virtual environment name: ",VENV)
         global LOCAL_PATH
         LOCAL_PATH = self.local_path_entry.get()
-        if not REMOTE : 
-            print("Local Directory to store config and logs  ",LOCAL_PATH)    
-            print("The suggested max number of worker based on system's resource is : ",ressources_computing())
+
+        # default value is the current path
+        if len(LOCAL_PATH)==0:
+            LOCAL_PATH = os.getcwd()
+
+        if not REMOTE: 
+            print("Local Directory to store config and logs:  ",LOCAL_PATH)    
+            print("The suggested max number of worker based on system's resource is: ",ressources_computing())
         modulename='biom3d'
-        if modulename not in sys.modules and not REMOTE :
+        if modulename not in sys.modules and not REMOTE:
             popupmsg(" you can't access local interface in international area please contact the national space agency")
         else :  
             # Stage 1.2 (root -> root_frame)
