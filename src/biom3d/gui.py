@@ -1316,7 +1316,8 @@ class TrainTab(ttk.Frame):
             # else : 
             #     local_config_dir = LOCAL_PATH+"configs/"
             #     local_logs_dir = LOCAL_PATH+"logs/"
-            local_config_dir = os.path.join(LOCAL_PATH, "configs")
+            local_config_dir = os.path.join(LOCAL_PATH, "configs", "")
+            print(local_config_dir)
             # local_logs_dir = os.path.join(LOCAL_PATH, "logs")
             
             # save the new config file
