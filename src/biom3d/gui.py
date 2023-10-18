@@ -867,7 +867,7 @@ class ConfigFrame(ttk.LabelFrame):
             #     local_logs_dir = LOCAL_PATH+"logs/"
             local_config_dir = os.path.join(LOCAL_PATH,"configs")
             local_logs_dir = os.path.join(LOCAL_PATH,"logs")
-            if platform=="win32":
+            if platform=="win32" and not "\\\\" in local_config_dir:
                 local_config_dir = local_config_dir.replace("\\", "\\\\")
                 local_logs_dir = local_logs_dir.replace("\\", "\\\\")
 
@@ -1321,7 +1321,7 @@ class TrainTab(ttk.Frame):
             #     local_logs_dir = LOCAL_PATH+"logs/"
             local_config_dir = os.path.join(LOCAL_PATH,"configs")
             # local_logs_dir = os.path.join(LOCAL_PATH, "logs")
-            if platform=="win32":
+            if platform=="win32" and not "\\\\" in local_config_dir:
                 local_config_dir = local_config_dir.replace("\\", "\\\\")
             
             # save the new config file
