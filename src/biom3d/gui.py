@@ -511,9 +511,7 @@ class TrainFolderSelection(ttk.LabelFrame):
         ## mask folder
         self.label2 = ttk.Label(self, text="Select the folder containing the masks:", anchor="sw", background='white')
         ## config folder
-        self.use_conf_state = IntVar(value=0) 
-        global conf_clicked 
-        conf_clicked = self.use_conf_state.get()
+        
         self.label3 = ttk.Label(self, text="Dataset is already preprocessed ? Select the configuration file  ", anchor="sw", background='white')
         if REMOTE:
 
@@ -787,8 +785,26 @@ class ConfigFrame(ttk.LabelFrame):
         global msk_dir_train
         global fg_dir_train
         if REMOTE:
+            # get the last folder modified/created
+            _,stdout,stderr=REMOTE.exec_command("ls -td {}/data/*/ | head -1".format(MAIN_DIR))
+            last_dataset_modified = stdout.readline()
+            last_dataset_modified = last_dataset_modified.rstrip()
+            print("The dataset that's being pre-processed is : ",last_dataset_modified)
+            
+            selected_dataset = self.data_dir.get()
+            
+            
+            if selected_dataset == "Choose a dataset" :
+                raw_dir = last_dataset_modified+"img"
+                msk_dir = last_dataset_modified+"msk"
+            else :
+                raw_dir = "data/{}/img".format(selected_dataset)
+                msk_dir = "data/{}/msk".format(selected_dataset)
+            print(" Raw dir: ",raw_dir)
+            print(" Mask dir: ",msk_dir)
+                 
             # preprocessing
-            _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {};  python -m biom3d.preprocess --img_dir data/{}/img --msk_dir data/{}/msk --num_classes {} --desc {} --remote".format(VENV,MAIN_DIR, selected_dataset, selected_dataset,self.classes.get(),self.builder_name_entry.get()))  
+            _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {};  python -m biom3d.preprocess --img_dir {} --msk_dir {} --num_classes {} --desc {} --remote".format(VENV,MAIN_DIR,raw_dir,msk_dir,self.classes.get(),self.builder_name_entry.get()))  
             auto_config_results = stdout.readlines()
             auto_config_results = [e.replace('\n','') for e in auto_config_results]
          
@@ -820,7 +836,7 @@ class ConfigFrame(ttk.LabelFrame):
         else: 
             # Preprocessing & autoconfiguration    
             # Change storing paths
-            if  LOCAL_PATH.endswith('/') : 
+            if not LOCAL_PATH.endswith('/') : 
                 local_config_dir = LOCAL_PATH+"/configs/"
                 local_logs_dir = LOCAL_PATH+"/logs/"
             else : 
@@ -895,73 +911,198 @@ class TrainTab(ttk.Frame):
     def __init__(self, preprocess_tab=None, *arg, **kw):
         super(TrainTab, self).__init__(*arg, **kw)
         global new_config_path
+        global sent_dataset
         self.folder_selection = TrainFolderSelection(preprocess_tab=preprocess_tab, master=self, text="Preprocess", padding=[10,10,10,10])
         self.config_selection = ConfigFrame(train_folder_selection=self.folder_selection, master=self, text="Training configuration", padding=[10,10,10,10])
         self.train_button = ttk.Button(self, text="Start", style="train_button.TLabel", width =29, command=self.train)
         self.plot_button = ttk.Button(self, text="Plot Learning Curves", style="train_button.TLabel", width =29, command=self.get_logs_plot)
+        self.fine_tune_button = ttk.Button(self,   text="Fine-tune", style="train_button.TLabel", width=29, command=self.train)
         self.train_done = ttk.Label(self, text="")
         # config folder
-        self.use_conf_state = IntVar(value=0) 
-        self.use_conf_button = ttk.Checkbutton(self, text="Dataset is already preprocessed ? ", command=self.display_conf, variable=self.use_conf_state)
-
+        self.dataset_preprocessed_state = IntVar(value=0) 
+        self.use_conf_button = ttk.Checkbutton(self, text="Dataset is already preprocessed ? ", command=self.display_conf_finetuning, variable=self.dataset_preprocessed_state)
+        #Fine tuning
+        self.fine_tune_state = IntVar(value=0) 
+        self.use_tune_button = ttk.Checkbutton(self, text="Use Fine-Tuning ? ", command=self.display_conf_finetuning ,variable=self.fine_tune_state)
+        self.FineTuning= FineTuning( master=self, text="Fine-Tuning !", padding=[10,10,10,10])
+        # Model selection
+        self.model_selection = ModelSelection(self, text="Model selection", padding=[10,10,10,10])
         # set default values of train folders with the ones used for preprocess tab
         if not REMOTE :
             self.use_conf_button.grid(column=0,row=0,sticky=(N,W,E), pady=3)
-        else : self.plot_button.grid(column=0, row=4, padx=15, ipady=4, pady= 2, sticky=(N))
-        self.folder_selection.grid(column=0,row=1,sticky=(N,W,E), pady=3)
-        self.config_selection.grid(column=0,row=2,sticky=(N,W,E), pady=20)
-        self.train_button.grid(column=0, row=3, padx=15, ipady=4, pady= 2, sticky=(N))
-        self.train_done.grid(column=0, row=5, sticky=W)
-
+        else : self.plot_button.grid(column=0, row=5, padx=15, ipady=4, pady= 2, sticky=(N))
+        self.use_tune_button.grid(column=0,row=1,sticky=(N,W,E), ipady=5)
+        self.folder_selection.grid(column=0,row=2,sticky=(N,W,E), pady=3)
+        self.config_selection.grid(column=0,row=3,sticky=(N,W,E), pady=20)
+        self.train_button.grid(column=0, row=4,padx=15, ipady=4, pady= 2, sticky=(N))
+        self.train_done.grid(column=0, row=6, sticky=W)
         
         self.columnconfigure(0, weight=1)
         for i in range(5):
             self.rowconfigure(i, weight=1)
             
-    def display_conf(self):
-        """
-        Display and Hide tab to select configuration file in preprocess and train tab  
-        """
-        if not REMOTE : 
-            if self.use_conf_state.get():
+            
+    def display_conf_finetuning(self):
+        if not REMOTE:
+            # All Cases possible
+            
+            if self.dataset_preprocessed_state.get() and self.fine_tune_state.get(): 
+                self.display_one()
+            elif self.dataset_preprocessed_state.get() and not self.fine_tune_state.get():       
+                self.display_two()
+            elif self.fine_tune_state.get() and not self.dataset_preprocessed_state.get():  
+                self.display_three()
+            elif not self.fine_tune_state.get() and not self.dataset_preprocessed_state.get(): 
+                # Standard Display
+                if not REMOTE :
+                    self.use_conf_button.grid(column=0,row=0,sticky=(N,W,E), pady=3)
+                else : self.plot_button.grid(column=0, row=4, padx=15, ipady=4, pady= 2, sticky=(N))
                 
-                self.config_selection.builder_name_label.grid_remove()
-                self.config_selection.builder_name_entry.grid_remove()
-                self.config_selection.num_classes_label.grid_remove()
-                self.config_selection.classes.grid_remove() 
-                self.config_selection.auto_config_button.grid_remove()
-                self.config_selection.load_config_button.grid(column=0, columnspan=4,row=4 ,ipady=4, pady=2,)
-                self.folder_selection.label1.grid_remove()
-                self.folder_selection.img_outdir.grid_remove()
-                self.folder_selection.label2.grid_remove()
-                self.folder_selection.msk_outdir.grid_remove()
-                # place the new ones
-                self.folder_selection.config_dir.grid(column=0,row=6, sticky=(W,E))
-                self.folder_selection.label3.grid(column=0, row=1, sticky=W, pady=5)
-            else:
+                # Remove everything
+                self.FineTuning.grid_remove()  
+                self.fine_tune_button.grid_remove()
+                self.config_selection.load_config_button.grid_remove()
+                self.folder_selection.config_dir.grid_remove()
+                self.folder_selection.label3.grid_remove()
+                
+                # Add the buttons back
+                self.use_tune_button.grid(column=0,row=1,sticky=(N,W,E), pady=3)
+                self.train_button.grid(column=0, row=4,padx=15, ipady=4, pady= 2, sticky=(N))
+                self.train_done.grid(column=0, row=5, sticky=W)
+                
+                # Folder selection
+                self.folder_selection.label1.grid(column=0,row=2, sticky=W, pady=7)
+                self.folder_selection.img_outdir.grid(column=0, row=3, sticky=(W,E))
+                self.folder_selection.label2.grid(column=0,row=4, sticky=W, pady=7)
+                self.folder_selection.msk_outdir.grid(column=0,row=5, sticky=(W,E)) 
+            
+                
+                # Configuration selection
+                self.folder_selection.grid(column=0,row=2,sticky=(N,W,E), pady=3)
+                self.config_selection.grid(column=0,row=3,sticky=(N,W,E), pady=20)
                 self.config_selection.builder_name_label.grid(column=0, row=1, sticky=(W,E), ipady=4,pady=3)
                 self.config_selection.builder_name_entry.grid(column=0, row=2,ipadx=213,ipady=4,pady=3,sticky=(W,E))
                 self.config_selection.num_classes_label.grid(column=0,row=3, sticky=W, pady=2)
                 self.config_selection.classes.grid(column=0,row=3,pady=5,sticky=E)
-                self.config_selection.load_config_button.grid_remove()
                 self.config_selection.auto_config_button.grid(column=0, columnspan=4,row=4 ,ipady=4, pady=2,)   
-                self.folder_selection.config_dir.grid_remove()
-                self.folder_selection.label3.grid_remove()
-                # reset the input dir
-                self.folder_selection.label1.grid(column=0,row=2, sticky=W, pady=7)
-                self.folder_selection.img_outdir.grid(column=0, row=3, sticky=(W,E))
-                self.folder_selection.label2.grid(column=0,row=4, sticky=W, pady=7)
-                self.folder_selection.msk_outdir.grid(column=0,row=5, sticky=(W,E))       
+                
+                
+                
+                self.columnconfigure(0, weight=1)
+                for i in range(5):
+                    self.rowconfigure(i, weight=1)   
+        else :
+            if self.fine_tune_state.get(): 
+                self.folder_selection.grid(column=0, row=2, sticky=(W,E))
+                # Fine tuning label
+                self.fine_tune_label = ttk.Label(self, text="Select a Model to fine-tuning : ")
+                #self.fine_tune_label.grid(column=0, row=3,sticky=(W))
+                # Add model selection frame
+                self.model_selection.grid(column=0, row=4, sticky=(W,E), ipady=5)
+                # Add configuration frame
+                self.config_selection.grid(column=0,row=5,sticky=(N,W,E))
+                
+                # Add fine tuning button
+                self.fine_tune_button.grid(column=0, row=6, padx=15, ipady=4, pady= 2, sticky=(N))
+                # Add plot button
+                self.plot_button.grid(column=0, row=7, padx=15, ipady=4, pady= 2, sticky=(N))
+                # Remove train button
+                self.train_button.grid_remove()         
+                
+                
+                self.columnconfigure(0, weight=1)
+                for i in range(6):
+                    self.rowconfigure(i, weight=1)
             
-                   
+            else :
+                self.fine_tune_label.grid_remove()
+                self.model_selection.grid_remove()
+                self.FineTuning.grid_remove() 
+                self.fine_tune_button.grid_remove()   
+                self.folder_selection.grid(column=0,row=2, pady= 2, sticky=(W,E))        
+                self.config_selection.grid(column=0,row=3,sticky=(N,W,E), pady=20)
+                self.train_button.grid(column=0, row=5,padx=15, ipady=4, pady= 2, sticky=(N))
+                
+    def display_one(self):
+        # Folder selection
+        self.folder_selection.grid(column=0,row=2,sticky=(N,W,E), pady=3)
+        # Fine tuning
+        self.FineTuning.grid(column=0,row=3,sticky=(N,W,E), pady=20)
+        # Configuration selection
+        self.config_selection.grid(column=0,row=4,sticky=(N,W,E), pady=20)
+        # Add configuration directory and load config button
+        self.folder_selection.label3.grid(column=0, row=1, sticky=W, pady=5)
+        self.folder_selection.config_dir.grid(column=0,row=2, sticky=(W,E))
+        self.config_selection.load_config_button.grid(column=0, columnspan=4,row=1 ,ipady=4, pady=2,)
+        # Add fine tuning button
+        self.fine_tune_button.grid(column=0, row=5,padx=15, ipady=4, pady= 2, sticky=(N))
+        # Remove folder selection img and msk directories
+        self.config_selection.builder_name_label.grid_remove()
+        self.config_selection.builder_name_entry.grid_remove()
+        self.config_selection.num_classes_label.grid_remove()
+        self.config_selection.classes.grid_remove()
+        self.config_selection.auto_config_button.grid_remove()
+        self.folder_selection.label1.grid_remove()
+        self.folder_selection.img_outdir.grid_remove()
+        self.folder_selection.label2.grid_remove()
+        self.folder_selection.msk_outdir.grid_remove()
+        # Remove train button
+        self.train_button.grid_remove()
+    
+    def display_two(self):
+        """
+        Display and Hide tab to select configuration file in preprocess and train tab  
+        """
+        if not REMOTE :
+            # place the new ones
+            self.folder_selection.label3.grid(column=0, row=1, sticky=W, pady=5)
+            self.config_selection.load_config_button.grid(column=0, columnspan=4,row=4 ,ipady=4, pady=2,)
+            self.folder_selection.config_dir.grid(column=0,row=6, sticky=(W,E))
+            self.folder_selection.grid(column=0,row=2,sticky=(N,W,E), pady=3)
+            self.config_selection.grid(column=0,row=3,sticky=(N,W,E), pady=20)
+            self.train_button.grid(column=0, row=4,padx=15, ipady=4, pady= 2, sticky=(N))
+            self.train_done.grid(column=0, row=5, sticky=W)
+            # Remove everything else
+            self.config_selection.builder_name_label.grid_remove()
+            self.config_selection.builder_name_entry.grid_remove()
+            self.config_selection.num_classes_label.grid_remove()
+            self.config_selection.classes.grid_remove() 
+            self.config_selection.auto_config_button.grid_remove()
+            self.folder_selection.label1.grid_remove()
+            self.folder_selection.img_outdir.grid_remove()
+            self.folder_selection.label2.grid_remove()
+            self.folder_selection.msk_outdir.grid_remove()
+            self.FineTuning.grid_remove()  
+            self.fine_tune_button.grid_remove()
+    def display_three(self):
+        self.folder_selection.grid(column=0, row=2, sticky=(N,W,E), pady=3)
+        self.FineTuning.grid(column=0, row=3, sticky=(N,W,E), pady=3)
+        self.config_selection.grid(column=0, row=4, sticky=(N,W,E), pady=3)    
+        self.fine_tune_button.grid(column=0, row=5, padx=15, ipady=4, pady= 2, sticky=(N))   
+        # Folder selection
+        self.folder_selection.label1.grid(column=0,row=2, sticky=W, pady=7)
+        self.folder_selection.img_outdir.grid(column=0, row=3, sticky=(W,E))
+        self.folder_selection.label2.grid(column=0,row=4, sticky=W, pady=7)
+        self.folder_selection.msk_outdir.grid(column=0,row=5, sticky=(W,E)) 
+        # Configuration selection
+        self.config_selection.builder_name_label.grid(column=0, row=1, sticky=(W,E), ipady=4,pady=3)
+        self.config_selection.builder_name_entry.grid(column=0, row=2,ipadx=213,ipady=4,pady=3,sticky=(W,E))
+        self.config_selection.num_classes_label.grid(column=0,row=3, sticky=W, pady=2)
+        self.config_selection.classes.grid(column=0,row=3,pady=5,sticky=E)
+        self.config_selection.auto_config_button.grid(column=0, columnspan=4,row=4 ,ipady=4, pady=2,)   
+        
+        # Remove everything else
+        self.folder_selection.config_dir.grid_remove()
+        self.folder_selection.label3.grid_remove() 
+        self.config_selection.load_config_button.grid_remove()
+        self.train_button.grid_remove()    
+                       
     def get_logs_plot(self):
         """
         Function to get log files from REMOTE server and plot the Learning curves (Saves figure in local too)
         """
         import matplotlib.pyplot as plt
-        
-        #from pandas import read_csv
-        
+       
         # Import reader module from csv Library
         from csv import reader
 
@@ -975,7 +1116,7 @@ class TrainTab(ttk.Frame):
             # Converting into a list 
             data = list(lines)
             return data
-        #matplotlib.pyplot.switch_backend('Agg')  
+        plt.switch_backend('TkAgg')  
         # get the last folder modified/created
         _,stdout,stderr=REMOTE.exec_command("ls -td {}/logs/*/ | head -1".format(MAIN_DIR))
         line= stdout.readline()
@@ -1060,9 +1201,10 @@ class TrainTab(ttk.Frame):
 
         cfg.DESC = self.config_selection.builder_name.get()
         
-        cfg.NUM_CLASSES = self.config_selection.num_classes.get()
-        cfg = nested_dict_change_value(cfg, 'num_classes', cfg.NUM_CLASSES)
-       
+        if not self.dataset_preprocessed_state.get():
+            cfg.NUM_CLASSES = self.config_selection.num_classes.get()
+            cfg = nested_dict_change_value(cfg, 'num_classes', cfg.NUM_CLASSES)
+        
         cfg.NB_EPOCHS = self.config_selection.num_epochs.get()
         cfg = nested_dict_change_value(cfg, 'nb_epochs', cfg.NB_EPOCHS)
         
@@ -1114,10 +1256,13 @@ class TrainTab(ttk.Frame):
                 """
                 run the training in remote server and disown it
                 """
-                
+                #   >/dev/null 2>&1 &
                 # run the training and store the output in an output file 
-            
-                _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {}; nohup  python -m biom3d.train --config config1.py >/dev/null 2>&1 &".format(VENV,MAIN_DIR))
+                if self.fine_tune_state.get():
+                    print("Fine-tuning Started !")
+                    _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {}; nohup  python -m biom3d.train --config config1.py --log {} >/dev/null 2>&1 &".format(VENV,MAIN_DIR, MAIN_DIR+'/logs/'+self.model_selection.logs_dir.get()))
+                else :  
+                    _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {}; nohup  python -m biom3d.train --config config1.py >/dev/null 2>&1 &".format(VENV,MAIN_DIR))
                 
                 # print the stdout continuously
                 while True:
@@ -1139,7 +1284,7 @@ class TrainTab(ttk.Frame):
             
         else:  
             # Change storing paths
-            if  LOCAL_PATH.endswith('/') : 
+            if not LOCAL_PATH.endswith('/') : 
                 local_config_dir = LOCAL_PATH+"/configs/"
                 local_logs_dir = LOCAL_PATH+"/logs/"
             else : 
@@ -1164,15 +1309,37 @@ class TrainTab(ttk.Frame):
         
             if not torch.cuda.is_available():
                popupmsg("  No GPU detected, the training might take a longer time ")
-        
-            # run the training           
-            train(config=new_config_path)
+            if self.fine_tune_state.get():
+                # run the fine tuning    
+                print("Fine-Tuning Started !")       
+                train(config=new_config_path,
+                    path=self.FineTuning.log_folder.get())
+            else :
+                # run the training           
+                train(config=new_config_path)
             popupmsg(" Training Done ! ")
             
               
 
+class FineTuning(ttk.LabelFrame):
+    def __init__(self, *arg, **kw):
+        super(FineTuning, self).__init__(*arg,**kw)
         
-
+        #self.config_label = ttk.Label(self, text="Select the configuration file : ")
+        self.log_label = ttk.Label(self, text="Select the folder containing the log file : ")
+        
+        #self.config_folder = FileDialog(self, mode='file', textEntry="")
+        self.log_folder = FileDialog(self, mode='folder', textEntry="")
+        
+        # place widgets
+        #self.config_label.grid(column=0, row=0, sticky=(W,E))  
+        #self.config_folder.grid(column=0, row=1, columnspan=2 ,sticky=(W,E))  
+        self.log_label.grid(column=0, row=0, sticky=(W,E))  
+        self.log_folder.grid(column=0, row=1, columnspan=2,sticky=(W,E))    
+        
+        self.columnconfigure(0, weight=1)
+        for i in range(2):
+            self.rowconfigure(i, weight=1)
 #---------------------------------------------------------------------------------- prediction tab --------------------------------------------------------------
 """-------------------------------------------------------------------------------- Prediction tab -------------------------------------------------------------------------"""
 class InputDirectory(ttk.LabelFrame):
@@ -1857,7 +2024,7 @@ class Connect2Remote(ttk.LabelFrame):
         self.main_dir = StringVar(value="/home/biome/biom3d")
         self.main_dir_entry = ttk.Entry(self, textvariable=self.main_dir)
 
-        self.venv_label = ttk.Label(self, text='(Optional) Name of the virtual environement on remote server:')
+        self.venv_label = ttk.Label(self, text='(Optional) Name of the virtual environment on remote server:')
         self.venv_name = StringVar(value="")
         self.venv_entry = ttk.Entry(self, textvariable=self.venv_name)
         
@@ -1981,7 +2148,7 @@ class Root(Tk):
         self.title_label = ttk.Label(self.local_or_remote, text="Biom3d", font=("Montserrat", 18))
         self.welcome_message = ttk.Label(self.local_or_remote, text="Welcome!\n\nBiom3d is an easy-to-use tool to train and use deep learning models for segmenting three dimensional images. You can either start locally, if your computer has a good graphic card (NVIDIA Geforce RTX 1080 or higher) or connect remotelly on a computer with such a graphic card.\n\nIf you need help, check our GitHub repository here: https://github.com/GuillaumeMougeot/biom3d", anchor="w", justify=LEFT, wraplength=640)
         
-        self.local_path_label = ttk.Label(self.local_or_remote, text='Enter path to where you want to store logs : \n(by default, it is the current directory.)')
+        self.local_path_label = ttk.Label(self.local_or_remote, text='Enter path to where you want to store logs : \n(by default, the files are stored in the directory \n where biom3d have been launched)')
         self.local_path = StringVar(value="")
         self.local_path_entry = ttk.Entry(self.local_or_remote, textvariable=self.local_path)
        
@@ -1992,12 +2159,12 @@ class Root(Tk):
 
         self.title_label.grid(column=0, row=0, sticky=W)
         self.welcome_message.grid(column=0, row=1, sticky=(W,E), pady=12)
-        self.local_path_label.grid(column=0, row=2, sticky=(W), pady=12)
-        self.local_path_entry.grid(column=0, row=2, sticky=(E),ipadx=85,padx=10, pady=12) 
+        
         modulename='biom3d'
         if modulename in sys.modules :
             self.start_locally.grid(column=0, row=3, ipady=4, pady=12)
-
+            self.local_path_label.grid(column=0, row=2, sticky=(W), pady=12)
+            self.local_path_entry.grid(column=0, row=2, sticky=(E),ipadx=85,padx=10, pady=12) 
         self.start_remotelly_frame.grid(column=0, row=4, sticky=(W,E), pady=12)
         self.start_remotelly_button.grid(column=0, row=5, ipady=4, pady=5)
 
