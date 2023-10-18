@@ -376,12 +376,35 @@ def save_python_config(
     base_config = None,
     **kwargs,
     ):
-    """ Saves a python configuration locally
+    """
+    Save the configuration in a config file. If the path to a base configuration is provided, then update this file with the new auto-configured parameters else use biom3d.config_default file.
 
     Parameters
     ----------
-        config_dir (str): Path to save config
-        base_config (str, optional): to load base configuration if exists. Defaults to None.
+    config_dir : str
+        Path to the configuration folder. If the folder does not exist, then create it.
+    base_config : str, default=None
+        Path to an existing configuration file which will be updated with the auto-config values.
+    **kwargs
+        Keyword arguments of the configuration file.
+
+    Returns
+    -------
+    config_path : str
+        Path to the new configuration file.
+    
+    Examples
+    --------
+    >>> config_path = save_config_python(\\
+        config_dir="configs/",\\
+        base_config="configs/pancreas_unet.py",\\
+        IMG_DIR="/pancreas/imagesTs_tiny_out",\\
+        MSK_DIR="pancreas/labelsTs_tiny_out",\\
+        NUM_CLASSES=2,\\
+        BATCH_SIZE=2,\\
+        AUG_PATCH_SIZE=[56, 288, 288],\\
+        PATCH_SIZE=[40, 224, 224],\\
+        NUM_POOLS=[3, 5, 5])
     """
     import shutil
     import fileinput
@@ -1284,13 +1307,14 @@ class TrainTab(ttk.Frame):
             
         else:  
             # Change storing paths
-            if not LOCAL_PATH.endswith('/') : 
-                local_config_dir = LOCAL_PATH+"/configs/"
-                local_logs_dir = LOCAL_PATH+"/logs/"
-            else : 
-                local_config_dir = LOCAL_PATH+"configs/"
-                local_logs_dir = LOCAL_PATH+"logs/"
-                
+            # if not LOCAL_PATH.endswith('/') : 
+            #     local_config_dir = LOCAL_PATH+"/configs/"
+            #     local_logs_dir = LOCAL_PATH+"/logs/"
+            # else : 
+            #     local_config_dir = LOCAL_PATH+"configs/"
+            #     local_logs_dir = LOCAL_PATH+"logs/"
+            local_config_dir = os.path.join(LOCAL_PATH, "configs")
+            # local_logs_dir = os.path.join(LOCAL_PATH, "logs")
             
             # save the new config file
             new_config_path = save_python_config(
