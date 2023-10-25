@@ -53,3 +53,10 @@ python -m biom3d.pred\
 #  --dir_in data/nucleus/official/test/img\
 #  --dir_out data/nucleus/official/test/preds\
 #  --dir_lab data/nucleus/official/test/msk
+
+# python -m biom3d.pred\
+#  --name seg_eval\
+#  --log logs/20230927-110033-exp1_supervised_baseline_pancreas_fold0\
+#  --dir_in data/pancreas/imagesTs_small\
+#  --dir_out data/pancreas/preds\
+#  --dir_lab data/pancreas/labelsTs_small

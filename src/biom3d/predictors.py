@@ -410,7 +410,10 @@ def seg_postprocessing(
 
     if return_logit: 
         if original_shape is not None:
-            logit = resize_3d(logit, original_shape, order=3).numpy()
+            if type(logit)==torch.Tensor:
+                logit = logit.numpy()
+            assert type(logit)==np.ndarray, "[Error] Logit must be numpy.ndarray but found {}.".format(type(logit))
+            logit = resize_3d(logit, original_shape, order=3)
         print("Returning logit...")
         print("Post-processing done!")
         return logit
