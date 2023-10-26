@@ -47,14 +47,14 @@ conda install pytorch pytorch-cuda=11.8 -c pytorch -c nvidia
 * Install biom3d:
 
 ```
-pip install biom3d
+python -m pip install biom3d
 ```
 
 * (Optional) If you intended to use Omero or the remote version of Biom3d: (two command lines)
 
 ```
 conda install -c ome omero-py
-pip install biom3d[gui]
+python -m pip install biom3d[gui]
 ```
 
 ### Python virtual environment
