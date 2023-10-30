@@ -836,12 +836,15 @@ class ConfigFrame(ttk.LabelFrame):
         else: 
             # Preprocessing & autoconfiguration    
             # Change storing paths
-            if not LOCAL_PATH.endswith('/') : 
+            if not LOCAL_PATH.endswith('/') and not LOCAL_PATH == "" : 
                 local_config_dir = LOCAL_PATH+"/configs/"
                 local_logs_dir = LOCAL_PATH+"/logs/"
-            else : 
+            elif LOCAL_PATH.endswith('/'): 
                 local_config_dir = LOCAL_PATH+"configs/"
                 local_logs_dir = LOCAL_PATH+"logs/"
+            else :
+                local_config_dir= "config/"
+                local_logs_dir = "logs/"
             config_path=auto_config_preprocess(img_dir=self.img_outdir.get(),
             msk_dir=self.msk_outdir.get(),
             desc=self.builder_name_entry.get(),
@@ -1284,13 +1287,15 @@ class TrainTab(ttk.Frame):
             
         else:  
             # Change storing paths
-            if not LOCAL_PATH.endswith('/') : 
+            if not LOCAL_PATH.endswith('/') and not LOCAL_PATH == "" : 
                 local_config_dir = LOCAL_PATH+"/configs/"
                 local_logs_dir = LOCAL_PATH+"/logs/"
-            else : 
+            elif LOCAL_PATH.endswith('/')  : 
                 local_config_dir = LOCAL_PATH+"configs/"
                 local_logs_dir = LOCAL_PATH+"logs/"
-                
+            else :
+                local_config_dir= "config/"
+                local_logs_dir = "logs/"   
             
             # save the new config file
             new_config_path = save_python_config(
@@ -1444,7 +1449,7 @@ class OmeroDataset(ttk.LabelFrame):
 
     
         self.label_id = ttk.Label(self, text="Input Dataset ID:")
-        self.id = StringVar(value="19699")
+        self.id = StringVar(value="27702")
         self.id_entry = ttk.Entry(self, textvariable=self.id)
 
    
@@ -1883,7 +1888,7 @@ class PredictTab(ttk.Frame):
                     if line:
                         print(line, end="")
 
-                self.download_prediction._update_pred_list()
+                #self.download_prediction._update_pred_list()
             else:
                 target = "data/to_pred"
                 if not os.path.isdir(target):
@@ -1908,11 +1913,11 @@ class PredictTab(ttk.Frame):
                     path=p)
         else: # if not use Omero
             if REMOTE:
-                _, stdout, stderr = REMOTE.exec_command("source {}/bin/activate; cd {}; python -m biom3d.pred --log {} --dir_in {} --dir_out {}".format(VENV,
+                _, stdout, stderr = REMOTE.exec_command("source {}/bin/activate; cd {}; python -m biom3d.pred --log 'logs/{}' --dir_in 'data/to_pred/{}' --dir_out 'data/pred/{}'".format(VENV,
                     MAIN_DIR,
-                    'logs/'+self.model_selection.logs_dir.get(), 
-                    'data/to_pred/'+self.input_dir.data_dir.get(),
-                    'data/pred/'+self.input_dir.data_dir.get(), # the default prediction output folder
+                    self.model_selection.logs_dir.get(), 
+                    self.input_dir.data_dir.get(),
+                    self.input_dir.data_dir.get(), # the default prediction output folder
                     ))
                 while True: 
                     line = stdout.readline()
@@ -1927,7 +1932,7 @@ class PredictTab(ttk.Frame):
                     if line:
                         print(line, end="")
                 # Upload the prediction list
-                self.download_prediction._update_pred_list()
+                #self.download_prediction._update_pred_list() # TO DO Repare this
             else: 
                 if self.send_to_omero_state.get():
                     target= self.send_to_omero_connection.prediction_folder.get()
