@@ -580,7 +580,7 @@ class Builder:
             scaler = torch.cuda.amp.GradScaler()
         else:
             scaler = None
-        self.callbacks.on_train_begin()
+        self.callbacks.on_train_begin(self.initial_epoch)
         for epoch in range(self.initial_epoch, self.config.NB_EPOCHS):
             self.callbacks.on_epoch_begin(epoch)
             read_config(
@@ -608,7 +608,7 @@ class Builder:
                         use_fp16=scaler is not None,
                         use_deep_supervision=self.config.USE_DEEP_SUPERVISION,)
             self.callbacks.on_epoch_end(epoch)
-        self.callbacks.on_train_end()
+        self.callbacks.on_train_end(self.config.NB_EPOCHS)
     
     # def main_ddp(self, rank, world_size): # TODO: use DDP...
     #     setup_ddp(rank, world_size)
