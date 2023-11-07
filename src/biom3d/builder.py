@@ -655,7 +655,7 @@ class Builder:
         if type(self.config)==list: # multi-model mode!
             # check if the preprocessing are all equal, then only use one preprocessing
             # TODO: make it more flexible?
-            assert np.all([config.PREPROCESSOR==self.config[0].PREPROCESSOR for config in self.config[1:]]), "[Error] For multi-model prediction, the current version of biom3d imposes that all preprocessor are identical."
+            assert np.all([config.PREPROCESSOR==self.config[0].PREPROCESSOR for config in self.config[1:]]), "[Error] For multi-model prediction, the current version of biom3d imposes that all preprocessor are identical. {}".format([config.PREPROCESSOR==self.config[0].PREPROCESSOR for config in self.config[1:]])
             
             # preprocessing
             img, img_meta = read_config(self.config[0].PREPROCESSOR, register.preprocessors, img=img, img_meta=img_meta)
@@ -665,7 +665,7 @@ class Builder:
                 if not 'POSTPROCESSOR' in self.config[i].keys():
                     self.config[i].POSTPROCESSOR = utils.Dict(fct="Seg", kwargs=utils.Dict())
 
-            assert np.all([config.POSTPROCESSOR==self.config[0].POSTPROCESSOR for config in self.config[1:]]), "[Error] For multi-model prediction, the current version of biom3d imposes that all postprocessors are identical."
+            assert np.all([config.POSTPROCESSOR==self.config[0].POSTPROCESSOR for config in self.config[1:]]), "[Error] For multi-model prediction, the current version of biom3d imposes that all postprocessors are identical. {}".format([config.POSTPROCESSOR==self.config[0].POSTPROCESSOR for config in self.config[1:]])
 
             logit = None # to accumulate the logit
             for i, config in enumerate(self.config):

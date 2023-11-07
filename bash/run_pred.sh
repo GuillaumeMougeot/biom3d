@@ -41,11 +41,11 @@
 #  --dir_in data/nucleus/to_pred/tiny_data\
 #  --dir_out data/nucleus/preds/tiny_data
 
-python -m biom3d.pred\
- --name seg\
- --log logs/20231003-herve_cynthia\
- --dir_in data/herve/img\
- --dir_out data/herve/preds
+# python -m biom3d.pred\
+#  --name seg\
+#  --log logs/20231003-herve_cynthia\
+#  --dir_in data/herve/img\
+#  --dir_out data/herve/preds
 
 # python -m biom3d.pred\
 #  --name seg_eval\
@@ -60,3 +60,40 @@ python -m biom3d.pred\
 #  --dir_in data/pancreas/imagesTs_small\
 #  --dir_out data/pancreas/preds\
 #  --dir_lab data/pancreas/labelsTs_small
+
+# nucleus
+python -m biom3d.pred\
+ --name seg\
+ --log logs/20230914-015946-chromo_dry_fold0 logs/20230830-120829-chromo_48h24hL_fold0 logs/20230831-211753-chromo_48h72hL_fold0\
+ --dir_in data/nucleus/to_pred/raw_selection_24h_cot\
+ --dir_out data/nucleus/preds
+
+python -m biom3d.pred\
+ --name seg\
+ --log logs/20230914-015946-chromo_dry_fold0 logs/20230830-120829-chromo_48h24hL_fold0 logs/20230831-211753-chromo_48h72hL_fold0\
+ --dir_in data/nucleus/to_pred/raw_selection_48h_cot A-C-D-E\
+ --dir_out data/nucleus/preds
+
+python -m biom3d.pred\
+ --name seg\
+ --log logs/20230914-015946-chromo_dry_fold0 logs/20230830-120829-chromo_48h24hL_fold0 logs/20230831-211753-chromo_48h72hL_fold0\
+ --dir_in data/nucleus/to_pred/raw_selection_48h24hL_cot\
+ --dir_out data/nucleus/preds
+
+python -m biom3d.pred\
+ --name seg\
+ --log logs/20230914-015946-chromo_dry_fold0 logs/20230830-120829-chromo_48h24hL_fold0 logs/20230831-211753-chromo_48h72hL_fold0\
+ --dir_in data/nucleus/to_pred/raw_selection_48h48hL_cot\
+ --dir_out data/nucleus/preds
+
+python -m biom3d.pred\
+ --name seg\
+ --log logs/20230914-015946-chromo_dry_fold0 logs/20230830-120829-chromo_48h24hL_fold0 logs/20230831-211753-chromo_48h72hL_fold0\
+ --dir_in data/nucleus/to_pred/raw_selection_48h72hL_cot A-B-C\
+ --dir_out data/nucleus/preds
+
+python -m biom3d.pred\
+ --name seg\
+ --log logs/20230914-015946-chromo_dry_fold0 logs/20230830-120829-chromo_48h24hL_fold0 logs/20230831-211753-chromo_48h72hL_fold0\
+ --dir_in data/nucleus/to_pred/raw_selection_dry_cot A-C-D-E\
+ --dir_out data/nucleus/preds
