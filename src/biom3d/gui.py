@@ -2331,9 +2331,8 @@ class Root(Tk):
             self.destroy()
             self.__init__()
             
-            
-if __name__=='__main__':
-    
+
+def main():
     root = Root()
 
     try: # avoid blury UI on Windows
@@ -2343,4 +2342,5 @@ if __name__=='__main__':
     finally:
         root.mainloop()
 
-    
+if __name__=='__main__':
+    main()

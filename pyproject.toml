@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "biom3d"
-version = "0.0.31"
+version = "0.0.32"
 authors = [
   {name="Guillaume Mougeot", email="guillaume.mougeot@laposte.net"},
 ]
@@ -53,3 +53,6 @@ gui = [
 [project.urls]
 "Homepage" = "https://github.com/GuillaumeMougeot/biom3d"
 "Bug Tracker" = "https://github.com/GuillaumeMougeot/biom3d/issues"
+
+[project.scripts]
+biom3d = "biom3d.gui:main"
