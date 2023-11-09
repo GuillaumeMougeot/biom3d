@@ -66,34 +66,34 @@ python -m biom3d.pred\
  --name seg\
  --log logs/20230914-015946-chromo_dry_fold0 logs/20230830-120829-chromo_48h24hL_fold0 logs/20230831-211753-chromo_48h72hL_fold0\
  --dir_in data/nucleus/to_pred/raw_selection_24h_cot\
- --dir_out data/nucleus/preds
+ --dir_out data/nucleus/preds/raw_selection_24h_cot
 
 python -m biom3d.pred\
  --name seg\
  --log logs/20230914-015946-chromo_dry_fold0 logs/20230830-120829-chromo_48h24hL_fold0 logs/20230831-211753-chromo_48h72hL_fold0\
- --dir_in data/nucleus/to_pred/raw_selection_48h_cot A-C-D-E\
- --dir_out data/nucleus/preds
+ --dir_in "data/nucleus/to_pred/raw_selection_48h_cot A-C-D-E"\
+ --dir_out "data/nucleus/preds/raw_selection_48h_cot A-C-D-E"
 
 python -m biom3d.pred\
  --name seg\
  --log logs/20230914-015946-chromo_dry_fold0 logs/20230830-120829-chromo_48h24hL_fold0 logs/20230831-211753-chromo_48h72hL_fold0\
  --dir_in data/nucleus/to_pred/raw_selection_48h24hL_cot\
- --dir_out data/nucleus/preds
+ --dir_out data/nucleus/preds/raw_selection_48h24hL_cot
 
 python -m biom3d.pred\
  --name seg\
  --log logs/20230914-015946-chromo_dry_fold0 logs/20230830-120829-chromo_48h24hL_fold0 logs/20230831-211753-chromo_48h72hL_fold0\
  --dir_in data/nucleus/to_pred/raw_selection_48h48hL_cot\
- --dir_out data/nucleus/preds
+ --dir_out data/nucleus/preds/raw_selection_48h48hL_cot
 
 python -m biom3d.pred\
  --name seg\
  --log logs/20230914-015946-chromo_dry_fold0 logs/20230830-120829-chromo_48h24hL_fold0 logs/20230831-211753-chromo_48h72hL_fold0\
- --dir_in data/nucleus/to_pred/raw_selection_48h72hL_cot A-B-C\
- --dir_out data/nucleus/preds
+ --dir_in "data/nucleus/to_pred/raw_selection_48h72hL_cot A-B-C"\
+ --dir_out "data/nucleus/preds/raw_selection_48h72hL_cot A-B-C"
 
 python -m biom3d.pred\
  --name seg\
  --log logs/20230914-015946-chromo_dry_fold0 logs/20230830-120829-chromo_48h24hL_fold0 logs/20230831-211753-chromo_48h72hL_fold0\
- --dir_in data/nucleus/to_pred/raw_selection_dry_cot A-C-D-E\
- --dir_out data/nucleus/preds
+ --dir_in "data/nucleus/to_pred/raw_selection_dry_cot A-C-D-E"\
+ --dir_out "data/nucleus/preds/raw_selection_dry_cot A-C-D-E"
