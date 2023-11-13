@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "biom3d"
-version = "0.0.32"
+version = "0.0.33"
 authors = [
   {name="Guillaume Mougeot", email="guillaume.mougeot@laposte.net"},
 ]
@@ -30,6 +30,8 @@ dependencies = [
     "protobuf>=3.19.3",
     "appdirs>=1.4.4",
     "numba>=0.56.4",
+    "paramiko",
+    "netcat",
 ]
 keywords=['deep learning', 'image segmentation', 'medical image analysis',
             'medical image segmentation', 'biological image segmentation', 'bio-imaging']
@@ -44,10 +46,8 @@ docs = [
     'docutils>=0.17.1',
 ]
 gui = [
-    "paramiko",
     "omero-py",
     "ezomero",
-    "netcat"
 ]
 
 [project.urls]
