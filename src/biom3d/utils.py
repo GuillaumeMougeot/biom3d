@@ -1192,6 +1192,9 @@ def keep_biggest_volume_centered(msk):
     the final mask intensities are either 0 or msk.max()
     """
     labels, num = measure.label(msk, background=0, return_num=True)
+    # bug fix, empty prediction
+    if num == 0:
+        return msk
     close_idx = closest(labels,num)
     vol = volumes(labels)
     relative_vol = [vol[close_idx]/vol[idx] for idx in range(1,len(vol))]
