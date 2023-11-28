@@ -1159,7 +1159,11 @@ def keep_big_volumes(msk, thres_rate=0.3):
     probability distribution: p(vol) = vol/np.sum(vol) 
     """
     # transform image to label
-    labels = measure.label(msk, background=0)
+    labels, num = measure.label(msk, background=0, return_num=True)
+
+    # if empty or single volume, return msk
+    if num <= 1:
+        return msk
 
     # compute the volume
     unq_labels,vol = np.unique(labels, return_counts=True)
