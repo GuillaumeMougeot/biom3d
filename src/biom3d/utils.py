@@ -254,7 +254,7 @@ def adaptive_imsave(img_path, img, img_meta={}):
 # ----------------------------------------------------------------------------
 # tif metadata reader and writer
 
-def tif_read_imagej(img_path):
+def tif_read_imagej(img_path, axes_order='CZYX'):
     """Read tif file metadata stored in a ImageJ format.
     adapted from: https://forum.image.sc/t/python-copy-all-metadata-from-one-multipage-tif-to-another/26597/8
 
@@ -262,6 +262,8 @@ def tif_read_imagej(img_path):
     ----------
     img_path : str
         Path to the input image.
+    axes_order : str, default='CZYX'
+        Order of the axes of the output image.
 
     Returns
     -------
@@ -304,8 +306,10 @@ def tif_read_imagej(img_path):
         # read the whole image stack and get the axes order
         series = tif.series[0]
         img = series.asarray()
+
+        img = tiff.tifffile.transpose_axes(img, series.axes, axes_order)
         
-        img_meta["axes"] = series.axes
+        img_meta["axes"] = axes_order
     
     return img, img_meta
 
