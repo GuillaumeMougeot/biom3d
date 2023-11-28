@@ -651,6 +651,8 @@ class Builder:
             img, img_meta = utils.adaptive_imread(img_path=img_path)
         else:
             assert img is not None and img_meta is not None, '[Error] If the image path is not provided, provide the image array and its metadata'
+        
+        print("Input shape:", img.shape)
 
         if type(self.config)==list: # multi-model mode!
             # check if the preprocessing are all equal, then only use one preprocessing
@@ -694,6 +696,8 @@ class Builder:
         
         else: # single model prediction
             img, img_meta = read_config(self.config.PREPROCESSOR, register.preprocessors, img=img, img_meta=img_meta)
+            
+            print("Preprocessed shape:", img.shape)
 
             # prediction
             out = read_config(
@@ -702,6 +706,8 @@ class Builder:
                 img = img,
                 model = self.model,
                 **img_meta)
+        
+            print("Model output shape:", out.shape)
             
             # retro-compatibility: use "Seg" post-processor as default 
             if not 'POSTPROCESSOR' in self.config.keys():

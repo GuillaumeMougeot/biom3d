@@ -445,7 +445,7 @@ def seg_postprocessing(
         fct = keep_biggest_volume_centered if keep_biggest_only else keep_big_volumes
         if use_softmax: # then one-hot encode the net output
             out = (np.arange(num_classes)==out[...,None]-1).astype(int)
-            out = np.swapaxes(out, 0, -1)
+            out = np.rollaxis(out, -1)
         if len(out.shape)==3:
             out = fct(out)
         elif len(out.shape)==4:
