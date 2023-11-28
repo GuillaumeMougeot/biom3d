@@ -404,6 +404,7 @@ def seg_postprocessing(
     """
     # make original_shape 3D
     original_shape = original_shape[-3:]
+    num_classes = logit.shape[0]
 
     # post-processing:
     print("Post-processing...")
@@ -442,6 +443,9 @@ def seg_postprocessing(
     # TODO: the function below is too slow
     if keep_biggest_only or keep_big_only:
         fct = keep_biggest_volume_centered if keep_biggest_only else keep_big_volumes
+        if use_softmax: # then one-hot encode the net output
+            out = (np.arange(num_classes)==out[...,None]-1).astype(int)
+            out = np.swapaxes(out, 0, -1)
         if len(out.shape)==3:
             out = fct(out)
         elif len(out.shape)==4:

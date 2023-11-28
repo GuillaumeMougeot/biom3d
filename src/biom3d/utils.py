@@ -1129,7 +1129,11 @@ def closest(labels, num):
     labels_center = np.array(labels.shape)/2
     centers = [center(labels,idx+1) for idx in range(num)]
     dist = [dist_vec(labels_center,c) for c in centers]
-    return np.argmin(dist)+1
+    # bug fix, return 1 if dist is empty:
+    if len(dist)==0:
+        return 1
+    else:
+        return np.argmin(dist)+1
 
 def keep_center_only(msk):
     """
