@@ -444,7 +444,7 @@ def seg_postprocessing(
     if keep_biggest_only or keep_big_only:
         fct = keep_biggest_volume_centered if keep_biggest_only else keep_big_volumes
         if use_softmax: # then one-hot encode the net output
-            out = (np.arange(num_classes)==out[...,None]-1).astype(int)
+            out = (np.arange(num_classes)==out[...,None]).astype(int)
             out = np.rollaxis(out, -1)
         if len(out.shape)==3:
             out = fct(out)
@@ -453,6 +453,8 @@ def seg_postprocessing(
             for i in range(out.shape[0]):
                 tmp += [fct(out[i])]
             out = np.array(tmp)
+        if use_softmax: # set back to non-one-hot encoded
+            out = out.argmax(0)
 
     out = out.astype(np.uint8)    
     
