@@ -99,8 +99,15 @@
 #  --dir_out "data/nucleus/preds/raw_selection_dry_cot A-C-D-E"
 
 # droso-herve
+# python -m biom3d.pred\
+#  --name seg\
+#  --log logs/20231128-104500-cynthia\
+#  --dir_in "data/herve/cynthia"\
+#  --dir_out "data/herve/preds"
+
+# nucleus aline bug fix
 python -m biom3d.pred\
  --name seg\
- --log logs/20231128-104500-cynthia\
- --dir_in "data/herve/cynthia"\
- --dir_out "data/herve/preds"
+ --log logs/20231127-165609-nucleus_official_fold0_fine-tuned_for_ubp5_fold0\
+ --dir_in "data/nucleus/aline_bug/img"\
+ --dir_out "data/nucleus/aline_bug/preds"

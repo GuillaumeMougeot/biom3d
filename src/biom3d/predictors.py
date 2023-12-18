@@ -446,6 +446,7 @@ def seg_postprocessing(
         if use_softmax: # then one-hot encode the net output
             out = (np.arange(num_classes)==out[...,None]).astype(int)
             out = np.rollaxis(out, -1)
+
         if len(out.shape)==3:
             out = fct(out)
         elif len(out.shape)==4:
@@ -453,6 +454,7 @@ def seg_postprocessing(
             for i in range(out.shape[0]):
                 tmp += [fct(out[i])]
             out = np.array(tmp)
+            
         if use_softmax: # set back to non-one-hot encoded
             out = out.argmax(0)
 
