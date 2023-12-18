@@ -68,6 +68,10 @@ python -m biom3d.preprocess_train\
 
 > **Warning**: This repository is still a work in progress and comes with no guarantees.
 
+## Issues
+
+Please feel free to open an issue or send me an email if any problem with biom3d appears. But please make sure first that this problem is not referenced on the FAQ page: [Frequently Asked Question](https://biom3d.readthedocs.io/en/latest/faq.html)
+
 ## 📑 Citation
 
 If you find Biom3d useful in your research, please cite:
