@@ -323,128 +323,151 @@ def popupmsg(msg):
     popup.mainloop()
     
  
-def replace_line_single(line, key, value):
-    import numpy as np
-    """Given a line, replace the value if the key is in the line. This function follows the following format:
-    \'key = value\'. The line must follow this format and the output will respect this format. 
+# def replace_line_single(line, key, value):
+#     import numpy as np
+#     """Given a line, replace the value if the key is in the line. This function follows the following format:
+#     \'key = value\'. The line must follow this format and the output will respect this format. 
     
-    Parameters
-    ----------
-    line : str
-        The input line that follows the format: \'key = value\'.
-    key : str
-        The key to look for in the line.
-    value : str
-        The new value that will replace the previous one.
+#     Parameters
+#     ----------
+#     line : str
+#         The input line that follows the format: \'key = value\'.
+#     key : str
+#         The key to look for in the line.
+#     value : str
+#         The new value that will replace the previous one.
     
-    Returns
-    -------
-    line : str
-        The modified line.
+#     Returns
+#     -------
+#     line : str
+#         The modified line.
     
-    Examples
-    --------
-    >>> line = "IMG_DIR = None"
-    >>> key = "IMG_DIR"
-    >>> value = "path/img"
-    >>> replace_line_single(line, key, value)
-    IMG_DIR = 'path/img'
-    """
-    if key==line[:len(key)]:
-        assert line[len(key):len(key)+3]==" = ", "[Error] Invalid line. A valid line must contains \' = \'. Line:"+line
-        line = line[:len(key)]
+#     Examples
+#     --------
+#     >>> line = "IMG_DIR = None"
+#     >>> key = "IMG_DIR"
+#     >>> value = "path/img"
+#     >>> replace_line_single(line, key, value)
+#     IMG_DIR = 'path/img'
+#     """
+#     if key==line[:len(key)]:
+#         assert line[len(key):len(key)+3]==" = ", "[Error] Invalid line. A valid line must contains \' = \'. Line:"+line
+#         line = line[:len(key)]
         
-        # if value is string then we add brackets
-        line += " = "
-        if type(value)==str: 
-            line += "\'" + value + "\'"
-        elif type(value)==np.ndarray:
-            line += str(value.tolist())
-        else:
-            line += str(value)
-        line += "\n"
-    return line
-def replace_line_multiple(line, dic):
+#         # if value is string then we add brackets
+#         line += " = "
+#         if type(value)==str: 
+#             line += "\'" + value + "\'"
+#         elif type(value)==np.ndarray:
+#             line += str(value.tolist())
+#         else:
+#             line += str(value)
+#         line += "\n"
+#     return line
+# def replace_line_multiple(line, dic):
 
-    for key, value in dic.items():
-        line = replace_line_single(line, key, value)
-    return line
+#     for key, value in dic.items():
+#         line = replace_line_single(line, key, value)
+#     return line
 
     
-def save_python_config(
-    config_dir,
-    base_config = None,
-    **kwargs,
-    ):
-    """ Saves a python configuration locally
+# def save_python_config(
+#     config_dir,
+#     base_config = None,
+#     **kwargs,
+#     ):
+#     """
+#     Save the configuration in a config file. If the path to a base configuration is provided, then update this file with the new auto-configured parameters else use biom3d.config_default file.
 
-    Parameters
-    ----------
-        config_dir (str): Path to save config
-        base_config (str, optional): to load base configuration if exists. Defaults to None.
-    """
-    import shutil
-    import fileinput
-    from datetime import datetime
+#     Parameters
+#     ----------
+#     config_dir : str
+#         Path to the configuration folder. If the folder does not exist, then create it.
+#     base_config : str, default=None
+#         Path to an existing configuration file which will be updated with the auto-config values.
+#     **kwargs
+#         Keyword arguments of the configuration file.
 
-    # create the config dir if needed
-    if not os.path.exists(config_dir):
-        os.makedirs(config_dir, exist_ok=True)
+#     Returns
+#     -------
+#     config_path : str
+#         Path to the new configuration file.
+    
+#     Examples
+#     --------
+#     >>> config_path = save_config_python(\\
+#         config_dir="configs/",\\
+#         base_config="configs/pancreas_unet.py",\\
+#         IMG_DIR="/pancreas/imagesTs_tiny_out",\\
+#         MSK_DIR="pancreas/labelsTs_tiny_out",\\
+#         NUM_CLASSES=2,\\
+#         BATCH_SIZE=2,\\
+#         AUG_PATCH_SIZE=[56, 288, 288],\\
+#         PATCH_SIZE=[40, 224, 224],\\
+#         NUM_POOLS=[3, 5, 5])
+#     """
+#     import shutil
+#     import fileinput
+#     from datetime import datetime
 
-    # copy default config file or use the one given by the user
-    if base_config == None:
-        try:
-            from biom3d import config_default
-            config_path = shutil.copy(config_default.__file__, config_dir) 
-        except:
-            print("[Error] Please provide a base config file or install biom3d.")
-            raise RuntimeError
-    else: 
-        config_path = base_config
+#     # create the config dir if needed
+#     if not os.path.exists(config_dir):
+#         os.makedirs(config_dir, exist_ok=True)
 
-    # rename it with date included
-    current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
+#     # copy default config file or use the one given by the user
+#     if base_config == None:
+#         try:
+#             from biom3d import config_default
+#             config_path = shutil.copy(config_default.__file__, config_dir) 
+#         except:
+#             print("[Error] Please provide a base config file or install biom3d.")
+#             raise RuntimeError
+#     else: 
+#         config_path = base_config
 
-    # if DESC is in kwargs, then it will be used to rename the config file
-    basename = os.path.basename(config_path) if "DESC" not in kwargs.keys() else kwargs['DESC']+'.py'
-    new_config_name = os.path.join(config_dir, current_time+"-"+basename)
-    os.rename(config_path, new_config_name)
+#     # rename it with date included
+#     current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
 
-    # edit the new config file with the auto-config values
-    with fileinput.input(files=(new_config_name), inplace=True) as f:
-        for line in f:
-            # edit the line
-            line = replace_line_multiple(line, kwargs)
-            # write back in the input file
-            print(line, end='') 
-    return new_config_name   
+#     # if DESC is in kwargs, then it will be used to rename the config file
+#     basename = os.path.basename(config_path) if "DESC" not in kwargs.keys() else kwargs['DESC']+'.py'
+#     new_config_name = os.path.join(config_dir, current_time+"-"+basename)
+#     os.rename(config_path, new_config_name)
 
-def config_to_type(cfg, new_type):
-    """Change config type to a new type. This function is recursive and can be use to change the type of nested dictionaries. 
-    """
-    old_type = type(cfg)
-    cfg = new_type(cfg)
-    for k,i in cfg.items():
-        if type(i)==old_type:
-            cfg[k] = config_to_type(cfg[k], new_type)
-    return cfg
-def load_python_config(config_path):
-    """ Loads a python config file 
+#     # edit the new config file with the auto-config values
+#     with fileinput.input(files=(new_config_name), inplace=True) as f:
+#         for line in f:
+#             # edit the line
+#             line = replace_line_multiple(line, kwargs)
+#             # write back in the input file
+#             print(line, end='') 
+#     return new_config_name   
 
-    Parameters
-    ----------
-        config_path (str): path to configuration file with a given path. 
-    Returns
-    -------
-        dict: Change type from config.Dict to Dict
-    """
-    import importlib.util
+# def config_to_type(cfg, new_type):
+#     """Change config type to a new type. This function is recursive and can be use to change the type of nested dictionaries. 
+#     """
+#     old_type = type(cfg)
+#     cfg = new_type(cfg)
+#     for k,i in cfg.items():
+#         if type(i)==old_type:
+#             cfg[k] = config_to_type(cfg[k], new_type)
+#     return cfg
+# def load_python_config(config_path):
+#     """ Loads a python config file 
 
-    spec = importlib.util.spec_from_file_location("config", config_path)
-    config = importlib.util.module_from_spec(spec)
-    sys.modules["config"] = config
-    spec.loader.exec_module(config)
-    return config_to_type(config.CONFIG, Dict) # change type from config.Dict to Dict
+#     Parameters
+#     ----------
+#         config_path (str): path to configuration file with a given path. 
+#     Returns
+#     -------
+#         dict: Change type from config.Dict to Dict
+#     """
+#     import importlib.util
+
+#     spec = importlib.util.spec_from_file_location("config", config_path)
+#     config = importlib.util.module_from_spec(spec)
+#     sys.modules["config"] = config
+#     spec.loader.exec_module(config)
+#     return config_to_type(config.CONFIG, Dict) # change type from config.Dict to Dict
    
 #----------------------------------------------------------------------------
 # File dialog
@@ -836,15 +859,18 @@ class ConfigFrame(ttk.LabelFrame):
         else: 
             # Preprocessing & autoconfiguration    
             # Change storing paths
-            if not LOCAL_PATH.endswith('/') and not LOCAL_PATH == "" : 
-                local_config_dir = LOCAL_PATH+"/configs/"
-                local_logs_dir = LOCAL_PATH+"/logs/"
-            elif LOCAL_PATH.endswith('/'): 
-                local_config_dir = LOCAL_PATH+"configs/"
-                local_logs_dir = LOCAL_PATH+"logs/"
-            else :
-                local_config_dir= "config/"
-                local_logs_dir = "logs/"
+            # if not LOCAL_PATH.endswith('/') : 
+            #     local_config_dir = LOCAL_PATH+"/configs/"
+            #     local_logs_dir = LOCAL_PATH+"/logs/"
+            # else : 
+            #     local_config_dir = LOCAL_PATH+"configs/"
+            #     local_logs_dir = LOCAL_PATH+"logs/"
+            local_config_dir = os.path.join(LOCAL_PATH,"configs")
+            local_logs_dir = os.path.join(LOCAL_PATH,"logs")
+            if platform=="win32" and not "\\\\" in local_config_dir:
+                local_config_dir = local_config_dir.replace("\\", "\\\\")
+                local_logs_dir = local_logs_dir.replace("\\", "\\\\")
+
             config_path=auto_config_preprocess(img_dir=self.img_outdir.get(),
             msk_dir=self.msk_outdir.get(),
             desc=self.builder_name_entry.get(),
@@ -1188,7 +1214,7 @@ class TrainTab(ttk.Frame):
        
         for i in range(len(self.config_selection.patch_size)):
          if self.config_selection.patch_size[i] > self.config_selection.aug_patch_size[i]:
-             popupmsg(f" ERREUR ! Le patch size N°{i} est inferieur a l'élément {i} de l'augmentation patch size !")
+             popupmsg(f"[Error] Patch size {i} is lower than element {i} of the augmentation patch size.")
        
         # set the configuration
         
@@ -1287,15 +1313,16 @@ class TrainTab(ttk.Frame):
             
         else:  
             # Change storing paths
-            if not LOCAL_PATH.endswith('/') and not LOCAL_PATH == "" : 
-                local_config_dir = LOCAL_PATH+"/configs/"
-                local_logs_dir = LOCAL_PATH+"/logs/"
-            elif LOCAL_PATH.endswith('/')  : 
-                local_config_dir = LOCAL_PATH+"configs/"
-                local_logs_dir = LOCAL_PATH+"logs/"
-            else :
-                local_config_dir= "config/"
-                local_logs_dir = "logs/"   
+            # if not LOCAL_PATH.endswith('/') : 
+            #     local_config_dir = LOCAL_PATH+"/configs/"
+            #     local_logs_dir = LOCAL_PATH+"/logs/"
+            # else : 
+            #     local_config_dir = LOCAL_PATH+"configs/"
+            #     local_logs_dir = LOCAL_PATH+"logs/"
+            local_config_dir = os.path.join(LOCAL_PATH,"configs")
+            # local_logs_dir = os.path.join(LOCAL_PATH, "logs")
+            if platform=="win32" and not "\\\\" in local_config_dir:
+                local_config_dir = local_config_dir.replace("\\", "\\\\")
             
             # save the new config file
             new_config_path = save_python_config(
@@ -1309,8 +1336,10 @@ class TrainTab(ttk.Frame):
             PATCH_SIZE=cfg.PATCH_SIZE,
             NUM_POOLS=cfg.NUM_POOLS,
             NB_EPOCHS=cfg.NB_EPOCHS
-            
             )
+
+            if platform=="win32" and not "\\\\" in new_config_path:
+                new_config_path = new_config_path.replace("\\", "\\\\")
         
             if not torch.cuda.is_available():
                popupmsg("  No GPU detected, the training might take a longer time ")
@@ -1449,7 +1478,7 @@ class OmeroDataset(ttk.LabelFrame):
 
     
         self.label_id = ttk.Label(self, text="Input Dataset ID:")
-        self.id = StringVar(value="27702")
+        self.id = StringVar(value="19699")
         self.id_entry = ttk.Entry(self, textvariable=self.id)
 
    
@@ -1888,7 +1917,7 @@ class PredictTab(ttk.Frame):
                     if line:
                         print(line, end="")
 
-                #self.download_prediction._update_pred_list()
+                self.download_prediction._update_pred_list()
             else:
                 target = "data/to_pred"
                 if not os.path.isdir(target):
@@ -1913,11 +1942,11 @@ class PredictTab(ttk.Frame):
                     path=p)
         else: # if not use Omero
             if REMOTE:
-                _, stdout, stderr = REMOTE.exec_command("source {}/bin/activate; cd {}; python -m biom3d.pred --log 'logs/{}' --dir_in 'data/to_pred/{}' --dir_out 'data/pred/{}'".format(VENV,
+                _, stdout, stderr = REMOTE.exec_command("source {}/bin/activate; cd {}; python -m biom3d.pred --log {} --dir_in {} --dir_out {}".format(VENV,
                     MAIN_DIR,
-                    self.model_selection.logs_dir.get(), 
-                    self.input_dir.data_dir.get(),
-                    self.input_dir.data_dir.get(), # the default prediction output folder
+                    'logs/'+self.model_selection.logs_dir.get(), 
+                    'data/to_pred/'+self.input_dir.data_dir.get(),
+                    'data/pred/'+self.input_dir.data_dir.get(), # the default prediction output folder
                     ))
                 while True: 
                     line = stdout.readline()
@@ -1932,7 +1961,7 @@ class PredictTab(ttk.Frame):
                     if line:
                         print(line, end="")
                 # Upload the prediction list
-                #self.download_prediction._update_pred_list() # TO DO Repare this
+                self.download_prediction._update_pred_list()
             else: 
                 if self.send_to_omero_state.get():
                     target= self.send_to_omero_connection.prediction_folder.get()
@@ -2153,7 +2182,7 @@ class Root(Tk):
         self.title_label = ttk.Label(self.local_or_remote, text="Biom3d", font=("Montserrat", 18))
         self.welcome_message = ttk.Label(self.local_or_remote, text="Welcome!\n\nBiom3d is an easy-to-use tool to train and use deep learning models for segmenting three dimensional images. You can either start locally, if your computer has a good graphic card (NVIDIA Geforce RTX 1080 or higher) or connect remotelly on a computer with such a graphic card.\n\nIf you need help, check our GitHub repository here: https://github.com/GuillaumeMougeot/biom3d", anchor="w", justify=LEFT, wraplength=640)
         
-        self.local_path_label = ttk.Label(self.local_or_remote, text='Enter path to where you want to store logs : \n(by default, the files are stored in the directory \n where biom3d have been launched)')
+        self.local_path_label = ttk.Label(self.local_or_remote, text='Enter path to where you want to store logs : \n(by default, the files are stored in the directory \n where biom3d was started)')
         self.local_path = StringVar(value="")
         self.local_path_entry = ttk.Entry(self.local_or_remote, textvariable=self.local_path)
        
@@ -2250,11 +2279,16 @@ class Root(Tk):
             print("virtual environment name: ",VENV)
         global LOCAL_PATH
         LOCAL_PATH = self.local_path_entry.get()
-        if not REMOTE : 
-            print("Local Directory to store config and logs  ",LOCAL_PATH)    
-            print("The suggested max number of worker based on system's resource is : ",ressources_computing())
+
+        # default value is the current path
+        if len(LOCAL_PATH)==0:
+            LOCAL_PATH = os.getcwd()
+
+        if not REMOTE: 
+            print("Local Directory to store config and logs:  ",LOCAL_PATH)    
+            print("The suggested max number of worker based on system's resource is: ",ressources_computing())
         modulename='biom3d'
-        if modulename not in sys.modules and not REMOTE :
+        if modulename not in sys.modules and not REMOTE:
             popupmsg(" you can't access local interface in international area please contact the national space agency")
         else :  
             # Stage 1.2 (root -> root_frame)
@@ -2297,9 +2331,8 @@ class Root(Tk):
             self.destroy()
             self.__init__()
             
-            
-if __name__=='__main__':
-    
+
+def main():
     root = Root()
 
     try: # avoid blury UI on Windows
@@ -2309,4 +2342,5 @@ if __name__=='__main__':
     finally:
         root.mainloop()
 
-    
+if __name__=='__main__':
+    main()
