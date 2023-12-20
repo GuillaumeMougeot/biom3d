@@ -23,6 +23,34 @@ def seg_train(
     callbacks, 
     epoch = None, # required by deep supervision
     use_deep_supervision=False):
+    """
+    Train the segmentation model.
+
+    Parameters
+    ----------
+    dataloader : DataLoader
+        DataLoader containing training data.
+    scaler : GradScaler
+        for normalizing or standardizing data.
+    model : 
+        The model to be trained.
+    loss_fn : function
+        The loss function.
+    metrics : list of metrics
+        List of metrics to calculate during training.
+    optimizer : Optimizer
+        The optimizer used for training.
+    callbacks : Callbacks
+        Callbacks to be called during training.
+    epoch : int, optional
+        Current epoch number, required for deep supervision.
+    use_deep_supervision : bool, default=False
+        If True, deep supervision is used during training.
+
+    Returns
+    -------
+    None
+    """
 
     model.train()
     
