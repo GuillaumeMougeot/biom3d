@@ -130,6 +130,28 @@ def seg_validate(
     metrics,
     use_fp16,
     use_deep_supervision=False):
+    """
+    Validate the segmentation model.
+
+    Parameters
+    ----------
+    dataloader : DataLoader
+        DataLoader containing validation data.
+    model :
+        The model to be validated.
+    loss_fn : function
+        The loss function for validation.
+    metrics : list of metrics
+        List of metrics to calculate during validation.
+    use_fp16 : bool
+        Flag to indicate if half-precision (fp16) is used.
+    use_deep_supervision : bool, default=False
+        If True, deep supervision is used during validation.
+
+    Returns
+    -------
+    None
+    """
     for m in [loss_fn]+metrics: m.reset() # reset metrics
     model.eval() # set the module in evaluation mode (only useful for dropout or batchnorm like layers)
     with torch.no_grad(): # set all the requires_grad flags to zeros
@@ -175,6 +197,24 @@ def seg_validate(
 # model trainers for segmentation with patches 
 
 def seg_patch_validate(dataloader, model, loss_fn, metrics):
+    """
+    Validate the segmentation model with patch-based approach.
+
+    Parameters
+    ----------
+    dataloader : DataLoader
+        DataLoader containing validation data in patches.
+    model :
+        The model to be validated.
+    loss_fn : function
+        The loss function for validation.
+    metrics : list of metrics
+        List of metrics to calculate during patch-based validation.
+
+    Returns
+    -------
+    None
+    """
     print("Start validation...")
     for m in [loss_fn]+metrics: m.reset() # reset metrics
     model.eval() # set the module in evaluation mode (only useful for dropout or batchnorm like layers)
@@ -214,6 +254,32 @@ def seg_patch_train(
     callbacks, 
     epoch = None, # required by deep supervision
     use_deep_supervision=False):
+    """
+    Train the segmentation model using a patch-based approach.
+
+    Parameters
+    ----------
+    dataloader : DataLoader
+        DataLoader containing training data in patches.
+    model : 
+        The model to be trained.
+    loss_fn : function
+        The loss function.
+    metrics : list of metrics
+        List of metrics to calculate during patch-based training.
+    optimizer : Optimizer
+        The optimizer used for training.
+    callbacks : Callbacks
+        Callbacks to be called during training.
+    epoch : int, optional
+        number of epochs, required for deep supervision.
+    use_deep_supervision : bool, default=False
+        If True, deep supervision is used during patch-based training.
+
+    Returns
+    -------
+    None
+    """
 
     model.train()
     for batch, queue in enumerate(dataloader):
