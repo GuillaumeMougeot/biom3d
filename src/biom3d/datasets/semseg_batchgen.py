@@ -34,6 +34,24 @@ from biom3d.utils import adaptive_imread, get_folds_train_test_df
 
 def centered_crop(img, msk, center, crop_shape, margin=np.zeros(3)):
     """Do a crop, forcing the location voxel to be located in the center of the crop.
+ 
+    Parameters
+    ----------
+    img : ndarray
+        Image data.
+    msk : ndarray
+        Mask data.
+    center : 
+        Center voxel location for cropping.
+    crop_shape : 
+        Shape of the crop.
+    margin : 
+        Margin around the center location.
+
+    Returns
+    -------
+    
+        Cropped image and mask.
     """
     img_shape = np.array(img.shape)[1:]
     center = np.array(center)
@@ -57,6 +75,24 @@ def centered_crop(img, msk, center, crop_shape, margin=np.zeros(3)):
 
 def located_crop(img, msk, location, crop_shape, margin=np.zeros(3)):
     """Do a crop, forcing the location voxel to be located in the crop.
+    
+    Parameters
+    ----------
+    img : ndarray
+        Image data.
+    msk : ndarray
+        Mask data.
+    location : array_like
+        Specific voxel location to include in the crop.
+    crop_shape : array_like
+        Shape of the crop.
+    margin : array_like, optional
+        Margin around the location.
+
+    Returns
+    -------
+    
+        Cropped image and mask.
     """
     img_shape = np.array(img.shape)[1:]
     location = np.array(location)
@@ -77,6 +113,26 @@ def located_crop(img, msk, location, crop_shape, margin=np.zeros(3)):
 
 def foreground_crop(img, msk, final_size, fg_margin, fg=None, use_softmax=True):
     """Do a foreground crop.
+    
+    Parameters
+    ----------
+    img : ndarray
+        Image data.
+    msk : ndarray
+        Mask data.
+    final_size : array_like
+        Final size of the cropped image and mask.
+    fg_margin : array_like
+        Margin around the foreground location.
+    fg : dict, optional
+        Foreground information.
+    use_softmax : bool, optional
+        If True, assumes softmax activation.
+
+    Returns
+    -------
+    
+        Cropped image and mask.
     """
     if fg is not None:
         locations = fg[random.choice(list(fg.keys()))]
@@ -100,6 +156,20 @@ def foreground_crop(img, msk, final_size, fg_margin, fg=None, use_softmax=True):
 def random_crop(img, msk, crop_shape):
     """
     randomly crop a portion of size prop of the original image size.
+    
+    Parameters
+    ----------
+    img : ndarray
+        Image data.
+    msk : ndarray
+        Mask data.
+    crop_shape : array_like
+        Shape of the crop.
+
+    Returns
+    -------
+    
+        Cropped image and mask.
     """ 
     img_shape = np.array(img.shape)[1:]
     assert len(img_shape)==len(crop_shape),"[Error] Not the same dimensions! Image shape {}, Crop shape {}".format(img_shape, crop_shape)
@@ -116,6 +186,20 @@ def random_crop(img, msk, crop_shape):
 def centered_pad(img, final_size, msk=None):
     """
     centered pad an img and msk to fit the final_size
+    
+    Parameters
+    ----------
+    img : ndarray
+        Image data.
+    final_size : array_like
+        Final size after padding.
+    msk : ndarray, optional
+        Mask data.
+
+    Returns
+    -------
+    tuple or ndarray
+        Padded image and mask, or only the image if mask is None.
     """
     final_size = np.array(final_size)
     img_shape = np.array(img.shape[1:])
@@ -137,6 +221,28 @@ def centered_pad(img, final_size, msk=None):
 def random_crop_pad(img, msk, final_size, fg_rate=0.33, fg_margin=np.zeros(3), fg=None, use_softmax=True):
     """
     random crop and pad if needed.
+    
+    Parameters
+    ----------
+    img : ndarray
+        Image data.
+    msk : ndarray
+        Mask data.
+    final_size : array_like
+        Final size after cropping and padding.
+    fg_rate : float, optional
+        Probability of focusing the crop on the foreground.
+    fg_margin : array_like, optional
+        Margin around the foreground location.
+    fg : dict, optional
+        Foreground information.
+    use_softmax : bool, optional
+        If True, assumes softmax activation; otherwise sigmoid is used.
+
+    Returns
+    -------
+    
+        Cropped and padded image and mask.
     """
     if type(img)==list: # then batch mode
         imgs, msks = [], []
@@ -160,6 +266,20 @@ def random_crop_pad(img, msk, final_size, fg_rate=0.33, fg_margin=np.zeros(3), f
     return img, msk
 
 class RandomCropAndPadTransform(AbstractTransform):
+    """
+    BatchGenerator transform for random cropping and padding.
+
+    Parameters
+    ----------
+    crop_size : array_like
+        Size of the crop.
+    fg_rate : float, optional
+        Probability of focusing the crop on the foreground.
+    data_key : str, optional
+        Key for the data in the data dictionary.
+    label_key : str, optional
+        Key for the label in the data dictionary.
+    """
     def __init__(self, crop_size, fg_rate=0.33, data_key="data", label_key="seg"):
         self.data_key = data_key
         self.label_key = label_key
@@ -582,6 +702,31 @@ def get_validation_transforms(patch_size: Union[np.ndarray, Tuple[int]],
 class BatchGenDataLoader(SlimDataLoaderBase):
     """
     Similar as torchio.SubjectsDataset but can be use with an unlimited amount of steps.
+    
+    Parameters
+    ----------
+    img_dir : str
+        Directory containing the images.
+    msk_dir : str
+        Directory containing the masks.
+    batch_size : int
+        Size of the batches.
+    nbof_steps : int
+        Number of steps per epoch.
+    fg_dir : str, optional
+        Directory containing foreground information.
+    folds_csv : str, optional
+        CSV file containing fold information for dataset splitting.
+    fold : int, optional
+        Current fold number for training/validation splitting.
+    val_split : float, optional
+        Proportion of data to be used for validation.
+    train : bool, optional
+        If True, use the dataset for training; otherwise, use it for validation.
+    load_data : bool, optional
+        If True, loads the entire dataset into computer memory.
+    num_threads_in_mt : int, optional
+        Number of threads in multi-threaded augmentation.
     """
     
     def __init__(
@@ -791,6 +936,39 @@ def configure_rotation_dummyDA_mirroring_and_inital_patch_size(patch_size):
     return rotation_for_DA, do_dummy_2d_data_aug, initial_patch_size, mirror_axes
 
 class MTBatchGenDataLoader(MultiThreadedAugmenter):
+    """
+    Multi-threaded data loader for efficient data augmentation and loading.
+
+    Parameters
+    ----------
+    img_dir : str
+        Directory containing the images.
+    msk_dir : str
+        Directory containing the masks.
+    patch_size : array_like
+        The size of the patches to be extracted.
+    batch_size : int
+        Size of the batches.
+    nbof_steps : int
+        Number of steps per epoch.
+    fg_dir : str, optional
+        Directory containing foreground information.
+    folds_csv : str, optional
+        CSV file containing fold information for dataset splitting.
+    fold : int, optional
+        Current fold number for training/validation splitting.
+    val_split : float, optional
+        Proportion of data to be used for validation.
+    train : bool, optional
+        If True, use the dataset for training; otherwise, use it for validation.
+    load_data : bool, optional
+        If True, loads the entire dataset into computer memory.
+    fg_rate : float, optional
+        Foreground rate for cropping.
+    num_threads_in_mt : int, optional
+        Number of threads in multi-threaded augmentation.
+    """
+
     def __init__(
         self,
         img_dir,
