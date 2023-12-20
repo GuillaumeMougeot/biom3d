@@ -52,6 +52,8 @@ class RandomCropOrPad(RandomTransform, SpatialTransform):
             Used with the foreground rate. Name of the label image in the tio.Subject.
         use_softmax: boolean, default=True
             Used with the foreground rate to know if the background should be removed.
+        **kwargs : dict
+            Additional keyword arguments.
         """
         super().__init__(**kwargs)
         patch_size_array = np.array(to_tuple(patch_shape, length=3))
@@ -173,7 +175,16 @@ class RandomCropOrPad(RandomTransform, SpatialTransform):
 # utilities to change variable type in label/mask
 
 class LabelToFloat:
+    """
+    Transform to convert label data to float type.
+    """
     def __init__(self, label_name):
+        """
+        Parameters
+        ----------
+        label_name : str
+            Name of the label to be transformed.
+        """
         self.label_name = label_name
         
     def __call__(self, subject):
@@ -182,7 +193,16 @@ class LabelToFloat:
         return subject
 
 class LabelToLong:
+    """
+    Transform to convert label data to long (integer) type.
+    """
     def __init__(self, label_name):
+        """
+        Parameters
+        ----------
+        label_name : str
+            Name of the label to be transformed.
+        """
         self.label_name = label_name
         
     def __call__(self, subject):
@@ -191,7 +211,16 @@ class LabelToLong:
         return subject
 
 class LabelToBool:
+    """
+    Transform to convert label data to boolean type.
+    """
     def __init__(self, label_name):
+        """
+        Parameters
+        ----------
+        label_name : str
+            Name of the label to be transformed.
+        """
         self.label_name = label_name
         
     def __call__(self, subject):
@@ -202,6 +231,19 @@ class LabelToBool:
 #---------------------------------------------------------------------------
 
 def reader(x):
+    """
+    Custom reader function for image data.
+
+    Parameters
+    ----------
+    x : str
+        Path to the image file.
+
+    Returns
+    -------
+    Tuple
+        Loaded image data and metadata (if any).
+    """
     return adaptive_imread(str(x))[0], None
 
 #---------------------------------------------------------------------------
@@ -234,9 +276,38 @@ class TorchioDataset(SubjectsDataset):
         """
         Parameters
         ----------
-        load_data : boolean, default=False
-            if True, loads the all dataset into computer memory (faster but more memory expensive). ONLY COMPATIBLE WITH .npy PREPROCESSED IMAGES
+        img_dir : str
+            Directory containing the image files.
+        msk_dir : str
+            Directory containing the mask files.
+        batch_size : int
+            Batch size for dataset sampling.
+        patch_size : nd.array
+            Size of the patches to be used.
+        nbof_steps : int
+            Number of steps (batches) per epoch.
+        fg_dir : str, optional
+            Directory containing foreground information.
+        folds_csv : str, optional
+            CSV file containing fold information for dataset splitting.
+        fold : int, default=0
+            The current fold number for training/validation splitting.
+        val_split : float, default=0.25
+            Proportion of data to be used for validation.
+        train : bool, default=True
+            If True, use the dataset for training; otherwise, use it for validation.
+        use_aug : bool, default=True
+            If True, apply data augmentation.
+        aug_patch_size : nd.array
+            Patch size to use for augmented patches.
+        fg_rate : float, default=0.33
+            Foreground rate, used to force foreground inclusion in patches.
+        load_data : bool, default=False
+            If True, loads the all dataset into computer memory (faster but more memory expensive). ONLY COMPATIBLE WITH .npy PREPROCESSED IMAGES
+        use_softmax : bool, default=True
+            If True, use softmax activation; otherwise, sigmoid is used.
         """
+      
         self.img_dir = img_dir
         self.msk_dir = msk_dir
         self.fg_dir = fg_dir
