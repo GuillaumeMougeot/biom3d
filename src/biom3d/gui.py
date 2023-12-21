@@ -19,7 +19,7 @@
 
 # from tkinter import *
 import tkinter as tk
-from tkinter import LEFT, ttk, Tk, N, W, E, S, YES, IntVar, StringVar
+from tkinter import LEFT, ttk, Tk, N, W, E, S, YES, IntVar, StringVar, PhotoImage
 from tkinter import filedialog
 import paramiko
 from stat import S_ISDIR, S_ISREG # for recursive download
@@ -2139,7 +2139,20 @@ class Root(Tk):
 
         # title
         self.title("Biom3d")
-
+        
+        # find the correct path for the logo
+        base_path = os.path.dirname(__file__)  # Get the directory where the script is located
+        image_path = os.path.join(base_path, '..', '..', 'images', 'logo_biom3d_crop.png')  # Construct the relative path
+        image_path = os.path.normpath(image_path)  # Normalize the path to the correct format for the OS
+        
+        # Verify the path
+        if not os.path.exists(image_path):
+            print(f"Error: The biom3d logo was not found at {image_path}")
+        else:
+            # Set Tkinter PNG logo as the window icon if the file exists
+            logo = PhotoImage(file=image_path)
+            self.wm_iconphoto(True, logo)
+            
         # windows dimension and positioning
         window_width = 725
         window_height = 795
