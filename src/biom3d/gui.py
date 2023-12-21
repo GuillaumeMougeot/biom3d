@@ -2179,13 +2179,14 @@ class Root(Tk):
     
         style = ttk.Style()
         style.configure("BW.TLabel",background = '#CD5C5C', foreground = 'white', font=('Helvetica', 9), width = 18, borderwidth=3, focusthickness=7, relief='raised', focuscolor='none', anchor='c', height= 15)
+        train_button_css = ttk.Style()
+        train_button_css.configure("train_button.TLabel", background = '#CD5C5C', foreground = 'white', font=('Helvetica', 9), width = 30, borderwidth=3, focusthickness=7, relief='raised', focuscolor='none', anchor='c', height= 15)
+        
         self.title_label = ttk.Label(self.local_or_remote, text="Biom3d", font=("Montserrat", 18))
         self.welcome_message = ttk.Label(self.local_or_remote, text="Welcome!\n\nBiom3d is an easy-to-use tool to train and use deep learning models for segmenting three dimensional images. You can either start locally, if your computer has a good graphic card (NVIDIA Geforce RTX 1080 or higher) or connect remotelly on a computer with such a graphic card.\n\nIf you need help, check our GitHub repository here: https://github.com/GuillaumeMougeot/biom3d", anchor="w", justify=LEFT, wraplength=640)
         
-        self.local_path_label = ttk.Label(self.local_or_remote, text='Enter path to where you want to store logs : \n(by default, the files are stored in the directory \n where biom3d was started)')
-        self.local_path = StringVar(value="")
-        self.local_path_entry = ttk.Entry(self.local_or_remote, textvariable=self.local_path)
-       
+        self.local_path_label = ttk.Label(self.local_or_remote, text='Enter path to where you want to store logs : \n(by default, the files are stored in the directory where biom3d was started)')
+        self.local_path_browse_button = FileDialog(self.local_or_remote, mode ='folder')
         self.start_locally = ttk.Button(self.local_or_remote, text="Start locally", style='BW.TLabel', command=lambda: self.main(remote=False))
 
         self.start_remotelly_frame = Connect2Remote(self.local_or_remote, text="Connect to remote server", padding=[10,10,10,10])
@@ -2196,11 +2197,11 @@ class Root(Tk):
         
         modulename='biom3d'
         if modulename in sys.modules :
-            self.start_locally.grid(column=0, row=3, ipady=4, pady=12)
+            self.start_locally.grid(column=0, row=4, ipady=4, pady=12)
             self.local_path_label.grid(column=0, row=2, sticky=(W), pady=12)
-            self.local_path_entry.grid(column=0, row=2, sticky=(E),ipadx=85,padx=10, pady=12) 
-        self.start_remotelly_frame.grid(column=0, row=4, sticky=(W,E), pady=12)
-        self.start_remotelly_button.grid(column=0, row=5, ipady=4, pady=5)
+            self.local_path_browse_button.grid(column=0, row=3, sticky=(W,E),ipadx=25,padx=20, pady=12) 
+        self.start_remotelly_frame.grid(column=0, row=5, sticky=(W,E), pady=12)
+        self.start_remotelly_button.grid(column=0, row=6, ipady=4, pady=5)
 
         # grid config
         self.local_or_remote.columnconfigure(0, weight=1)
@@ -2278,7 +2279,8 @@ class Root(Tk):
             VENV = path
             print("virtual environment name: ",VENV)
         global LOCAL_PATH
-        LOCAL_PATH = self.local_path_entry.get()
+        LOCAL_PATH = self.local_path_browse_button.get()
+        print("this is the local_path",LOCAL_PATH)
 
         # default value is the current path
         if len(LOCAL_PATH)==0:
