@@ -133,13 +133,6 @@ class LoadImgPatch:
         Bounds for clipping the intensity values.
     intensity_moments : list, optional
         Moments for intensity normalization.
-
-    Methods
-    -------
-    get_gridsampler():
-        Prepare image for model prediction and return a tio.data.GridSampler.
-    post_process(logit):
-        Post-process the model output.
     """
     def __init__(
         self,

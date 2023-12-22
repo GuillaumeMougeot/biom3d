@@ -34,6 +34,25 @@ from biom3d.utils import adaptive_imread, get_folds_train_test_df
 
 def centered_crop(img, msk, center, crop_shape, margin=np.zeros(3)):
     """Do a crop, forcing the location voxel to be located in the center of the crop.
+
+
+    Parameters
+    ----------
+    img : ndarray
+        Image data.
+    msk : ndarray
+        Mask data.
+    center : 
+        Center voxel location for cropping.
+    crop_shape : 
+        Shape of the crop.
+    margin : 
+        Margin around the center location.
+
+    Returns
+    -------
+    
+        Cropped image and mask.
     """
     img_shape = np.array(img.shape)[1:]
     center = np.array(center)
