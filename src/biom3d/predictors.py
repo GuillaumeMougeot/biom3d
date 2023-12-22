@@ -17,6 +17,21 @@ from biom3d.utils import keep_biggest_volume_centered, adaptive_imread, resize_3
 # model predictor for segmentation
 
 def load_img_seg(fname):
+    """
+    *Segmentation Predictor V1*
+    
+    Load and preprocess a single image for segmentation prediction.
+
+    Parameters
+    ----------
+    fname : str
+        Path to the image file.
+
+    Returns
+    -------
+    torch.Tensor
+        Preprocessed image as a PyTorch tensor.
+    """
     img = imread(fname)
 
     # normalize
@@ -37,7 +52,23 @@ def seg_predict(
     return_logit=False,
     ):
     """
-    for one image path, load the image, compute the model prediction, return the prediction
+    *Segmentation Predictor V1*
+
+    For one image path, load the image, compute the model prediction, return the prediction.
+    
+    Parameters
+    ----------
+    img_path : str
+        Path to the image file.
+    model : torch.nn.Module
+        The segmentation model.
+    return_logit : bool, optional
+        If True, return the raw logit instead of the post-processed output.
+
+    Returns
+    -------
+    numpy.ndarray
+        The predicted segmentation mask or logit.
     """
     img = load_img_seg(img_path)
     model.eval()
@@ -52,6 +83,25 @@ def seg_predict(
     return out.cpu().detach().numpy()
 
 def seg_predict_old(img, model, return_logit=False):
+    """
+    *Segmentation Predictor V0*
+
+    For one image path, load the image, compute the model prediction, return the prediction.
+    
+    Parameters
+    ----------
+    img_path : str
+        Path to the image file.
+    model : torch.nn.Module
+        The segmentation model.
+    return_logit : bool, optional
+        If True, return the raw logit instead of the post-processed output.
+
+    Returns
+    -------
+    numpy.ndarray
+        The predicted segmentation mask or logit.
+    """
     model.eval()
     with torch.no_grad():
         if torch.cuda.is_available():
@@ -68,6 +118,29 @@ def seg_predict_old(img, model, return_logit=False):
 # model predictor for segmentation with patches
 
 class LoadImgPatch:
+    """
+    Class to load and preprocess an image for TorchIO-like patch-based segmentation prediction.
+
+    Parameters
+    ----------
+    fname : str
+        Path to the image file.
+    patch_size : tuple of int
+        Size of the patches.
+    median_spacing : list, optional
+        Spacing to resample the image.
+    clipping_bounds : list, optional
+        Bounds for clipping the intensity values.
+    intensity_moments : list, optional
+        Moments for intensity normalization.
+
+    Methods
+    -------
+    get_gridsampler():
+        Prepare image for model prediction and return a tio.data.GridSampler.
+    post_process(logit):
+        Post-process the model output.
+    """
     def __init__(
         self,
         fname,
@@ -131,7 +204,12 @@ class LoadImgPatch:
         
     def get_gridsampler(self):
         """
-        Prepare image for model prediction and return a tio.data.GridSampler
+        Prepare image for model prediction and return a tio.data.GridSampler.
+
+        Returns
+        -------
+        tio.data.GridSampler
+            TorchIO GridSampler.
         """
         # define the grid sampler 
         patch_overlap = np.maximum(self.patch_size//2, self.patch_size-np.array(self.img_shape))
@@ -145,7 +223,17 @@ class LoadImgPatch:
     
     def post_process(self, logit):
         """
-        resampling back the image after model prediction
+        Resampling back the image after model prediction.
+
+        Parameters
+        ----------
+        logit : torch.Tensor
+            Model output.
+        
+        Returns
+        -------
+        torch.Tensor
+            Resampled logit.
         """
         if len(self.median_spacing)==0:
             return logit 
@@ -185,7 +273,43 @@ def seg_predict_patch(
     keep_biggest_only=False,
     ):
     """
-    for one image path, load the image, compute the model prediction, return the prediction
+    *Segmentation Predictor V1-TrochIO*
+
+    For one image path, load the image, compute the model prediction, return the prediction.
+    
+    Parameters
+    ----------
+    img_path : str
+        Path to the image file.
+    model : torch.nn.Module
+        The segmentation model.
+    return_logit : bool, default=False
+        If True, return the raw logit instead of the post-processed output.
+    patch_size : tuple of int, default=None
+        Size of the patches for processing.
+    tta : bool, default=False
+        If True, apply test time augmentation.
+    median_spacing : list, default=[]
+        Spacing to resample the image.
+    clipping_bounds : list, default=[]
+        Bounds for clipping the intensity values.
+    intensity_moments : list, default=[]
+        Moments for intensity normalization.
+    use_softmax : bool, default=False
+        Flag for softmax processing.
+    force_softmax : bool, default=False
+        Flag to output a softmax-like output even if the model output is sigmoid-like.
+    num_workers : int, default=4
+        Number of workers for data loading.
+    enable_autocast : bool, default=True
+        Enable mixed precision.
+    keep_biggest_only : bool, default=False
+        If True, keep only the biggest volume in the output.
+
+    Returns
+    -------
+    numpy.ndarray
+        The predicted segmentation mask or logit.
     """
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -294,8 +418,8 @@ def seg_predict_patch_2(
     img,
     original_shape,
     model,
-    conserve_size=False, # force the logit to be the same size as the input
-    patch_size=None,
+    patch_size,
+    conserve_size=False,
     tta=False,          # test time augmentation 
     num_workers=4,
     enable_autocast=True, 
@@ -304,7 +428,40 @@ def seg_predict_patch_2(
     **kwargs, # just for handling other image metadata
     ):
     """
-    for one image, compute the model prediction, return the predicted logit
+    *Segmentation Predictor V2*
+
+    For one image, compute the model prediction, return the predicted logit.
+
+    Image are supposed to be preprocessed already, which is doable using biom3d.preprocess.seg_preprocessor.
+    
+    Parameters
+    ----------
+    img : numpy.ndarray
+        The preprocessed image to predict.
+    original_shape : tuple
+        Original shape of the image.
+    model : torch.nn.Module
+        The segmentation model.
+    patch_size : tuple of int
+        Size of the patch used during training.
+    conserve_size : bool, default=False
+        Force the logit to be the same size as the input. May be used if intended to not use post-processing.
+    tta : bool, default=False
+        Test time augmentation.
+    num_workers : int, default=4
+        Number of workers.
+    enable_autocast : bool, default=True
+        Whether to use half-precision.
+    use_softmax : bool, default=True
+        [DEPRECATED!] Whether softmax activation has been used for training.
+    keep_biggest_only : bool, default=True
+        [DEPRECATED!] When true keeps the biggest object only in the output image.
+        
+      
+    Returns
+    -------
+    numpy.ndarray
+        The predicted segmentation mask or logit.
     """
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     enable_autocast = torch.cuda.is_available() and enable_autocast # tmp, autocast seems to work only with gpu for now... 
@@ -391,7 +548,7 @@ def seg_predict_patch_2(
 
 def seg_postprocessing(
         logit,
-        original_shape=None,
+        original_shape,
         use_softmax=True,
         force_softmax=False,
         keep_big_only=False,
@@ -401,6 +558,28 @@ def seg_postprocessing(
     ):
     """
     Post-process the logit (model output) to obtain the final segmentation mask. Can optionally remove some noise. 
+  
+    Parameters
+    ----------
+    logit : torch.Tensor
+        The raw model output.
+    original_shape : tuple
+        Shape to resize the output to.
+    use_softmax : bool, default=True
+        Whether softmax was used for training.
+    force_softmax : bool, default=False
+        Whether sigmoid was used for training and intended to convert to softmax-like output.
+    keep_big_only : bool, default=False
+        Whether to keep the big objects only in the output. An Otsu threshold is used on the object volume distribution.
+    keep_biggest_only : bool, default=False
+        When true keeps the biggest object only in the output.
+    return_logit : bool, optional
+        Whether to return the logit. Resampling will be applied before.
+
+    Returns
+    -------
+    numpy.ndarray
+        The post-processed segmentation mask or logit.
     """
     # make original_shape 3D
     original_shape = original_shape[-3:]

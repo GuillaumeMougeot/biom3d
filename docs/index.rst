@@ -42,3 +42,4 @@ This tool is addressed to three different profiles:
    metrics.rst
    callbacks.rst
    trainers.rst
+   predictors.rst
