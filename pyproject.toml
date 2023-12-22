@@ -47,7 +47,6 @@ docs = [
 ]
 gui = [
     "omero-py",
-    "ezomero",
 ]
 
 [project.urls]
