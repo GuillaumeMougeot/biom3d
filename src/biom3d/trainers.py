@@ -23,6 +23,38 @@ def seg_train(
     callbacks, 
     epoch = None, # required by deep supervision
     use_deep_supervision=False):
+    """
+    Train a segmentation model. 
+    
+    Call the dataloader to get a batch of images and masks, pass through the model, compute the loss using model output and masks, update model parameters. 
+
+    Work with both CUDA or CPU. CPU is much slower.
+
+    Work with half precision (fp16) and with standard precision (fp32).
+
+    Use gradient clipping during backpropagation. 
+
+    Parameters
+    ----------
+    dataloader : DataLoader
+        DataLoader for training data. A Dataloader is a Python class with an overloaded `__getitem__` method. In this case, `__getitem__` should return a batch of images and a batch of masks.
+    scaler : torch.cuda.amp.GradScaler
+        For halp precision.
+    model : torch.nn.Module
+        The model to train.
+    loss_fn : biom3d.metrics.Metric
+        The loss function.
+    metrics : list of biom3d.metrics.Metric
+        List of metrics to compute during training.
+    optimizer : torch.optim.Optimizer
+        The optimizer used for training.
+    callbacks : biom3d.callbacks.Callbacks
+        Callbacks to be called during training.
+    epoch : int, optional
+        Current epoch number, required for deep supervision.
+    use_deep_supervision : bool, default=False
+        If True, deep supervision is used during training.
+    """
 
     model.train()
     
@@ -102,6 +134,30 @@ def seg_validate(
     metrics,
     use_fp16,
     use_deep_supervision=False):
+    """
+    Validate a segmentation model.
+
+    Call the validation dataloader to get a batch of images and masks, pass through the model, compute the loss using model output and masks.
+
+    Work with both CUDA or CPU. CPU is much slower.
+
+    Work with half precision (fp16) and with standard precision (fp32).
+    
+    Parameters
+    ----------
+    dataloader : DataLoader
+        DataLoader for validation data. A Dataloader is a Python class with an overloaded `__getitem__` method. In this case, `__getitem__` should return a batch of images and a batch of masks.
+    model : torch.nn.Module
+        The model to validate.
+    loss_fn : biom3d.metrics.Metric
+        The validation loss function.
+    metrics : list of biom3d.metrics.Metric
+        List of metrics to compute during validation.
+    use_fp16 : bool
+        Flag to indicate if half-precision (fp16) is used.
+    use_deep_supervision : bool, default=False
+        If True, deep supervision is used during validation.
+    """
     for m in [loss_fn]+metrics: m.reset() # reset metrics
     model.eval() # set the module in evaluation mode (only useful for dropout or batchnorm like layers)
     with torch.no_grad(): # set all the requires_grad flags to zeros
@@ -147,6 +203,20 @@ def seg_validate(
 # model trainers for segmentation with patches 
 
 def seg_patch_validate(dataloader, model, loss_fn, metrics):
+    """
+    Validate the segmentation model with TorchIO patch-based approach.
+
+    Parameters
+    ----------
+    dataloader : TorchIO DataLoader
+        TorchIO DataLoader (such as generated using biom3d.datasets.semseg_torchio) containing validation data in patches. A Dataloader is a Python class with an overloaded `__getitem__` method. In this case, `__getitem__` should return a batch of images and a batch of masks.
+    model : torch.nn.Module
+        The model to validate.
+    loss_fn : biom3d.metrics.Metric
+        The validation loss function.
+    metrics : list of biom3d.metrics.Metric
+        List of metrics to compute during validation.
+    """
     print("Start validation...")
     for m in [loss_fn]+metrics: m.reset() # reset metrics
     model.eval() # set the module in evaluation mode (only useful for dropout or batchnorm like layers)
@@ -186,6 +256,28 @@ def seg_patch_train(
     callbacks, 
     epoch = None, # required by deep supervision
     use_deep_supervision=False):
+    """
+    Train the segmentation model using a TorchIO patch-based approach.
+
+    Parameters
+    ----------
+    dataloader : TorchIO DataLoader
+        TorchIO DataLoader (such as generated using biom3d.datasets.semseg_torchio) containing training data in patches. A Dataloader is a Python class with an overloaded `__getitem__` method. In this case, `__getitem__` should return a batch of images and a batch of masks.
+    model : torch.nn.Module
+        The model to train.
+    loss_fn : biom3d.metrics.Metric
+        The loss function.
+    metrics : list of metrics
+        List of metrics to calculate during patch-based training.
+    optimizer : torch.optim.Optimizer
+        The optimizer used for training.
+    callbacks : biom3d.callbacks.Callbacks
+        Callbacks to be called during training.
+    epoch : int, optional
+        Current epoch number, required for deep supervision.
+    use_deep_supervision : bool, default=False
+        If True, deep supervision is used during training.
+    """
 
     model.train()
     for batch, queue in enumerate(dataloader):

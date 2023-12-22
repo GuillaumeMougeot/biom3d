@@ -41,3 +41,4 @@ This tool is addressed to three different profiles:
    builder.rst
    metrics.rst
    callbacks.rst
+   trainers.rst
