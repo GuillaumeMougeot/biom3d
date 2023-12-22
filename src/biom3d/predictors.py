@@ -551,6 +551,8 @@ def seg_postprocessing(
     ):
     """
     Post-process the logit (model output) to obtain the final segmentation mask. Can optionally remove some noise. 
+
+    Recommanded to be used after biom3d.predictors.seg_predict_patch_2.
   
     Parameters
     ----------
