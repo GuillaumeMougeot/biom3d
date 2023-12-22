@@ -1,7 +1,7 @@
 Trainers
 ========
 
-The Trainers are Python functions that take as input a dataloader, a model, a loss function and an optimizer function to start a training process. Optionally, a list of [biom3d.metrics.Metric](https://biom3d.readthedocs.io/en/latest/metrics.html) and a [biom3d.callback.Callbacks](https://biom3d.readthedocs.io/en/latest/callbacks.html) can be provided to the trainer to enrich the training loop. 
+The Trainers are Python functions that take as input a dataloader, a model, a loss function and an optimizer function to start a training process. Optionally, a list of `biom3d.metrics.Metric <https://biom3d.readthedocs.io/en/latest/metrics.html>` and a `biom3d.callback.Callbacks <https://biom3d.readthedocs.io/en/latest/callbacks.html>` can be provided to the trainer to enrich the training loop. 
 
 .. automodule:: biom3d.trainers
     :members:
