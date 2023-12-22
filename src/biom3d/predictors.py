@@ -266,7 +266,7 @@ def seg_predict_patch(
     keep_biggest_only=False,
     ):
     """
-    *Segmentation Predictor V1-TrochIO*
+    *Segmentation Predictor V1-TorchIO*
 
     For one image path, load the image, compute the model prediction, return the prediction.
     
