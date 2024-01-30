@@ -32,6 +32,7 @@ dependencies = [
     "numba>=0.56.4",
     "paramiko",
     "netcat",
+    "tifffile"
 ]
 keywords=['deep learning', 'image segmentation', 'medical image analysis',
             'medical image segmentation', 'biological image segmentation', 'bio-imaging']
