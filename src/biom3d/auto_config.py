@@ -185,7 +185,7 @@ def find_patch_pool_batch(dims, max_dims=(128,128,128), max_pool=5, epsilon=1e-3
     # divides by a 1+epsilon until reaching a sufficiently small resolution
     while dims.prod() > max_dims.prod():
         dims = dims / (1+epsilon)
-    dims = np.round(dims).astype(int)
+    dims = np.ceil(dims).astype(int)
     
     # compute patch and pool for all dims
     patch_pool = np.array([single_patch_pool(m) for m in dims])
