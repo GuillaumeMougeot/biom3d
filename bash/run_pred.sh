@@ -106,8 +106,27 @@
 #  --dir_out "data/herve/preds"
 
 # nucleus aline bug fix
+# python -m biom3d.pred\
+#  --name seg\
+#  --log logs/20231127-165609-nucleus_official_fold0_fine-tuned_for_ubp5_fold0\
+#  --dir_in "data/nucleus/aline_bug/img"\
+#  --dir_out "data/nucleus/aline_bug/preds"
+
 python -m biom3d.pred\
- --name seg\
- --log logs/20231127-165609-nucleus_official_fold0_fine-tuned_for_ubp5_fold0\
- --dir_in "data/nucleus/aline_bug/img"\
- --dir_out "data/nucleus/aline_bug/preds"
+    --name seg\
+    --log logs/20240219-100225-reims_full_fold0\
+    --dir_in data/reims/big_stack/img\
+    --dir_out data/reims/big_stack/preds\
+
+# python -m biom3d.pred\
+#     --name seg_eval\
+#     --log logs/20240218-072550-reims_fold0\
+#     --dir_in data/reims/test_match/img\
+#     --dir_out data/reims/test_match/preds\
+#     --dir_lab data/reims/test_match/msk
+
+# python -m biom3d.pred\
+#     --name seg_single\
+#     --log logs/20240218-072550-reims_fold0\
+#     --dir_in data/reims/big_stack/img/1024.tif\
+#     --dir_out data/reims/big_stack/preds/1024.tif
