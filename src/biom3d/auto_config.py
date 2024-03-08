@@ -128,9 +128,8 @@ def data_fingerprint(img_dir, msk_dir=None, num_samples=10000):
 
 def find_patch_pool_batch(dims, max_dims=(128,128,128), max_pool=5, epsilon=1e-3):
     """Given the median image size, compute the patch size, the number of pooling and the batch size.
-    Take the median size of an image dataset as input, 
-    determine the patch size and the number of pool with "single_patch_pool" function for each dimension and 
-    assert that the final dimension size is smaller than max_dims.prod().
+    The generated patch size is repecting the input dimension proportions.
+    The product of the patch dimensions is lower than the product of the `max_dims` dimensions.
 
     Parameters
     ----------
@@ -141,7 +140,7 @@ def find_patch_pool_batch(dims, max_dims=(128,128,128), max_pool=5, epsilon=1e-3
     max_pool: int, default=5
         Maximum pooling size.
     epsilon: float, default=1e-3
-        Used to have a positive value in the dimension computation.
+        Used to reduce the input dimensions if they are too big. Input dimensions will be divided by (1+epsilon) an sufficient number times so they resulting dimensions respect the max_dims limit.
 
     Returns
     -------
@@ -167,7 +166,9 @@ def find_patch_pool_batch(dims, max_dims=(128,128,128), max_pool=5, epsilon=1e-3
     min_fmaps = min(max_dims)//(2**max_pool)
     assert min_fmaps >= 1, "[Error] The minimum of max_dims {} is too small regarding max_pool {}. Increase max_dims or reduce max_pool.".format(min(max_dims), max_pool)
     
-    # divides by a 1+epsilon until reaching a sufficiently small resolution
+    # if the input dimensions are too big, they will be reduced.
+    # the reduced dimensions will respect input dimension proportions.
+    # they will be divided by a 1+epsilon until reaching a sufficiently small resolution
     if dims.prod() > max_dims.prod():
         # grouped lower bound to the reduction level,
         # lower values will cause the final dimension to be bigger than the max_dim
