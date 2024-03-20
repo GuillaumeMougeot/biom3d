@@ -12,7 +12,8 @@
 # python -m biom3d.train --config configs/20230926-104900-triplet_pancreas_exp20.py
 # python -m biom3d.train --config configs/20230517-121730-unet_chromo.py
 # python -m biom3d.train --log logs/20230605-181034-unet_chromo_48h24-48hL
-python -m biom3d.train --config configs/20240219-100035-reims_full.py
+python -m biom3d.train --config configs/20240319-093546-reims_large_full.py
+# python -m biom3d.train --config configs/20240219-100035-reims_full.py
 
 # fine-tuning
 # python -m biom3d.train\

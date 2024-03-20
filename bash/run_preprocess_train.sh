@@ -79,8 +79,20 @@
 #  --num_classes 1\
 #  --desc nucleus_aline_all
 
+# python -m biom3d.preprocess_train\
+#  --img_dir data/reims/img_stack\
+#  --msk_dir data/reims/msk_stack\
+#  --num_classes 1\
+#  --desc reims
+
+# python -m biom3d.preprocess_train\
+#  --img_dir data/reims/large/img_split\
+#  --msk_dir data/reims/large/msk_split\
+#  --num_classes 1\
+#  --desc reims_large
+
 python -m biom3d.preprocess_train\
- --img_dir data/reims/img_stack\
- --msk_dir data/reims/msk_stack\
+ --img_dir data/reims/large/img\
+ --msk_dir data/reims/large/msk\
  --num_classes 1\
- --desc reims
+ --desc reims_large_full

@@ -228,7 +228,8 @@ class ParaProxy(paramiko.proxy.ProxyCommand):
         self.channel.close()        
 
 #----------------------------------------------------------------------------
-# general utils
+# General utils
+        
 def ressources_computing():
     
     # try to compute a suggested max number of worker based on system's resource
@@ -247,6 +248,7 @@ def ressources_computing():
         if cpu_count is not None:
             max_num_worker_suggest = cpu_count
     return max_num_worker_suggest
+
 class Dict(dict):
     def __init__(self, *args, **kwargs): super().__init__(*args, **kwargs)
     def __getattr__(self, name): return self[name]
@@ -545,9 +547,6 @@ class TrainFolderSelection(ttk.LabelFrame):
             self.send_data_name = StringVar(value="nucleus_0001")
             self.send_data_entry = ttk.Entry(self, textvariable=self.send_data_name)
             
-
-    
-          
         else:
             self.img_outdir = FileDialog(self, mode='folder', textEntry="")
             self.msk_outdir = FileDialog(self, mode='folder', textEntry="")            
@@ -570,17 +569,12 @@ class TrainFolderSelection(ttk.LabelFrame):
             self.label2.grid(column=0,row=4, sticky=W, pady=7)
             self.msk_outdir.grid(column=0,row=5, sticky=(W,E))
             
-           
-
-        
-        
         # Configure columns
         self.columnconfigure(0, weight=1)
 
         for i in range(6):
             self.rowconfigure(i, weight=1)
 
-   
     def send_data(self):
         """
         To send data to remote server.
@@ -594,7 +588,6 @@ class TrainFolderSelection(ttk.LabelFrame):
         ftp_put_folder(ftp, localpath=self.msk_outdir.get(), remotepath=remote_dir_msk)
         popupmsg("Data sent!")
      
-   
 class ConfigFrame(ttk.LabelFrame):
     """ Load or auto configure training parameters
     """
@@ -714,6 +707,7 @@ class ConfigFrame(ttk.LabelFrame):
         self.columnconfigure(0, weight=1)
         for i in range(10):
             self.rowconfigure(i, weight=1)   
+
     def option_selected(self, *args):
         """ Getter for selected Dataset
         
@@ -742,7 +736,6 @@ class ConfigFrame(ttk.LabelFrame):
             self.data_dir_option_menu['menu'].add_command(
                 label=option,
                 command=lambda opt=option: self.data_dir.set(opt))
-        
         
     def str2list(self, string):
         """
@@ -855,7 +848,6 @@ class ConfigFrame(ttk.LabelFrame):
     
             print(batch,patch,pool,aug_patch,config_path)
           
-            
         else: 
             # Preprocessing & autoconfiguration    
             # Change storing paths
@@ -894,7 +886,6 @@ class ConfigFrame(ttk.LabelFrame):
             fg_dir_train = self.train_parameters.FG_DIR
          
             print("Train Parameters :  ",batch,aug_patch,patch,pool,config_path)
-           
         
         # Update Config Cells in Gui
         self.batch_size.set(batch)
@@ -921,7 +912,6 @@ class ConfigFrame(ttk.LabelFrame):
             self.auto_config_finished.config(text="Auto-configuration done! and saved in config folder : \n" +config_path)
             popupmsg("Auto-configuration done! and saved in config folder : \n" +config_path)
             
-"""----------------------------------------------------------------------- TRAINING TAB ---------------------------------------------------------------------------------------"""
 class TrainTab(ttk.Frame):
     """
     Class to run training, contains folder selection and configuration frame. 
@@ -947,13 +937,16 @@ class TrainTab(ttk.Frame):
         self.plot_button = ttk.Button(self, text="Plot Learning Curves", style="train_button.TLabel", width =29, command=self.get_logs_plot)
         self.fine_tune_button = ttk.Button(self,   text="Fine-tune", style="train_button.TLabel", width=29, command=self.train)
         self.train_done = ttk.Label(self, text="")
+        
         # config folder
         self.dataset_preprocessed_state = IntVar(value=0) 
         self.use_conf_button = ttk.Checkbutton(self, text="Dataset is already preprocessed ? ", command=self.display_conf_finetuning, variable=self.dataset_preprocessed_state)
+        
         #Fine tuning
         self.fine_tune_state = IntVar(value=0) 
         self.use_tune_button = ttk.Checkbutton(self, text="Use Fine-Tuning ? ", command=self.display_conf_finetuning ,variable=self.fine_tune_state)
         self.FineTuning= FineTuning( master=self, text="Fine-Tuning !", padding=[10,10,10,10])
+        
         # Model selection
         self.model_selection = ModelSelection(self, text="Model selection", padding=[10,10,10,10])
         # set default values of train folders with the ones used for preprocess tab
@@ -969,7 +962,6 @@ class TrainTab(ttk.Frame):
         self.columnconfigure(0, weight=1)
         for i in range(5):
             self.rowconfigure(i, weight=1)
-            
             
     def display_conf_finetuning(self):
         if not REMOTE:
@@ -1014,8 +1006,6 @@ class TrainTab(ttk.Frame):
                 self.config_selection.num_classes_label.grid(column=0,row=3, sticky=W, pady=2)
                 self.config_selection.classes.grid(column=0,row=3,pady=5,sticky=E)
                 self.config_selection.auto_config_button.grid(column=0, columnspan=4,row=4 ,ipady=4, pady=2,)   
-                
-                
                 
                 self.columnconfigure(0, weight=1)
                 for i in range(5):
@@ -1103,6 +1093,7 @@ class TrainTab(ttk.Frame):
             self.folder_selection.msk_outdir.grid_remove()
             self.FineTuning.grid_remove()  
             self.fine_tune_button.grid_remove()
+
     def display_three(self):
         self.folder_selection.grid(column=0, row=2, sticky=(N,W,E), pady=3)
         self.FineTuning.grid(column=0, row=3, sticky=(N,W,E), pady=3)
@@ -1186,8 +1177,6 @@ class TrainTab(ttk.Frame):
         # save figure locally
         plt.savefig('Learning_curves_plot.png')
         
-        
-
     def train(self):
         """
         Load the configuration file, modify it, save it, launch training, saves everything in logs folder
@@ -1279,8 +1268,6 @@ class TrainTab(ttk.Frame):
             # delete the temp file
             os.remove(new_config_path)
 
-
-
             def train_nohup():
                 """
                 run the training in remote server and disown it
@@ -1308,9 +1295,6 @@ class TrainTab(ttk.Frame):
             train_nohup()
             self.get_logs_plot()
          
-          
-                
-            
         else:  
             # Change storing paths
             # if not LOCAL_PATH.endswith('/') : 
@@ -1352,8 +1336,6 @@ class TrainTab(ttk.Frame):
                 # run the training           
                 train(config=new_config_path)
             popupmsg(" Training Done ! ")
-            
-              
 
 class FineTuning(ttk.LabelFrame):
     def __init__(self, *arg, **kw):
@@ -1374,8 +1356,10 @@ class FineTuning(ttk.LabelFrame):
         self.columnconfigure(0, weight=1)
         for i in range(2):
             self.rowconfigure(i, weight=1)
-#---------------------------------------------------------------------------------- prediction tab --------------------------------------------------------------
-"""-------------------------------------------------------------------------------- Prediction tab -------------------------------------------------------------------------"""
+
+#----------------------------------------------------------------------------
+# Prediction tab
+
 class InputDirectory(ttk.LabelFrame):
     """ Class to choose input datasets and masks, or send them to remote server
     """
@@ -1563,6 +1547,7 @@ class OutputDirectory(ttk.LabelFrame):
             self.columnconfigure(0, weight=1)
             for i in range(2):
                 self.rowconfigure(i, weight=1)
+
 class OmeroUpload(ttk.LabelFrame):
     """ For Uploading Predictions to OMERO server
     """
@@ -1636,7 +1621,6 @@ class OmeroUpload(ttk.LabelFrame):
         for i in range(6):
             self.rowconfigure(i, weight=1)
 
-       
         # add send to omero button 
     def _update_pred_list(self):
         """Update the prediction list
@@ -1645,7 +1629,6 @@ class OmeroUpload(ttk.LabelFrame):
         self.data_list = [e.replace('\n','') for e in stdout.readlines()]
         self.data_dir_option_menu.set_menu(self.data_list[0], *self.data_list)       
         popupmsg("Updated !")
-        
         
     def send_to_omero(self): 
         """
@@ -1671,8 +1654,6 @@ class OmeroUpload(ttk.LabelFrame):
             if line:
                 print(line, end="")
        
-       
-       
     def dataset_selected_omero(self, *args):
         """ Getter for selected Dataset
 
@@ -1682,6 +1663,7 @@ class OmeroUpload(ttk.LabelFrame):
         global selected_dataset
         selected_dataset = self.data_dir.get()
         return selected_dataset  
+    
 class DownloadPrediction(ttk.LabelFrame):
     """
     REMOTE only! download output after prediction
@@ -1780,7 +1762,6 @@ def load_yaml_config(path):
     """
     return config_to_type(yaml.load(open(path),Loader=yaml.FullLoader), Dict)
 
-"""----------------------------------------------------------------------- PREDICTION TAB ---------------------------------------------------------------------------"""
 class PredictTab(ttk.Frame):
     """ Prediction tab.
     Workflow :
@@ -2130,8 +2111,6 @@ class Connect2Remote(ttk.LabelFrame):
             self.proxy_password_label.grid_remove()
             self.proxy_password_entry.grid_remove()
 
-
-
 class Root(Tk):
     def __init__(self):
         # Stage 0 (root)
@@ -2170,6 +2149,7 @@ class Root(Tk):
         self.geometry(f'{window_width}x{window_height}+{center_x}+{center_y}')
 
         self.minsize(360,360)
+        
         # self.iconbitmap("biom3d/microscope.png")
         self.config(background='#D00000')
 
@@ -2177,19 +2157,16 @@ class Root(Tk):
         init_styles()
 
         # background
-
         self.background = ttk.Frame(self, padding=PADDING, style='red.TFrame')
         self.background.grid(column=0, row=0, sticky=(N, W, E, S))
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
-        # Stage 1.1 (root --> local of server)
 
+        # Stage 1.1 (root --> local of server)
         self.local_or_remote = ttk.Frame(self.background, padding=[20,20,20,20])
         self.local_or_remote.pack(expand=YES, fill='x', padx=20, pady=20)
 
         ## Stage 2 (local_or_remote --> frame)
-
-    
         style = ttk.Style()
         style.configure("BW.TLabel",background = '#CD5C5C', foreground = 'white', font=('Helvetica', 9), width = 18, borderwidth=3, focusthickness=7, relief='raised', focuscolor='none', anchor='c', height= 15)
         train_button_css = ttk.Style()
@@ -2232,8 +2209,7 @@ class Root(Tk):
             global MAIN_DIR
             
             print('Connecting to server...')
-            
-
+        
             # connection
             # if use proxy server then connect to proxy first
             if self.start_remotelly_frame.use_proxy_state.get():
@@ -2291,6 +2267,7 @@ class Root(Tk):
             # VENV = path_to_venv[-1]
             VENV = path
             print("virtual environment name: ",VENV)
+
         global LOCAL_PATH
         LOCAL_PATH = self.local_path_browse_button.get()
         print("this is the local_path",LOCAL_PATH)
@@ -2302,6 +2279,7 @@ class Root(Tk):
         if not REMOTE: 
             print("Local Directory to store config and logs:  ",LOCAL_PATH)    
             print("The suggested max number of worker based on system's resource is: ",ressources_computing())
+        
         modulename='biom3d'
         if modulename not in sys.modules and not REMOTE:
             popupmsg(" you can't access local interface in international area please contact the national space agency")
@@ -2342,11 +2320,15 @@ class Root(Tk):
             self.home_button_pred=ttk.Button(self.predict_tab,text="Home",command=self.refresh)
             #self.home_button_train.grid(column=0, row=0, sticky=(S,W)) 
             #self.home_button_pred.grid(column=0, row=0, sticky=(S,W))
+
+        # add eval tab, TODO: do it in remote
+        # if not REMOTE:
+        #     self.predict_tab = ttk.Frame(self.tab_parent, padding=PADDING)
+        
     def refresh(self):
             self.destroy()
             self.__init__()
             
-
 def main():
     root = Root()
 

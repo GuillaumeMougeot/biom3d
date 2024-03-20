@@ -54,7 +54,7 @@
 #  --use_tif
 
 python -m biom3d.preprocess\
- --img_dir data/reims/train_full/img_stack\
- --msk_dir data/reims/train_full/msk_stack\
+ --img_dir data/reims/large/img\
+ --msk_dir data/reims/large/msk\
  --num_classes 1\
- --desc reims_full
+ --desc reims_large
