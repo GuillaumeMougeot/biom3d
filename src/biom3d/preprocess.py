@@ -216,7 +216,12 @@ def seg_preprocessor(
     if do_msk: 
         # sanity check
         msk = sanity_check(msk, num_classes)
-
+        
+        
+    # add dimension if it's a 2d image    
+    if len(img.shape) == 2 :
+        print("this is a 2d image : ",img.shape)
+        img = np.expand_dims(img, axis=0)
     # expand image dim
     if len(img.shape)==3:
         # keep the input shape, used for preprocessing before prediction
@@ -250,7 +255,8 @@ def seg_preprocessor(
     elif do_msk and len(msk.shape)==4:
         # normalize each channel
         msk = (msk > msk.min()).astype(np.uint8)
-
+    if do_msk and len(msk.shape) == 3:
+        msk = np.expand_dims(msk,axis=0)
     assert len(img.shape)==4
     if do_msk: assert len(msk.shape)==4
 

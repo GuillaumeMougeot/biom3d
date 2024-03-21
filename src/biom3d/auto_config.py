@@ -37,6 +37,10 @@ def compute_median(path, return_spacing=False):
     for i in range(len(path_imgs)):
 
         img,metadata = adaptive_imread(path_imgs[i])
+        # Check if the image is 2D (has two dimensions)
+        if len(img.shape) == 2:
+            # Add a third dimension with size 1 to make it 3D
+            img = np.expand_dims(img, axis=0)
         spacing = None if not 'spacing' in metadata.keys() else metadata['spacing']
 
         assert len(img.shape)>0, "[Error] Wrong image image."
@@ -90,6 +94,10 @@ def data_fingerprint(img_dir, msk_dir=None, num_samples=10000):
         
     for i in range(len(path_imgs)):
         img,metadata = adaptive_imread(path_imgs[i])
+        # Check if the image is 2D (has two dimensions)
+        if len(img.shape) == 2:
+            # Add a third dimension with size 1 to make it 3D
+            img = np.expand_dims(img, axis=0)
         spacing = None if not 'spacing' in metadata.keys() else metadata['spacing']
 
         # store the size
@@ -102,6 +110,10 @@ def data_fingerprint(img_dir, msk_dir=None, num_samples=10000):
         if msk_dir is not None:
             # read msk
             msk,_ = adaptive_imread(path_msks[i])
+            # Check if the image is 2D (has two dimensions)
+            if len(msk.shape) == 2:
+                # Add a third dimension with size 1 to make it 3D
+                msk = np.expand_dims(msk, axis=0)
             
             # extract only useful voxels
             img = img[msk > 0]
@@ -174,7 +186,7 @@ def find_patch_pool_batch(dims, max_dims=(128,128,128), max_pool=5, epsilon=1e-3
     batch: numpy.ndarray
         Batch size.
     """
-    # transform tuples into arrays
+    # transform tuples into arrays      
     assert len(dims)==3 or len(dims)==4, print("Dims has not the correct number of dimensions: len(dims)=", len(dims))
     if len(dims)==4:
         dims=dims[1:]
