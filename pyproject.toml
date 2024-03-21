@@ -2,12 +2,9 @@
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
-[license]
-file = "LICENSE"
-
 [project]
 name = "biom3d"
-version = "0.0.28"
+version = "0.0.35"
 authors = [
   {name="Guillaume Mougeot", email="guillaume.mougeot@laposte.net"},
 ]
@@ -33,6 +30,9 @@ dependencies = [
     "protobuf>=3.19.3",
     "appdirs>=1.4.4",
     "numba>=0.56.4",
+    "paramiko",
+    "netcat",
+    "tifffile"
 ]
 keywords=['deep learning', 'image segmentation', 'medical image analysis',
             'medical image segmentation', 'biological image segmentation', 'bio-imaging']
@@ -47,12 +47,12 @@ docs = [
     'docutils>=0.17.1',
 ]
 gui = [
-    "paramiko",
     "omero-py",
-    "ezomero",
-    "netcat"
 ]
 
 [project.urls]
 "Homepage" = "https://github.com/GuillaumeMougeot/biom3d"
 "Bug Tracker" = "https://github.com/GuillaumeMougeot/biom3d/issues"
+
+[project.scripts]
+biom3d = "biom3d.gui:main"

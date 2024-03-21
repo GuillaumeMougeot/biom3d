@@ -28,6 +28,12 @@ This tool is addressed to three different profiles:
 
 .. toctree::
    :maxdepth: 2
+   :caption: FAQ
+
+   faq.md
+
+.. toctree::
+   :maxdepth: 2
    :caption: API 
 
    preprocess.rst
@@ -35,3 +41,5 @@ This tool is addressed to three different profiles:
    builder.rst
    metrics.rst
    callbacks.rst
+   trainers.rst
+   predictors.rst

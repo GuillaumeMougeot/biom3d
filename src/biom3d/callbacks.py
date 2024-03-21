@@ -8,6 +8,7 @@
 
 import torch
 import os
+from shutil import copyfile
 # from telegram_send import send
 import matplotlib.pyplot as plt
 plt.switch_backend('Agg')  # bug fix: change matplotlib backend 
@@ -53,7 +54,7 @@ class Callback(object):
     def on_train_begin(self, epoch=None):
         pass
 
-    def on_train_end(self):
+    def on_train_end(self, epoch=None):
         pass
 
 # dict based callbacks
@@ -98,15 +99,15 @@ class Callbacks(Callback):
 
     def on_train_begin(self, epoch=None):
         for callback in self.callbacks.values():
-            callback.on_train_begin()
+            callback.on_train_begin(epoch)
 
-    def on_train_end(self):
+    def on_train_end(self, epoch=None):
         for callback in self.callbacks.values():
-            callback.on_train_end()
+            callback.on_train_end(epoch)
 
 #----------------------------------------------------------------------------
 # Savers            
-            
+
 class ModelSaver(Callback): # TODO: save best_only
     """The model saver saves the model, the epoch, the optimizer and the loss in the end of each epoch. It can also save the best model.
     
@@ -140,6 +141,7 @@ class ModelSaver(Callback): # TODO: save best_only
         super().__init__()
         self.model = model
         self.optimizer = optimizer
+        self.path = path
         self.path_last = path + '.pth'
         self.path_best = path + '_best.pth'
         self.every_epoch = every_epoch
@@ -147,6 +149,15 @@ class ModelSaver(Callback): # TODO: save best_only
         self.best_loss = float('inf')
         self.loss = loss
         self.saved_loss = saved_loss
+
+    def on_train_begin(self, epoch):
+        """If the model already exists, it probably means that retraining is intended.
+        This method thus copies the model saved parameters before retraining it (to avoid overwriting).
+        """
+        if os.path.exists(self.path_last):
+            copyfile(self.path_last, self.path + "_" + str(epoch) + ".pth")
+        if os.path.exists(self.path_best):
+            copyfile(self.path_best, self.path + "_" + str(epoch) + "_best.pth")
 
     def on_epoch_end(self, epoch):
         if isinstance(self.model, list):
@@ -170,6 +181,7 @@ class ModelSaver(Callback): # TODO: save best_only
 
         # save best model if needed 
         if self.save_best and (self.loss.avg < self.best_loss) and (self.loss.avg != 0):
+            save_dict['best_loss'] = self.loss.avg
             torch.save(save_dict, self.path_best)
             print('Save best model to {}'.format(self.path_best))
             self.best_loss = self.loss.avg

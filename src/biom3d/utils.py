@@ -254,7 +254,7 @@ def adaptive_imsave(img_path, img, img_meta={}):
 # ----------------------------------------------------------------------------
 # tif metadata reader and writer
 
-def tif_read_imagej(img_path):
+def tif_read_imagej(img_path, axes_order='CZYX'):
     """Read tif file metadata stored in a ImageJ format.
     adapted from: https://forum.image.sc/t/python-copy-all-metadata-from-one-multipage-tif-to-another/26597/8
 
@@ -262,6 +262,8 @@ def tif_read_imagej(img_path):
     ----------
     img_path : str
         Path to the input image.
+    axes_order : str, default='CZYX'
+        Order of the axes of the output image.
 
     Returns
     -------
@@ -304,8 +306,10 @@ def tif_read_imagej(img_path):
         # read the whole image stack and get the axes order
         series = tif.series[0]
         img = series.asarray()
+
+        img = tiff.tifffile.transpose_axes(img, series.axes, axes_order)
         
-        img_meta["axes"] = series.axes
+        img_meta["axes"] = axes_order
     
     return img, img_meta
 
@@ -1011,6 +1015,10 @@ def save_python_config(
     new_config_name = os.path.join(config_dir, current_time+"-"+basename)
     os.rename(config_path, new_config_name)
 
+    if base_config is not None:
+        # keep a copy of the old file
+        shutil.copy(new_config_name, config_path)
+
     # edit the new config file with the auto-config values
     with fileinput.input(files=(new_config_name), inplace=True) as f:
         for line in f:
@@ -1125,7 +1133,11 @@ def closest(labels, num):
     labels_center = np.array(labels.shape)/2
     centers = [center(labels,idx+1) for idx in range(num)]
     dist = [dist_vec(labels_center,c) for c in centers]
-    return np.argmin(dist)+1
+    # bug fix, return 1 if dist is empty:
+    if len(dist)==0:
+        return 1
+    else:
+        return np.argmin(dist)+1
 
 def keep_center_only(msk):
     """
@@ -1151,7 +1163,11 @@ def keep_big_volumes(msk, thres_rate=0.3):
     probability distribution: p(vol) = vol/np.sum(vol) 
     """
     # transform image to label
-    labels = measure.label(msk, background=0)
+    labels, num = measure.label(msk, background=0, return_num=True)
+
+    # if empty or single volume, return msk
+    if num <= 1:
+        return msk
 
     # compute the volume
     unq_labels,vol = np.unique(labels, return_counts=True)
@@ -1184,9 +1200,14 @@ def keep_biggest_volume_centered(msk):
     the final mask intensities are either 0 or msk.max()
     """
     labels, num = measure.label(msk, background=0, return_num=True)
+    if num <= 1: # if only one volume, no need to remove something
+        return msk
     close_idx = closest(labels,num)
     vol = volumes(labels)
     relative_vol = [vol[close_idx]/vol[idx] for idx in range(1,len(vol))]
+    # bug fix, empty prediction (it should not happen)
+    if len(relative_vol)==0:
+        return msk
     min_rel_vol = np.min(relative_vol)
     if min_rel_vol < 0.5:
         close_idx = np.argmin(relative_vol)+1

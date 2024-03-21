@@ -231,8 +231,8 @@ if __name__=='__main__':
     # run the method
     if args.name=="seg_pred_eval":
         valid_names[args.name](
-            config=args.config,
-            log=args.log,
+            config_path=args.config,
+            path=args.log,
             dir_in=args.dir_in,
             dir_out=args.dir_out,
             dir_lab=args.dir_lab,

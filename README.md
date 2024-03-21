@@ -31,6 +31,11 @@ We target two main types of users:
 * Community users, who are interested in using the basic functionalities of Biom3d: GUI or CLI, predictions with ready-to-use models or default training.
 * Deep-learning developers, who are interested in more advanced features: changing default configuration, writing of new Biom3d modules, Biom3d core editing etc.
 
+**[21/11/2023] NEWS!** Biom3d tutorials are now available online:
+
+* [I2K Workshop tutorial (in english)](https://www.youtube.com/watch?v=cRUb9g66P18&ab_channel=I2KConference)
+* [RTMFM tutorial (in french)](https://www.youtube.com/live/fJopxW5vOhc?si=qdpJcaEy0Bd2GDec)
+
 ## 🔨 Installation
 
 **For the installation details, please check our documentation here:** [**Installation**](https://biom3d.readthedocs.io/en/latest/installation.html)
@@ -62,6 +67,10 @@ python -m biom3d.preprocess_train\
 ## ⚠ Disclaimer
 
 > **Warning**: This repository is still a work in progress and comes with no guarantees.
+
+## Issues
+
+Please feel free to open an issue or send me an email if any problem with biom3d appears. But please make sure first that this problem is not referenced on the FAQ page: [Frequently Asked Question](https://biom3d.readthedocs.io/en/latest/faq.html)
 
 ## 📑 Citation
 

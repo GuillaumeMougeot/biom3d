@@ -7,6 +7,7 @@ tmp/
 logs
 logs_meso/*
 logs_zay/*
+logs_tristan/
 dev/
 configs/20*
 bash/submit_*

@@ -580,7 +580,7 @@ class Builder:
             scaler = torch.cuda.amp.GradScaler()
         else:
             scaler = None
-        self.callbacks.on_train_begin()
+        self.callbacks.on_train_begin(self.initial_epoch)
         for epoch in range(self.initial_epoch, self.config.NB_EPOCHS):
             self.callbacks.on_epoch_begin(epoch)
             read_config(
@@ -608,7 +608,7 @@ class Builder:
                         use_fp16=scaler is not None,
                         use_deep_supervision=self.config.USE_DEEP_SUPERVISION,)
             self.callbacks.on_epoch_end(epoch)
-        self.callbacks.on_train_end()
+        self.callbacks.on_train_end(self.config.NB_EPOCHS)
     
     # def main_ddp(self, rank, world_size): # TODO: use DDP...
     #     setup_ddp(rank, world_size)
@@ -651,11 +651,13 @@ class Builder:
             img, img_meta = utils.adaptive_imread(img_path=img_path)
         else:
             assert img is not None and img_meta is not None, '[Error] If the image path is not provided, provide the image array and its metadata'
+        
+        print("Input shape:", img.shape)
 
         if type(self.config)==list: # multi-model mode!
             # check if the preprocessing are all equal, then only use one preprocessing
             # TODO: make it more flexible?
-            assert np.all([config.PREPROCESSOR==self.config[0].PREPROCESSOR for config in self.config[1:]]), "[Error] For multi-model prediction, the current version of biom3d imposes that all preprocessor are identical."
+            assert np.all([config.PREPROCESSOR==self.config[0].PREPROCESSOR for config in self.config[1:]]), "[Error] For multi-model prediction, the current version of biom3d imposes that all preprocessor are identical. {}".format([config.PREPROCESSOR==self.config[0].PREPROCESSOR for config in self.config[1:]])
             
             # preprocessing
             img, img_meta = read_config(self.config[0].PREPROCESSOR, register.preprocessors, img=img, img_meta=img_meta)
@@ -665,7 +667,7 @@ class Builder:
                 if not 'POSTPROCESSOR' in self.config[i].keys():
                     self.config[i].POSTPROCESSOR = utils.Dict(fct="Seg", kwargs=utils.Dict())
 
-            assert np.all([config.POSTPROCESSOR==self.config[0].POSTPROCESSOR for config in self.config[1:]]), "[Error] For multi-model prediction, the current version of biom3d imposes that all postprocessors are identical."
+            assert np.all([config.POSTPROCESSOR==self.config[0].POSTPROCESSOR for config in self.config[1:]]), "[Error] For multi-model prediction, the current version of biom3d imposes that all postprocessors are identical. {}".format([config.POSTPROCESSOR==self.config[0].POSTPROCESSOR for config in self.config[1:]])
 
             logit = None # to accumulate the logit
             for i, config in enumerate(self.config):
@@ -694,6 +696,8 @@ class Builder:
         
         else: # single model prediction
             img, img_meta = read_config(self.config.PREPROCESSOR, register.preprocessors, img=img, img_meta=img_meta)
+            
+            print("Preprocessed shape:", img.shape)
 
             # prediction
             out = read_config(
@@ -702,6 +706,8 @@ class Builder:
                 img = img,
                 model = self.model,
                 **img_meta)
+        
+            print("Model output shape:", out.shape)
             
             # retro-compatibility: use "Seg" post-processor as default 
             if not 'POSTPROCESSOR' in self.config.keys():

@@ -46,9 +46,15 @@
 #  --max_dim 128\
 #  --desc unet_prostate
 
+# python -m biom3d.preprocess\
+#  --img_dir data/nucleus/official/train/img\
+#  --msk_dir data/nucleus/official/train/msk\
+#  --num_classes 1\
+#  --desc nucleus_official\
+#  --use_tif
+
 python -m biom3d.preprocess\
- --img_dir data/nucleus/official/train/img\
- --msk_dir data/nucleus/official/train/msk\
+ --img_dir data/reims/large/img\
+ --msk_dir data/reims/large/msk\
  --num_classes 1\
- --desc nucleus_official\
- --use_tif
+ --desc reims_large

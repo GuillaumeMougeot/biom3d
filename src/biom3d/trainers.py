@@ -24,32 +24,36 @@ def seg_train(
     epoch = None, # required by deep supervision
     use_deep_supervision=False):
     """
-    Train the segmentation model.
+    Train a segmentation model. 
+    
+    Call the dataloader to get a batch of images and masks, pass through the model, compute the loss using model output and masks, update model parameters. 
+
+    Work with both CUDA or CPU. CPU is much slower.
+
+    Work with half precision (fp16) and with standard precision (fp32).
+
+    Use gradient clipping during backpropagation. 
 
     Parameters
     ----------
     dataloader : DataLoader
-        DataLoader containing training data.
-    scaler : GradScaler
-        for normalizing or standardizing data.
-    model : 
-        The model to be trained.
-    loss_fn : function
+        DataLoader for training data. A Dataloader is a Python class with an overloaded `__getitem__` method. In this case, `__getitem__` should return a batch of images and a batch of masks.
+    scaler : torch.cuda.amp.GradScaler
+        For halp precision.
+    model : torch.nn.Module
+        The model to train.
+    loss_fn : biom3d.metrics.Metric
         The loss function.
-    metrics : list of metrics
-        List of metrics to calculate during training.
-    optimizer : Optimizer
+    metrics : list of biom3d.metrics.Metric
+        List of metrics to compute during training.
+    optimizer : torch.optim.Optimizer
         The optimizer used for training.
-    callbacks : Callbacks
+    callbacks : biom3d.callbacks.Callbacks
         Callbacks to be called during training.
     epoch : int, optional
         Current epoch number, required for deep supervision.
     use_deep_supervision : bool, default=False
         If True, deep supervision is used during training.
-
-    Returns
-    -------
-    None
     """
 
     model.train()
@@ -131,26 +135,28 @@ def seg_validate(
     use_fp16,
     use_deep_supervision=False):
     """
-    Validate the segmentation model.
+    Validate a segmentation model.
 
+    Call the validation dataloader to get a batch of images and masks, pass through the model, compute the loss using model output and masks.
+
+    Work with both CUDA or CPU. CPU is much slower.
+
+    Work with half precision (fp16) and with standard precision (fp32).
+    
     Parameters
     ----------
     dataloader : DataLoader
-        DataLoader containing validation data.
-    model :
-        The model to be validated.
-    loss_fn : function
-        The loss function for validation.
-    metrics : list of metrics
-        List of metrics to calculate during validation.
+        DataLoader for validation data. A Dataloader is a Python class with an overloaded `__getitem__` method. In this case, `__getitem__` should return a batch of images and a batch of masks.
+    model : torch.nn.Module
+        The model to validate.
+    loss_fn : biom3d.metrics.Metric
+        The validation loss function.
+    metrics : list of biom3d.metrics.Metric
+        List of metrics to compute during validation.
     use_fp16 : bool
         Flag to indicate if half-precision (fp16) is used.
     use_deep_supervision : bool, default=False
         If True, deep supervision is used during validation.
-
-    Returns
-    -------
-    None
     """
     for m in [loss_fn]+metrics: m.reset() # reset metrics
     model.eval() # set the module in evaluation mode (only useful for dropout or batchnorm like layers)
@@ -198,22 +204,18 @@ def seg_validate(
 
 def seg_patch_validate(dataloader, model, loss_fn, metrics):
     """
-    Validate the segmentation model with patch-based approach.
+    Validate the segmentation model with TorchIO patch-based approach.
 
     Parameters
     ----------
-    dataloader : DataLoader
-        DataLoader containing validation data in patches.
-    model :
-        The model to be validated.
-    loss_fn : function
-        The loss function for validation.
-    metrics : list of metrics
-        List of metrics to calculate during patch-based validation.
-
-    Returns
-    -------
-    None
+    dataloader : TorchIO DataLoader
+        TorchIO DataLoader (such as generated using biom3d.datasets.semseg_torchio) containing validation data in patches. A Dataloader is a Python class with an overloaded `__getitem__` method. In this case, `__getitem__` should return a batch of images and a batch of masks.
+    model : torch.nn.Module
+        The model to validate.
+    loss_fn : biom3d.metrics.Metric
+        The validation loss function.
+    metrics : list of biom3d.metrics.Metric
+        List of metrics to compute during validation.
     """
     print("Start validation...")
     for m in [loss_fn]+metrics: m.reset() # reset metrics
@@ -255,30 +257,26 @@ def seg_patch_train(
     epoch = None, # required by deep supervision
     use_deep_supervision=False):
     """
-    Train the segmentation model using a patch-based approach.
+    Train the segmentation model using a TorchIO patch-based approach.
 
     Parameters
     ----------
-    dataloader : DataLoader
-        DataLoader containing training data in patches.
-    model : 
-        The model to be trained.
-    loss_fn : function
+    dataloader : TorchIO DataLoader
+        TorchIO DataLoader (such as generated using biom3d.datasets.semseg_torchio) containing training data in patches. A Dataloader is a Python class with an overloaded `__getitem__` method. In this case, `__getitem__` should return a batch of images and a batch of masks.
+    model : torch.nn.Module
+        The model to train.
+    loss_fn : biom3d.metrics.Metric
         The loss function.
     metrics : list of metrics
         List of metrics to calculate during patch-based training.
-    optimizer : Optimizer
+    optimizer : torch.optim.Optimizer
         The optimizer used for training.
-    callbacks : Callbacks
+    callbacks : biom3d.callbacks.Callbacks
         Callbacks to be called during training.
     epoch : int, optional
-        number of epochs, required for deep supervision.
+        Current epoch number, required for deep supervision.
     use_deep_supervision : bool, default=False
-        If True, deep supervision is used during patch-based training.
-
-    Returns
-    -------
-    None
+        If True, deep supervision is used during training.
     """
 
     model.train()

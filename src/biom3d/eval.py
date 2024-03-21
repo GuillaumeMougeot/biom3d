@@ -39,6 +39,7 @@ def eval(dir_lab, dir_out, num_classes):
         results += [res]
         
     print("Evaluation done! Average result:", np.mean(results))
+    return results, np.mean(results)
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description="Prediction evaluation.")

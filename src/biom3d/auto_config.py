@@ -8,6 +8,7 @@
 #---------------------------------------------------------------------------
 
 import numpy as np
+import itertools
 import argparse
 
 from biom3d.utils import adaptive_imread, abs_listdir
@@ -137,34 +138,10 @@ def data_fingerprint(img_dir, msk_dir=None, num_samples=10000):
 # ----------------------------------------------------------------------------
 # Patch pool batch computation
 
-def single_patch_pool(dim, size_limit=7):
-    """Return the patch size with the heuristic proposed by nnUNet.
-    Divide by two the `dim` number until obtaining a number lower than 7.
-    Then np.ceil this number. Then multiply this number multiple times by two to obtain the patch size.
-
-    Parameters
-    ----------
-    dim: int
-        A single dimension.
-
-    Returns
-    -------
-    numpy.ndarray
-        Median shape of the images in the folder.
-    """
-    pool = 0
-    while dim > size_limit:
-        dim /= 2
-        pool += 1
-    patch = np.round(dim)
-    patch = patch.astype(int)*(2**pool)
-    return patch, pool
-
 def find_patch_pool_batch(dims, max_dims=(128,128,128), max_pool=5, epsilon=1e-3):
     """Given the median image size, compute the patch size, the number of pooling and the batch size.
-    Take the median size of an image dataset as input, 
-    determine the patch size and the number of pool with "single_patch_pool" function for each dimension and 
-    assert that the final dimension size is smaller than max_dims.prod().
+    The generated patch size is repecting the input dimension proportions.
+    The product of the patch dimensions is lower than the product of the `max_dims` dimensions.
 
     Parameters
     ----------
@@ -175,7 +152,7 @@ def find_patch_pool_batch(dims, max_dims=(128,128,128), max_pool=5, epsilon=1e-3
     max_pool: int, default=5
         Maximum pooling size.
     epsilon: float, default=1e-3
-        Used to have a positive value in the dimension computation.
+        Used to reduce the input dimensions if they are too big. Input dimensions will be divided by (1+epsilon) an sufficient number times so they resulting dimensions respect the max_dims limit.
 
     Returns
     -------
@@ -194,41 +171,91 @@ def find_patch_pool_batch(dims, max_dims=(128,128,128), max_pool=5, epsilon=1e-3
     ori_dim = dims.copy()
     max_dims = np.array(max_dims)
     
-    # divides by a 1+epsilon until reaching a sufficiently small resolution
-    while dims.prod() > max_dims.prod():
-        dims = dims / (1+epsilon)
-    dims = np.round(dims).astype(int)
+    assert np.all(dims>0), "[Error] One dimension is non-positve {}".format(dims)
     
-    # compute patch and pool for all dims
-    patch_pool = np.array([single_patch_pool(m) for m in dims])
-    patch = patch_pool[:,0]
-    pool = patch_pool[:,1]
+    # minimum feature maps size
+    # is determined using min of max_dims tuple divided by 2**max_pool
+    min_fmaps = min(max_dims)//(2**max_pool)
+    assert min_fmaps >= 1, "[Error] The minimum of max_dims {} is too small regarding max_pool {}. Increase max_dims or reduce max_pool.".format(min(max_dims), max_pool)
     
-    
-    # assert the final size is smaller than max_dims and the median size
-    while patch.prod()>max_dims.prod() or patch.prod()>ori_dim.prod()*2:
-        patch = patch - 2**max_pool*(patch==patch.max()) # removing multiples of 2**max_pool
-    
-    # if we removed too much we just add multiples of 2**pool.min() to the smallest dimension
-    added = False
-    while max_dims.prod()-(patch + 2**pool*(patch==patch.min())).prod()>=0 and\
-          ori_dim.prod() -(patch + 2**pool*(patch==patch.min())).prod()>=0:
-        patch = patch + 2**pool*(patch==patch.min()); added = True
+    # if the input dimensions are too big, they will be reduced.
+    # the reduced dimensions will respect input dimension proportions.
+    # they will be divided by a 1+epsilon until reaching a sufficiently small resolution
+    if dims.prod() > max_dims.prod():
+        # grouped lower bound to the reduction level,
+        # lower values will cause the final dimension to be bigger than the max_dim
+        # the goal of the reduction is that the product of the input dimensions is
+        # smaller than the product of max_dims
+        # here, logarithms are used, dealing with sums instead of multiplications
+        lb = (np.log(dims).sum()-np.log(max_dims).sum())/np.log(1+epsilon)
         
-    # if we increased the patch size then we set pool to the 2-adic valuation of the patch size
-    if added:
-        while np.any(patch%2**(pool+1)==0): 
-            pool = pool + (patch%2**(pool+1)==0).astype(int)
- 
-    # limit pool size
-    pool = np.where(pool > max_pool, max_pool, pool)
+        # reduction order is set, by default, to be equal for every dimension
+        reduction = lb/len(dims)
+        
+        # there are individual upper bounds to the reduction order for each dimension, 
+        # higher values will cause final dimension to be smaller than one
+        ub = np.log(dims)/np.log(1+epsilon) 
+        
+        # values higher than the upper bound are thus clipped
+        too_high_values = (reduction > ub)
+        
+        # other values, respecting the lower bound, are decreased
+        while np.any(too_high_values):
+            # new decreased reduction value for value respecting the lower bound
+            reduction_small = (lb-(ub*too_high_values).sum())/(~too_high_values).sum()
+            
+            # clipping
+            reduction = np.where(too_high_values, ub, reduction_small)
+            
+            # update too high values
+            too_high_values = (reduction > ub)
+            
+        # reduce the dimensions
+        dims = dims / (1+epsilon)**reduction
+    
+    dims = np.floor(dims).astype(int)
+    dims = np.maximum(dims, 1)
+    
+    # find in which interval dims/min_fmaps are:
+    # is it: [1,2], [2,4], [4,8], [8,16], [16,32], or [32, ...]?
+    pool = np.floor(np.log2(dims/min_fmaps)).astype(int)
+    pool = np.clip(pool, 0, max_pool)
+    
+    # patch size is determined by the closest multiple of 2**pool from dims
+    pool_pow = (2**pool).astype(int)
+    # patch = (dims//pool_pow + np.round((dims%pool_pow)/pool_pow))*pool_pow
+    patch = (dims//pool_pow)*pool_pow
+    patch = patch.astype(int)
+    
+    # [gpu memory optimization]
+    # dimensions of the patch are eventually increased one last time to be 
+    # below but as close as possible from max_dims
+    unique_patch = sorted(np.unique(patch), reverse=True)
+    
+    # generate all possible combination of unique values of elements of patch
+    # to simplify the explanation: 
+    # first, all values in patch are attempted to be increase simultaneously, 
+    # then only the biggest ones, and finally, only the smallest ones
+    indices_unique_patch = list(itertools.product([True, False], repeat=len(unique_patch)))[:-1]
+    
+    for i in range(len(indices_unique_patch)): # from biggest to smallest
+        unique_patch = sorted(np.unique(patch), reverse=True)
+        crt_patch = np.isin(patch, unique_patch*np.array(indices_unique_patch[i]))
+        
+        # first condition: check if adding something will not exceed max_dims
+        # second condition: check if patch size is not already bigger than input image
+        while (patch + pool_pow*crt_patch).prod() <= max_dims.prod() and \
+              np.any((patch < ori_dim)*crt_patch):
+            patch = patch + pool_pow*crt_patch
+
+    # update pool size 
+    pool = np.floor(np.log2(patch/min_fmaps)).astype(int)
+    pool = np.clip(pool, 0, max_pool)
     
     # batch_size is set to 2 and increased if possible
-    batch = 2
-    while batch*patch.prod() <= 2*max_dims.prod():
-        batch += 1
-    if batch*patch.prod() > 2*max_dims.prod():
-        batch -= 1
+    batch = 2*np.floor(max_dims.prod()/patch.prod()).astype(int)
+    batch = np.maximum(batch, 2)
+    
     return patch, pool, batch
 
 def get_aug_patch(patch_size):
