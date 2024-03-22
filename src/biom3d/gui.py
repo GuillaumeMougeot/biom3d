@@ -2175,7 +2175,7 @@ class Root(Tk):
         
         # Verify the path
         if not os.path.exists(image_path):
-            print(f"Error: The biom3d logo was not found at {image_path}")
+            print(f"[Warning] biom3d logo was not found at {image_path}")
         else:
             # Set Tkinter PNG logo as the window icon if the file exists
             logo = PhotoImage(file=image_path)
