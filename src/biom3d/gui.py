@@ -2170,7 +2170,7 @@ class Root(Tk):
         
         # find the correct path for the logo
         base_path = os.path.dirname(__file__)  # Get the directory where the script is located
-        image_path = os.path.join(base_path, 'logo_biom3d_white_bg_crop.png')  # Construct the relative path
+        image_path = os.path.join(base_path, 'logo_biom3d_minimal.png')  # Construct the relative path
         image_path = os.path.normpath(image_path)  # Normalize the path to the correct format for the OS
         
         # Verify the path
