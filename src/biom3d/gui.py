@@ -2190,6 +2190,9 @@ class Root(Tk):
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
 
+        # biom3d is designed for 1920x1080 resolution, a scaling factor will be applied if needed
+        # self.tk.call('tk', 'scaling', 2.0)
+
         ## find the center point
         center_x = int(screen_width/2 - window_width / 2)
         center_y = int(screen_height/2 - window_height / 2)
