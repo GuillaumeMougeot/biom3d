@@ -2180,27 +2180,28 @@ class Root(Tk):
             # Set Tkinter PNG logo as the window icon if the file exists
             logo = PhotoImage(file=image_path)
             self.wm_iconphoto(True, logo)
-            
-        # windows dimension and positioning
-        window_width = 725
-        window_height = 795
 
         ## get the screen dimension
         global screen_width
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
 
-        # biom3d is designed for 1920x1080 resolution, a scaling factor will be applied if needed
-        # self.tk.call('tk', 'scaling', 2.0)
+        # windows dimension and positioning
+        window_height = int(screen_height*.9)
+        window_width = int(window_height*.85)
 
         ## find the center point
-        center_x = int(screen_width/2 - window_width / 2)
-        center_y = int(screen_height/2 - window_height / 2)
+        center_x = int(screen_width/2 - window_width/2)
+        # center_y = int(screen_height/2 - window_height/2)
+        center_y = 0
 
         ## set the position of the window to the center of the screen
         self.geometry(f'{window_width}x{window_height}+{center_x}+{center_y}')
 
-        self.minsize(360,360)
+        # biom3d is designed for 1920x1080 resolution, a scaling factor will be applied if needed
+        # self.tk.call('tk', 'scaling', 2.0)
+
+        self.minsize(400,360)
         
         # self.iconbitmap("biom3d/microscope.png")
         self.config(background='#D00000')
@@ -2389,13 +2390,15 @@ class Root(Tk):
             self.__init__()
             
 def main():
-    root = Root()
-
     try: # avoid blury UI on Windows
         if platform=='win32':
             from ctypes import windll
-            windll.shcore.SetProcessDpiAwareness(1)
+            try:
+                windll.shcore.SetProcessDpiAwareness(2) # if your windows version >= 8.1
+            except:
+                windll.user32.SetProcessDPIAware() # win 8.0 or less 
     finally:
+        root = Root()
         root.mainloop()
 
 if __name__=='__main__':
