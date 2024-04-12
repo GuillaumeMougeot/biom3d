@@ -64,7 +64,7 @@ CHANNEL_AXIS = 0
 #---------------------------------------------------------------------------
 # Auto-config builder-parameters
 # PASTE AUTO-CONFIG RESULTS HERE
-
+IS_2D = False
 # batch size
 BATCH_SIZE = 2
 

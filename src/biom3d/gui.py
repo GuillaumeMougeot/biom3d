@@ -548,8 +548,8 @@ class TrainFolderSelection(ttk.LabelFrame):
             self.send_data_entry = ttk.Entry(self, textvariable=self.send_data_name)
             
         else:
-            self.img_outdir = FileDialog(self, mode='folder', textEntry="")
-            self.msk_outdir = FileDialog(self, mode='folder', textEntry="")            
+            self.img_outdir = FileDialog(self, mode='folder', textEntry="/home/safarbatis/chocolate-factory/data/fake3D_images/2d")
+            self.msk_outdir = FileDialog(self, mode='folder', textEntry="/home/safarbatis/chocolate-factory/data/fake3D_images/2ds")            
         self.config_dir = FileDialog(self, mode='file', textEntry="")      
 
         # Position elements
@@ -871,6 +871,7 @@ class ConfigFrame(ttk.LabelFrame):
             config_dir=local_config_dir,
             logs_dir=local_logs_dir,
             base_config=None,
+            is2d=is_2d_state.get(),
                 
             )
             # Read the config file
@@ -929,6 +930,7 @@ class TrainTab(ttk.Frame):
         super(TrainTab, self).__init__(*arg, **kw)
         global new_config_path
         global sent_dataset
+        global is_2d_state
         self.folder_selection = TrainFolderSelection(master=self, text="Preprocess", padding=[10,10,10,10])
         self.config_selection = ConfigFrame(train_folder_selection=self.folder_selection, master=self, text="Training configuration", padding=[10,10,10,10])
         self.train_button = ttk.Button(self, text="Start", style="train_button.TLabel", width =29, command=self.train)
@@ -940,6 +942,11 @@ class TrainTab(ttk.Frame):
         self.dataset_preprocessed_state = IntVar(value=0) 
         self.use_conf_button = ttk.Checkbutton(self, text="Dataset is already preprocessed ? ", command=self.display_conf_finetuning, variable=self.dataset_preprocessed_state)
         
+        # 2d image ?
+        self.is_2d_state = IntVar(value=0) 
+        self.is_2d_check_button = ttk.Checkbutton(self, text="Process 2D images ? ",  variable=self.is_2d_state)
+        
+        is_2d_state = self.is_2d_state 
         #Fine tuning
         self.fine_tune_state = IntVar(value=0) 
         self.use_tune_button = ttk.Checkbutton(self, text="Use Fine-Tuning ? ", command=self.display_conf_finetuning ,variable=self.fine_tune_state)
@@ -950,6 +957,7 @@ class TrainTab(ttk.Frame):
         # set default values of train folders with the ones used for preprocess tab
         if not REMOTE :
             self.use_conf_button.grid(column=0,row=0,sticky=(N,W,E), pady=3)
+            self.is_2d_check_button.grid(column=0,row=0,sticky=(N,E), pady=3)
         else : self.plot_button.grid(column=0, row=5, padx=15, ipady=4, pady= 2, sticky=(N))
         self.use_tune_button.grid(column=0,row=1,sticky=(N,W,E), ipady=5)
         self.folder_selection.grid(column=0,row=2,sticky=(N,W,E), pady=3)

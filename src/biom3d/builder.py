@@ -695,7 +695,7 @@ class Builder:
                     **img_meta) # all img_meta should be equal as we use the same preprocessors
         
         else: # single model prediction
-            img, img_meta = read_config(self.config.PREPROCESSOR, register.preprocessors, img=img, img_meta=img_meta)
+            img, img_meta = read_config(self.config.PREPROCESSOR, register.preprocessors, img=img, img_meta=img_meta, is2d= self.config.IS_2D)
             
             print("Preprocessed shape:", img.shape)
 
