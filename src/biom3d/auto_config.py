@@ -234,7 +234,7 @@ def find_patch_pool_batch(dims, max_dims=(128,128,128), max_pool=5, epsilon=1e-3
     
     # generate all possible combination of unique values of elements of patch
     # to simplify the explanation: 
-    # first, all values in patch are attempted to be increase simultaneously, 
+    # first, all values in patch dimensions are attempted to be increase simultaneously, 
     # then only the biggest ones, and finally, only the smallest ones
     indices_unique_patch = list(itertools.product([True, False], repeat=len(unique_patch)))[:-1]
     

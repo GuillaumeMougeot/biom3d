@@ -105,7 +105,7 @@ class VGGEncoder(nn.Module):
         in_planes = 1,
         ): 
         super(VGGEncoder, self).__init__()
-        factors = [factor * i for i in [1,2,4,8,10,10,10]]
+        factors = [factor * i for i in [1,2,4,8,10,10,10]] # TODO: make this flexible to larger U-Net model?
         self.in_planes = in_planes
         self.use_emb=use_emb
         self.use_head = use_head
