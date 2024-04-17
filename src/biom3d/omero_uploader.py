@@ -68,7 +68,7 @@ def create_fileset(files):
     fileset = omero.model.FilesetI()
     for f in files:
         entry = omero.model.FilesetEntryI()
-        entry.setClientPath(rstring(f))
+        entry.setClientPath(rstring(os.path.basename(f)))  # Set only the filename
         fileset.addFilesetEntry(entry)
 
     # Fill version info
@@ -90,7 +90,6 @@ def create_fileset(files):
     upload.setVersionInfo(client_version_info)
     fileset.linkJob(upload)
     return fileset
-
 
 def create_settings():
     """Create ImportSettings and set some values."""
@@ -171,7 +170,7 @@ def full_import(client, fs_path, wait=-1):
     finally:
         proc.close()
         
-def run(username, password, hostname, project, dataset_name, path, wait=-1):
+def run(username, password, hostname, project, dataset_name, path, attachment, wait=-1):
     conn = BlitzGateway(username=username, passwd=password, host=hostname, port=4064)
     conn.connect()
 
@@ -197,6 +196,22 @@ def run(username, password, hostname, project, dataset_name, path, wait=-1):
                         link.child = omero.model.ImageI(p.image.id.val, False)
                         links.append(link)
                 conn.getUpdateService().saveArray(links, conn.SERVICE_OPTS) 
+      
+    
+    dataset = conn.getObject("Dataset", dataset)
+    # Specify a local file e.g. could be result of some analysis
+    file_to_upload = attachment  # This file should already exist
+    
+    # create the original file and file annotation (uploads the file etc.)
+    namespace = "my.custom.demo.namespace"
+    print("\nCreating an OriginalFile and FileAnnotation")
+    file_ann = conn.createFileAnnfromLocalFile(
+        file_to_upload, mimetype="text/plain", ns=namespace, desc=None)
+    print("Attaching FileAnnotation to Dataset: ", "File ID:", file_ann.getId(), \
+        ",", file_ann.getFile().getName(), "Size:", file_ann.getFile().getSize())
+    dataset.linkAnnotation(file_ann)     # link it to dataset.
+        
+        
     conn.close()
     
 if __name__ == '__main__':
@@ -216,6 +231,8 @@ if __name__ == '__main__':
         help="Password")
     parser.add_argument('--hostname',
         help="Host name")
+    parser.add_argument('--attachment',
+        help="Attachment file")
     args = parser.parse_args()
 
     
@@ -223,6 +240,7 @@ if __name__ == '__main__':
         project=args.project,
         dataset_name=args.dataset_name,
         path=args.path,
-        wait=args.wait
+        wait=args.wait,
+        attachment=args.attachment,
     )
     

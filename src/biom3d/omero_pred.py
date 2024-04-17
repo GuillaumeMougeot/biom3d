@@ -16,7 +16,7 @@ except:
     pass
 from biom3d import pred  
 
-def run(obj, target, log, dir_out, host=None, user=None, pwd=None, upload_id=None, ext="_predictions"):
+def run(obj, target, log, dir_out, attachment, host=None, user=None, pwd=None, upload_id=None,ext="_predictions"):
     print("Start dataset/project downloading...")
     if host is not None:
         datasets, dir_in = omero_downloader.download_object(user, pwd, host, obj, target)
@@ -43,7 +43,7 @@ def run(obj, target, log, dir_out, host=None, user=None, pwd=None, upload_id=Non
                 dataset_name = os.path.basename(os.path.dirname(dir_in))
             dataset_name += ext
 
-            omero_uploader.run(user, pwd, host,upload_id,dataset_name,dir_out)
+            omero_uploader.run(user, pwd, host,upload_id,dataset_name,dir_out, attachment)
         print("Done prediction!")
 
         # print for remote. Format TAG:key:value
@@ -83,6 +83,8 @@ if __name__=='__main__':
         help="(optional) Password for Omero server")
     parser.add_argument('--upload_id', type=int, default=None,
         help="(optional) Id of Omero Project in which to upload the dataset. Only works with Omero Project Id and folder of images.")
+    parser.add_argument('--attachment', type=str, default=None,
+        help="(optional) Attachment file")
     # parser.add_argument("-e", "--eval_only", default=False,  action='store_true', dest='eval_only',
     #     help="Do only the evaluation and skip the prediction (predictions must have been done already.)") 
     parser.add_argument('--ext', type=str, default='_predictions',
@@ -98,5 +100,6 @@ if __name__=='__main__':
         user=args.username,
         pwd=args.password,
         upload_id=args.upload_id,
+        attachment=args.attachment,
         ext=args.ext,
     )

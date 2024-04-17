@@ -1455,11 +1455,19 @@ class OmeroDataset(ttk.LabelFrame):
         super(OmeroDataset, self).__init__(*arg, **kw)
     
         self.label_id = ttk.Label(self, text="Input Dataset ID:")
-        self.id = StringVar(value="19699")
+        self.id = StringVar(value="27373")
         self.id_entry = ttk.Entry(self, textvariable=self.id)
+        
+        self.project_label_id = ttk.Label(self, text="Output Project ID:")
+        self.project_id = StringVar(value="12870")
+        self.project_id_entry = ttk.Entry(self, textvariable=self.project_id)
+        
 
         self.label_id.grid(column=0, row=0, sticky=(W,E))
         self.id_entry.grid(column=1,row=0,sticky=(W,E))
+        
+        self.project_label_id.grid(column=0, row=1, sticky=(W,E))
+        self.project_id_entry.grid(column=1,row=1,sticky=(W,E))
         
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=5)
@@ -1809,6 +1817,7 @@ class PredictTab(ttk.Frame):
             self.rowconfigure(i, weight=1)
     
     def predict(self):
+        attachment_file = self.model_selection.logs_dir.get()  + "/log/config.yaml"
         # if use Omero then use Omero prediction
         if REMOTE :
             # To Filter objects in Prediction
@@ -1867,19 +1876,22 @@ class PredictTab(ttk.Frame):
                 
             
         if self.use_omero_state.get():
+            
             obj="Dataset"+":"+self.omero_dataset.id.get()
          
             if REMOTE:
                 
                 # TODO: below, still OS dependant 
                 # Run OMERO prediction
-                _, stdout, stderr = REMOTE.exec_command("source {}/bin/activate; cd {}; python -m biom3d.omero_pred --obj {} --log {} --username {} --password {} --hostname {} ".format(VENV,
+                _, stdout, stderr = REMOTE.exec_command("source {}/bin/activate; cd {}; python -m biom3d.omero_pred --obj {} --log {} --username {} --password {} --hostname {} --upload_id {} --attachment {} ".format(VENV,
                     MAIN_DIR,
                     obj,
-                    MAIN_DIR+'/logs/'+self.model_selection.logs_dir.get(), 
+                    MAIN_DIR+'logs/'+self.model_selection.logs_dir.get(), 
                     self.omero_connection.username.get(),
                     self.omero_connection.password.get(),
-                    self.omero_connection.hostname.get()
+                    self.omero_connection.hostname.get(),
+                    self.omero_dataset.project_id.get(),
+                    MAIN_DIR+'logs/' +attachment_file,
                     ))
                 while True: 
                     line = stdout.readline()
@@ -1901,6 +1913,7 @@ class PredictTab(ttk.Frame):
                 if not os.path.isdir(target):
                     os.makedirs(target, exist_ok=True)
                 print("Downloading Omero dataset into", target)
+                 
                 # run OMERO prediction
                 p=biom3d.omero_pred.run(
                     obj=obj,
@@ -1909,7 +1922,8 @@ class PredictTab(ttk.Frame):
                     dir_out=self.output_dir.data_dir.get(),
                     user=self.omero_connection.username.get(),
                     pwd=self.omero_connection.password.get(),
-                    host=self.omero_connection.hostname.get()
+                    host=self.omero_connection.hostname.get(),
+                    attachment=attachment_file,
                 )           
                 if self.send_to_omero_state.get():
                     biom3d.omero_uploader.run(username=self.send_to_omero_connection.username.get(),
@@ -1961,6 +1975,7 @@ class PredictTab(ttk.Frame):
                     hostname=self.send_to_omero_connection.hostname.get(),
                     project=int(self.send_to_omero_connection.upload_project_entry.get()),
                     dataset_name=self.send_to_omero_connection.dataset_name_entry.get(),
+                    attachment=attachment_file,
                     path=p)
                 popupmsg("Prediction done !")
 
@@ -2092,7 +2107,7 @@ class Connect2Remote(ttk.LabelFrame):
         self.password_entry = ttk.Entry(self, textvariable=self.password, show='*')
         
         self.main_dir_label = ttk.Label(self, text='Folder of Biom3d repository on remote server:')
-        self.main_dir = StringVar(value="/home/biome/biom3d")
+        self.main_dir = StringVar(value="/home/biome/")
         self.main_dir_entry = ttk.Entry(self, textvariable=self.main_dir)
 
         self.venv_label = ttk.Label(self, text='(Optional) Name of the virtual environment on remote server:')
