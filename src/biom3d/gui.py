@@ -1389,7 +1389,7 @@ class InputDirectory(ttk.LabelFrame):
                 self.rowconfigure(i, weight=1)
         else:
             
-            self.data_dir = FileDialog(self, mode='folder', textEntry=os.path.join('data', 'to_pred'))
+            self.data_dir = FileDialog(self, mode='folder', textEntry=os.path.join('', '/home/safarbatis/chocolate-factory/data/zt'))
             self.data_dir.grid(column=0, row=1, sticky=(W,E))
 
             self.columnconfigure(0, weight=1)
@@ -1468,7 +1468,6 @@ class OmeroDataset(ttk.LabelFrame):
         
         self.project_label_id.grid(column=0, row=1, sticky=(W,E))
         self.project_id_entry.grid(column=1,row=1,sticky=(W,E))
-        
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=5)
         self.rowconfigure(0, weight=1)
@@ -1504,7 +1503,7 @@ class ModelSelection(ttk.LabelFrame):
         else: 
             ## build folder
             self.label1 = ttk.Label(self, text="Select the folder containing the build:", anchor="sw", background='white')
-            self.logs_dir = FileDialog(self, mode='folder', textEntry='logs/')
+            self.logs_dir = FileDialog(self, mode='folder', textEntry='/home/safarbatis/chocolate-factory/logs/20240408-143154-3DBACK_fold0')
 
             self.logs_dir.grid(column=0, row=0, sticky=(W,E))
             self.columnconfigure(0, weight=1)
@@ -1572,7 +1571,7 @@ class OmeroUpload(ttk.LabelFrame):
         self.prediction_folder= FileDialog(self, mode='folder', textEntry="data/pred")
         
         self.upload_project_label= ttk.Label(self, text="Project ID : ") #change to project id and send dataset name
-        self.project_id= StringVar(value="12906")
+        self.project_id= StringVar(value="12870")
         self.upload_project_entry= ttk.Entry(self,textvariable=self.project_id)
         
         self.upload_dataset_label= ttk.Label(self, text="Select a name for your dataset : ") #change to project id and send dataset name
@@ -1923,6 +1922,7 @@ class PredictTab(ttk.Frame):
                     user=self.omero_connection.username.get(),
                     pwd=self.omero_connection.password.get(),
                     host=self.omero_connection.hostname.get(),
+                    upload_id=int(self.omero_dataset.project_id.get()),
                     attachment=attachment_file,
                 )           
                 if self.send_to_omero_state.get():
