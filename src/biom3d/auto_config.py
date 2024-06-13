@@ -292,10 +292,12 @@ def get_aug_patch(patch_size):
 # ----------------------------------------------------------------------------
 # Display 
 def parameters_return(patch, pool, batch, config_path):
+    """
+    Displays the provided parameters.
+    """
     print(batch)
     print(patch)
-    aug_patch= get_aug_patch(patch)
-    print(aug_patch)
+    print(get_aug_patch(patch))
     print(pool)
     print(config_path)
 
@@ -371,46 +373,33 @@ if __name__=='__main__':
     if args.spacing: 
         median_spacing = median[1]
         median = median[0]
+    else:
+        median_spacing = None
 
     patch, pool, batch = find_patch_pool_batch(dims=median, max_dims=(args.max_dim, args.max_dim, args.max_dim))
     aug_patch = np.array(patch)+2**(np.array(pool)+1)
 
   
-    if args.remote:
+    if args.remote or args.save_config:
         try: 
             from biom3d.utils import save_python_config
             config_path = save_python_config(
                 config_dir=args.config_dir,
                 base_config=args.base_config,
-                BATCH_SIZE=batch,
-                AUG_PATCH_SIZE=aug_patch,
-                PATCH_SIZE=patch,
-                NUM_POOLS=pool,
-            )
-            parameters_return(patch, pool, batch, config_path)   
-        except:
-            print("[Error] Import error. Biom3d must be installed if you want to save your configuration. Another solution is to config the function function in biom3d.utils here...")
-            raise ImportError
-    else :
-       display_info(patch, pool, batch)
-    if args.spacing:print("MEDIAN_SPACING =",list(median_spacing))
-    if args.median:print("MEDIAN =", list(median))
-
-    if args.save_config:
-        try: 
-            from biom3d.utils import save_python_config
-            config_path = save_python_config(
-                config_dir=args.config_dir,
-                base_config=args.base_config,
-                
                 BATCH_SIZE=batch,
                 AUG_PATCH_SIZE=aug_patch,
                 PATCH_SIZE=patch,
                 NUM_POOLS=pool,
                 MEDIAN_SPACING=median_spacing,
             )
+            parameters_return(patch, pool, batch, config_path, median_spacing)   
         except:
-            print("[Error] Import error. Biom3d must be installed if you want to save your configuration. Another solution is to config the function function in biom3d.utils here...")
+            print("[Error] Import error. Biom3d must be installed if you want to save your configuration. Another solution is to config the function in biom3d.utils here...")
             raise ImportError
+    else :
+       display_info(patch, pool, batch)
+    if args.spacing:print("MEDIAN_SPACING =",list(median_spacing))
+    if args.median:print("MEDIAN =", list(median))
+
 
 # ----------------------------------------------------------------------------

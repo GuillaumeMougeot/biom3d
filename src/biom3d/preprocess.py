@@ -205,7 +205,7 @@ def seg_preprocessor(
     intensity_moments=[],
     channel_axis=0,
     num_channels=1,
-    is2d=False):
+    is_2d=False):
     """Segmentation pre-processing.
     """
     do_msk = msk is not None
@@ -216,20 +216,13 @@ def seg_preprocessor(
     if do_msk: 
         # sanity check
         msk = sanity_check(msk, num_classes)
-        #from biom3d.utils import adaptive_load_config
-        #cfg = adaptive_load_config()
     # add dimension if it's a 2d image    
     if len(img.shape) == 2 :
-        print("this is a 2d image : ",img.shape)
-        img = np.expand_dims(img, axis=0)
-        print(" This is a 2d image")
+        img = np.expand_dims(img, axis=(0,1))
     # Expand image dimension, we consider the Z dim as the smallest dimension   ( we put it in the second position [C,Z,Y,X]) 
-    if is2d and len(img.shape)==3:
-        print(img.shape)
-        print(" This is a 2d image with a channel dimension")
+    if is_2d and len(img.shape)==3:
         original_shape = img.shape
         img = np.expand_dims(img, 1)
-        print(img.shape)
         
     else :
         # expand image dim
@@ -255,7 +248,9 @@ def seg_preprocessor(
 
     # one hot encoding for the mask if needed
     if do_msk and len(msk.shape)!=4: 
-        if use_one_hot:
+        if len(msk.shape) == 2:
+            msk = np.expand_dims(msk,axis=(0,1))
+        elif use_one_hot:
             msk = one_hot_fast(msk, num_classes)
             if remove_bg:
                 msk = msk[1:]
@@ -264,8 +259,7 @@ def seg_preprocessor(
     elif do_msk and len(msk.shape)==4:
         # normalize each channel
         msk = (msk > msk.min()).astype(np.uint8)
-    if do_msk and len(msk.shape) == 3:
-        msk = np.expand_dims(msk,axis=0)
+
     assert len(img.shape)==4
     if do_msk: assert len(msk.shape)==4
 
@@ -384,7 +378,7 @@ class Preprocessing:
         use_tif=False, # use tif instead of npy 
         split_rate_for_single_img=0.25,
         num_kfolds=5,
-        is2d=False,
+        is_2d=False,
         ):
         assert img_dir!='', "[Error] img_dir must not be empty."
        
@@ -393,7 +387,7 @@ class Preprocessing:
             img_dir = os.path.dirname(img_dir)
         if msk_dir is not None and os.path.basename(msk_dir)=='':
             msk_dir = os.path.dirname(msk_dir)
-        self.is2d = is2d
+        self.is_2d = is_2d
         self.img_dir=img_dir
         self.msk_dir=msk_dir
         self.img_fnames=sorted(os.listdir(self.img_dir))
@@ -434,8 +428,8 @@ class Preprocessing:
 
         self.num_channels = 1
         self.channel_axis = 0
-       # Make sur the Channel dim is first ( we assume that the channel dim is the smallest dimension ! )
-        if is2d and len(self.median_size)==3:
+       # Make sure the Channel dim is first ( we assume that the channel dim is the smallest dimension ! )
+        if is_2d and len(self.median_size)==3:
             self.num_channels = np.min(median_size)
             self.channel_axis = np.argmin(self.median_size)
         # if the 3D image has 4 dimensions then there is a channel dimension.
@@ -588,7 +582,7 @@ class Preprocessing:
                     intensity_moments   =self.intensity_moments,
                     channel_axis        =self.channel_axis,
                     num_channels        =self.num_channels,
-                    is2d=self.is2d,
+                    is_2d=self.is_2d,
                     )
             else:
                 img, _ = seg_preprocessor(
@@ -599,7 +593,7 @@ class Preprocessing:
                     intensity_moments   =self.intensity_moments,
                     channel_axis        =self.channel_axis,
                     num_channels        =self.num_channels,
-                    is2d=self.is2d,
+                    is_2d=self.is_2d,
                     )
 
             # sanity check to be sure that all images have the save number of channel
@@ -671,7 +665,7 @@ def auto_config_preprocess(
         logs_dir='logs/',
         print_param=False,
         debug=False,
-        is2d=False,
+        is_2d=False,
         ):
     """Helper function to do auto-config and preprocessing.
     """
@@ -685,7 +679,7 @@ def auto_config_preprocess(
         print("Standard deviation of intensities:", std)
         print("0.5% percentile of intensities:", perc_005)
         print("99.5% percentile of intensities:", perc_995)
-        print(" Image Type : ",is2d)
+        print("Image Type: " + ("2D" if is_2d else "3D"))
         print("")
 
     if ct_norm:
@@ -714,7 +708,7 @@ def auto_config_preprocess(
         median_size=median_size,
         clipping_bounds=clipping_bounds,
         intensity_moments=intensity_moments,
-        is2d=is2d,
+        is_2d=is_2d,
     )
 
     if not skip_preprocessing:
@@ -731,7 +725,7 @@ def auto_config_preprocess(
             max_batch = len(os.listdir(img_dir))//20, # we limit batch to avoid overfitting
             )
         # make sure the Z dim of the patch is equal to 1 !
-        if is2d :
+        if is_2d :
             patch[0] = 1
             aug_patch[0] = 1
         # convert path for windows systems before writing them
@@ -763,7 +757,7 @@ def auto_config_preprocess(
             DESC=desc,
             NB_EPOCHS=num_epochs,
             LOG_DIR=logs_dir,
-            IS_2D=is2d
+            IS_2D=is_2d
         )
 
         if not print_param: print("Auto-config done! Configuration saved in: ", config_path)
@@ -817,8 +811,8 @@ if __name__=='__main__':
         help="(default=False) Whether to print auto-config parameters. Used for remote preprocessing using the GUI.") 
     parser.add_argument("--debug", default=False,  action='store_true', dest='debug',
         help="(default=False) Debug mode. Whether to print all image filenames while preprocessing.") 
-    parser.add_argument("--is2d", default=False,  
-        help="(default=False) Check wheter the image has 2d only.") 
+    parser.add_argument("--is_2d", default=False,  
+        help="(default=False) Check whether the image has 2d only.") 
     args = parser.parse_args()
 
     auto_config_preprocess(
@@ -841,7 +835,7 @@ if __name__=='__main__':
         logs_dir=args.logs_dir,
         print_param=args.remote,
         debug=args.debug,
-        is2d=args.is2d,
+        is_2d=args.is_2d,
         )
 
 #---------------------------------------------------------------------------

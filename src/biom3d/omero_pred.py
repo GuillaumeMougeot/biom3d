@@ -16,7 +16,7 @@ except:
     pass
 from biom3d import pred  
 
-def run(obj, target, log, dir_out, attachment, host=None, user=None, pwd=None, upload_id=None,ext="_predictions"):
+def run(obj, target, log, dir_out, attachment=None, host=None, user=None, pwd=None, upload_id=None,ext="_predictions"):
     print("Start dataset/project downloading...")
     if host is not None:
         datasets, dir_in = omero_downloader.download_object(user, pwd, host, obj, target)

@@ -177,14 +177,13 @@ class RandomCropOrPad(RandomTransform, SpatialTransform):
 class LabelToFloat:
     """
     Transform to convert label data to float type.
+        
+    Parameters
+    ----------
+    label_name : str
+        Name of the label to be transformed.
     """
     def __init__(self, label_name):
-        """
-        Parameters
-        ----------
-        label_name : str
-            Name of the label to be transformed.
-        """
         self.label_name = label_name
         
     def __call__(self, subject):
@@ -195,14 +194,13 @@ class LabelToFloat:
 class LabelToLong:
     """
     Transform to convert label data to long (integer) type.
+    
+    Parameters
+    ----------
+    label_name : str
+        Name of the label to be transformed.
     """
     def __init__(self, label_name):
-        """
-        Parameters
-        ----------
-        label_name : str
-            Name of the label to be transformed.
-        """
         self.label_name = label_name
         
     def __call__(self, subject):
@@ -213,14 +211,13 @@ class LabelToLong:
 class LabelToBool:
     """
     Transform to convert label data to boolean type.
+    
+    Parameters
+    ----------
+    label_name : str
+        Name of the label to be transformed.
     """
     def __init__(self, label_name):
-        """
-        Parameters
-        ----------
-        label_name : str
-            Name of the label to be transformed.
-        """
         self.label_name = label_name
         
     def __call__(self, subject):

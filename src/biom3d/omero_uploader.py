@@ -170,7 +170,7 @@ def full_import(client, fs_path, wait=-1):
     finally:
         proc.close()
         
-def run(username, password, hostname, project, dataset_name, path, attachment, wait=-1):
+def run(username, password, hostname, project, dataset_name, path, attachment=None, wait=-1):
     conn = BlitzGateway(username=username, passwd=password, host=hostname, port=4064)
     conn.connect()
 
@@ -203,10 +203,10 @@ def run(username, password, hostname, project, dataset_name, path, attachment, w
     file_to_upload = attachment  # This file should already exist
     
     # create the original file and file annotation (uploads the file etc.)
-    namespace = "my.custom.demo.namespace"
+
     print("\nCreating an OriginalFile and FileAnnotation")
     file_ann = conn.createFileAnnfromLocalFile(
-        file_to_upload, mimetype="text/plain", ns=namespace, desc=None)
+        file_to_upload, mimetype="text/plain", desc=None)
     print("Attaching FileAnnotation to Dataset: ", "File ID:", file_ann.getId(), \
         ",", file_ann.getFile().getName(), "Size:", file_ann.getFile().getSize())
     dataset.linkAnnotation(file_ann)     # link it to dataset.
@@ -231,7 +231,7 @@ if __name__ == '__main__':
         help="Password")
     parser.add_argument('--hostname',
         help="Host name")
-    parser.add_argument('--attachment',
+    parser.add_argument('--attachment', default=None,
         help="Attachment file")
     args = parser.parse_args()
 

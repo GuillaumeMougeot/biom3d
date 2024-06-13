@@ -92,8 +92,11 @@ def located_crop(img, msk, location, crop_shape, margin=np.zeros(3)):
 
     Returns
     -------
-    
-        Cropped image and mask.
+    crop_img : ndarray
+        Cropped image data, containing the specified location voxel within the crop.
+    crop_msk : ndarray
+        Cropped mask data, corresponding to the cropped image region.
+
     """
     img_shape = np.array(img.shape)[1:]
     location = np.array(location)
@@ -132,8 +135,11 @@ def foreground_crop(img, msk, final_size, fg_margin, fg=None, use_softmax=True):
 
     Returns
     -------
-    
-        Cropped image and mask.
+    img : ndarray
+        Cropped image data, focused on the foreground region.
+    msk : ndarray
+        Cropped mask data, corresponding to the cropped image region.
+        
     """
     if fg is not None:
         locations = fg[random.choice(list(fg.keys()))]
@@ -169,8 +175,11 @@ def random_crop(img, msk, crop_shape):
 
     Returns
     -------
-    
-        Cropped image and mask.
+    crop_img : ndarray
+        Cropped image data.
+    crop_msk : ndarray
+        Cropped mask data.
+
     """ 
     img_shape = np.array(img.shape)[1:]
     assert len(img_shape)==len(crop_shape),"[Error] Not the same dimensions! Image shape {}, Crop shape {}".format(img_shape, crop_shape)
@@ -242,8 +251,11 @@ def random_crop_pad(img, msk, final_size, fg_rate=0.33, fg_margin=np.zeros(3), f
 
     Returns
     -------
-    
-        Cropped and padded image and mask.
+    img : ndarray
+        Cropped and padded image data.
+    msk : ndarray
+        Cropped and padded mask data.
+
     """
     if type(img)==list: # then batch mode
         imgs, msks = [], []

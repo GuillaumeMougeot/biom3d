@@ -36,8 +36,10 @@ def centered_crop(img, msk, center, crop_shape, margin=np.zeros(3)):
 
     Returns
     -------
-    
-        Cropped image and mask.
+    crop_img : ndarray
+        Cropped image data.
+    crop_msk : ndarray
+        Cropped mask data.
     """
     img_shape = np.array(img.shape)[1:]
     center = np.array(center)
@@ -83,8 +85,11 @@ def located_crop(img, msk, location, crop_shape, margin=np.zeros(3)):
 
     Returns
     -------
-    
-        Cropped image and mask.
+    crop_img : ndarray
+        Cropped image data.
+    crop_msk : ndarray
+        Cropped mask data.
+     
     """
     img_shape = np.array(img.shape)[1:]
     location = np.array(location)
@@ -123,8 +128,11 @@ def foreground_crop(img, msk, final_size, fg_margin, fg=None, use_softmax=True):
 
     Returns
     -------
-    
-        Cropped image and mask.
+    img : ndarray
+        Cropped image data, focused on the foreground region.
+    msk : ndarray
+        Cropped mask data, corresponding to the cropped image region.
+
     """
     if fg is not None and len(list(fg.keys()))>0:
         locations = fg[random.choice(list(fg.keys()))]
@@ -183,8 +191,11 @@ def random_crop(img, msk, crop_shape, force_in=True):
 
     Returns
     -------
-    
-        Cropped image and mask.
+    crop_img : ndarray
+        Cropped image data.
+    crop_msk : ndarray
+        Cropped mask data.
+
     """ 
     img_shape = np.array(img.shape)[1:]
     assert len(img_shape)==len(crop_shape),"[Error] Not the same dimensions! Image shape {}, Crop shape {}".format(img_shape, crop_shape)
@@ -231,8 +242,11 @@ def random_crop_pad(img, msk, final_size, fg_rate=0.33, fg_margin=np.zeros(3), f
 
     Returns
     -------
-    
-        Cropped and padded image and mask.
+    img : ndarray
+        Cropped and padded image data.
+    msk : ndarray
+        Cropped and padded mask data.
+
     """
     if type(img)==list: # then batch mode
         imgs, msks = [], []
@@ -276,8 +290,10 @@ def random_crop_resize(img, msk, crop_scale, final_size, fg_rate=0.33, fg_margin
 
     Returns
     -------
-    
-        Cropped and resized image and mask.
+    img : ndarray
+        Cropped and resized image data.
+    msk : ndarray
+        Cropped and resized mask data.
     """
     final_size = np.array(final_size)
         
@@ -315,16 +331,20 @@ def random_crop_resize(img, msk, crop_scale, final_size, fg_rate=0.33, fg_margin
 class LabelToLong:
     """
     Transform to convert label data to long (integer) type.
+            
+    Parameters
+    ----------
+    label_name : str
+        Name of the label to be transformed.
+        
+    Returns
+    -------
+    subject : dict
+        Dictionary with the label data converted to long (integer) type.
+
     """
 
     def __init__(self, label_name):
-        """
-        Parameters
-        ----------
-        label_name : str
-            Name of the label to be transformed.
-        """
-
         self.label_name = label_name
         
     def __call__(self, subject):
