@@ -43,7 +43,8 @@ import locale
 import os
 import platform
 import sys
-
+import zipfile
+    
 import omero.clients
 from omero.model import ChecksumAlgorithmI
 from omero.model import NamedValue
@@ -170,37 +171,57 @@ def full_import(client, fs_path, wait=-1):
     finally:
         proc.close()
         
-def run(username, password, hostname, project, dataset_name, path, attachment=None, wait=-1):
+def run(username, password, hostname, project, attachment, dataset_name=None, path=None, is_pred=False , wait=-1):
     conn = BlitzGateway(username=username, passwd=password, host=hostname, port=4064)
     conn.connect()
 
-    if project and not conn.getObject('Project', project):
+    if project and is_pred and not conn.getObject('Project', project):
         print ('Project id not found: %s' % project)
         sys.exit(1)
 
-    # create a new Omero Dataset
-    dataset = post_dataset(conn,dataset_name,project)
-
-    directory_path =str(path)    
-    filees = get_files_for_fileset(directory_path)
-    for fs_path in filees:
-            print ('Importing: %s' % fs_path)
-            rsp = full_import(conn.c, fs_path, wait)
-            if rsp:
-                links = []
-                for p in rsp.pixels:
-                    print ('Imported Image ID: %d' % p.image.id.val)
-                    if dataset:
-                        link = omero.model.DatasetImageLinkI()
-                        link.parent = omero.model.DatasetI(dataset, False)
-                        link.child = omero.model.ImageI(p.image.id.val, False)
-                        links.append(link)
-                conn.getUpdateService().saveArray(links, conn.SERVICE_OPTS) 
+    if  is_pred :
+        # create a new Omero Dataset
+        dataset = post_dataset(conn,dataset_name,project)
+        directory_path =str(path)    
+        filees = get_files_for_fileset(directory_path)
+        for fs_path in filees:
+                print ('Importing: %s' % fs_path)
+                rsp = full_import(conn.c, fs_path, wait)
+                if rsp:
+                    links = []
+                    for p in rsp.pixels:
+                        print ('Imported Image ID: %d' % p.image.id.val)
+                        if dataset:
+                            link = omero.model.DatasetImageLinkI()
+                            link.parent = omero.model.DatasetI(dataset, False)
+                            link.child = omero.model.ImageI(p.image.id.val, False)
+                            links.append(link)
+                    conn.getUpdateService().saveArray(links, conn.SERVICE_OPTS) 
       
+    else : 
+        dataset = project
     
+    
+
+    logs_path = "./logs"
+    last_folder_path = os.path.join(logs_path, "{}".format(attachment))
+    zip_file_path = os.path.join(logs_path, "{}.zip".format(attachment))
+    # Create a zip file excluding the "image" folder
+    with zipfile.ZipFile(zip_file_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for root, dirs, files in os.walk(last_folder_path):
+            # Exclude the "image" directory
+            if 'image' in dirs:
+                dirs.remove('image')
+            for file in files:
+                file_path = os.path.join(root, file)
+                arcname = os.path.relpath(file_path, start=last_folder_path)
+                zipf.write(file_path, arcname)
+
+    print(f"Zipped folder (excluding 'image' folder): {zip_file_path}")    
+        
     dataset = conn.getObject("Dataset", dataset)
     # Specify a local file e.g. could be result of some analysis
-    file_to_upload = attachment  # This file should already exist
+    file_to_upload = zip_file_path  # This file should already exist
     
     # create the original file and file annotation (uploads the file etc.)
 
