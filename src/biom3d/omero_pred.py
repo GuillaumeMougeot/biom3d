@@ -6,6 +6,7 @@
 
 import argparse
 import os
+import shutil
 from omero.cli import cli_login
 from omero.gateway import BlitzGateway
 
@@ -43,7 +44,11 @@ def run(obj, target, log, dir_out, attachment=None, host=None, user=None, pwd=No
                 dataset_name = os.path.basename(os.path.dirname(dir_in))
             dataset_name += ext
 
-            omero_uploader.run(user, pwd, host,upload_id,dataset_name,dir_out, attachment)
+            omero_uploader.run(username=user,password= pwd,hostname= host,project=upload_id, attachment=attachment, is_pred=True, dataset_name=dataset_name,path=dir_out )
+            # Remove all folders (pred, to_pred, attachment File)
+            shutil.rmtree(dir_in)
+            shutil.rmtree(dir_out)
+            os.remove(attachment+".zip")
         print("Done prediction!")
 
         # print for remote. Format TAG:key:value
