@@ -202,36 +202,36 @@ def run(username, password, hostname, project, attachment, dataset_name=None, pa
         dataset = project
     
     
+    if attachment is not None:
+        logs_path = "./logs"
+        last_folder_path = os.path.join(logs_path, "{}".format(attachment))
+        zip_file_path = os.path.join(logs_path, "{}.zip".format(attachment))
+        # Create a zip file excluding the "image" folder
+        with zipfile.ZipFile(zip_file_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            for root, dirs, files in os.walk(last_folder_path):
+                # Exclude the "image" directory
+                if 'image' in dirs:
+                    dirs.remove('image')
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    arcname = os.path.relpath(file_path, start=last_folder_path)
+                    zipf.write(file_path, arcname)
 
-    logs_path = "./logs"
-    last_folder_path = os.path.join(logs_path, "{}".format(attachment))
-    zip_file_path = os.path.join(logs_path, "{}.zip".format(attachment))
-    # Create a zip file excluding the "image" folder
-    with zipfile.ZipFile(zip_file_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        for root, dirs, files in os.walk(last_folder_path):
-            # Exclude the "image" directory
-            if 'image' in dirs:
-                dirs.remove('image')
-            for file in files:
-                file_path = os.path.join(root, file)
-                arcname = os.path.relpath(file_path, start=last_folder_path)
-                zipf.write(file_path, arcname)
-
-    print(f"Zipped folder (excluding 'image' folder): {zip_file_path}")    
+        print(f"Zipped folder (excluding 'image' folder): {zip_file_path}")    
+            
+        dataset = conn.getObject("Dataset", dataset)
+        # Specify a local file e.g. could be result of some analysis
+        file_to_upload = zip_file_path  # This file should already exist
         
-    dataset = conn.getObject("Dataset", dataset)
-    # Specify a local file e.g. could be result of some analysis
-    file_to_upload = zip_file_path  # This file should already exist
-    
-    # create the original file and file annotation (uploads the file etc.)
+        # create the original file and file annotation (uploads the file etc.)
 
-    print("\nCreating an OriginalFile and FileAnnotation")
-    file_ann = conn.createFileAnnfromLocalFile(
-        file_to_upload, mimetype="text/plain", desc=None)
-    print("Attaching FileAnnotation to Dataset: ", "File ID:", file_ann.getId(), \
-        ",", file_ann.getFile().getName(), "Size:", file_ann.getFile().getSize())
-    dataset.linkAnnotation(file_ann)     # link it to dataset.
-        
+        print("\nCreating an OriginalFile and FileAnnotation")
+        file_ann = conn.createFileAnnfromLocalFile(
+            file_to_upload, mimetype="text/plain", desc=None)
+        print("Attaching FileAnnotation to Dataset: ", "File ID:", file_ann.getId(), \
+            ",", file_ann.getFile().getName(), "Size:", file_ann.getFile().getSize())
+        dataset.linkAnnotation(file_ann)     # link it to dataset.
+            
         
     conn.close()
     
@@ -254,6 +254,8 @@ if __name__ == '__main__':
         help="Host name")
     parser.add_argument('--attachment', default=None,
         help="Attachment file")
+    parser.add_argument('--is_pred', default=False,
+        help="Check Whether its a prediction or a training ")
     args = parser.parse_args()
 
     
@@ -263,5 +265,6 @@ if __name__ == '__main__':
         path=args.path,
         wait=args.wait,
         attachment=args.attachment,
+        is_pred=args.is_pred,
     )
     

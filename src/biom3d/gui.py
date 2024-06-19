@@ -42,6 +42,7 @@ try:
     from biom3d.utils import load_python_config 
     from biom3d.train import train
     from biom3d.eval import eval
+    from biom3d.omero_downloader import download_object
     
     import torch
 except ImportError as e:
@@ -548,8 +549,8 @@ class TrainFolderSelection(ttk.LabelFrame):
             self.send_data_entry = ttk.Entry(self, textvariable=self.send_data_name)
             
         else:
-            self.img_outdir = FileDialog(self, mode='folder', textEntry="/home/safarbatis/chocolate-factory/data/fake3D_images/2d")
-            self.msk_outdir = FileDialog(self, mode='folder', textEntry="/home/safarbatis/chocolate-factory/data/fake3D_images/2ds")            
+            self.img_outdir = FileDialog(self, mode='folder', textEntry="")
+            self.msk_outdir = FileDialog(self, mode='folder', textEntry="")            
         self.config_dir = FileDialog(self, mode='file', textEntry="")      
 
         # Position elements
@@ -591,7 +592,7 @@ class TrainFolderSelection(ttk.LabelFrame):
 class ConfigFrame(ttk.LabelFrame):
     """ Load or auto configure training parameters
     """
-    def __init__(self, train_folder_selection=None, *arg, **kw):
+    def __init__(self, train_folder_selection=None, omero=None, omero_dataset = None, get_use_omero = False, *arg, **kw):
         super(ConfigFrame, self).__init__(*arg, **kw)
 
         # widgets definitions
@@ -629,6 +630,10 @@ class ConfigFrame(ttk.LabelFrame):
         self.img_outdir = train_folder_selection.img_outdir
         self.msk_outdir = train_folder_selection.msk_outdir
         self.config_dir = train_folder_selection.config_dir
+        
+        self.get_use_omero = get_use_omero 
+        self.omero = omero
+        self.omero_dataset = omero_dataset
 
         self.auto_config_finished = ttk.Label(self, text="")
         # Number of epochs
@@ -828,7 +833,7 @@ class ConfigFrame(ttk.LabelFrame):
             msk_dir_train = "data/{}/msk_out".format(selected_dataset)
             fg_dir_train = "data/{}/fg_out".format(selected_dataset)
             # error management
-            if len(auto_config_results)!=10:
+            if len(auto_config_results) not in (10,15):
                print("[Error] Auto-config error:", auto_config_results)
                popupmsg("[Error] Auto-config error: "+ str(auto_config_results))
             while True:
@@ -837,6 +842,7 @@ class ConfigFrame(ttk.LabelFrame):
                     break
                 print(line, end="")
            
+           # TODO : rewrite this part 
            # get auto config results
             reversed_auto_config_results = auto_config_results[::-1]
         
@@ -863,15 +869,30 @@ class ConfigFrame(ttk.LabelFrame):
                 local_config_dir = local_config_dir.replace("\\", "\\\\")
                 local_logs_dir = local_logs_dir.replace("\\", "\\\\")
 
-            config_path=auto_config_preprocess(img_dir=self.img_outdir.get(),
-            msk_dir=self.msk_outdir.get(),
+
+            if self.get_use_omero():
+                
+                raw_dataset = "Dataset:"+self.omero_dataset.id_entry.get()
+                mask_dataset = "Dataset:"+self.omero_dataset.msk_id_entry.get()
+                print("Using OMERO ! ")
+                datasets, img_dir = download_object(hostname=self.omero.hostname.get(), username=self.omero.username.get(), password=self.omero.password.get(), target_dir = "data/to_train/", obj=raw_dataset )
+                datasets_mask, msk_dir = download_object(hostname=self.omero.hostname.get(), username=self.omero.username.get(), password=self.omero.password.get(), target_dir = "data/to_train/", obj=mask_dataset )
+                img_dir = os.path.join(img_dir, datasets[0].name)
+                msk_dir = os.path.join(msk_dir, datasets_mask[0].name)
+        
+            else :
+                img_dir=self.img_outdir.get()
+                msk_dir=self.msk_outdir.get()
+
+            config_path=auto_config_preprocess(img_dir=img_dir,
+            msk_dir=msk_dir,
             desc=self.builder_name_entry.get(),
             num_classes=self.num_classes.get(),
             remove_bg=False, use_tif=False,
             config_dir=local_config_dir,
             logs_dir=local_logs_dir,
             base_config=None,
-            is2d=is_2d_state.get(),
+            is_2d=is_2d.get(),
                 
             )
             # Read the config file
@@ -929,24 +950,34 @@ class TrainTab(ttk.Frame):
     def __init__(self, *arg, **kw):
         super(TrainTab, self).__init__(*arg, **kw)
         global new_config_path
-        global sent_dataset
-        global is_2d_state
+        global is_2d
+        
+        # Omero Preprocessing 
+        self.omero_dataset = OmeroPreprocessing(self, text="Selection of Omero datasets", padding=[10,10,10,10])
+        self.omero_connection = Connect2Omero(self, text="Connection to Omero server", padding=[10,10,10,10])
+        self.use_omero_preprocessing_state = IntVar(value=0) 
+        self.use_omero_preprocessing_button = ttk.Checkbutton(self, text="Download Datasets from Omero ? ", command=self.display_omero_preprocessing, variable=self.use_omero_preprocessing_state)
+        # Omero Connection ?
+        self.use_omero = self.use_omero_preprocessing_state.get()
+
+        
         self.folder_selection = TrainFolderSelection(master=self, text="Preprocess", padding=[10,10,10,10])
-        self.config_selection = ConfigFrame(train_folder_selection=self.folder_selection, master=self, text="Training configuration", padding=[10,10,10,10])
+        self.config_selection = ConfigFrame(train_folder_selection=self.folder_selection, omero = self.omero_connection, omero_dataset = self.omero_dataset, get_use_omero = self.get_use_omero ,master=self, text="Training configuration", padding=[10,10,10,10])
         self.train_button = ttk.Button(self, text="Start", style="train_button.TLabel", width =29, command=self.train)
         self.plot_button = ttk.Button(self, text="Plot Learning Curves", style="train_button.TLabel", width =29, command=self.get_logs_plot)
         self.fine_tune_button = ttk.Button(self,   text="Fine-tune", style="train_button.TLabel", width=29, command=self.train)
         self.train_done = ttk.Label(self, text="")
         
+
         # config folder
         self.dataset_preprocessed_state = IntVar(value=0) 
         self.use_conf_button = ttk.Checkbutton(self, text="Dataset is already preprocessed ? ", command=self.display_conf_finetuning, variable=self.dataset_preprocessed_state)
         
         # 2d image ?
-        self.is_2d_state = IntVar(value=0) 
-        self.is_2d_check_button = ttk.Checkbutton(self, text="Process 2D images ? ",  variable=self.is_2d_state)
+        self.is_2d = IntVar(value=0) 
+        self.is_2d_check_button = ttk.Checkbutton(self, text="Process 2D images ? ",  variable=self.is_2d)
         
-        is_2d_state = self.is_2d_state 
+        is_2d = self.is_2d
         #Fine tuning
         self.fine_tune_state = IntVar(value=0) 
         self.use_tune_button = ttk.Checkbutton(self, text="Use Fine-Tuning ? ", command=self.display_conf_finetuning ,variable=self.fine_tune_state)
@@ -959,7 +990,8 @@ class TrainTab(ttk.Frame):
             self.use_conf_button.grid(column=0,row=0,sticky=(N,W,E), pady=3)
             self.is_2d_check_button.grid(column=0,row=0,sticky=(N,E), pady=3)
         else : self.plot_button.grid(column=0, row=5, padx=15, ipady=4, pady= 2, sticky=(N))
-        self.use_tune_button.grid(column=0,row=1,sticky=(N,W,E), ipady=5)
+        self.use_tune_button.grid(column=0,row=1,sticky=(N,W), ipady=5)
+        self.use_omero_preprocessing_button.grid(column=0,row=1,sticky=(N,E), ipady=2)
         self.folder_selection.grid(column=0,row=2,sticky=(N,W,E), pady=3)
         self.config_selection.grid(column=0,row=3,sticky=(N,W,E), pady=20)
         self.train_button.grid(column=0, row=4,padx=15, ipady=4, pady= 2, sticky=(N))
@@ -968,11 +1000,43 @@ class TrainTab(ttk.Frame):
         self.columnconfigure(0, weight=1)
         for i in range(5):
             self.rowconfigure(i, weight=1)
+    def get_use_omero(self):
+        # Return the current state of use_omero_preprocessing_state
+        return self.use_omero_preprocessing_state.get()       
+    def display_omero_preprocessing(self):
+        # TODO : Deal with fine tuning
+        
+        if self.use_omero_preprocessing_state.get():
             
+            # Remove folder selection img and msk directories
+            self.folder_selection.grid_remove()
+            self.folder_selection.label1.grid_remove()
+            self.folder_selection.img_outdir.grid_remove()
+            self.folder_selection.label2.grid_remove()
+            self.folder_selection.msk_outdir.grid_remove()
+            self.use_conf_button.grid_remove()
+            self.use_tune_button.grid_remove()
+            
+
+            self.omero_connection.grid(column=0,row=1,sticky=(N,W,E), pady=3)
+            self.omero_dataset.grid(column=0,row=2,sticky=(S,W,E), pady=5)
+  
+        else :
+            self.folder_selection.grid(column=0,row=2,sticky=(N,W,E), pady=3)
+            self.omero_connection.grid_remove()
+            self.omero_dataset.grid_remove()
+            self.use_conf_button.grid(column=0,row=0,sticky=(N,W,E), pady=3)
+            # Folder selection
+            self.folder_selection.label1.grid(column=0,row=2, sticky=W, pady=7)
+            self.folder_selection.img_outdir.grid(column=0, row=3, sticky=(W,E))
+            self.folder_selection.label2.grid(column=0,row=4, sticky=W, pady=7)
+            self.folder_selection.msk_outdir.grid(column=0,row=5, sticky=(W,E))           
+            self.use_tune_button.grid(column=0,row=1,sticky=(N,W), ipady=5)  
+        
     def display_conf_finetuning(self):
         if not REMOTE:
             # All Cases possible
-            
+            self.use_omero_preprocessing_button.grid(column=0,row=1,sticky=(N,E), ipady=2)
             if self.dataset_preprocessed_state.get() and self.fine_tune_state.get(): 
                 self.display_one()
             elif self.dataset_preprocessed_state.get() and not self.fine_tune_state.get():       
@@ -993,10 +1057,10 @@ class TrainTab(ttk.Frame):
                 self.folder_selection.label3.grid_remove()
                 
                 # Add the buttons back
-                self.use_tune_button.grid(column=0,row=1,sticky=(N,W,E), pady=3)
+                self.use_tune_button.grid(column=0,row=1,sticky=(N,W), pady=3)
                 self.train_button.grid(column=0, row=4,padx=15, ipady=4, pady= 2, sticky=(N))
                 self.train_done.grid(column=0, row=5, sticky=W)
-                
+                self.use_omero_preprocessing_button.grid(column=0,row=1,sticky=(N,E), ipady=2)
                 # Folder selection
                 self.folder_selection.label1.grid(column=0,row=2, sticky=W, pady=7)
                 self.folder_selection.img_outdir.grid(column=0, row=3, sticky=(W,E))
@@ -1047,8 +1111,10 @@ class TrainTab(ttk.Frame):
                 self.folder_selection.grid(column=0,row=2, pady= 2, sticky=(W,E))        
                 self.config_selection.grid(column=0,row=3,sticky=(N,W,E), pady=20)
                 self.train_button.grid(column=0, row=5,padx=15, ipady=4, pady= 2, sticky=(N))
+                self.use_omero_preprocessing_button.grid(column=0,row=1,sticky=(N,E), ipady=2)
                 
     def display_one(self):
+        self.use_omero_preprocessing_button.grid(column=0,row=1,sticky=(N,E), ipady=2)        
         # Folder selection
         self.folder_selection.grid(column=0,row=2,sticky=(N,W,E), pady=3)
         # Fine tuning
@@ -1073,6 +1139,7 @@ class TrainTab(ttk.Frame):
         self.folder_selection.msk_outdir.grid_remove()
         # Remove train button
         self.train_button.grid_remove()
+        self.use_omero_preprocessing_button.grid_remove()
     
     def display_two(self):
         """
@@ -1080,6 +1147,7 @@ class TrainTab(ttk.Frame):
         """
         if not REMOTE :
             # place the new ones
+            self.use_omero_preprocessing_button.grid(column=0,row=1,sticky=(N,E), ipady=2)
             self.folder_selection.label3.grid(column=0, row=1, sticky=W, pady=5)
             self.config_selection.load_config_button.grid(column=0, columnspan=4,row=4 ,ipady=4, pady=2,)
             self.folder_selection.config_dir.grid(column=0,row=6, sticky=(W,E))
@@ -1088,6 +1156,7 @@ class TrainTab(ttk.Frame):
             self.train_button.grid(column=0, row=4,padx=15, ipady=4, pady= 2, sticky=(N))
             self.train_done.grid(column=0, row=5, sticky=W)
             # Remove everything else
+            self.use_omero_preprocessing_button.grid_remove()
             self.config_selection.builder_name_label.grid_remove()
             self.config_selection.builder_name_entry.grid_remove()
             self.config_selection.num_classes_label.grid_remove()
@@ -1100,6 +1169,7 @@ class TrainTab(ttk.Frame):
             self.FineTuning.grid_remove()  
             self.fine_tune_button.grid_remove()
     def display_three(self):
+        self.use_omero_preprocessing_button.grid(column=0,row=1,sticky=(N,E), ipady=2)
         self.folder_selection.grid(column=0, row=2, sticky=(N,W,E), pady=3)
         self.FineTuning.grid(column=0, row=3, sticky=(N,W,E), pady=3)
         self.config_selection.grid(column=0, row=4, sticky=(N,W,E), pady=3)    
@@ -1389,7 +1459,7 @@ class InputDirectory(ttk.LabelFrame):
                 self.rowconfigure(i, weight=1)
         else:
             
-            self.data_dir = FileDialog(self, mode='folder', textEntry=os.path.join('', '/home/safarbatis/chocolate-factory/data/zt'))
+            self.data_dir = FileDialog(self, mode='folder', textEntry=os.path.join('', ''))
             self.data_dir.grid(column=0, row=1, sticky=(W,E))
 
             self.columnconfigure(0, weight=1)
@@ -1446,20 +1516,44 @@ class Connect2Omero(ttk.LabelFrame):
         self.columnconfigure(1, weight=5)
         for i in range(3):
             self.rowconfigure(i, weight=1)
-
-class OmeroDataset(ttk.LabelFrame):
+            
+class OmeroPreprocessing(ttk.LabelFrame):
     """
     Choose an input Dataset from OMERO for Predictions
+    """
+    def __init__(self, *arg, **kw):
+        super(OmeroPreprocessing, self).__init__(*arg, **kw)
+    
+        self.label_id = ttk.Label(self, text="Raw Images Dataset ID:")
+        self.id = StringVar(value="")
+        self.id_entry = ttk.Entry(self, textvariable=self.id)
+        
+        self.msk_label_id = ttk.Label(self, text="Masks Dataset ID:")
+        self.msk_id = StringVar(value="")
+        self.msk_id_entry = ttk.Entry(self, textvariable=self.msk_id)
+        
+
+        self.label_id.grid(column=0, row=0, sticky=(W,E))
+        self.id_entry.grid(column=1,row=0,sticky=(W,E))
+        
+        self.msk_label_id.grid(column=0, row=1, sticky=(W,E))
+        self.msk_id_entry.grid(column=1,row=1,sticky=(W,E))
+        self.columnconfigure(0, weight=1)
+        self.columnconfigure(1, weight=5)
+        self.rowconfigure(0, weight=1)
+class OmeroDataset(ttk.LabelFrame):
+    """
+    Choose an input Dataset from OMERO for Training
     """
     def __init__(self, *arg, **kw):
         super(OmeroDataset, self).__init__(*arg, **kw)
     
         self.label_id = ttk.Label(self, text="Input Dataset ID:")
-        self.id = StringVar(value="27373")
+        self.id = StringVar(value="")
         self.id_entry = ttk.Entry(self, textvariable=self.id)
         
         self.project_label_id = ttk.Label(self, text="Output Project ID:")
-        self.project_id = StringVar(value="12870")
+        self.project_id = StringVar(value="")
         self.project_id_entry = ttk.Entry(self, textvariable=self.project_id)
         
 
@@ -1503,7 +1597,7 @@ class ModelSelection(ttk.LabelFrame):
         else: 
             ## build folder
             self.label1 = ttk.Label(self, text="Select the folder containing the build:", anchor="sw", background='white')
-            self.logs_dir = FileDialog(self, mode='folder', textEntry='/home/safarbatis/chocolate-factory/logs/20240408-143154-3DBACK_fold0')
+            self.logs_dir = FileDialog(self, mode='folder', textEntry='')
 
             self.logs_dir.grid(column=0, row=0, sticky=(W,E))
             self.columnconfigure(0, weight=1)
@@ -1571,7 +1665,7 @@ class OmeroUpload(ttk.LabelFrame):
         self.prediction_folder= FileDialog(self, mode='folder', textEntry="data/pred")
         
         self.upload_project_label= ttk.Label(self, text="Project ID : ") #change to project id and send dataset name
-        self.project_id= StringVar(value="12870")
+        self.project_id= StringVar(value="")
         self.upload_project_entry= ttk.Entry(self,textvariable=self.project_id)
         
         self.upload_dataset_label= ttk.Label(self, text="Select a name for your dataset : ") #change to project id and send dataset name
@@ -1637,7 +1731,7 @@ class OmeroUpload(ttk.LabelFrame):
         # get the last folder modified/created
         _,stdout,stderr=REMOTE.exec_command("ls -td {}/data/pred/{}/*/ | head -1".format(MAIN_DIR, self.dataset_selected_omero() ))  
         last_folder = stdout.readline().replace('\n','')
-        _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {}; python -m biom3d.omero_uploader --username {} --password {} --hostname {} --project {} --path '{}' --dataset_name {}".format(VENV,MAIN_DIR, self.username_entry.get(), self.password_entry.get(), self.hostname_entry.get(), self.upload_project_entry.get(), last_folder,self.dataset_name_entry.get() ))
+        _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {}; python -m biom3d.omero_uploader --username {} --password {} --hostname {} --project {} --path '{}' --dataset_name {} --is_pred".format(VENV,MAIN_DIR, self.username_entry.get(), self.password_entry.get(), self.hostname_entry.get(), self.upload_project_entry.get(), last_folder,self.dataset_name_entry.get() ))
         
         while True: 
             line = stdout.readline()
@@ -1816,7 +1910,8 @@ class PredictTab(ttk.Frame):
             self.rowconfigure(i, weight=1)
     
     def predict(self):
-        attachment_file = self.model_selection.logs_dir.get()  + "/log/config.yaml"
+        #TODO test with None
+        attachment_file = self.model_selection.logs_dir.get()
         # if use Omero then use Omero prediction
         if REMOTE :
             # To Filter objects in Prediction
@@ -1925,13 +2020,6 @@ class PredictTab(ttk.Frame):
                     upload_id=int(self.omero_dataset.project_id.get()),
                     attachment=attachment_file,
                 )           
-                if self.send_to_omero_state.get():
-                    biom3d.omero_uploader.run(username=self.send_to_omero_connection.username.get(),
-                    password=self.send_to_omero_connection.password.get(),
-                    hostname=self.send_to_omero_connection.hostname.get(),
-                    project=int(self.send_to_omero_connection.upload_project_entry.get()),
-                    dataset_name=self.send_to_omero_connection.dataset_name_entry.get(),
-                    path=p)
         
         else: # if not use Omero
             if REMOTE:
@@ -1976,6 +2064,7 @@ class PredictTab(ttk.Frame):
                     project=int(self.send_to_omero_connection.upload_project_entry.get()),
                     dataset_name=self.send_to_omero_connection.dataset_name_entry.get(),
                     attachment=attachment_file,
+                    is_pred=True,
                     path=p)
                 popupmsg("Prediction done !")
 
@@ -1993,7 +2082,7 @@ class PredictTab(ttk.Frame):
 
             self.omero_connection.grid(column=0,row=1,sticky=(W,E), pady=6)
             self.omero_dataset.grid(column=0,row=2,sticky=(W,E), pady=6)
-
+            self.send_to_omero.grid_remove()
         else:
             # hide omero 
             self.omero_connection.grid_remove()
@@ -2001,7 +2090,7 @@ class PredictTab(ttk.Frame):
 
             # reset the input dir
             self.input_dir.grid(column=0,row=1,sticky=(W,E))
-       
+            self.send_to_omero.grid(column=0,row=4,sticky=(W,E), pady=6)
     def display_send_to_omero(self):
         
          """ For displaying and hiding OMERO tab
