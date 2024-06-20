@@ -272,10 +272,9 @@ def tif_read_imagej(img_path, axes_order='CZYX'):
     img_meta : dict
         Image metadata. 
     """
-
     with tiff.TiffFile(img_path) as tif:
-        assert tif.is_imagej
-
+        assert tif.is_imagej   
+            
         # store img_meta
         img_meta = {}
 
@@ -309,7 +308,8 @@ def tif_read_imagej(img_path, axes_order='CZYX'):
 
         img = tiff.tifffile.transpose_axes(img, series.axes, axes_order)
         
-        img_meta["axes"] = axes_order
+        #img_meta["axes"] = axes_order
+        img_meta["axes"] = series.axes
     
     return img, img_meta
 
