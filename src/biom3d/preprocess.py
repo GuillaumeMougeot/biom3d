@@ -154,10 +154,15 @@ def sanity_check(msk, num_classes=None):
     assert num_classes >= 2
     
     if len(msk.shape)==4:
+        if msk.shape[0]==1:
+            return sanity_check(msk[0], num_classes=num_classes)
         # if we have 4 dimensions in the mask, we consider it one-hot encoded
         # and thus we perform a sanity check for each channel
-        for i in range(msk.shape[0]):
-            sanity_check(msk[i], num_classes=2)
+        else:
+            new_msk = []
+            for i in range(msk.shape[0]):
+                new_msk+=[sanity_check(msk[i], num_classes=2)]
+            return np.array(new_msk)
             
     cls = np.arange(num_classes)
     if np.array_equal(uni,cls):
