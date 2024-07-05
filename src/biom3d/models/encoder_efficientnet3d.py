@@ -16,11 +16,6 @@
 #     5: ['_bn1']                     # 3
 # }
 #---------------------------------------------------------------------------
-import torch
-
-import torch
-from torch import nn
-from torch.nn import functional as F
 
 """
 This file contains helper functions for building the model and for loading model parameters.
@@ -30,11 +25,9 @@ These helper functions are built to mirror those in the official TensorFlow impl
 import re
 import math
 import collections
-from functools import partial
 import torch
 from torch import nn
 from torch.nn import functional as F
-from torch.utils import model_zoo
 import numpy as np
 
 ########################################################################
@@ -114,73 +107,6 @@ def drop_connect(inputs, p, training):
     binary_tensor = torch.floor(random_tensor)
     output = inputs / keep_prob * binary_tensor
     return output
-
-
-# def get_same_padding_conv3d(image_size=None):
-#     """ Chooses static padding if you have specified an image size, and dynamic padding otherwise.
-#         Static padding is necessary for ONNX exporting of models. """
-#     if image_size is None:
-#         return Conv3dDynamicSamePadding
-#     else:
-#         return partial(Conv3dStaticSamePadding, image_size=image_size)
-
-
-# class Conv3dDynamicSamePadding(nn.Conv3d):
-#     """ 3D Convolutions like TensorFlow, for a dynamic image size """
-
-#     def __init__(self, in_channels, out_channels, kernel_size, stride=1, dilation=1, groups=1, bias=True):
-#         super().__init__(in_channels, out_channels, kernel_size, stride, 0, dilation, groups, bias)
-#         self.stride = self.stride if len(self.stride) == 3 else [self.stride[0]] * 3
-
-#     def forward(self, x):
-#         ih, iw, iz = x.size()[-3:]
-#         kh, kw, kz = self.weight.size()[-3:]
-#         sh, sw, sz = self.stride
-#         oh, ow, oz = math.ceil(ih / sh), math.ceil(iw / sw), math.ceil(iz / sz)
-#         pad_h = max((oh - 1) * self.stride[0] + (kh - 1) * self.dilation[0] + 1 - ih, 0)
-#         pad_w = max((ow - 1) * self.stride[1] + (kw - 1) * self.dilation[1] + 1 - iw, 0)
-#         pad_z = max((oz - 1) * self.stride[2] + (kz - 1) * self.dilation[2] + 1 - iz, 0)
-#         if pad_h > 0 or pad_w > 0 or pad_z > 0:
-#             x = F.pad(x, [pad_w // 2, pad_w - pad_w // 2, pad_h // 2, pad_h - pad_h // 2, pad_z // 2, pad_z - pad_z // 2])
-#         return F.conv3d(x, self.weight, self.bias, self.stride, self.padding, self.dilation, self.groups)
-
-
-# class Conv3dStaticSamePadding(nn.Conv3d):
-#     """ 3D Convolutions like TensorFlow, for a fixed image size"""
-
-#     def __init__(self, in_channels, out_channels, kernel_size, image_size=None, **kwargs):
-#         super().__init__(in_channels, out_channels, kernel_size, **kwargs)
-#         self.stride = self.stride if len(self.stride) == 3 else [self.stride[0]] * 3
-
-#         # Calculate padding based on image size and save it
-#         assert image_size is not None
-#         ih, iw, iz = image_size if type(image_size) == list else [image_size, image_size, image_size]
-#         kh, kw, kz = self.weight.size()[-3:]
-#         sh, sw, sz = self.stride
-
-#         oh, ow, oz = math.ceil(ih / sh), math.ceil(iw / sw), math.ceil(iz / sz)
-#         pad_h = max((oh - 1) * self.stride[0] + (kh - 1) * self.dilation[0] + 1 - ih, 0)
-#         pad_w = max((ow - 1) * self.stride[1] + (kw - 1) * self.dilation[1] + 1 - iw, 0)
-#         pad_z = max((oz - 1) * self.stride[2] + (kz - 1) * self.dilation[2] + 1 - iz, 0)
-
-#         if pad_h > 0 or pad_w > 0 or pad_z > 0:
-#             self.static_padding = nn.ZeroPad2d((pad_w // 2, pad_w - pad_w // 2, pad_h // 2, pad_h - pad_h // 2, pad_z // 2, pad_z - pad_z // 2))
-#         else:
-#             self.static_padding = Identity()
-
-#     def forward(self, x):
-#         x = self.static_padding(x)
-#         x = F.conv3d(x, self.weight, self.bias, self.stride, self.padding, self.dilation, self.groups)
-#         return x
-
-
-# class Identity(nn.Module):
-#     def __init__(self, ):
-#         super(Identity, self).__init__()
-
-#     def forward(self, input):
-#         return input
-
 
 ########################################################################
 ############## HELPERS FUNCTIONS FOR LOADING MODEL PARAMS ##############
