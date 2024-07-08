@@ -7,7 +7,7 @@ import os
 
 from omero.gateway import BlitzGateway
 from omero.cli import cli_login, CLI
-
+from omero.clients import BaseClient
 
 from omero.plugins.download import DownloadControl
 
@@ -96,9 +96,14 @@ def download_datasets(conn, datasets, target_dir):
                 continue
             dc.download_fileset(conn, fileset, dataset_dir)
 
-def download_object(username, password, hostname, obj, target_dir):
-    conn = BlitzGateway(username=username, passwd=password, host=hostname, port=4064)
-    conn.connect()
+def download_object(username, password, hostname, obj, target_dir, session_id):
+    if session_id is not None:
+        client = BaseClient(host=hostname, port=4064)
+        client.joinSession(session_id)
+        conn = BlitzGateway(client_obj=client)
+    else :
+        conn = BlitzGateway(username=username, passwd=password, host=hostname, port=4064)
+        conn.connect()
     try:
         obj_id = int(obj.split(":")[1])
         obj_type = obj.split(":")[0]
@@ -123,7 +128,7 @@ def download_object(username, password, hostname, obj, target_dir):
 
     download_datasets(conn, datasets, target_dir)
 
-    conn.close()
+    #conn.close()
 
     return datasets, target_dir
 
@@ -132,17 +137,20 @@ def main(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument('--obj',
         help="Download object: 'Project:ID' or 'Dataset:ID'")
-    parser.add_argument('--target',
+    parser.add_argument('--target', 
         help="Directory name to download into")
-    parser.add_argument('--username',
+    parser.add_argument('--username', default=None,
         help="User name")
-    parser.add_argument('--password',
+    parser.add_argument('--password', default=None,
         help="Password")
-    parser.add_argument('--hostname',
+    parser.add_argument('--hostname',default=None,
         help="Host name")
+    parser.add_argument('--session_id',default=None,
+        help="Session ID")
     args = parser.parse_args(argv)
 
-    download_object(args.username, args.password, args.hostname, args.obj, args.target)
+
+    download_object(args.username, args.password, args.hostname, args.obj, args.target, args.session_id)
 
 if __name__ == '__main__':
     main(sys.argv[1:])

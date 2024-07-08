@@ -9,7 +9,7 @@ import os
 import shutil
 from omero.cli import cli_login
 from omero.gateway import BlitzGateway
-
+from omero.clients import BaseClient
 from biom3d import omero_downloader 
 try:
     from biom3d import omero_uploader
@@ -18,12 +18,15 @@ except:
 
 from biom3d import preprocess_train
 
-def run(obj_raw, obj_mask, num_classes, config_dir, base_config, ct_norm, desc, max_dim, num_epochs,  target , host=None, user=None, pwd=None, upload_id=None ,dir_out =None):
+def run(obj_raw, obj_mask, num_classes, config_dir, base_config, ct_norm, desc, max_dim, num_epochs,  target , host=None, user=None, pwd=None, upload_id=None ,dir_out =None, omero_session_id=None):
     print("Start dataset/project downloading...")
 
     if host is not None:
-        datasets, dir_in = omero_downloader.download_object(user, pwd, host, obj_raw, target)
-        datasets_mask, dir_in_mask = omero_downloader.download_object(user, pwd, host, obj_mask, target)
+        datasets, dir_in = omero_downloader.download_object(user, pwd, host, obj_raw, target, omero_session_id)
+        datasets_mask, dir_in_mask = omero_downloader.download_object(user, pwd, host, obj_mask, target, omero_session_id)
+    elif omero_session_id is not None:
+        datasets, dir_in = omero_downloader.download_object(user, pwd, host, obj_raw, target, omero_session_id)
+        datasets_mask, dir_in_mask = omero_downloader.download_object(user, pwd, host, obj_mask, target,omero_session_id)        
     else:
         with cli_login() as cli:
             datasets, dir_in = omero_downloader.download_object_cli(cli, obj_raw, target)
@@ -106,11 +109,13 @@ if __name__=='__main__':
         help="(optional) User name for Omero server")
     parser.add_argument('--password', type=str, default=None,
         help="(optional) Password for Omero server")
+    parser.add_argument('--session_id', default=None,
+        help="(optional) Session ID for Omero client")
     args = parser.parse_args()
     
     raw = "Dataset:"+args.raw
     mask = "Dataset:"+args.mask
-    
+
     run(
         obj_raw=raw,
         obj_mask=mask,
@@ -126,5 +131,7 @@ if __name__=='__main__':
         user=args.username,
         pwd=args.password,
         upload_id=args.raw,
+        omero_session_id=args.session_id
     )
+    conn.close()
     # python -m biom3d.omero_preprocess_train --raw  --mask  --num_epochs  --desc  --hostname  --username --password
