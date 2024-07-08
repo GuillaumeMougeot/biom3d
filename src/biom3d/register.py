@@ -27,12 +27,16 @@ except:
 #---------------------------------------------------------------------------
 # model register
 
-from biom3d.models.unet3d_vgg_deep import UNet
 from biom3d.models.encoder_vgg import VGGEncoder, EncoderBlock
+from biom3d.models.unet3d_vgg_deep import UNet
+from biom3d.models.encoder_efficientnet3d import EfficientNet3D
+from biom3d.models.unet3d_eff import EffUNet
 
 models = Dict(
-    UNet3DVGGDeep   =Dict(fct=UNet, kwargs=Dict()),
     VGG3D           =Dict(fct=VGGEncoder, kwargs=Dict(block=EncoderBlock, use_head=True)),
+    UNet3DVGGDeep   =Dict(fct=UNet, kwargs=Dict()),
+    Eff3D           =Dict(fct=EfficientNet3D.from_name, kwargs=Dict()),
+    EffUNet         =Dict(fct=EffUNet, kwargs=Dict()),
 )
 
 #---------------------------------------------------------------------------
