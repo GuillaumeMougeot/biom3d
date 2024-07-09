@@ -1403,6 +1403,25 @@ class TrainTab(ttk.Frame):
             else :
                 # run the training           
                 train(config=new_config_path)
+                if self.use_omero_preprocessing_state.get() :
+                    logs_path = "./logs"  # Use relative path
+                    if not os.path.exists(logs_path):
+                        print(f"Directory '{logs_path}' does not exist.")
+                    else:
+                        directories = [d for d in os.listdir(logs_path) if os.path.isdir(os.path.join(logs_path, d))]
+                        if not directories:
+                            print("No directories found in the logs path.")
+                        else:
+                            directories.sort(key=lambda d: os.path.getmtime(os.path.join(logs_path, d)), reverse=True)
+                            last_folder = directories[0]
+                            image_folder = os.path.join(logs_path, last_folder, "image")
+                    
+                    biom3d.omero_uploader.run(username=self.omero_connection.username_entry.get(), password=self.omero_connection.password_entry.get(), hostname=self.omero_connection.hostname_entry.get() ,
+                        project=int(self.omero_dataset.id_entry.get()),
+                        path=image_folder,
+                        attachment=last_folder,
+                        is_pred=False,
+                    )
             popupmsg(" Training done ! ")
 
 class FineTuning(ttk.LabelFrame):
