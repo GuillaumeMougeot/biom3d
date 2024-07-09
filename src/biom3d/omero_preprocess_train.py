@@ -65,9 +65,10 @@ def run(obj_raw, obj_mask, num_classes, config_dir, base_config, ct_norm, desc, 
                 else:
                     directories.sort(key=lambda d: os.path.getmtime(os.path.join(logs_path, d)), reverse=True)
                     last_folder = directories[0]
+                    image_folder = os.path.join(logs_path, last_folder, "image")
                     
 
-            omero_uploader.run(username=user, password=pwd, hostname=host, project=upload_id, is_pred=False, attachment=last_folder)
+            omero_uploader.run(username=user, password=pwd, hostname=host, project=upload_id, path = image_folder ,is_pred=False, attachment=last_folder)
             shutil.rmtree(target)
             os.remove(os.path.join(logs_path, last_folder+".zip"))
         print("Done Training!")
@@ -133,5 +134,5 @@ if __name__=='__main__':
         upload_id=args.raw,
         omero_session_id=args.session_id
     )
-    conn.close()
+    
     # python -m biom3d.omero_preprocess_train --raw  --mask  --num_epochs  --desc  --hostname  --username --password

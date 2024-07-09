@@ -96,7 +96,7 @@ def download_datasets(conn, datasets, target_dir):
                 continue
             dc.download_fileset(conn, fileset, dataset_dir)
 
-def download_object(username, password, hostname, obj, target_dir, session_id):
+def download_object(username, password, hostname, obj, target_dir, session_id=None):
     if session_id is not None:
         client = BaseClient(host=hostname, port=4064)
         client.joinSession(session_id)
