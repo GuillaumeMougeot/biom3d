@@ -43,7 +43,8 @@ import locale
 import os
 import platform
 import sys
-
+import zipfile
+    
 import omero.clients
 from omero.model import ChecksumAlgorithmI
 from omero.model import NamedValue
@@ -68,7 +69,7 @@ def create_fileset(files):
     fileset = omero.model.FilesetI()
     for f in files:
         entry = omero.model.FilesetEntryI()
-        entry.setClientPath(rstring(f))
+        entry.setClientPath(rstring(os.path.basename(f)))  # Set only the filename
         fileset.addFilesetEntry(entry)
 
     # Fill version info
@@ -90,7 +91,6 @@ def create_fileset(files):
     upload.setVersionInfo(client_version_info)
     fileset.linkJob(upload)
     return fileset
-
 
 def create_settings():
     """Create ImportSettings and set some values."""
@@ -171,17 +171,23 @@ def full_import(client, fs_path, wait=-1):
     finally:
         proc.close()
         
-def run(username, password, hostname, project, dataset_name, path, wait=-1):
+def run(username, password, hostname, project, attachment, dataset_name=None, path=None, is_pred=False , wait=-1):
     conn = BlitzGateway(username=username, passwd=password, host=hostname, port=4064)
     conn.connect()
 
-    if project and not conn.getObject('Project', project):
+    if project and is_pred and not conn.getObject('Project', project):
         print ('Project id not found: %s' % project)
         sys.exit(1)
 
-    # create a new Omero Dataset
-    dataset = post_dataset(conn,dataset_name,project)
+    if project and not is_pred :
+        # Get the dataset by ID
+        dataset = conn.getObject("Dataset", project)
+        dataset_name = dataset.getName()+"_trained"
+        parent_project = dataset.listParents()
+        project = parent_project[0].getId()
 
+    # create a new Omero Dataset
+    dataset = post_dataset(conn,dataset_name, project)
     directory_path =str(path)    
     filees = get_files_for_fileset(directory_path)
     for fs_path in filees:
@@ -197,6 +203,40 @@ def run(username, password, hostname, project, dataset_name, path, wait=-1):
                         link.child = omero.model.ImageI(p.image.id.val, False)
                         links.append(link)
                 conn.getUpdateService().saveArray(links, conn.SERVICE_OPTS) 
+    
+    
+    
+    if attachment is not None:
+        logs_path = "./logs"
+        last_folder_path = os.path.join(logs_path, "{}".format(attachment))
+        zip_file_path = os.path.join(logs_path, "{}.zip".format(attachment))
+        # Create a zip file excluding the "image" folder
+        with zipfile.ZipFile(zip_file_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            for root, dirs, files in os.walk(last_folder_path):
+                # Exclude the "image" directory
+                if 'image' in dirs:
+                    dirs.remove('image')
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    arcname = os.path.relpath(file_path, start=last_folder_path)
+                    zipf.write(file_path, arcname)
+
+        print(f"Zipped folder (excluding 'image' folder): {zip_file_path}")    
+            
+        dataset = conn.getObject("Dataset", dataset)
+        # Specify a local file e.g. could be result of some analysis
+        file_to_upload = zip_file_path  # This file should already exist
+        
+        # create the original file and file annotation (uploads the file etc.)
+
+        print("\nCreating an OriginalFile and FileAnnotation")
+        file_ann = conn.createFileAnnfromLocalFile(
+            file_to_upload, mimetype="text/plain", desc=None)
+        print("Attaching FileAnnotation to Dataset: ", "File ID:", file_ann.getId(), \
+            ",", file_ann.getFile().getName(), "Size:", file_ann.getFile().getSize())
+        dataset.linkAnnotation(file_ann)     # link it to dataset.
+            
+        
     conn.close()
     
 if __name__ == '__main__':
@@ -206,7 +246,7 @@ if __name__ == '__main__':
     parser.add_argument('--wait', type=int, default=-1, help=(
         'Wait for this number of seconds for each import to complete. '
         '0: return immediately, -1: wait indefinitely (default)'))
-    parser.add_argument('--dataset_name', 
+    parser.add_argument('--dataset_name',default="Biom3d_pred", 
         help='Name of the Omero dataset.')
     parser.add_argument('--path', 
         help='Files or directories')
@@ -216,13 +256,19 @@ if __name__ == '__main__':
         help="Password")
     parser.add_argument('--hostname',
         help="Host name")
+    parser.add_argument('--attachment', default=None,
+        help="Attachment file")
+    parser.add_argument('--is_pred', default=False,
+        help="Check Whether its a prediction or a training ")
     args = parser.parse_args()
 
     
-    run(args.username, args.password, args.hostname,
+    run(args.username, args.password, host=args.hostname,
         project=args.project,
         dataset_name=args.dataset_name,
         path=args.path,
-        wait=args.wait
+        wait=args.wait,
+        attachment=args.attachment,
+        is_pred=args.is_pred,
     )
     
