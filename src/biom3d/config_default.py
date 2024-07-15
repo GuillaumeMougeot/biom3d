@@ -115,7 +115,7 @@ USE_SOFTMAX = True
 
 # training loop parameters
 USE_FP16 = True
-NUM_WORKERS = 1
+NUM_WORKERS = 8
 PIN_MEMORY = True
 
 #---------------------------------------------------------------------------
