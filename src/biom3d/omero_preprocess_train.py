@@ -8,8 +8,6 @@ import argparse
 import os
 import shutil
 from omero.cli import cli_login
-from omero.gateway import BlitzGateway
-from omero.clients import BaseClient
 from biom3d import omero_downloader 
 from biom3d import omero_uploader
 from biom3d import preprocess_train
