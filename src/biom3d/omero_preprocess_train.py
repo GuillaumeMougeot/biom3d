@@ -11,11 +11,7 @@ from omero.cli import cli_login
 from omero.gateway import BlitzGateway
 from omero.clients import BaseClient
 from biom3d import omero_downloader 
-try:
-    from biom3d import omero_uploader
-except:
-    pass
-
+from biom3d import omero_uploader
 from biom3d import preprocess_train
 
 def run(obj_raw, obj_mask, num_classes, config_dir, base_config, ct_norm, desc, max_dim, num_epochs,  target , host=None, user=None, pwd=None, upload_id=None ,dir_out =None, omero_session_id=None):
