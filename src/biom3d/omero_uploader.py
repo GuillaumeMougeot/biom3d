@@ -53,6 +53,7 @@ from omero.rtypes import rstring, rbool
 from omero_version import omero_version
 from omero.callbacks import CmdCallbackI
 from omero.gateway import BlitzGateway
+from omero.clients import BaseClient
 from ezomero import post_dataset
 
 def get_files_for_fileset(fs_path):
@@ -171,9 +172,14 @@ def full_import(client, fs_path, wait=-1):
     finally:
         proc.close()
         
-def run(username, password, hostname, project, attachment, dataset_name=None, path=None, is_pred=False , wait=-1):
-    conn = BlitzGateway(username=username, passwd=password, host=hostname, port=4064)
-    conn.connect()
+def run(username, password, hostname, project, attachment, dataset_name=None, path=None, is_pred=False , wait=-1, session_id=None):
+    if session_id is not None:
+        client = BaseClient(host=hostname, port=4064)
+        client.joinSession(session_id)
+        conn = BlitzGateway(client_obj=client)
+    else:
+        conn = BlitzGateway(username=username, passwd=password, host=hostname, port=4064)
+        conn.connect()
 
     if project and is_pred and not conn.getObject('Project', project):
         print ('Project id not found: %s' % project)
@@ -260,6 +266,8 @@ if __name__ == '__main__':
         help="Attachment file")
     parser.add_argument('--is_pred', default=False,
         help="Check Whether its a prediction or a training ")
+    parser.add_argument('--session_id', default=None,
+        help="Omero Session id")
     args = parser.parse_args()
 
     
@@ -270,5 +278,6 @@ if __name__ == '__main__':
         wait=args.wait,
         attachment=args.attachment,
         is_pred=args.is_pred,
+        session_id=args.session_id,
     )
     

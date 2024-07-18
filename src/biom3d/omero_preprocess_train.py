@@ -15,10 +15,10 @@ from biom3d import preprocess_train
 def run(obj_raw, obj_mask, num_classes, config_dir, base_config, ct_norm, desc, max_dim, num_epochs,  target , host=None, user=None, pwd=None, upload_id=None ,dir_out =None, omero_session_id=None):
     print("Start dataset/project downloading...")
 
-    if host is not None:
+    if host is not None and omero_session_id is None:
         datasets, dir_in = omero_downloader.download_object(user, pwd, host, obj_raw, target, omero_session_id)
         datasets_mask, dir_in_mask = omero_downloader.download_object(user, pwd, host, obj_mask, target, omero_session_id)
-    elif omero_session_id is not None:
+    elif omero_session_id is not None and host is not None:
         datasets, dir_in = omero_downloader.download_object(user, pwd, host, obj_raw, target, omero_session_id)
         datasets_mask, dir_in_mask = omero_downloader.download_object(user, pwd, host, obj_mask, target,omero_session_id)        
     else:
@@ -62,7 +62,7 @@ def run(obj_raw, obj_mask, num_classes, config_dir, base_config, ct_norm, desc, 
                     image_folder = os.path.join(logs_path, last_folder, "image")
                     
 
-            omero_uploader.run(username=user, password=pwd, hostname=host, project=upload_id, path = image_folder ,is_pred=False, attachment=last_folder)
+            omero_uploader.run(username=user, password=pwd, hostname=host, project=upload_id, path = image_folder ,is_pred=False, attachment=last_folder, session_id =omero_session_id)
             shutil.rmtree(target)
             os.remove(os.path.join(logs_path, last_folder+".zip"))
         print("Done Training!")
