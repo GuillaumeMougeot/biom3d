@@ -54,12 +54,12 @@
 #  --dir_out data/nucleus/official/test/preds\
 #  --dir_lab data/nucleus/official/test/msk
 
-# python -m biom3d.pred\
-#  --name seg_eval\
-#  --log logs/20230927-110033-exp1_supervised_baseline_pancreas_fold0\
-#  --dir_in data/pancreas/imagesTs_small\
-#  --dir_out data/pancreas/preds\
-#  --dir_lab data/pancreas/labelsTs_small
+python -m biom3d.pred\
+ --name seg_eval\
+ --log logs/20240719-232122-exp21_supervised_baseline_pancreas_small_fold0\
+ --dir_in data/pancreas/imagesTs_small\
+ --dir_out data/pancreas/preds\
+ --dir_lab data/pancreas/labelsTs_small
 
 # nucleus
 # python -m biom3d.pred\
@@ -118,12 +118,12 @@
 #     --dir_in data/reims/big_stack/img\
 #     --dir_out data/reims/big_stack/preds\
 
-python -m biom3d.pred\
-    --name seg_eval\
-    --log logs/20240319-094430-reims_large_full_no47_fold0\
-    --dir_in data/reims/large/test/img\
-    --dir_out data/reims/large/test/preds\
-    --dir_lab data/reims/large/test/msk
+# python -m biom3d.pred\
+#     --name seg_eval\
+#     --log logs/20240319-094430-reims_large_full_no47_fold0\
+#     --dir_in data/reims/large/test/img\
+#     --dir_out data/reims/large/test/preds\
+#     --dir_lab data/reims/large/test/msk
 
 # python -m biom3d.pred\
 #     --name seg_eval\
