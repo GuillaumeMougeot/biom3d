@@ -54,8 +54,8 @@ def main_seg_pred_eval(
     if dir_in is not None and dir_out is not None:
         print("Start inference")
         builder_pred = Builder(
-            config=config_path,
-            path=path,
+            config=None,
+            path=train_base_dir,
             training=False)
 
         dir_out = os.path.join(dir_out,os.path.split(train_base_dir)[-1]) # name the prediction folder with the model folder name
