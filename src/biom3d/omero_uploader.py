@@ -173,6 +173,7 @@ def full_import(client, fs_path, wait=-1):
         proc.close()
         
 def run(username, password, hostname, project, attachment, dataset_name=None, path=None, is_pred=False , wait=-1, session_id=None):
+    dataset_id = project
     if session_id is not None:
         client = BaseClient(host=hostname, port=4064)
         client.joinSession(session_id)
@@ -192,46 +193,48 @@ def run(username, password, hostname, project, attachment, dataset_name=None, pa
         parent_project = dataset.listParents()
         project = parent_project[0].getId()
 
-    # create a new Omero Dataset
-    dataset = post_dataset(conn,dataset_name, project)
-    directory_path =str(path)    
-    filees = get_files_for_fileset(directory_path)
-    for fs_path in filees:
-            print ('Importing: %s' % fs_path)
-            rsp = full_import(conn.c, fs_path, wait)
-            if rsp:
-                links = []
-                for p in rsp.pixels:
-                    print ('Imported Image ID: %d' % p.image.id.val)
-                    if dataset:
-                        link = omero.model.DatasetImageLinkI()
-                        link.parent = omero.model.DatasetI(dataset, False)
-                        link.child = omero.model.ImageI(p.image.id.val, False)
-                        links.append(link)
-                conn.getUpdateService().saveArray(links, conn.SERVICE_OPTS) 
-    
-    
+    if path is not None :
+        # create a new Omero Dataset
+        dataset = post_dataset(conn,dataset_name, project)
+        directory_path =str(path)    
+        filees = get_files_for_fileset(directory_path)
+        for fs_path in filees:
+                print ('Importing: %s' % fs_path)
+                rsp = full_import(conn.c, fs_path, wait)
+                if rsp:
+                    links = []
+                    for p in rsp.pixels:
+                        print ('Imported Image ID: %d' % p.image.id.val)
+                        if dataset:
+                            link = omero.model.DatasetImageLinkI()
+                            link.parent = omero.model.DatasetI(dataset, False)
+                            link.child = omero.model.ImageI(p.image.id.val, False)
+                            links.append(link)
+                    conn.getUpdateService().saveArray(links, conn.SERVICE_OPTS) 
+        dataset_id = dataset
+        
     
     if attachment is not None:
-        logs_path = "./logs"
-        last_folder_path = os.path.join(logs_path, "{}".format(attachment))
-        zip_file_path = os.path.join(logs_path, "{}.zip".format(attachment))
-        # Create a zip file excluding the "image" folder
-        with zipfile.ZipFile(zip_file_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-            for root, dirs, files in os.walk(last_folder_path):
-                # Exclude the "image" directory
-                if 'image' in dirs:
-                    dirs.remove('image')
-                for file in files:
-                    file_path = os.path.join(root, file)
-                    arcname = os.path.relpath(file_path, start=last_folder_path)
-                    zipf.write(file_path, arcname)
+        if path is not None:
+            logs_path = "./logs"
+            last_folder_path = os.path.join(logs_path, "{}".format(attachment))
+            zip_file_path = os.path.join(logs_path, "{}.zip".format(attachment))
+            # Create a zip file excluding the "image" folder
+            with zipfile.ZipFile(zip_file_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                for root, dirs, files in os.walk(last_folder_path):
+                    # Exclude the "image" directory
+                    if 'image' in dirs:
+                        dirs.remove('image')
+                    for file in files:
+                        file_path = os.path.join(root, file)
+                        arcname = os.path.relpath(file_path, start=last_folder_path)
+                        zipf.write(file_path, arcname)
 
-        print(f"Zipped folder (excluding 'image' folder): {zip_file_path}")    
-            
-        dataset = conn.getObject("Dataset", dataset)
+            print(f"Zipped folder (excluding 'image' folder): {zip_file_path}")    
+
+        dataset = conn.getObject("Dataset", dataset_id)
         # Specify a local file e.g. could be result of some analysis
-        file_to_upload = zip_file_path  # This file should already exist
+        file_to_upload = zip_file_path  if path is not None else attachment # This file should already exist
         
         # create the original file and file annotation (uploads the file etc.)
 
