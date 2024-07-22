@@ -133,6 +133,48 @@ def download_object(username, password, hostname, obj, target_dir, session_id=No
     return datasets, target_dir
 
 
+def download_attachment(hostname, username, password, session_id, attachment_id):
+    # Connect to the OMERO server using session ID or username/password
+    if session_id is not None:
+        client = BaseClient(host=hostname, port=4064)
+        client.joinSession(session_id)
+        conn = BlitzGateway(client_obj=client)
+    else:
+        conn = BlitzGateway(username=username, passwd=password, host=hostname, port=4064)
+        conn.connect()
+    
+    try:
+        # Get the FileAnnotation object by ID
+        annotation = conn.getObject("FileAnnotation", attachment_id)
+        if not annotation:
+            print(f"FileAnnotation with ID {attachment_id} not found.")
+            return
+        
+        # Get the linked OriginalFile object
+        original_file = annotation.getFile()
+        if original_file is None:
+            print(f'No OriginalFile linked to annotation ID {attachment_id}')
+            return
+        
+        file_id = original_file.id
+        file_name = original_file.name
+        file_size = original_file.size
+
+        print(f"File ID: {file_id}, Name: {file_name}, Size: {file_size}")
+
+        file_path = os.path.join("configs", file_name)
+        
+        # Download the file data in chunks
+        print(f"\nDownloading file to {file_path}...")
+        with open(file_path, 'wb') as f:
+            for chunk in annotation.getFileInChunks():
+                f.write(chunk)
+        return file_path
+        
+    finally:
+        # Close the connection
+        conn.close()
+        print("Downloaded!")
 def main(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument('--obj',
