@@ -69,35 +69,40 @@ def run(obj_raw, obj_mask, num_classes, config_dir, base_config, ct_norm, desc, 
     # eventually upload the dataset back into Omero [DEPRECATED]
     if upload_id is not None and host is not None:
         
-        logs_path = "./logs"  # Use relative path
-
-        if not os.path.exists(logs_path):
-            print(f"Directory '{logs_path}' does not exist.")
-        else:
-            directories = [d for d in os.listdir(logs_path) if os.path.isdir(os.path.join(logs_path, d))]
-            if not directories:
-                print("No directories found in the logs path.")
+        if action == "train" or action == "preprocess_train" :
+            # For Training
+            logs_path = "./logs" 
+            if not os.path.exists(logs_path)  :
+                print(f"Directory '{logs_path}' does not exist.")
             else:
-                directories.sort(key=lambda d: os.path.getmtime(os.path.join(logs_path, d)), reverse=True)
-                last_folder =  config_path if action == "preprocess" else directories[0]
-                image_folder = None if action == "preprocess" else os.path.join(logs_path, last_folder, "image")
-                if not action=="preprocess" : plot_learning_curve(os.path.join(logs_path, last_folder))
-                
-                print("last folder: ",last_folder)
-                print("image_folder : ",image_folder)
-                omero_uploader.run(username=user, password=pwd, hostname=host, project=upload_id, path = image_folder ,is_pred=False, attachment=last_folder, session_id =omero_session_id)
-                try :
-                    os.remove(os.path.join(logs_path, last_folder+".zip"))
-                except: 
-                    pass
-                
-        if not action =="preprocess" : shutil.rmtree(target)
-        print("Done Training!")
-
-        # print for remote. Format TAG:key:value
-        print("REMOTE:dir_out:{}".format(dir_out))
-        return dir_out
-
+                directories = [d for d in os.listdir(logs_path) if os.path.isdir(os.path.join(logs_path, d))]
+                if not directories:
+                    print("No directories found in the logs path.")
+                else:
+                    directories.sort(key=lambda d: os.path.getmtime(os.path.join(logs_path, d)), reverse=True)
+                    last_folder = directories[0]
+                    image_folder = os.path.join(logs_path, last_folder, "image")
+                    plot_learning_curve(os.path.join(logs_path, last_folder))
+                    omero_uploader.run(username=user, password=pwd, hostname=host, project=upload_id, path = image_folder ,is_pred=False, attachment=last_folder, session_id =omero_session_id)
+                    try :
+                        os.remove(os.path.join(logs_path, last_folder+".zip"))
+                        shutil.rmtree(os.path.join(logs_path, last_folder))
+                    except: 
+                        pass
+                    shutil.rmtree(target)
+                    
+            print("Done Training!")
+            # print for remote. Format TAG:key:value
+            print("REMOTE:dir_out:{}".format(dir_out))
+            return dir_out
+        else :
+            # For Preprocessing
+            last_folder =  config_path 
+            image_folder = None 
+            print("last folder: ",last_folder)
+            print("image_folder : ",image_folder)
+            omero_uploader.run(username=user, password=pwd, hostname=host, project=upload_id, path = image_folder ,is_pred=False, attachment=last_folder, session_id =omero_session_id)          
+              
     else:
         print("[Error] Type of object unknown {}. It should be 'Dataset' or 'Project'".format(obj_raw))
 

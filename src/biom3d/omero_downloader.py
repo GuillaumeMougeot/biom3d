@@ -173,7 +173,6 @@ def download_attachment(hostname, username, password, session_id, attachment_id)
         
     finally:
         # Close the connection
-        conn.close()
         print("Downloaded!")
 def main(argv):
     parser = argparse.ArgumentParser()
