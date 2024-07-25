@@ -17,10 +17,10 @@ except:
     pass
 from biom3d import pred  
 
-def run(obj, target, log, dir_out, attachment=None, host=None, user=None, pwd=None, upload_id=None,ext="_predictions"):
+def run(obj, target, log, dir_out, attachment=None, host=None, user=None, pwd=None, upload_id=None,ext="_predictions", session_id=None):
     print("Start dataset/project downloading...")
     if host is not None:
-        datasets, dir_in = omero_downloader.download_object(user, pwd, host, obj, target)
+        datasets, dir_in = omero_downloader.download_object(user, pwd, host, obj, target, session_id)
     else:
         with cli_login() as cli:
             datasets, dir_in = omero_downloader.download_object_cli(cli, obj, target)
@@ -44,11 +44,15 @@ def run(obj, target, log, dir_out, attachment=None, host=None, user=None, pwd=No
                 dataset_name = os.path.basename(os.path.dirname(dir_in))
             dataset_name += ext
 
-            omero_uploader.run(username=user,password= pwd,hostname= host,project=upload_id, attachment=attachment, is_pred=True, dataset_name=dataset_name,path=dir_out )
+            omero_uploader.run(username=user,password= pwd,hostname= host,project=upload_id, attachment=attachment, is_pred=True, dataset_name=dataset_name,path=dir_out ,session_id=session_id)
             # Remove all folders (pred, to_pred, attachment File)
-            shutil.rmtree(dir_in)
-            shutil.rmtree(dir_out)
-            os.remove(attachment+".zip")
+
+            try :
+                shutil.rmtree(dir_in)
+                shutil.rmtree(dir_out)
+                os.remove(attachment+".zip")
+            except:
+                pass
         print("Done prediction!")
 
         # print for remote. Format TAG:key:value
@@ -94,6 +98,8 @@ if __name__=='__main__':
     #     help="Do only the evaluation and skip the prediction (predictions must have been done already.)") 
     parser.add_argument('--ext', type=str, default='_predictions',
         help='Name of the extension added to the future uploaded Omero dataset.')
+    parser.add_argument('--session_id', default=None,
+        help="(optional) Session ID for Omero client")
     args = parser.parse_args()
 
     run(
@@ -107,4 +113,5 @@ if __name__=='__main__':
         upload_id=args.upload_id,
         attachment=args.attachment,
         ext=args.ext,
+        session_id=args.session_id
     )

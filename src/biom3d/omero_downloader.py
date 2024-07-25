@@ -133,7 +133,7 @@ def download_object(username, password, hostname, obj, target_dir, session_id=No
     return datasets, target_dir
 
 
-def download_attachment(hostname, username, password, session_id, attachment_id):
+def download_attachment(hostname, username, password, session_id, attachment_id, config=True):
     # Connect to the OMERO server using session ID or username/password
     if session_id is not None:
         client = BaseClient(host=hostname, port=4064)
@@ -162,7 +162,8 @@ def download_attachment(hostname, username, password, session_id, attachment_id)
 
         print(f"File ID: {file_id}, Name: {file_name}, Size: {file_size}")
 
-        file_path = os.path.join("configs", file_name)
+        if config : file_path = os.path.join("configs", file_name)
+        else : file_path = os.path.join("logs", file_name)
         
         # Download the file data in chunks
         print(f"\nDownloading file to {file_path}...")

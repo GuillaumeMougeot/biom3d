@@ -7,27 +7,32 @@
 import argparse
 import os
 import shutil
+import zipfile
 from omero.cli import cli_login
 from biom3d import omero_downloader 
 from biom3d import omero_uploader
+from biom3d import omero_pred
 from biom3d import preprocess_train
 from biom3d import preprocess
 from biom3d import train 
 
 def run(obj_raw, obj_mask, num_classes, config_dir, base_config, ct_norm, desc, max_dim, num_epochs,  target , action, host=None, user=None, pwd=None, upload_id=None ,dir_out =None, omero_session_id=None):
 
-    if not action == "train" :
+    if action == "preprocess" or action=="preprocess_train" :
         print("Start dataset/project downloading...")
         if host is not None and omero_session_id is None:
             datasets, dir_in = omero_downloader.download_object(user, pwd, host, obj_raw, target, omero_session_id)
-            datasets_mask, dir_in_mask = omero_downloader.download_object(user, pwd, host, obj_mask, target, omero_session_id)
+            if obj_mask is not None :
+                datasets_mask, dir_in_mask = omero_downloader.download_object(user, pwd, host, obj_mask, target, omero_session_id)
         elif omero_session_id is not None and host is not None:
             datasets, dir_in = omero_downloader.download_object(user, pwd, host, obj_raw, target, omero_session_id)
-            datasets_mask, dir_in_mask = omero_downloader.download_object(user, pwd, host, obj_mask, target,omero_session_id)        
+            if obj_mask is not None :
+                datasets_mask, dir_in_mask = omero_downloader.download_object(user, pwd, host, obj_mask, target,omero_session_id)        
         else:
             with cli_login() as cli:
                 datasets, dir_in = omero_downloader.download_object_cli(cli, obj_raw, target)
-                datasets_mask, dir_in_mask = omero_downloader.download_object_cli(cli, obj_mask, target)
+                if obj_mask is not None :
+                    datasets_mask, dir_in_mask = omero_downloader.download_object_cli(cli, obj_mask, target)
 
         print("Done downloading dataset!")
 
@@ -49,6 +54,7 @@ def run(obj_raw, obj_mask, num_classes, config_dir, base_config, ct_norm, desc, 
             max_dim=max_dim,
             num_epochs=num_epochs
             )
+        
     elif action == "preprocess" :
         config_path = preprocess.auto_config_preprocess(
             img_dir=dir_in,
@@ -61,11 +67,56 @@ def run(obj_raw, obj_mask, num_classes, config_dir, base_config, ct_norm, desc, 
             max_dim=max_dim,
             num_epochs=num_epochs
         )
+        
     elif action == "train" :
-        conf_dir =omero_downloader.download_attachment(hostname=host, username=user, password=pwd, session_id=omero_session_id, attachment_id=config_dir)
+        conf_dir =omero_downloader.download_attachment(
+            hostname=host, 
+            username=user, 
+            password=pwd, 
+            session_id=omero_session_id, 
+            attachment_id=config_dir,
+            config=True)
+        
         print("Running training with current configuration file :",conf_dir)
+        
         train.train(config=conf_dir)
-
+        try :
+            shutil.rmtree(conf_dir)
+        except:
+            pass 
+    elif action == "pred" :
+        #Download the model 
+        model =omero_downloader.download_attachment(
+            hostname=host, 
+            username=user, 
+            password=pwd, 
+            session_id=omero_session_id, 
+            attachment_id=config_dir,
+            config=False)
+        # extract the model
+        log_folder = unzip_file(model, os.path.join("logs"))
+        
+        target = "data/to_pred"
+        if not os.path.isdir(target):
+            os.makedirs(target, exist_ok=True)
+            
+        attachment_file, _ = os.path.splitext(os.path.basename(log_folder))
+        
+        omero_pred.run(
+            obj=obj_raw,
+            log=log_folder, 
+            dir_out=os.path.join("data","pred"), 
+            host = host,
+            session_id=omero_session_id, 
+            attachment=attachment_file, 
+            upload_id=1, 
+            target=target)
+        
+        try :
+            shutil.rmtree(log_folder)
+            os.remove(model)
+        except:
+            pass
     # eventually upload the dataset back into Omero [DEPRECATED]
     if upload_id is not None and host is not None:
         
@@ -95,7 +146,7 @@ def run(obj_raw, obj_mask, num_classes, config_dir, base_config, ct_norm, desc, 
             # print for remote. Format TAG:key:value
             print("REMOTE:dir_out:{}".format(dir_out))
             return dir_out
-        else :
+        elif action == "preprocess" :
             # For Preprocessing
             last_folder =  config_path 
             image_folder = None 
@@ -143,6 +194,31 @@ def plot_learning_curve(last_folder):
         plt.pause(0.1)  # Pause for a short duration to allow for updating               
         # save figure locally
         plt.savefig(last_folder+'/image/Learning_curves_plot.png')  
+        
+def unzip_file(zip_path, extract_to):
+    """
+    Unzips a zip file to a specified directory and returns the extraction directory including the name of the zip file.
+    
+    :param zip_path: Path to the zip file
+    :param extract_to: Directory to extract the files to
+    :return: The full path of the directory where the files were extracted
+    """
+    # Get the base name of the zip file without extension
+    zip_base_name = os.path.splitext(os.path.basename(zip_path))[0]
+    
+    # Create the full extraction path
+    full_extract_path = os.path.join(extract_to, zip_base_name)
+    
+    # Ensure the extraction directory exists
+    if not os.path.exists(full_extract_path):
+        os.makedirs(full_extract_path)
+    
+    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+        zip_ref.extractall(full_extract_path)
+    
+    print(f"Extracted all files to {full_extract_path}")
+    return full_extract_path
+
 if __name__=='__main__':
 
     # parser
@@ -180,7 +256,7 @@ if __name__=='__main__':
     args = parser.parse_args()
     
     raw = "Dataset:"+args.raw
-    if not args.action=="train":
+    if args.action=="preprocess" or args.action=="preprocess_train":
         mask = "Dataset:"+args.mask
     else :
         mask=None
@@ -204,4 +280,3 @@ if __name__=='__main__':
         omero_session_id=args.session_id
     )
     
-    # python -m biom3d.omero_preprocess_train --raw  --mask  --num_epochs  --desc  --hostname  --username --password
