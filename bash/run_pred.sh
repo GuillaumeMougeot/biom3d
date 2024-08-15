@@ -112,18 +112,25 @@
 #  --dir_in "data/nucleus/aline_bug/img"\
 #  --dir_out "data/nucleus/aline_bug/preds"
 
+# python -m biom3d.pred\
+#     --name seg\
+#     --log logs/20240219-100225-reims_full_fold0\
+#     --dir_in data/reims/big_stack/img\
+#     --dir_out data/reims/big_stack/preds\
+
 python -m biom3d.pred\
-    --name seg\
-    --log logs/20240219-100225-reims_full_fold0\
-    --dir_in data/reims/big_stack/img\
-    --dir_out data/reims/big_stack/preds\
+    --name seg_eval\
+    --log logs/20240319-094430-reims_large_full_no47_fold0\
+    --dir_in data/reims/large/test/img\
+    --dir_out data/reims/large/test/preds\
+    --dir_lab data/reims/large/test/msk
 
 # python -m biom3d.pred\
 #     --name seg_eval\
-#     --log logs/20240218-072550-reims_fold0\
-#     --dir_in data/reims/test_match/img\
-#     --dir_out data/reims/test_match/preds\
-#     --dir_lab data/reims/test_match/msk
+#     --log logs/20230501-153638-unet_default\
+#     --dir_in data/mito/test/img\
+#     --dir_out data/mito/test/pred\
+#     --dir_lab data/mito/test/msk
 
 # python -m biom3d.pred\
 #     --name seg_single\
