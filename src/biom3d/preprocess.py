@@ -649,6 +649,7 @@ def auto_config_preprocess(
         desc="unet", 
         max_dim=128,
         num_epochs=1000,
+        num_workers=6,
         skip_preprocessing=False,
         no_auto_config=False,
         logs_dir='logs/',
@@ -739,6 +740,7 @@ def auto_config_preprocess(
             INTENSITY_MOMENTS=intensity_moments,
             DESC=desc,
             NB_EPOCHS=num_epochs,
+            NUM_WORKERS=num_workers,
             LOG_DIR=logs_dir,
         )
 
@@ -769,6 +771,8 @@ if __name__=='__main__':
         help="(default=128) max_dim^3 determines the maximum size of patch for auto-config.")
     parser.add_argument("--num_epochs", type=int, default=1000,
         help="(default=1000) Number of epochs for the training.")
+    parser.add_argument("--num_workers", type=int, default=6,
+        help="(default=6) Number of workers for the training. Half of it will be used for validation.")
     parser.add_argument("--config_dir", type=str, default='configs/',
         help="(default=\'configs/\') Configuration folder to save the auto-configuration.")
     parser.add_argument("--logs_dir", type=str, default='logs/',
@@ -810,6 +814,7 @@ if __name__=='__main__':
         desc=args.desc, 
         max_dim=args.max_dim,
         num_epochs=args.num_epochs,
+        num_workers=args.num_workers,
         skip_preprocessing=args.skip_preprocessing,
         no_auto_config=args.no_auto_config,
         logs_dir=args.logs_dir,

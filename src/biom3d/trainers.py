@@ -38,7 +38,7 @@ def seg_train(
     ----------
     dataloader : DataLoader
         DataLoader for training data. A Dataloader is a Python class with an overloaded `__getitem__` method. In this case, `__getitem__` should return a batch of images and a batch of masks.
-    scaler : torch.cuda.amp.GradScaler
+    scaler : torch.amp.GradScaler
         For halp precision.
     model : torch.nn.Module
         The model to train.
@@ -81,7 +81,7 @@ def seg_train(
 
         # with CUDA
         if torch.cuda.is_available():
-            with torch.cuda.amp.autocast(scaler is not None):
+            with torch.amp.autocast("cuda", scaler is not None):
                 pred = model(X); del X
                 loss = loss_fn(pred, y)
                 with torch.no_grad():
@@ -166,7 +166,7 @@ def seg_validate(
             # with CUDA
             if torch.cuda.is_available():
                 X, y = X.cuda(), y.cuda()
-                with torch.cuda.amp.autocast(use_fp16):
+                with torch.amp.autocast("cuda", use_fp16):
                     pred=model(X)
                     del X
                     loss_fn(pred, y)

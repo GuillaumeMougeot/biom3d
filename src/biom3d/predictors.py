@@ -486,7 +486,7 @@ def seg_predict_patch_2(
 
     with torch.no_grad():
         pred_aggr = tio.inference.GridAggregator(sampler, overlap_mode='hann')
-        patch_loader = torch.utils.data.DataLoader(
+        patch_loader = tio.SubjectsLoader(
             sampler, 
             batch_size=2, 
             drop_last=False, 
