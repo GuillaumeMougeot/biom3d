@@ -3,6 +3,8 @@ requires = ["setuptools>=61.0",
             "setuptools-scm>=8.0"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools_scm]
+
 [project]
 name = "biom3d"
 dynamic = ["version"]
