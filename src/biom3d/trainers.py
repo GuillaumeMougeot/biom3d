@@ -7,8 +7,7 @@ import torch
 import torchio as tio
 from tqdm import tqdm
 from time import time 
-import math 
-import sys 
+from contextlib import nullcontext
 
 #---------------------------------------------------------------------------
 # model trainers for segmentation
@@ -81,7 +80,7 @@ def seg_train(
 
         # with CUDA
         if torch.cuda.is_available():
-            with torch.amp.autocast("cuda", scaler is not None):
+            with torch.amp.autocast("cuda") if scaler is not None else nullcontext():
                 pred = model(X); del X
                 loss = loss_fn(pred, y)
                 with torch.no_grad():
@@ -166,7 +165,7 @@ def seg_validate(
             # with CUDA
             if torch.cuda.is_available():
                 X, y = X.cuda(), y.cuda()
-                with torch.amp.autocast("cuda", use_fp16):
+                with torch.amp.autocast("cuda") if use_fp16 else nullcontext():
                     pred=model(X)
                     del X
                     loss_fn(pred, y)
