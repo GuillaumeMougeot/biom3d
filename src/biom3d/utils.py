@@ -245,7 +245,8 @@ def adaptive_imsave(img_path, img, img_meta={}):
             tiff.imwrite(
                 img_path,
                 img,
-                compression=('zlib', 1))
+                compression=('zlib'),
+                compressionargs={'level': 1})
     elif extension == ".npy":
         np.save(img_path, img)
     else:
@@ -325,7 +326,8 @@ def tif_write_imagej(img_path, img, img_meta):
             resolution=img_meta["resolution"],
             imagej=True, 
             metadata=img_meta["description"],
-            compression=('zlib', 1)
+            compression=('zlib'),
+            compressionargs={'level': 1}
             )
 
 def tif_read_meta(tif_path, display=False):
