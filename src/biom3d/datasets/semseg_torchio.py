@@ -26,7 +26,7 @@ from biom3d.utils import get_folds_train_test_df, adaptive_imread
 from torchio.transforms.augmentation import RandomTransform
 from torchio.transforms import SpatialTransform
 from torchio import Subject, LOCATION
-from torchio.typing import TypeTripletInt, TypeSpatialShape
+from torchio.types import TypeTripletInt, TypeSpatialShape
 from torchio.utils import to_tuple
 
 class RandomCropOrPad(RandomTransform, SpatialTransform):
