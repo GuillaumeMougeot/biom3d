@@ -269,7 +269,7 @@ def get_aug_patch(patch_size):
         diag = np.sqrt(np.array(list(s**2 if i!=axis else 0 for i,s in enumerate(ps))).sum())
         diag = np.round(diag).astype(int)
         aug_patch = list(int(diag) for _ in range(len(patch_size)))
-        aug_patch[axis] = patch_size[axis]
+        aug_patch[axis] = int(patch_size[axis])
     else:
         # aug_patch = np.round(1.37*ps).astype(int)
         diag = np.round(np.sqrt((ps**2).sum())).astype(int)
