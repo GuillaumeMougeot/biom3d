@@ -38,6 +38,10 @@ def compute_median(path, return_spacing=False):
     for i in range(len(path_imgs)):
 
         img,metadata = adaptive_imread(path_imgs[i])
+        # Check if the image is 2D (has two dimensions)
+        if len(img.shape) == 2:
+            # Add a third dimension with size 1 to make it 3D
+            img = np.expand_dims(img, axis=0)
         spacing = None if not 'spacing' in metadata.keys() else metadata['spacing']
 
         assert len(img.shape)>0, "[Error] Wrong image image."
@@ -91,6 +95,10 @@ def data_fingerprint(img_dir, msk_dir=None, num_samples=10000):
         
     for i in range(len(path_imgs)):
         img,metadata = adaptive_imread(path_imgs[i])
+        # Check if the image is 2D (has two dimensions)
+        if len(img.shape) == 2:
+            # Add a third dimension with size 1 to make it 3D
+            img = np.expand_dims(img, axis=0)
         spacing = None if not 'spacing' in metadata.keys() else metadata['spacing']
 
         # store the size
@@ -103,6 +111,10 @@ def data_fingerprint(img_dir, msk_dir=None, num_samples=10000):
         if msk_dir is not None:
             # read msk
             msk,_ = adaptive_imread(path_msks[i])
+            # Check if the image is 2D (has two dimensions)
+            if len(msk.shape) == 2:
+                # Add a third dimension with size 1 to make it 3D
+                msk = np.expand_dims(msk, axis=0)
             
             # extract only useful voxels
             img = img[msk > 0]
@@ -151,7 +163,7 @@ def find_patch_pool_batch(dims, max_dims=(128,128,128), max_pool=5, epsilon=1e-3
     batch: numpy.ndarray
         Batch size.
     """
-    # transform tuples into arrays
+    # transform tuples into arrays      
     assert len(dims)==3 or len(dims)==4, print("Dims has not the correct number of dimensions: len(dims)=", len(dims))
     if len(dims)==4:
         dims=dims[1:]
@@ -279,15 +291,25 @@ def get_aug_patch(patch_size):
 
 # ----------------------------------------------------------------------------
 # Display 
+def parameters_return(patch, pool, batch, config_path):
+    """
+    Displays the provided parameters.
+    """
+    print(batch)
+    print(patch)
+    print(get_aug_patch(patch))
+    print(pool)
+    print(config_path)
 
 def display_info(patch, pool, batch):
     """Print in terminal the patch size, the number of pooling and the batch size.
     """
+    
     print("*"*20,"YOU CAN COPY AND PASTE THE FOLLOWING LINES INSIDE THE CONFIG FILE", "*"*20)
     print("BATCH_SIZE =", batch)
     print("PATCH_SIZE =", list(patch))
     aug_patch = get_aug_patch(patch)
-    print("AUG_PATCH_SIZE =",list(aug_patch))
+    print("AUG_PATCH_SIZE =",list(aug_patch))  
     print("NUM_POOLS =", list(pool))
 
 def auto_config(img_dir=None, median=None, max_dims=(128,128,128), max_batch=16, min_batch=2):
@@ -342,6 +364,8 @@ if __name__=='__main__':
         help="(default=\'configs/\') Configuration folder to save the auto-configuration.")
     parser.add_argument("--base_config", type=str, default=None,
         help="(default=None) Optional. Path to an existing configuration file which will be updated with the preprocessed values.")
+    parser.add_argument("--remote", default=False, dest='remote',
+        help="Use this arg when using remote autoconfing only")
     args = parser.parse_args()
 
     median = compute_median(path=args.img_dir, return_spacing=args.spacing)
@@ -349,30 +373,33 @@ if __name__=='__main__':
     if args.spacing: 
         median_spacing = median[1]
         median = median[0]
+    else:
+        median_spacing = None
 
     patch, pool, batch = find_patch_pool_batch(dims=median, max_dims=(args.max_dim, args.max_dim, args.max_dim))
     aug_patch = np.array(patch)+2**(np.array(pool)+1)
 
-    display_info(patch, pool, batch)
-    
-    if args.spacing:print("MEDIAN_SPACING =",list(median_spacing))
-    if args.median:print("MEDIAN =", list(median))
-
-    if args.save_config:
+  
+    if args.remote or args.save_config:
         try: 
             from biom3d.utils import save_python_config
             config_path = save_python_config(
                 config_dir=args.config_dir,
                 base_config=args.base_config,
-                
                 BATCH_SIZE=batch,
                 AUG_PATCH_SIZE=aug_patch,
                 PATCH_SIZE=patch,
                 NUM_POOLS=pool,
                 MEDIAN_SPACING=median_spacing,
             )
+            parameters_return(patch, pool, batch, config_path, median_spacing)   
         except:
-            print("[Error] Import error. Biom3d must be installed if you want to save your configuration. Another solution is to config the function function in biom3d.utils here...")
+            print("[Error] Import error. Biom3d must be installed if you want to save your configuration. Another solution is to config the function in biom3d.utils here...")
             raise ImportError
+    else :
+       display_info(patch, pool, batch)
+    if args.spacing:print("MEDIAN_SPACING =",list(median_spacing))
+    if args.median:print("MEDIAN =", list(median))
+
 
 # ----------------------------------------------------------------------------
