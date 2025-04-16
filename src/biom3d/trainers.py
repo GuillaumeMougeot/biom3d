@@ -221,7 +221,7 @@ def seg_patch_validate(dataloader, model, loss_fn, metrics):
     model.eval() # set the module in evaluation mode (only useful for dropout or batchnorm like layers)
     with torch.no_grad(): # set all the requires_grad flags to zeros
         for it in tqdm(dataloader):
-            patch_loader = torch.utils.data.DataLoader(it, batch_size=dataloader.batch_size)
+            patch_loader = torch.utils.data.DataLoader(it, batch_size=dataloader.batch_size,num_workers=0)
             for patch in patch_loader:
                 X = patch['img'][tio.DATA]
                 y = patch['msk'][tio.DATA]

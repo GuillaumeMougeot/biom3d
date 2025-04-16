@@ -269,7 +269,7 @@ class LogSaver(Callback):
         
         # add the validation loss if needed
         if self.val_loss is not None:
-            val_loss = self.val_loss.avg if type(self.val_loss.avg)==float else self.val_loss.avg.item()
+            val_loss = self.val_loss.avg if isinstance(self.val_loss.avg,float) else self.val_loss.avg.item()
             template += "," + str(val_loss)
         
         # add the training metrics
@@ -279,7 +279,7 @@ class LogSaver(Callback):
         # adde the validation metrics
         if self.val_metrics is not None:
             for m in self.val_metrics: 
-                val_m = m.avg if type(m.avg)==int else m.avg.item() 
+                val_m = m.avg if isinstance(m.avg,int) else m.avg.item() 
                 template += "," + str(val_m)
         
         # write in the output file
@@ -334,7 +334,7 @@ class ImageSaver(Callback):
                         X, y = X.cuda(), y.cuda()
                     with torch.cuda.amp.autocast(self.use_fp16):
                         pred = self.model(X)
-                        if type(pred)==list:
+                        if isinstance(pred,list):
                             pred = pred[-1]
                     if self.use_sigmoid:
                         pred = (torch.sigmoid(pred)>0.5).int()*255

@@ -17,8 +17,6 @@ import pandas as pd
 from biom3d.auto_config import auto_config, data_fingerprint, get_aug_patch
 from biom3d.utils import adaptive_imread, one_hot_fast, resize_3d, save_python_config
 
-np.random.seed(42)
-
 #---------------------------------------------------------------------------
 # Define the CSV file for KFold split
 
@@ -37,11 +35,11 @@ def hold_out(df, ratio=0.1, seed=42):
     Return:
         df: pd.DataFrame
     """
-    np.random.seed(seed)
+    rng = np.random.default_rng(seed)
     l = np.array(df.iloc[:,0])
     
     # shuffle the list 
-    permut = np.random.permutation(len(l))
+    permut = rng.permutation(len(l))
     inv_permut = np.argsort(permut)
     
     # split the shuffled list
@@ -61,7 +59,7 @@ def strat_kfold(df, k=4, seed=43):
     Same as kfold but pay attention to balance the train and test sets.
     df must contains a column named 'hold_out'.
     """
-    np.random.seed(seed)
+    rng = np.random.default_rng(seed)
     l = np.array(df.iloc[:,0])
     
     holds_out = np.array(df['hold_out'])
@@ -80,11 +78,11 @@ def strat_kfold(df, k=4, seed=43):
         # the remaining indices are randomly assigned
         if len(l[len(indices):])>0:
             for i in range(len(l[len(indices):])):
-                alea = np.random.randint(0,k)
+                alea = rng.integers(0,k,dtype=int)
                 indices += [alea]
         indices = np.array(indices)
         assert len(indices) == len(l)
-        np.random.shuffle(indices) # shuffle the indices
+        rng.shuffle(indices) # shuffle the indices
         return indices
     
     folds_train = split_indices(indices_train)
@@ -149,7 +147,7 @@ def sanity_check(msk, num_classes=None):
     if num_classes is None:
         num_classes = len(uni)
         
-    assert type(num_classes)==int
+    assert isinstance(num_classes,int)
     assert num_classes >= 2
     
     if len(msk.shape)==4:
@@ -208,6 +206,7 @@ def seg_preprocessor(
     intensity_moments=[],
     channel_axis=0,
     num_channels=1,
+    seed = 42,
     ):
     """Segmentation pre-processing.
     """
@@ -287,6 +286,7 @@ def seg_preprocessor(
     
     # foreground computation
     if do_msk:
+        rng = np.random.default_rng(seed)
         fg={}
         if use_one_hot: start = 0 if remove_bg else 1
         else: start = 1
@@ -294,7 +294,7 @@ def seg_preprocessor(
             fgi = np.argwhere(msk[i] == 1) if use_one_hot else np.argwhere(msk[0] == i)
             if len(fgi)>0:
                 num_samples = min(len(fgi), 10000)
-                fgi_idx = np.random.choice(np.arange(len(fgi)), size=num_samples, replace=False)
+                fgi_idx = rng.choice(np.arange(len(fgi)), size=num_samples, replace=False)
                 fgi = fgi[fgi_idx,:]
             else:
                 fgi = []

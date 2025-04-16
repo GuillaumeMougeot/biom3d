@@ -54,7 +54,7 @@ def compute_median(path, return_spacing=False):
 
     return median 
 
-def data_fingerprint(img_dir, msk_dir=None, num_samples=10000):
+def data_fingerprint(img_dir, msk_dir=None, num_samples=10000,seed=42):
     """Compute the data fingerprint. 
 
     Parameters 
@@ -64,6 +64,7 @@ def data_fingerprint(img_dir, msk_dir=None, num_samples=10000):
     msk_dir : str, default=None
         (Optional) Path to the corresponding directory of masks. If provided the function will compute the mean, the standard deviation, the 0.5% percentile and the 99.5% percentile of the intensity values of the images located inside the masks. If not provide, the function returns zeros for each of these values.
     num_samples : int, default=10000
+        (Optional) Random generator seed, is used if msk_dir isn't None
         We compute the intensity characteristic on only a sample of the candidate voxels.
     
     Returns
@@ -109,7 +110,8 @@ def data_fingerprint(img_dir, msk_dir=None, num_samples=10000):
     
             # to get a global sample of all the images, 
             # we use random sampling on the image voxels inside the mask
-            samples.append(np.random.choice(img, num_samples, replace=True) if len(img)>0 else [])
+            rng = np.random.default_rng(seed)
+            samples.append(rng.choice(img, num_samples, replace=True) if len(img)>0 else [])
 
     # median computation
     median_size = np.median(np.array(sizes), axis=0).astype(int)

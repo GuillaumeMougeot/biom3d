@@ -72,7 +72,7 @@ def create_fileset(files):
         fileset.addFilesetEntry(entry)
 
     # Fill version info
-    system, node, release, version, machine, processor = platform.uname()
+    system, _, release, _, machine, _ = platform.uname()
 
     client_version_info = [
         NamedValue('omero.version', omero_version),
@@ -151,6 +151,7 @@ def assert_import(client, proc, files, wait):
         cb.loop(wait, 1000)
     rsp = cb.getResponse()
     if isinstance(rsp, omero.cmd.ERR):
+        #TODO more specific exception
         raise Exception(rsp)
     assert len(rsp.pixels) > 0
     return rsp
