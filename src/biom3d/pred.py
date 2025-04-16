@@ -6,8 +6,6 @@ import os
 import argparse
 import pathlib
 import numpy as np
-# from telegram_send import send
-# from magicgui import magicgui
 
 from biom3d.builder import Builder
 from biom3d.utils import abs_listdir, versus_one, dice, adaptive_imread, adaptive_imsave
@@ -54,10 +52,6 @@ def pred_multiple(log, dir_in, dir_out):
 
 #---------------------------------------------------------------------------
 # main unet segmentation
-
-# import configs.config_unet as config_unet
-
-# @magicgui(call_button="predict")
 def pred_seg(log=pathlib.Path.home(), dir_in=pathlib.Path.home(), dir_out=pathlib.Path.home()):
     pred(log, dir_in, dir_out)
 
@@ -92,14 +86,11 @@ def pred_seg_eval(log=pathlib.Path.home(), dir_in=pathlib.Path.home(), dir_out=p
                 fct=dice, 
                 in_path=list_abs[1][idx], 
                 tg_path=list_abs[0][idx], 
-                # num_classes=2, 
-                # single_class=-1,
                 num_classes=num_classes, 
                 single_class=None,
                 )]
             print("Metric result:", results[-1])
         print("Evaluation done! Average result:", np.mean(results))
-        # send(messages=["Evaluation done of model {}! Average result: {}".format(dir_out, np.mean(results))])
 
 def pred_seg_eval_single(log, img_path, out_path, msk_path):
     print("Run prediction for:", img_path)

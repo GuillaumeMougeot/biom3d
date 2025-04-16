@@ -217,24 +217,6 @@ def adaptive_imsave(img_path, img, img_meta={}):
     """
     extension = img_path[img_path.rfind('.'):].lower()
     if extension == ".tif" or extension == ".tiff":
-        # if not np.all(spacing==(1.,1.,1.)):
-        #     res = int(1e6) # default resolution is MICROMETERS
-        #     tiff.imwrite(
-        #         img_path,
-        #         img,
-        #         compression=('zlib', 1),
-
-        #         # the lines below might have to be commented in certain cases, depending on the unit of your images... 
-        #         resolution=((int(1/spacing[0]),res), (int(1/spacing[1]), res)), # TODO: unit is set to micrometer by default but this could be a problem... 
-        #         metadata={
-        #             'spacing':float(spacing[-1]*res),
-        #             'unit':'MICROMETER', # TODO: unit is set to micrometer by default but this could be a problem... 
-        #             'axes':'ZYX',
-        #             },
-        #         imagej=True,
-        #         )
-        # else:
-
         # Current solution for tif files 
         try:
             tif_write_imagej(
@@ -393,10 +375,6 @@ def tif_get_spacing(path, res=1e-6):
     xres = (img_meta["XResolution"][1]/img_meta["XResolution"][0])*res
     yres = (img_meta["YResolution"][1]/img_meta["YResolution"][0])*res
     zres = float(img_meta["ImageDescription"]["spacing"])*res
-    # max_dim = min([xres,yres,zres])
-    # xres = max_dim / xres
-    # yres = max_dim / yres
-    # zres = max_dim / zres
     return (xres, yres, zres)
 
 # ----------------------------------------------------------------------------
@@ -638,7 +616,6 @@ def convert_num_pools(num_pools):
         st=np.roll(st,-num_zeros//2)
         strides += [st]
     strides = np.array(strides).astype(int).T+1
-    # kernels = (strides*3//2).tolist()
     strides = strides.tolist()
     return strides
 
@@ -1009,7 +986,6 @@ def save_python_config(
             print("[Error] Please provide a base config file or install biom3d.")
             raise RuntimeError
     else: 
-        # config_path = shutil.copy(base_config, config_dir)
         config_path = base_config # WARNING: overwriting!
 
     # if DESC is in kwargs, then it will be used to rename the config file
@@ -1154,7 +1130,6 @@ def volumes(labels):
     """
     returns the volumes of all the labels in the image
     """
-    # return [((labels==idx).astype(int)).sum() for idx in np.unique(labels)]
     return np.unique(labels, return_counts=True)[1]
 
 def keep_big_volumes(msk, thres_rate=0.3):

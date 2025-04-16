@@ -216,13 +216,11 @@ MODEL = Dict(
 
 TRAIN_LOSS = Dict(
     fct="DiceCEnnUNet",
-    # kwargs = Dict(name="train_loss", use_softmax=USE_SOFTMAX)
     kwargs = Dict(name="train_loss")
 )
 
 VAL_LOSS = Dict(
     fct="DiceCEnnUNet",
-    # kwargs = Dict(name="val_loss", use_softmax=USE_SOFTMAX)
     kwargs = Dict(name="val_loss")
 )
 

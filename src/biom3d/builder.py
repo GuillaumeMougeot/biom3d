@@ -11,8 +11,6 @@ import shutil
 
 import torch
 from torch.utils.data import DataLoader
-# from monai.data import ThreadDataLoader
-# import torch.distributed as dist
 import numpy as np
 
 from biom3d import register
@@ -63,38 +61,9 @@ class Logger(object):
         self.terminal.write(message)
         self.log.write(message)  
 
+    #TODO implementation needed
     def flush(self):
         pass   
-
-# class ErrorLogger(object):
-#     def __init__(self, filename):
-#         self.terminal = sys.stderr
-#         self.log = open(filename, "a")
-   
-#     def write(self, message):
-#         self.terminal.write(message)
-#         self.log.write(message)  
-
-#     def flush(self):
-#         pass  
-
-#---------------------------------------------------------------------------
-# for distributed data parallel
-
-# TODO: use DDP...
-# def setup_ddp(rank, world_size):
-#     os.environ['MASTER_ADDR'] = 'localhost'
-#     os.environ['MASTER_PORT'] = '12355'
-
-#     # initialize the process group
-#     dist.init_process_group("gloo", rank=rank, world_size=world_size)
-
-# def cleanup_ddp():
-#     dist.destroy_process_group()
-
-#---------------------------------------------------------------------------
-# self-supervised specific
-# optimizer and parameters getter
 
 def get_params_groups(model):
     regularized = []
@@ -369,7 +338,6 @@ class Builder:
                 # [{'params': self.model.parameters()}, {'params': self.loss_fn.parameters()}], 
                 params, 
                 lr=lr, momentum=0.99, nesterov=True, weight_decay=weight_decay)
-            # self.optim = LARS(params)
 
 
     def build_callbacks(self):
@@ -426,12 +394,6 @@ class Builder:
                 final_momentum=self.config.INITIAL_MOMENTUM,
                 nb_epochs=50,
                 mode='linear',
-                
-                # initial_momentum=self.config.INITIAL_MOMENTUM,
-                # final_momentum=1.0,
-                # nb_epochs=self.config.NB_EPOCHS,
-                # mode='exp',
-                # exponent=6.0,
             )
             clbk_dict["momentum_scheduler"] = self.clbk_momentum_scheduler
         
@@ -515,12 +477,6 @@ class Builder:
                 every_batch=10)
         clbk_dict["log_printer"] = self.clbk_logprinter
         
-        # [DEPRECATED]
-        # self.clbk_telegram = clbk.Telegram(
-        #         loss=self.loss_fn,
-        #         test_loss=self.val_loss_fn)
-        # clbk_list += [self.clbk_telegram]
-
         self.callbacks = clbk.Callbacks(clbk_dict)
 
 
@@ -547,7 +503,6 @@ class Builder:
         # redirect all prints to file and to terminal
         logger = Logger(sys.stdout, os.path.join(self.log_dir,datetime.now().strftime("%Y%m%d-%H%M%S")+'-prints.txt'))
         sys.stdout = logger
-        # sys.stderr = logger
         
         # save the config file
         if self.config_path is not None:
@@ -609,22 +564,6 @@ class Builder:
                         use_deep_supervision=self.config.USE_DEEP_SUPERVISION,)
             self.callbacks.on_epoch_end(epoch)
         self.callbacks.on_train_end(self.config.NB_EPOCHS)
-    
-    # def main_ddp(self, rank, world_size): # TODO: use DDP...
-    #     setup_ddp(rank, world_size)
-
-    #     self.build_model()
-
-    #     self.run_training()
-    #     cleanup_ddp()
-
-    # def run_training_ddp(self):
-    #     torch.multiprocessing.spawn(
-    #         self.main_ddp,
-    #         args=(torch.cuda.device_count(),),
-    #         nprocs=torch.cuda.device_count(),
-    #         join=True,
-    #     )
 
     def run_prediction_single(self, img_path=None, img=None, img_meta=None, return_logit=True):
         """Compute a prediction for one image using the predictor defined in the configuration file.
@@ -740,9 +679,6 @@ class Builder:
             os.makedirs(dir_out, exist_ok=True)
         
         # remove extension
-        # fnames_out = [f[:f.rfind('.')] for f in sorted(os.listdir(dir_in))]
-        # fnames_out = [os.path.basename(f).split('.')[0] for f in sorted(os.listdir(dir_in))]
-
         fnames_out = sorted(os.listdir(dir_in))
 
         # add folder path
@@ -779,15 +715,11 @@ class Builder:
         self.log_dir = os.path.join(path, 'log')
         self.model_dir = os.path.join(path, 'model')
 
-        # self.log_path = os.path.join(self.log_dir, 'log.csv')
-        # self.log_best_path = os.path.join(self.log_dir, 'log_best.csv')
-
         self.model_path = os.path.join(self.model_dir, self.config.DESC)
 
         # redirect all prints to file and to terminal
         logger = Logger(sys.stdout, os.path.join(self.log_dir,datetime.now().strftime("%Y%m%d-%H%M%S")+'-prints.txt'))
         sys.stdout = logger
-        # sys.stderr = logger
 
         # call the build method
         self.build_model()
@@ -810,16 +742,6 @@ class Builder:
 
         # load callbacks
         self.build_callbacks()
-
-        # load the best loss for the model saver and the log saver
-        # if os.path.exists(self.log_best_path):
-        #     df_best = pd.read_csv(self.log_best_path)
-        #     if hasattr(self, 'clbk_logsaver'):
-        #         self.clbk_logsaver.best_loss= df_best.val_loss[0]
-        #         print('Loads log saver')
-        #     if hasattr(self, 'clbk_modelsaver'):
-        #         self.clbk_modelsaver.best_loss= df_best.val_loss[0]
-        #         print('Load model saver')
     
     def load_test(self, 
         path, 

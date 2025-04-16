@@ -211,7 +211,6 @@ def find_patch_pool_batch(dims, max_dims=(128,128,128), max_pool=5, epsilon=1e-3
     
     # patch size is determined by the closest multiple of 2**pool from dims
     pool_pow = (2**pool).astype(int)
-    # patch = (dims//pool_pow + np.round((dims%pool_pow)/pool_pow))*pool_pow
     patch = (dims//pool_pow)*pool_pow
     patch = patch.astype(int)
     
@@ -265,13 +264,11 @@ def get_aug_patch(patch_size):
 
     if np.any(dummy_2d>3): # then use dummy_2d
         axis = np.argmin(dummy_2d)
-        # aug_patch = np.round(1.17*ps).astype(int)
         diag = np.sqrt(np.array(list(s**2 if i!=axis else 0 for i,s in enumerate(ps))).sum())
         diag = np.round(diag).astype(int)
         aug_patch = list(int(diag) for _ in range(len(patch_size)))
         aug_patch[axis] = int(patch_size[axis])
     else:
-        # aug_patch = np.round(1.37*ps).astype(int)
         diag = np.round(np.sqrt((ps**2).sum())).astype(int)
         aug_patch = list(int(diag) for _ in range(len(patch_size)))
     return aug_patch

@@ -43,7 +43,6 @@ def hold_out(df, ratio=0.1, seed=42):
     # shuffle the list 
     permut = np.random.permutation(len(l))
     inv_permut = np.argsort(permut)
-    # shuffled = l[permut] # shuffled contains the suffled list
     
     # split the shuffled list
     split = int(len(l)*ratio)
@@ -174,7 +173,6 @@ def sanity_check(msk, num_classes=None):
         # or we through an error message
         print("[Warning] There is something abnormal with the annotations. Each voxel value must be in range {} but is in range {}.".format(cls, uni))
         if num_classes==2:
-            # thr = np.maximum(msk.min(),0)
             uni2, counts = np.unique(msk,return_counts=True)
             thr = uni2[np.argmax(counts)]
             print("[Warning] All values equal to the most frequent value ({}) will be set to zero.".format(thr))
@@ -279,10 +277,8 @@ def seg_preprocessor(
     if len(median_spacing)>0 and spacing is not None and len(spacing)>0:
         output_shape = get_resample_shape(img.shape, spacing, median_spacing)
         if do_msk:
-            # img, msk = resample_img_msk(img, msk, spacing, median_spacing)
             img, msk = resize_img_msk(img, msk=msk, output_shape=output_shape)
         else:
-            # img = resample_with_spacing(img, spacing, median_spacing, order=3)
             img = resize_3d(img, output_shape)
 
     # set image type
@@ -599,7 +595,6 @@ class Preprocessing:
             if self.use_tif:
                 img_out_path = os.path.join(self.img_outdir, img_fname+'.tif')
                 tifffile.imwrite(img_out_path, img, compression=('zlib'), compressionargs={'level': 1})
-                # imsave(img_out_path, img)
                 # tifffile.imwrite(img_out_path, img) # no compression --> increased training speed!
             # save image as npy
             else:
@@ -608,12 +603,10 @@ class Preprocessing:
 
             # save mask
             if self.msk_outdir is not None: 
-                # imsave(msk_out_path, msk)
                 # save image as tif
                 if self.use_tif:
                     msk_out_path = os.path.join(self.msk_outdir, img_fname+'.tif')
                     tifffile.imwrite(msk_out_path, msk, compression=('zlib'), compressionargs={'level': 1})
-                    # imsave(msk_out_path, msk)
                     # tifffile.imwrite(msk_out_path, msk) # no compression --> increased training speed!
                 # save image as npy
                 else:
@@ -676,10 +669,6 @@ def auto_config_preprocess(
         intensity_moments = [mean, std]
         if not print_param: print("Done!")
     else:
-        # median_size = None
-        # median_spacing = []
-        # if sum(median_spacing)==len(median_size): # in case spacing all = 1 = default value
-        #     median_spacing = []
         clipping_bounds = []
         intensity_moments = []
 
