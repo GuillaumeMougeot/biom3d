@@ -221,8 +221,6 @@ def seg_patch_validate(dataloader, model, loss_fn, metrics):
     model.eval() # set the module in evaluation mode (only useful for dropout or batchnorm like layers)
     with torch.no_grad(): # set all the requires_grad flags to zeros
         for it in tqdm(dataloader):
-            # pred_aggr = tio.inference.GridAggregator(it, overlap_mode='average')
-            # y_aggr = tio.inference.GridAggregator(it, overlap_mode='average')
             patch_loader = torch.utils.data.DataLoader(it, batch_size=dataloader.batch_size)
             for patch in patch_loader:
                 X = patch['img'][tio.DATA]
@@ -231,11 +229,6 @@ def seg_patch_validate(dataloader, model, loss_fn, metrics):
                     X, y = X.cuda(), y.cuda()
                 pred=model(X).detach()
 
-                # pred_aggr.add_batch(pred, patch[tio.LOCATION])
-                # y_aggr.add_batch(y, patch[tio.LOCATION])
-            
-            # pred = pred_aggr.get_output_tensor()
-            # y = y_aggr.get_output_tensor()
                 loss_fn(pred, y)
                 loss_fn.update()
                 for m in metrics:
@@ -301,9 +294,7 @@ def seg_patch_train(
                 loss = loss_fn(pred, y)
                 for m in metrics: m(pred.detach(),y.detach())
 
-            # Backpropagation
-            # for param in optimizer.parameters():
-            #     param.grad = None
+            # Backpropagation :
             optimizer.zero_grad() # set gradient to zero, why is that needed?
             loss.backward() # compute gradient
             optimizer.step() # apply gradient

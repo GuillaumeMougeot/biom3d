@@ -111,25 +111,24 @@ class VGGEncoder(nn.Module):
         
         self.layers = nn.ModuleList(self.layers)
 
-        if use_emb:
-            if use_head:
-                strides_ = (np.array(strides)).prod(axis=0)
-                in_dim = (np.array(patch_size)/strides_).prod().astype(int)*in_planes*factors[-1]
-                last_layer = nn.utils.weight_norm(nn.Linear(256, emb_dim, bias=False))
-                # norm last layer
-                last_layer.weight_g.data.fill_(1)
-                last_layer.weight_g.requires_grad = False
+        if use_emb and  use_head:
+            strides_ = (np.array(strides)).prod(axis=0)
+            in_dim = (np.array(patch_size)/strides_).prod().astype(int)*in_planes*factors[-1]
+            last_layer = nn.utils.weight_norm(nn.Linear(256, emb_dim, bias=False))
+            # norm last layer
+            last_layer.weight_g.data.fill_(1)
+            last_layer.weight_g.requires_grad = False
 
-                self.head = nn.Sequential(
-                    nn.Linear(in_dim, 2048),
-                    nn.GELU(),
-                    nn.Dropout(p=0.5),
-                    nn.Linear(2048, 2048),
-                    nn.GELU(),
-                    nn.Dropout(p=0.5),
-                    nn.Linear(2048, 256), # bottleneck
-                    last_layer,
-                )
+            self.head = nn.Sequential(
+                nn.Linear(in_dim, 2048),
+                nn.GELU(),
+                nn.Dropout(p=0.5),
+                nn.Linear(2048, 2048),
+                nn.GELU(),
+                nn.Dropout(p=0.5),
+                nn.Linear(2048, 256), # bottleneck
+                last_layer,
+            )
 
             
 

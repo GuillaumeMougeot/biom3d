@@ -12,13 +12,13 @@ from shutil import copyfile
 import matplotlib.pyplot as plt
 plt.switch_backend('Agg')  # bug fix: change matplotlib backend 
 from torch.utils.tensorboard import SummaryWriter
-
+from abc import ABCMeta, abstractmethod
 import numpy as np
 
 #----------------------------------------------------------------------------
 # Base classes
 
-class Callback(object):
+class Callback(object,ABCMeta):
     """Abstract base class used to build new callbacks.
 
     Callback are periodically called during training. 
@@ -38,18 +38,23 @@ class Callback(object):
     def set_trainer(self, metrics):
         self.metrics = metrics
 
+    @abstractmethod
     def on_batch_begin(self, batch):
         pass
 
+    @abstractmethod
     def on_batch_end(self, batch):
         pass
 
+    @abstractmethod
     def on_epoch_begin(self, epoch):
         pass
 
+    @abstractmethod
     def on_epoch_end(self, epoch):
         pass
 
+    @abstractmethod
     def on_train_begin(self, epoch=None):
         pass
 

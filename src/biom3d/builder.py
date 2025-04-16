@@ -169,8 +169,8 @@ class Builder:
         # for training or fine-tuning:
         # load the config file and change some parameters if multi-gpus training
         if config is not None: 
-            assert type(config)==str or type(config)==dict or type(config)==utils.Dict, "[Error] Config has the wrong type {}".format(type(config))
-            if type(config)==str:
+            assert isinstance(config,str) or isinstance(config,dict) or isinstance(config,utils.Dict), "[Error] Config has the wrong type {}".format(type(config))
+            if isinstance(config,str):
                 self.config_path = config
                 self.config = utils.adaptive_load_config(config)
             else:
@@ -332,7 +332,7 @@ class Builder:
             if 'Self' in self.config.MODEL.fct: params = get_params_groups(self.model[0])
             else: params = [{'params': self.model.parameters()}, {'params': self.loss_fn.parameters()}]
 
-            weight_decay = 0 if not ('WEIGHT_DECAY' in self.config.keys()) else 3e-5
+            weight_decay = 0 if ('WEIGHT_DECAY' not in self.config.keys()) else 3e-5
 
             self.optim = torch.optim.SGD(
                 # [{'params': self.model.parameters()}, {'params': self.loss_fn.parameters()}], 
@@ -593,7 +593,7 @@ class Builder:
         
         print("Input shape:", img.shape)
 
-        if type(self.config)==list: # multi-model mode!
+        if isinstance(self.config,list): # multi-model mode!
             # check if the preprocessing are all equal, then only use one preprocessing
             # TODO: make it more flexible?
             assert np.all([config.PREPROCESSOR==self.config[0].PREPROCESSOR for config in self.config[1:]]), "[Error] For multi-model prediction, the current version of biom3d imposes that all preprocessor are identical. {}".format([config.PREPROCESSOR==self.config[0].PREPROCESSOR for config in self.config[1:]])
@@ -603,7 +603,7 @@ class Builder:
 
             # same for postprocessors
             for i in range(len(self.config)):
-                if not 'POSTPROCESSOR' in self.config[i].keys():
+                if 'POSTPROCESSOR' not in self.config[i].keys():
                     self.config[i].POSTPROCESSOR = utils.Dict(fct="Seg", kwargs=utils.Dict())
 
             assert np.all([config.POSTPROCESSOR==self.config[0].POSTPROCESSOR for config in self.config[1:]]), "[Error] For multi-model prediction, the current version of biom3d imposes that all postprocessors are identical. {}".format([config.POSTPROCESSOR==self.config[0].POSTPROCESSOR for config in self.config[1:]])
@@ -649,7 +649,7 @@ class Builder:
             print("Model output shape:", out.shape)
             
             # retro-compatibility: use "Seg" post-processor as default 
-            if not 'POSTPROCESSOR' in self.config.keys():
+            if 'POSTPROCESSOR' not in self.config.keys():
                 self.config.POSTPROCESSOR = utils.Dict(fct="Seg", kwargs=utils.Dict())
             
             # postprocessing
@@ -757,7 +757,7 @@ class Builder:
             Whether to load the best model or the final model.
         """
         # if the path is a list of path then multi-model mode
-        if type(path)==list:
+        if isinstance(path,list):
             print("We found a list of path for your model loading. Let's switch to multi-model mode!")
             self.config = []
             self.model = []

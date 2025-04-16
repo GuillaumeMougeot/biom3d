@@ -70,6 +70,7 @@ def download_object_cli(cli, obj, target_dir):
 
     print("Downloading to ", target_dir)
 
+    #TODO fix the missing argument
     download_datasets(datasets, target_dir)
 
     return datasets, target_dir

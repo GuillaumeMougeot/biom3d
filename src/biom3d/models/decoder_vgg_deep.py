@@ -69,9 +69,9 @@ class VGGDecoder(nn.Module):
 
         # encoder pyramid planes/feature maps
         max_num_pools = max(num_pools)+1
-        if type(factor_e)==int:
+        if isinstance(factor_e,int):
             in_planes = [factor_e * i for i in [10,10,8,4,2,1]][-max_num_pools:]
-        elif type(factor_e)==list:
+        elif isinstance(factor_e,list):
             in_planes = factor_e[-max_num_pools:]
         else:
             print("[Error] factor_e has the wrong type {}".format(type(factor_e)))
@@ -80,9 +80,9 @@ class VGGDecoder(nn.Module):
 
 
         # decoder planes/feature maps
-        if type(factor_d)==int:
+        if isinstance(factor_d,int):
             planes = [factor_d * i for i in [10,8,4,2,1]][-max_num_pools+1:]
-        elif type(factor_d)==list:
+        elif isinstance(factor_d,list):
             planes = factor_d
         else:
             print("[Error] factor_d has the wrong type {}".format(type(factor_d)))

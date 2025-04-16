@@ -7,11 +7,12 @@ import torch
 from torch import nn 
 import torch.nn.functional as F
 import numpy as np
+from abc import ABCMeta, abstractmethod
 
 #---------------------------------------------------------------------------
 # Metrics base class
 
-class Metric(nn.Module):
+class Metric(nn.Module,ABCMeta):
     """Abstract class for all metrics. Built to store the metric value, average, and name. In biom3d structure, metrics must have a `name`, a `self.reset` method that reset the stored values to zero and a `self.update` method that update the average value with the value stored in the `val` argument.
     
     To create a new metric, sub-class the Metric class, override the `self.__init__` and the `self.forward` methods. In the `self.__init__` set the `name` argument value and in `self.forward` set `val` argument value with the current value of your metric. 
@@ -32,6 +33,7 @@ class Metric(nn.Module):
         self.sum = 0
         self.count = 0
     
+    @abstractmethod
     def forward(self, preds, trues):
         pass
 

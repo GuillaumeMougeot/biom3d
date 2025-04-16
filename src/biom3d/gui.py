@@ -45,13 +45,13 @@ try:
     import torch
 except ImportError as e:
     print("Couldn't import Biom3d modules," ,e)
-    pass
+    
 
 try:
     import biom3d.omero_pred
 except  ImportError as e:
     print("Couldn't import Omero modules", e)
-    pass    
+        
 
 
 
@@ -208,7 +208,7 @@ class ParaProxy(paramiko.proxy.ProxyCommand):
             if not buffer:
                 raise
 
-        except IOError as e:
+        except IOError:
             return ""
 
         return buffer
@@ -234,11 +234,9 @@ def ressources_computing():
     
     # try to compute a suggested max number of worker based on system's resource
     max_num_worker_suggest = None
-    cpuset_checked = False
     if hasattr(os, 'sched_getaffinity'):
         try:
             max_num_worker_suggest = len(os.sched_getaffinity(0))
-            cpuset_checked = True
         except Exception:
             pass
     if max_num_worker_suggest is None:
@@ -702,7 +700,7 @@ class ConfigFrame(ttk.LabelFrame):
             # Preprocessing & autoconfiguration    
             local_config_dir = os.path.join(LOCAL_PATH,"configs")
             local_logs_dir = os.path.join(LOCAL_PATH,"logs")
-            if platform=="win32" and not "\\\\" in local_config_dir:
+            if platform=="win32" and  "\\\\" not in local_config_dir:
                 local_config_dir = local_config_dir.replace("\\", "\\\\")
                 local_logs_dir = local_logs_dir.replace("\\", "\\\\")
 
@@ -978,7 +976,7 @@ class TrainTab(ttk.Frame):
             return data
         plt.switch_backend('TkAgg')  
         # get the last folder modified/created
-        _,stdout,stderr=REMOTE.exec_command("ls -td {}/logs/*/ | head -1".format(MAIN_DIR))
+        _,stdout,_=REMOTE.exec_command("ls -td {}/logs/*/ | head -1".format(MAIN_DIR))
         line= stdout.readline()
     
         # connect to remote
@@ -1082,10 +1080,10 @@ class TrainTab(ttk.Frame):
         cfg = nested_dict_change_value(cfg, 'num_pools', cfg.NUM_POOLS)
         # test if operating system is windows to change paths
         if platform=='win32':
-                if not cfg.IMG_DIR == None : cfg.IMG_DIR = cfg.IMG_DIR.replace('\\','\\\\')
-                if not cfg.MSK_DIR == None : cfg.MSK_DIR = cfg.MSK_DIR.replace('\\','\\\\')
-                if not cfg.FG_DIR == None : cfg.FG_DIR = cfg.FG_DIR.replace('\\','\\\\')
-                if not cfg.CSV_DIR  == None : cfg.CSV_DIR = cfg.CSV_DIR.replace('\\','\\\\')    
+                if cfg.IMG_DIR != None : cfg.IMG_DIR = cfg.IMG_DIR.replace('\\','\\\\')
+                if cfg.MSK_DIR != None : cfg.MSK_DIR = cfg.MSK_DIR.replace('\\','\\\\')
+                if cfg.FG_DIR != None : cfg.FG_DIR = cfg.FG_DIR.replace('\\','\\\\')
+                if cfg.CSV_DIR  != None : cfg.CSV_DIR = cfg.CSV_DIR.replace('\\','\\\\')    
                 
         if REMOTE:
             # if remote store the config file in a temp file
@@ -1137,7 +1135,7 @@ class TrainTab(ttk.Frame):
         else:  
             # Change storing paths
             local_config_dir = os.path.join(LOCAL_PATH,"configs")
-            if platform=="win32" and not "\\\\" in local_config_dir:
+            if platform=="win32" and "\\\\" not in local_config_dir:
                 local_config_dir = local_config_dir.replace("\\", "\\\\")
             
             # save the new config file
@@ -1154,7 +1152,7 @@ class TrainTab(ttk.Frame):
             NB_EPOCHS=cfg.NB_EPOCHS
             )
 
-            if platform=="win32" and not "\\\\" in new_config_path:
+            if platform=="win32" and "\\\\" not in new_config_path:
                 new_config_path = new_config_path.replace("\\", "\\\\")
         
             if not torch.cuda.is_available():
@@ -1894,7 +1892,7 @@ class EvalTab(ttk.Frame):
         self.eval_messages.grid(column=0, row=6, columnspan=2, sticky=(W,E))
         self.eval_messages.config(text="Evaluation is running ...!")
         # Run prediction
-        results, mean = eval(
+        _, mean = eval(
             dir_lab=self.lab_dir.data_dir.get(), 
             dir_out=self.pred_dir.data_dir.get(), 
             num_classes=self.num_classes.get(),

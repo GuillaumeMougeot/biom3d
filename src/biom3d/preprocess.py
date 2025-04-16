@@ -214,7 +214,7 @@ def seg_preprocessor(
     do_msk = msk is not None
 
     # read image and mask
-    spacing = None if not 'spacing' in img_meta.keys() else img_meta['spacing']
+    spacing = None if 'spacing' not in img_meta.keys() else img_meta['spacing']
 
     if do_msk: 
         # sanity check

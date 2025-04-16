@@ -31,7 +31,7 @@ except: pass
 
 # ----------------------------------------------------------------------------
 # read folds from a csv file
-
+#TODO use verbose
 def get_train_test_df(df, verbose=True):
     """
     Return the train set and the test set
@@ -145,7 +145,7 @@ def create_save_dirs(log_dir, desc, dir_names=['model', 'logs', 'images'], retur
 
 # ----------------------------------------------------------------------------
 # image readers and savers
-
+#TODO use optional arguments
 def sitk_imread(img_path, return_spacing=True, return_origin=False, return_direction=False):
     """
     image reader for nii.gz files
@@ -191,11 +191,11 @@ def sitk_imsave(img_path, img, metadata={}):
     """
     image saver for nii gz files
     """
-    if not 'spacing' in metadata.keys():
+    if 'spacing' not in metadata.keys():
         metadata['spacing']=(1,1,1)
-    if not 'origin' in metadata.keys():
+    if 'origin' not in metadata.keys():
         metadata['origin']=(0,0,0)
-    if not 'direction' in metadata.keys():
+    if 'direction' not in metadata.keys():
         metadata['direction']=(1., 0., 0., 0., 1., 0., 0., 0., 1.)
     img_out = sitk.GetImageFromArray(img)
     img_out.SetSpacing(metadata['spacing'])
@@ -918,9 +918,9 @@ def replace_line_single(line, key, value):
         
         # if value is string then we add brackets
         line += " = "
-        if type(value)==str: 
+        if isinstance(value,str): 
             line += "\'" + value + "\'"
-        elif type(value)==np.ndarray:
+        elif isinstance(value,np.ndarray):
             line += str(value.tolist())
         else:
             line += str(value)
@@ -1046,7 +1046,7 @@ def adaptive_load_config(config_path):
     if extension=='.py':
         return load_python_config(config_path=config_path)
     elif extension=='.yaml':
-        return load_yaml_config(config_path=config_path)
+        return load_yaml_config(config_path)
     else:
         print("[Error] Unknow format for config file.")
 

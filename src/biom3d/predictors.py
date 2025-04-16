@@ -9,7 +9,6 @@ import torchio as tio
 import numpy as np
 from skimage.io import imread
 from tqdm import tqdm
-# from scipy.ndimage.filters import gaussian_filter
 
 from biom3d.utils import keep_biggest_volume_centered, adaptive_imread, resize_3d, keep_big_volumes
 
@@ -152,7 +151,7 @@ class LoadImgPatch:
         # prepare image
         # load the image
         img,metadata = adaptive_imread(self.fname)
-        self.spacing = None if not 'spacing' in metadata.keys() else metadata['spacing']
+        self.spacing = None if 'spacing' not in metadata.keys() else metadata['spacing']
 
         # store img shape (for post processing)
         self.img_shape = img.shape
