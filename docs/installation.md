@@ -15,7 +15,7 @@ To use the local version of Biom3d, meaning that computations will be executed o
 ## Application Programming Interface
 
 **Requirements**:
-* A NVidia GPUs with at least 10Go of VRAM (at least a Geforce GTX 1080), smaller Graphic card might also work but some reconfiguration might be required (such as the patch size). We tested the following graphic cards: T4, RTX 2080Ti, RTX 3090, P100, V100, A100 and Quadro T1000 (with patch size reduction). 
+* A NVidia GPUs with at least 10Go of VRAM (at least a Geforce GTX 1080), smaller Graphic card might also work but some reconfiguration might be required (such as the patch size). We tested the following graphic cards: T4, RTX 2080Ti, RTX 3090, P100, V100, A100 and Quadro T1000 (with patch size reduction). Biom3d can still work on CPU but it isn't advised as it is significantly slower.
 * Windows 10 or Ubuntu 18.04 (other OS have not been tested)
 
 There are two types of installations:
@@ -23,9 +23,8 @@ There are two types of installations:
 * **Python environment** installation requires to manually install Python, CUDA, CuDNN and Pytorch but might be more adapted to all GPU types.
 
 ### Conda installation
-
-* Install [Anaconda](https://www.anaconda.com/download).
-* Start an Anaconda prompt. For Windows user, look for "Anaconda prompt" in your Windows search bar.
+* Install [Anaconda](https://www.anaconda.com/download) or [Miniforge](https://github.com/conda-forge/miniforge) (which is a lighter version of Anaconda).
+* Start an Anaconda (or Miniforge) prompt. For Windows user, look for "Anaconda prompt" (or "Miniforge prompt") in your Windows search bar.
 * Create a new environment (here named `b3d` but it is up to you): (type in the prompt and press Enter)
 
 ```
@@ -43,6 +42,7 @@ conda activate b3d
 ```
 conda install pytorch pytorch-cuda=11.8 -c pytorch -c nvidia
 ```
+You can also use the pip command if conda isn't available.
 
 * Install biom3d:
 
