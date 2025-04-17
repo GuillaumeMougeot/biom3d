@@ -10,11 +10,10 @@ Can be caused by:
 * Not up to data CUDA/CuDNN version (see: https://discuss.pytorch.org/t/half-precision-convolution-cause-nan-in-forward-pass/117358/4).
 * Half-precision. Try to set the USE_FP16 parameter to False in the config file.
 
-
 ## ValueError : Images don't have the same shape :
+
 Happen when images you want to train or predict on don't all have the same dimensions. Can be cause by opening the image with Napari and transfering it to Fiji. You can either reimport the raw images or remove the problematics ones.
 
- 
 ## [Error] Invalid image shape (x,_, _, _). Expected to have 1 numbers of channel at 0 channel axis.
 Can be caused by:
 * One of your image hasn't the number of channel the model has been trained on, you can fix it by removing problematic image.

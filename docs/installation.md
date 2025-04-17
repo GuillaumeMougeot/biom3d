@@ -60,7 +60,7 @@ python -m pip install biom3d[gui]
 ### Python virtual environment
 
 * Install CUDA and CuDNN (cf [Nvidia doc](https://docs.nvidia.com/cuda/cuda-installation-guide-microsoft-windows/index.html)). We tested CUDA 11.6 and 11.7. **Before installing CUDA and CuDNN, please make sure that Pytorch is compatible (we tested Pytorch 1.10, 1.11, 1.12, 1.13 and 2.0)**. You can find archived version 11.7 of CUDA [here](https://developer.nvidia.com/cuda-11-7-0-download-archive) and version 8.6.0 of CuDNN [here](https://developer.nvidia.com/rdp/cudnn-archive).
-* Install Python 3.8 or 3.9 or 3.10 (newer or older version have not been tested). For Windows users, you can install Python from [here](https://www.python.org/downloads/windows/) and please make sure to "Add Python to environment variable" during installation, or, if already installed, please add it.
+* Install Python 3.9 or 3.10 (newer or older version have not been tested, 3.8 only work with old version of biom3d). For Windows users, you can install Python from [here](https://www.python.org/downloads/windows/) and please make sure to "Add Python to environment variable" during installation, or, if already installed, please add it.
 * Setup a new Python environment before installing biom3d. You can do that by opening a new terminal or the Command Prompt in Windows (type 'cmd' in the Windows search bar) and type:
 
 ```
