@@ -3,11 +3,8 @@
 #---------------------------------------------------------------------------
 
 import argparse
-# from importlib.resources import path
 import os
 import numpy as np
-# from telegram_send import send
-
 from biom3d.builder import Builder
 from biom3d.utils import abs_listdir, versus_one, dice, load_python_config
 
@@ -44,7 +41,6 @@ def main_seg_pred_eval(
     if freeze_encoder:
         builder_train.model.freeze_encoder()
     builder_train.run_training()
-    # builder_train.run_training_ddp()
 
     train_base_dir=builder_train.base_dir
     del builder_train
@@ -81,7 +77,6 @@ def main_seg_pred_eval(
                     single_class=None)]
                 print("Metric result:", results[-1])
             print("Evaluation done! Average result:", np.mean(results))
-            # send(messages=["Evaluation done of model {}! Average result: {}".format(dir_out, np.mean(results))])
         
 
 
@@ -99,7 +94,6 @@ def main_pretrain_seg_pred_eval(
     dir_in=None,
     dir_out=None,
     dir_lab=None,
-    # random_encoder=False,
     ):
     """
     do 4 tasks:
@@ -118,7 +112,6 @@ def main_pretrain_seg_pred_eval(
     # train
     print("Start training")
     cfg = load_python_config(train_config)
-    # cfg.MODEL.kwargs.encoder_ckpt = os.path.join(builder.model_dir,builder.config.DESC+"_best.pth")
 
     if path_encoder and not model_encoder:
         cfg.MODEL.kwargs.encoder_ckpt = path_encoder
@@ -132,7 +125,6 @@ def main_pretrain_seg_pred_eval(
     if freeze_encoder:
         builder_train.model.freeze_encoder()
     builder_train.run_training()
-    # builder_train.run_training_ddp()
 
     train_base_dir=builder_train.base_dir
     del builder_train
@@ -172,14 +164,6 @@ def main_pretrain_seg_pred_eval(
             # send(messages=["Evaluation done of model {}! Average result: {}".format(dir_out, np.mean(results))])
 
 #---------------------------------------------------------------------------
-
-# import configs.config_unet_monai as config_unet_monai
-# import configs.config_genesis as config_genesis
-# import configs.config_unet_genesis as config_unet_genesis
-# import configs.config_unet_denoiseg as config_denoiseg
-# import configs.config_triplet as config_triplet
-# import configs.config_arcface as config_arcface
-# import configs.config_unet_adverse as config_adverse
 
 if __name__=='__main__':
 
@@ -224,8 +208,6 @@ if __name__=='__main__':
         help="Path to the output prediction directory")  
     parser.add_argument("-a", "--dir_lab", type=str, default=None,
         help="Path to the label image directory")  
-    # parser.add_argument("-f", "--fold", type=int, default=0,
-    #     help="(default=0) Fold index for cross-validation.")  
     args = parser.parse_args()
 
     # run the method

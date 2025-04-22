@@ -17,7 +17,6 @@
 #  * Tkinter mainloop
 #---------------------------------------------------------------------------
 
-# from tkinter import *
 import tkinter as tk
 from tkinter import LEFT, ttk, Tk, N, W, E, S, YES, IntVar, StringVar, PhotoImage
 from tkinter import filedialog
@@ -46,13 +45,14 @@ try:
     import torch
 except ImportError as e:
     print("Couldn't import Biom3d modules," ,e)
-    pass
+    
 
 try:
     import biom3d.omero_pred
 except  ImportError as e:
     print("Couldn't import Omero modules", e)
-    pass    
+    pass
+        
 
 
 
@@ -209,7 +209,7 @@ class ParaProxy(paramiko.proxy.ProxyCommand):
             if not buffer:
                 raise
 
-        except IOError as e:
+        except IOError:
             return ""
 
         return buffer
@@ -235,11 +235,9 @@ def ressources_computing():
     
     # try to compute a suggested max number of worker based on system's resource
     max_num_worker_suggest = None
-    cpuset_checked = False
     if hasattr(os, 'sched_getaffinity'):
         try:
             max_num_worker_suggest = len(os.sched_getaffinity(0))
-            cpuset_checked = True
         except Exception:
             pass
     if max_num_worker_suggest is None:
@@ -318,160 +316,12 @@ def popupmsg(msg):
     popup = tk.Tk()
     popup.wm_title("!")
     label = ttk.Label(popup, text=msg)
-    #popup.geometry('300x100')
     popup.minsize(300,100)
     label.pack(pady=10, padx=10)
     B1 = ttk.Button(popup, text="Okay", command = popup.destroy)
     B1.pack(side="bottom",pady=10)
     popup.mainloop()
-    
- 
-# def replace_line_single(line, key, value):
-#     import numpy as np
-#     """Given a line, replace the value if the key is in the line. This function follows the following format:
-#     \'key = value\'. The line must follow this format and the output will respect this format. 
-    
-#     Parameters
-#     ----------
-#     line : str
-#         The input line that follows the format: \'key = value\'.
-#     key : str
-#         The key to look for in the line.
-#     value : str
-#         The new value that will replace the previous one.
-    
-#     Returns
-#     -------
-#     line : str
-#         The modified line.
-    
-#     Examples
-#     --------
-#     >>> line = "IMG_DIR = None"
-#     >>> key = "IMG_DIR"
-#     >>> value = "path/img"
-#     >>> replace_line_single(line, key, value)
-#     IMG_DIR = 'path/img'
-#     """
-#     if key==line[:len(key)]:
-#         assert line[len(key):len(key)+3]==" = ", "[Error] Invalid line. A valid line must contains \' = \'. Line:"+line
-#         line = line[:len(key)]
-        
-#         # if value is string then we add brackets
-#         line += " = "
-#         if type(value)==str: 
-#             line += "\'" + value + "\'"
-#         elif type(value)==np.ndarray:
-#             line += str(value.tolist())
-#         else:
-#             line += str(value)
-#         line += "\n"
-#     return line
-# def replace_line_multiple(line, dic):
-
-#     for key, value in dic.items():
-#         line = replace_line_single(line, key, value)
-#     return line
-
-    
-# def save_python_config(
-#     config_dir,
-#     base_config = None,
-#     **kwargs,
-#     ):
-#     """
-#     Save the configuration in a config file. If the path to a base configuration is provided, then update this file with the new auto-configured parameters else use biom3d.config_default file.
-
-#     Parameters
-#     ----------
-#     config_dir : str
-#         Path to the configuration folder. If the folder does not exist, then create it.
-#     base_config : str, default=None
-#         Path to an existing configuration file which will be updated with the auto-config values.
-#     **kwargs
-#         Keyword arguments of the configuration file.
-
-#     Returns
-#     -------
-#     config_path : str
-#         Path to the new configuration file.
-    
-#     Examples
-#     --------
-#     >>> config_path = save_config_python(\\
-#         config_dir="configs/",\\
-#         base_config="configs/pancreas_unet.py",\\
-#         IMG_DIR="/pancreas/imagesTs_tiny_out",\\
-#         MSK_DIR="pancreas/labelsTs_tiny_out",\\
-#         NUM_CLASSES=2,\\
-#         BATCH_SIZE=2,\\
-#         AUG_PATCH_SIZE=[56, 288, 288],\\
-#         PATCH_SIZE=[40, 224, 224],\\
-#         NUM_POOLS=[3, 5, 5])
-#     """
-#     import shutil
-#     import fileinput
-#     from datetime import datetime
-
-#     # create the config dir if needed
-#     if not os.path.exists(config_dir):
-#         os.makedirs(config_dir, exist_ok=True)
-
-#     # copy default config file or use the one given by the user
-#     if base_config == None:
-#         try:
-#             from biom3d import config_default
-#             config_path = shutil.copy(config_default.__file__, config_dir) 
-#         except:
-#             print("[Error] Please provide a base config file or install biom3d.")
-#             raise RuntimeError
-#     else: 
-#         config_path = base_config
-
-#     # rename it with date included
-#     current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
-
-#     # if DESC is in kwargs, then it will be used to rename the config file
-#     basename = os.path.basename(config_path) if "DESC" not in kwargs.keys() else kwargs['DESC']+'.py'
-#     new_config_name = os.path.join(config_dir, current_time+"-"+basename)
-#     os.rename(config_path, new_config_name)
-
-#     # edit the new config file with the auto-config values
-#     with fileinput.input(files=(new_config_name), inplace=True) as f:
-#         for line in f:
-#             # edit the line
-#             line = replace_line_multiple(line, kwargs)
-#             # write back in the input file
-#             print(line, end='') 
-#     return new_config_name   
-
-# def config_to_type(cfg, new_type):
-#     """Change config type to a new type. This function is recursive and can be use to change the type of nested dictionaries. 
-#     """
-#     old_type = type(cfg)
-#     cfg = new_type(cfg)
-#     for k,i in cfg.items():
-#         if type(i)==old_type:
-#             cfg[k] = config_to_type(cfg[k], new_type)
-#     return cfg
-# def load_python_config(config_path):
-#     """ Loads a python config file 
-
-#     Parameters
-#     ----------
-#         config_path (str): path to configuration file with a given path. 
-#     Returns
-#     -------
-#         dict: Change type from config.Dict to Dict
-#     """
-#     import importlib.util
-
-#     spec = importlib.util.spec_from_file_location("config", config_path)
-#     config = importlib.util.module_from_spec(spec)
-#     sys.modules["config"] = config
-#     spec.loader.exec_module(config)
-#     return config_to_type(config.CONFIG, Dict) # change type from config.Dict to Dict
-   
+      
 #----------------------------------------------------------------------------
 # File dialog
 
@@ -604,7 +454,6 @@ class ConfigFrame(ttk.LabelFrame):
             if(len(self.data_list) == 0):
                 self.data_dir = StringVar(value="Empty")
             else:   
-                #self.data_dir = StringVar(value=self.data_list[0])
                 self.data_dir = StringVar(value="Choose a dataset")
 
             self.data_dir_option_menu = ttk.OptionMenu(self, self.data_dir, self.data_dir.get(), *self.data_list, command= self.option_selected)
@@ -850,16 +699,9 @@ class ConfigFrame(ttk.LabelFrame):
           
         else: 
             # Preprocessing & autoconfiguration    
-            # Change storing paths
-            # if not LOCAL_PATH.endswith('/') : 
-            #     local_config_dir = LOCAL_PATH+"/configs/"
-            #     local_logs_dir = LOCAL_PATH+"/logs/"
-            # else : 
-            #     local_config_dir = LOCAL_PATH+"configs/"
-            #     local_logs_dir = LOCAL_PATH+"logs/"
             local_config_dir = os.path.join(LOCAL_PATH,"configs")
             local_logs_dir = os.path.join(LOCAL_PATH,"logs")
-            if platform=="win32" and not "\\\\" in local_config_dir:
+            if platform=="win32" and  "\\\\" not in local_config_dir:
                 local_config_dir = local_config_dir.replace("\\", "\\\\")
                 local_logs_dir = local_logs_dir.replace("\\", "\\\\")
 
@@ -1013,7 +855,6 @@ class TrainTab(ttk.Frame):
                 self.folder_selection.grid(column=0, row=2, sticky=(W,E))
                 # Fine tuning label
                 self.fine_tune_label = ttk.Label(self, text="Select a Model to fine-tuning : ")
-                #self.fine_tune_label.grid(column=0, row=3,sticky=(W))
                 # Add model selection frame
                 self.model_selection.grid(column=0, row=4, sticky=(W,E), ipady=5)
                 # Add configuration frame
@@ -1136,7 +977,7 @@ class TrainTab(ttk.Frame):
             return data
         plt.switch_backend('TkAgg')  
         # get the last folder modified/created
-        _,stdout,stderr=REMOTE.exec_command("ls -td {}/logs/*/ | head -1".format(MAIN_DIR))
+        _,stdout,_=REMOTE.exec_command("ls -td {}/logs/*/ | head -1".format(MAIN_DIR))
         line= stdout.readline()
     
         # connect to remote
@@ -1240,10 +1081,10 @@ class TrainTab(ttk.Frame):
         cfg = nested_dict_change_value(cfg, 'num_pools', cfg.NUM_POOLS)
         # test if operating system is windows to change paths
         if platform=='win32':
-                if not cfg.IMG_DIR == None : cfg.IMG_DIR = cfg.IMG_DIR.replace('\\','\\\\')
-                if not cfg.MSK_DIR == None : cfg.MSK_DIR = cfg.MSK_DIR.replace('\\','\\\\')
-                if not cfg.FG_DIR == None : cfg.FG_DIR = cfg.FG_DIR.replace('\\','\\\\')
-                if not cfg.CSV_DIR  == None : cfg.CSV_DIR = cfg.CSV_DIR.replace('\\','\\\\')    
+                if cfg.IMG_DIR != None : cfg.IMG_DIR = cfg.IMG_DIR.replace('\\','\\\\')
+                if cfg.MSK_DIR != None : cfg.MSK_DIR = cfg.MSK_DIR.replace('\\','\\\\')
+                if cfg.FG_DIR != None : cfg.FG_DIR = cfg.FG_DIR.replace('\\','\\\\')
+                if cfg.CSV_DIR  != None : cfg.CSV_DIR = cfg.CSV_DIR.replace('\\','\\\\')    
                 
         if REMOTE:
             # if remote store the config file in a temp file
@@ -1270,7 +1111,6 @@ class TrainTab(ttk.Frame):
                 """
                 run the training in remote server and disown it
                 """
-                #   >/dev/null 2>&1 &
                 # run the training and store the output in an output file 
                 if self.fine_tune_state.get():
                     print("Fine-tuning Started !")
@@ -1296,7 +1136,7 @@ class TrainTab(ttk.Frame):
         else:  
             # Change storing paths
             local_config_dir = os.path.join(LOCAL_PATH,"configs")
-            if platform=="win32" and not "\\\\" in local_config_dir:
+            if platform=="win32" and "\\\\" not in local_config_dir:
                 local_config_dir = local_config_dir.replace("\\", "\\\\")
             
             # save the new config file
@@ -1313,7 +1153,7 @@ class TrainTab(ttk.Frame):
             NB_EPOCHS=cfg.NB_EPOCHS
             )
 
-            if platform=="win32" and not "\\\\" in new_config_path:
+            if platform=="win32" and "\\\\" not in new_config_path:
                 new_config_path = new_config_path.replace("\\", "\\\\")
         
             if not torch.cuda.is_available():
@@ -1763,7 +1603,6 @@ class PredictTab(ttk.Frame):
         self.prediction_messages = ttk.Label(self, text="")
         self.use_omero_state = IntVar(value=0) 
         self.send_to_omero_state = IntVar(value=0) 
-        # if platform=='linux' or REMOTE: # local Omero for linux only
         self.use_omero = ttk.Checkbutton(self, text="Use omero input directory", command=self.display_omero, variable=self.use_omero_state)
         self.input_dir = InputDirectory(self, text="Input directory", padding=[10,10,10,10])
         self.model_selection = ModelSelection(self, text="Model selection", padding=[10,10,10,10])
@@ -1777,7 +1616,7 @@ class PredictTab(ttk.Frame):
         self.button = ttk.Button(self, width=29,style="train_button.TLabel", text="Start", command=self.predict)
         if REMOTE: self.download_prediction = DownloadPrediction(self, text="Download predictions to local", padding=[10,10,10,10])
 
-        # if platform=='linux' or REMOTE: # local Omero for linux only
+
         self.use_omero.grid(column=0,row=0,sticky=(W,E), pady=6)
         self.input_dir.grid(column=0,row=1,sticky=(W,E), pady=6)
         self.model_selection.grid(column=0,row=3,sticky=(W,E), pady=6)
@@ -2054,7 +1893,7 @@ class EvalTab(ttk.Frame):
         self.eval_messages.grid(column=0, row=6, columnspan=2, sticky=(W,E))
         self.eval_messages.config(text="Evaluation is running ...!")
         # Run prediction
-        results, mean = eval(
+        _, mean = eval(
             dir_lab=self.lab_dir.data_dir.get(), 
             dir_out=self.pred_dir.data_dir.get(), 
             num_classes=self.num_classes.get(),
@@ -2095,7 +1934,6 @@ class Connect2Remote(ttk.LabelFrame):
         self.use_proxy_state = IntVar() 
         self.use_proxy = ttk.Checkbutton(self, text="Use proxy server for ssh connexion", command=self.display_proxy, variable=self.use_proxy_state)
         
-        # self.use_proxy.state(['!alternate'])
 
         # place widgets
         self.hostname_label.grid(column=0, row=0, sticky=(W,E))
@@ -2192,15 +2030,12 @@ class Root(Tk):
 
         ## find the center point
         center_x = int(screen_width/2 - window_width/2)
-        # center_y = int(screen_height/2 - window_height/2)
         center_y = 0
 
         ## set the position of the window to the center of the screen
         self.geometry(f'{window_width}x{window_height}+{center_x}+{center_y}')
 
         # biom3d is designed for 1920x1080 resolution, a scaling factor will be applied if needed
-        # self.tk.call('tk', 'scaling', 2.0)
-
         self.minsize(400,360)
         
         # self.iconbitmap("biom3d/microscope.png")
@@ -2315,9 +2150,9 @@ class Root(Tk):
                     break
                 if line:
                     print(line, end="")
-            # path_to_venv = path1.split("/")  
+
             global VENV 
-            # VENV = path_to_venv[-1]
+
             VENV = path
             print("virtual environment name: ",VENV)
 
@@ -2371,8 +2206,6 @@ class Root(Tk):
             
             self.home_button_train=ttk.Button(self.train_tab,text="Home",command=self.refresh) #TODO : refresh doesnt work properly !
             self.home_button_pred=ttk.Button(self.predict_tab,text="Home",command=self.refresh)
-            #self.home_button_train.grid(column=0, row=0, sticky=(S,W)) 
-            #self.home_button_pred.grid(column=0, row=0, sticky=(S,W))
 
         # add eval tab, TODO: do it in remote
         if not REMOTE:

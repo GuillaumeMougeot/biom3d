@@ -47,8 +47,6 @@ class UNet(nn.Module):
             if torch.cuda.is_available():
                 self.encoder.cuda()
             ckpt = torch.load(encoder_ckpt)
-            # if 'last_layer.weight' in ckpt['model'].keys():
-            #     del ckpt['model']['last_layer.weight']
             if 'model' in ckpt.keys():
                 # remove `module.` prefix
                 state_dict = {k.replace("module.", ""): v for k, v in ckpt['model'].items()} 
@@ -68,13 +66,6 @@ class UNet(nn.Module):
         
         if model_ckpt is not None:
             self.load(model_ckpt)
-            # print("Load model weights from", model_ckpt)
-            # if torch.cuda.is_available():
-            #     self.cuda()
-            # ckpt = torch.load(model_ckpt)
-            # if 'encoder.last_layer.weight' in ckpt['model'].keys():
-            #     del ckpt['model']['encoder.last_layer.weight']
-            # print(self.load_state_dict(ckpt['model'], strict=False))
 
     def freeze_encoder(self, freeze=True):
         """
