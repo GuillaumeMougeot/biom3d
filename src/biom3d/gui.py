@@ -51,6 +51,7 @@ try:
     import biom3d.omero_pred
 except  ImportError as e:
     print("Couldn't import Omero modules", e)
+    pass
         
 
 

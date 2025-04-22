@@ -64,8 +64,10 @@ def data_fingerprint(img_dir, msk_dir=None, num_samples=10000,seed=42):
     msk_dir : str, default=None
         (Optional) Path to the corresponding directory of masks. If provided the function will compute the mean, the standard deviation, the 0.5% percentile and the 99.5% percentile of the intensity values of the images located inside the masks. If not provide, the function returns zeros for each of these values.
     num_samples : int, default=10000
-        (Optional) Random generator seed, is used if msk_dir isn't None
         We compute the intensity characteristic on only a sample of the candidate voxels.
+    seed : int, default=42
+        (Optional) Random generator seed, is used if msk_dir isn't None
+
     
     Returns
     -------
@@ -117,7 +119,7 @@ def data_fingerprint(img_dir, msk_dir=None, num_samples=10000,seed=42):
     try:
         median_size = np.median(np.array(sizes), axis=0).astype(int)
     except ValueError:
-        raise ValueError("Images don't have the same shape")
+        raise ValueError( "Images don't have the same number of dimensions" )
     median_spacing = np.median(np.array(spacings), axis=0)
     
     # compute fingerprints
