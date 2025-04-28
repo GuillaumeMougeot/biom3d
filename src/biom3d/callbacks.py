@@ -12,13 +12,13 @@ from shutil import copyfile
 import matplotlib.pyplot as plt
 plt.switch_backend('Agg')  # bug fix: change matplotlib backend 
 from torch.utils.tensorboard import SummaryWriter
-from abc import ABCMeta, abstractmethod
+from abc import abstractmethod
 import numpy as np
 
 #----------------------------------------------------------------------------
 # Base classes
 
-class Callback(object,ABCMeta):
+class Callback(object):
     """Abstract base class used to build new callbacks.
 
     Callback are periodically called during training. 
