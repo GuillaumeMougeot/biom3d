@@ -5,7 +5,8 @@
 #   -saving to tif file
 #---------------------------------------------------------------------------
 
-from sys import platform 
+from sys import platform
+import sys 
 import numpy as np
 import os 
 import pickle # for foreground storage
@@ -543,7 +544,7 @@ class Preprocessing:
             image_was_split = True
         
         if debug: ran = range(len(self.img_fnames))
-        else: ran = tqdm(range(len(self.img_fnames)))
+        else: ran = tqdm(range(len(self.img_fnames)),file=sys.stdout)
         for i in ran:
             # set image and mask name
             img_fname = self.img_fnames[i]
