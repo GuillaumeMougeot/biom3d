@@ -20,7 +20,7 @@ class UNet(nn.Module):
         use_deep=True,
         in_planes = 1,
         flip_strides = False,
-        legacy = False, #used for models trained before commit f2ac9ee (August 2023)
+        roll_strides = False, #used for models trained before commit f2ac9ee (August 2023)
         ):
         super(UNet, self).__init__()
         self.encoder = VGGEncoder(
@@ -29,7 +29,7 @@ class UNet(nn.Module):
             factor=factor,
             in_planes=in_planes,
             flip_strides=flip_strides,
-            legacy=legacy,
+            roll_strides=roll_strides,
             )
         self.decoder = VGGDecoder(
             EncoderBlock,
@@ -39,7 +39,7 @@ class UNet(nn.Module):
             factor_d=factor,
             use_deep=use_deep,
             flip_strides=flip_strides,
-            legacy=legacy,
+            roll_strides=roll_strides,
             )
 
         # load encoder if needed
