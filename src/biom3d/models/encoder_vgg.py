@@ -90,6 +90,7 @@ class VGGEncoder(nn.Module):
         use_head=False,
         patch_size = None, # only needed when using the head
         in_planes = 1,
+        legacy = False, #used for models trained before commit f2ac9ee (August 2023)
         ): 
         super(VGGEncoder, self).__init__()
         factors = [factor * i for i in [1,2,4,8,10,10,10]] # TODO: make this flexible to larger U-Net model?
@@ -99,7 +100,7 @@ class VGGEncoder(nn.Module):
 
         # computes the strides
         # for example: convert [3,5,5] into [[1 1 1],[1 2 2],[2 2 2],[2 2 2],[2 2 2],[1 2 2]]
-        strides = convert_num_pools(num_pools=num_pools)
+        strides = convert_num_pools(num_pools=num_pools,legacy=legacy)
         if flip_strides: strides = np.flip(strides, axis=0)
         strides = np.vstack(([first_stride],strides))
         strides = strides.tolist()

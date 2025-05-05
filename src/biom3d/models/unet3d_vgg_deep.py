@@ -6,8 +6,6 @@ import numpy as np
 from biom3d.models.encoder_vgg import EncoderBlock, VGGEncoder
 from biom3d.models.decoder_vgg_deep import VGGDecoder
 
-from biom3d.utils import convert_num_pools
-
 #---------------------------------------------------------------------------
 # 3D UNet with the previous encoder and decoder
 
@@ -22,6 +20,7 @@ class UNet(nn.Module):
         use_deep=True,
         in_planes = 1,
         flip_strides = False,
+        legacy = False, #used for models trained before commit f2ac9ee (August 2023)
         ):
         super(UNet, self).__init__()
         self.encoder = VGGEncoder(
@@ -30,6 +29,7 @@ class UNet(nn.Module):
             factor=factor,
             in_planes=in_planes,
             flip_strides=flip_strides,
+            legacy=legacy,
             )
         self.decoder = VGGDecoder(
             EncoderBlock,
@@ -39,6 +39,7 @@ class UNet(nn.Module):
             factor_d=factor,
             use_deep=use_deep,
             flip_strides=flip_strides,
+            legacy=legacy,
             )
 
         # load encoder if needed

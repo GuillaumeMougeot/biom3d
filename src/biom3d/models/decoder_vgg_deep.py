@@ -61,6 +61,7 @@ class VGGDecoder(nn.Module):
         num_classes=1,
         use_deep=True,      # use deep supervision
         use_emb=False, # will only output the third level of the decoder
+        legacy = False, #used for models trained before commit f2ac9ee (August 2023)
         ):
         super(VGGDecoder, self).__init__()
 
@@ -90,7 +91,7 @@ class VGGDecoder(nn.Module):
         in_planes_low = [in_planes[0]]+planes[:-1]
             
         # computes the strides for the scale factors
-        self.strides = convert_num_pools(num_pools=num_pools)
+        self.strides = convert_num_pools(num_pools=num_pools,legacy=legacy)
         # if the encoder strides are flipped, the decoder strides are not
         if not flip_strides: self.strides = np.flip(self.strides, axis=0).tolist()
 
