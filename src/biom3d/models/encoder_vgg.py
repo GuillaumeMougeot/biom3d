@@ -90,7 +90,7 @@ class VGGEncoder(nn.Module):
         use_head=False,
         patch_size = None, # only needed when using the head
         in_planes = 1,
-        roll_strides = False, #used for models trained before commit f2ac9ee (August 2023)
+        roll_strides = True, #used for models trained before commit f2ac9ee (August 2023)
         ): 
         super(VGGEncoder, self).__init__()
         factors = [factor * i for i in [1,2,4,8,10,10,10]] # TODO: make this flexible to larger U-Net model?
