@@ -20,7 +20,7 @@ class UNet(nn.Module):
         use_deep=True,
         in_planes = 1,
         flip_strides = False,
-        roll_strides = False, #used for models trained before commit f2ac9ee (August 2023)
+        roll_strides = True, #used for models trained before commit f2ac9ee (August 2023)
         ):
         super(UNet, self).__init__()
         self.encoder = VGGEncoder(

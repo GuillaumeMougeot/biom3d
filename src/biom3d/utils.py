@@ -601,7 +601,7 @@ def resize_3d(img, output_shape, order=3, is_msk=False, monitor_anisotropy=True,
 # ----------------------------------------------------------------------------
 # determine network dynamic architecture
 
-def convert_num_pools(num_pools,roll_strides=False):
+def convert_num_pools(num_pools,roll_strides=True):
     """
     Set adaptive number of pools
         for example: convert [3,5,5] into [[1 2 2],[2 2 2],[2 2 2],[2 2 2],[1 2 2]]
@@ -613,7 +613,7 @@ def convert_num_pools(num_pools,roll_strides=False):
         num_zeros = max_pool-num_pools[i]
         for j in range(num_zeros):
             st[j]=0
-        if not roll_strides : st=np.roll(st,-num_zeros//2)
+        if roll_strides : st=np.roll(st,-num_zeros//2)
         strides += [st]
     strides = np.array(strides).astype(int).T+1
     strides = strides.tolist()

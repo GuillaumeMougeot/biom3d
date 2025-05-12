@@ -61,7 +61,7 @@ class VGGDecoder(nn.Module):
         num_classes=1,
         use_deep=True,      # use deep supervision
         use_emb=False, # will only output the third level of the decoder
-        roll_strides = False, #used for models trained before commit f2ac9ee (August 2023)
+        roll_strides = True, #used for models trained before commit f2ac9ee (August 2023)
         ):
         super(VGGDecoder, self).__init__()
 
