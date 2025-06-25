@@ -38,7 +38,7 @@ def compute_median(path, return_spacing=False):
     for i in range(len(path_imgs)):
 
         img,metadata = adaptive_imread(path_imgs[i])
-        spacing = None if not 'spacing' in metadata.keys() else metadata['spacing']
+        spacing = None if 'spacing' not in metadata.keys() else metadata['spacing']
 
         assert len(img.shape)>0, "[Error] Wrong image image."
         sizes += [list(img.shape)]
@@ -54,7 +54,7 @@ def compute_median(path, return_spacing=False):
 
     return median 
 
-def data_fingerprint(img_dir, msk_dir=None, num_samples=10000):
+def data_fingerprint(img_dir, msk_dir=None, num_samples=10000,seed=42):
     """Compute the data fingerprint. 
 
     Parameters 
@@ -65,6 +65,9 @@ def data_fingerprint(img_dir, msk_dir=None, num_samples=10000):
         (Optional) Path to the corresponding directory of masks. If provided the function will compute the mean, the standard deviation, the 0.5% percentile and the 99.5% percentile of the intensity values of the images located inside the masks. If not provide, the function returns zeros for each of these values.
     num_samples : int, default=10000
         We compute the intensity characteristic on only a sample of the candidate voxels.
+    seed : int, default=42
+        (Optional) Random generator seed, is used if msk_dir isn't None
+
     
     Returns
     -------
@@ -91,7 +94,7 @@ def data_fingerprint(img_dir, msk_dir=None, num_samples=10000):
         
     for i in range(len(path_imgs)):
         img,metadata = adaptive_imread(path_imgs[i])
-        spacing = None if not 'spacing' in metadata.keys() else metadata['spacing']
+        spacing = None if 'spacing' not in metadata.keys() else metadata['spacing']
 
         # store the size
         sizes += [list(img.shape)]
@@ -109,10 +112,14 @@ def data_fingerprint(img_dir, msk_dir=None, num_samples=10000):
     
             # to get a global sample of all the images, 
             # we use random sampling on the image voxels inside the mask
-            samples.append(np.random.choice(img, num_samples, replace=True) if len(img)>0 else [])
+            rng = np.random.default_rng(seed)
+            samples.append(rng.choice(img, num_samples, replace=True) if len(img)>0 else [])
 
     # median computation
-    median_size = np.median(np.array(sizes), axis=0).astype(int)
+    try:
+        median_size = np.median(np.array(sizes), axis=0).astype(int)
+    except ValueError:
+        raise ValueError( "Images don't have the same number of dimensions" )
     median_spacing = np.median(np.array(spacings), axis=0)
     
     # compute fingerprints
@@ -211,7 +218,6 @@ def find_patch_pool_batch(dims, max_dims=(128,128,128), max_pool=5, epsilon=1e-3
     
     # patch size is determined by the closest multiple of 2**pool from dims
     pool_pow = (2**pool).astype(int)
-    # patch = (dims//pool_pow + np.round((dims%pool_pow)/pool_pow))*pool_pow
     patch = (dims//pool_pow)*pool_pow
     patch = patch.astype(int)
     
@@ -265,15 +271,13 @@ def get_aug_patch(patch_size):
 
     if np.any(dummy_2d>3): # then use dummy_2d
         axis = np.argmin(dummy_2d)
-        # aug_patch = np.round(1.17*ps).astype(int)
         diag = np.sqrt(np.array(list(s**2 if i!=axis else 0 for i,s in enumerate(ps))).sum())
         diag = np.round(diag).astype(int)
-        aug_patch = list(diag for _ in range(len(patch_size)))
-        aug_patch[axis] = patch_size[axis]
+        aug_patch = list(int(diag) for _ in range(len(patch_size)))
+        aug_patch[axis] = int(patch_size[axis])
     else:
-        # aug_patch = np.round(1.37*ps).astype(int)
         diag = np.round(np.sqrt((ps**2).sum())).astype(int)
-        aug_patch = list(diag for _ in range(len(patch_size)))
+        aug_patch = list(int(diag) for _ in range(len(patch_size)))
     return aug_patch
         
 

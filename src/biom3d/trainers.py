@@ -7,8 +7,7 @@ import torch
 import torchio as tio
 from tqdm import tqdm
 from time import time 
-import math 
-import sys 
+from contextlib import nullcontext
 
 #---------------------------------------------------------------------------
 # model trainers for segmentation
@@ -38,7 +37,7 @@ def seg_train(
     ----------
     dataloader : DataLoader
         DataLoader for training data. A Dataloader is a Python class with an overloaded `__getitem__` method. In this case, `__getitem__` should return a batch of images and a batch of masks.
-    scaler : torch.cuda.amp.GradScaler
+    scaler : torch.amp.GradScaler
         For halp precision.
     model : torch.nn.Module
         The model to train.
@@ -81,7 +80,7 @@ def seg_train(
 
         # with CUDA
         if torch.cuda.is_available():
-            with torch.cuda.amp.autocast(scaler is not None):
+            with torch.amp.autocast("cuda") if scaler is not None else nullcontext():
                 pred = model(X); del X
                 loss = loss_fn(pred, y)
                 with torch.no_grad():
@@ -166,7 +165,7 @@ def seg_validate(
             # with CUDA
             if torch.cuda.is_available():
                 X, y = X.cuda(), y.cuda()
-                with torch.cuda.amp.autocast(use_fp16):
+                with torch.amp.autocast("cuda") if use_fp16 else nullcontext():
                     pred=model(X)
                     del X
                     loss_fn(pred, y)
@@ -222,9 +221,7 @@ def seg_patch_validate(dataloader, model, loss_fn, metrics):
     model.eval() # set the module in evaluation mode (only useful for dropout or batchnorm like layers)
     with torch.no_grad(): # set all the requires_grad flags to zeros
         for it in tqdm(dataloader):
-            # pred_aggr = tio.inference.GridAggregator(it, overlap_mode='average')
-            # y_aggr = tio.inference.GridAggregator(it, overlap_mode='average')
-            patch_loader = torch.utils.data.DataLoader(it, batch_size=dataloader.batch_size)
+            patch_loader = torch.utils.data.DataLoader(it, batch_size=dataloader.batch_size,num_workers=0)
             for patch in patch_loader:
                 X = patch['img'][tio.DATA]
                 y = patch['msk'][tio.DATA]
@@ -232,11 +229,6 @@ def seg_patch_validate(dataloader, model, loss_fn, metrics):
                     X, y = X.cuda(), y.cuda()
                 pred=model(X).detach()
 
-                # pred_aggr.add_batch(pred, patch[tio.LOCATION])
-                # y_aggr.add_batch(y, patch[tio.LOCATION])
-            
-            # pred = pred_aggr.get_output_tensor()
-            # y = y_aggr.get_output_tensor()
                 loss_fn(pred, y)
                 loss_fn.update()
                 for m in metrics:
@@ -302,9 +294,7 @@ def seg_patch_train(
                 loss = loss_fn(pred, y)
                 for m in metrics: m(pred.detach(),y.detach())
 
-            # Backpropagation
-            # for param in optimizer.parameters():
-            #     param.grad = None
+            # Backpropagation :
             optimizer.zero_grad() # set gradient to zero, why is that needed?
             loss.backward() # compute gradient
             optimizer.step() # apply gradient

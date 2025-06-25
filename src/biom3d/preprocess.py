@@ -5,7 +5,8 @@
 #   -saving to tif file
 #---------------------------------------------------------------------------
 
-from sys import platform 
+from sys import platform
+import sys 
 import numpy as np
 import os 
 import pickle # for foreground storage
@@ -16,8 +17,6 @@ import pandas as pd
 
 from biom3d.auto_config import auto_config, data_fingerprint, get_aug_patch
 from biom3d.utils import adaptive_imread, one_hot_fast, resize_3d, save_python_config
-
-np.random.seed(42)
 
 #---------------------------------------------------------------------------
 # Define the CSV file for KFold split
@@ -37,13 +36,12 @@ def hold_out(df, ratio=0.1, seed=42):
     Return:
         df: pd.DataFrame
     """
-    np.random.seed(seed)
+    rng = np.random.default_rng(seed)
     l = np.array(df.iloc[:,0])
     
     # shuffle the list 
-    permut = np.random.permutation(len(l))
+    permut = rng.permutation(len(l))
     inv_permut = np.argsort(permut)
-    # shuffled = l[permut] # shuffled contains the suffled list
     
     # split the shuffled list
     split = int(len(l)*ratio)
@@ -62,7 +60,7 @@ def strat_kfold(df, k=4, seed=43):
     Same as kfold but pay attention to balance the train and test sets.
     df must contains a column named 'hold_out'.
     """
-    np.random.seed(seed)
+    rng = np.random.default_rng(seed)
     l = np.array(df.iloc[:,0])
     
     holds_out = np.array(df['hold_out'])
@@ -81,11 +79,11 @@ def strat_kfold(df, k=4, seed=43):
         # the remaining indices are randomly assigned
         if len(l[len(indices):])>0:
             for i in range(len(l[len(indices):])):
-                alea = np.random.randint(0,k)
+                alea = rng.integers(0,k,dtype=int)
                 indices += [alea]
         indices = np.array(indices)
         assert len(indices) == len(l)
-        np.random.shuffle(indices) # shuffle the indices
+        rng.shuffle(indices) # shuffle the indices
         return indices
     
     folds_train = split_indices(indices_train)
@@ -150,7 +148,7 @@ def sanity_check(msk, num_classes=None):
     if num_classes is None:
         num_classes = len(uni)
         
-    assert type(num_classes)==int
+    assert isinstance(num_classes,int)
     assert num_classes >= 2
     
     if len(msk.shape)==4:
@@ -174,7 +172,6 @@ def sanity_check(msk, num_classes=None):
         # or we through an error message
         print("[Warning] There is something abnormal with the annotations. Each voxel value must be in range {} but is in range {}.".format(cls, uni))
         if num_classes==2:
-            # thr = np.maximum(msk.min(),0)
             uni2, counts = np.unique(msk,return_counts=True)
             thr = uni2[np.argmax(counts)]
             print("[Warning] All values equal to the most frequent value ({}) will be set to zero.".format(thr))
@@ -210,13 +207,14 @@ def seg_preprocessor(
     intensity_moments=[],
     channel_axis=0,
     num_channels=1,
+    seed = 42,
     ):
     """Segmentation pre-processing.
     """
     do_msk = msk is not None
 
     # read image and mask
-    spacing = None if not 'spacing' in img_meta.keys() else img_meta['spacing']
+    spacing = None if 'spacing' not in img_meta.keys() else img_meta['spacing']
 
     if do_msk: 
         # sanity check
@@ -279,10 +277,8 @@ def seg_preprocessor(
     if len(median_spacing)>0 and spacing is not None and len(spacing)>0:
         output_shape = get_resample_shape(img.shape, spacing, median_spacing)
         if do_msk:
-            # img, msk = resample_img_msk(img, msk, spacing, median_spacing)
             img, msk = resize_img_msk(img, msk=msk, output_shape=output_shape)
         else:
-            # img = resample_with_spacing(img, spacing, median_spacing, order=3)
             img = resize_3d(img, output_shape)
 
     # set image type
@@ -291,6 +287,7 @@ def seg_preprocessor(
     
     # foreground computation
     if do_msk:
+        rng = np.random.default_rng(seed)
         fg={}
         if use_one_hot: start = 0 if remove_bg else 1
         else: start = 1
@@ -298,7 +295,7 @@ def seg_preprocessor(
             fgi = np.argwhere(msk[i] == 1) if use_one_hot else np.argwhere(msk[0] == i)
             if len(fgi)>0:
                 num_samples = min(len(fgi), 10000)
-                fgi_idx = np.random.choice(np.arange(len(fgi)), size=num_samples, replace=False)
+                fgi_idx = rng.choice(np.arange(len(fgi)), size=num_samples, replace=False)
                 fgi = fgi[fgi_idx,:]
             else:
                 fgi = []
@@ -492,13 +489,13 @@ class Preprocessing:
 
         val_img_path = os.path.join(self.img_outdir, val_img_name)
         if self.use_tif:
-            tifffile.imwrite(val_img_path, val_img, compression=('zlib', 1))
+            tifffile.imwrite(val_img_path, val_img, compression=('zlib'), compressionargs={'level': 1})
         else:
             np.save(val_img_path, val_img)
 
         val_msk_path = os.path.join(self.msk_outdir, val_img_name)
         if self.use_tif:
-            tifffile.imwrite(val_msk_path, val_msk, compression=('zlib', 1))
+            tifffile.imwrite(val_msk_path, val_msk, compression=('zlib'), compressionargs={'level': 1})
         else:
             np.save(val_msk_path, val_msk)
 
@@ -508,13 +505,13 @@ class Preprocessing:
 
         train_img_path = os.path.join(self.img_outdir, train_img_name)
         if self.use_tif:
-            tifffile.imwrite(train_img_path, train_img, compression=('zlib', 1))
+            tifffile.imwrite(train_img_path, train_img, compression=('zlib'), compressionargs={'level': 1})
         else:
             np.save(train_img_path, train_img)
 
         train_msk_path = os.path.join(self.msk_outdir, train_img_name)
         if self.use_tif:
-            tifffile.imwrite(train_msk_path, train_msk, compression=('zlib', 1))
+            tifffile.imwrite(train_msk_path, train_msk, compression=('zlib'), compressionargs={'level': 1})
         else:
             np.save(train_msk_path, train_msk)
 
@@ -547,7 +544,7 @@ class Preprocessing:
             image_was_split = True
         
         if debug: ran = range(len(self.img_fnames))
-        else: ran = tqdm(range(len(self.img_fnames)))
+        else: ran = tqdm(range(len(self.img_fnames)),file=sys.stdout)
         for i in ran:
             # set image and mask name
             img_fname = self.img_fnames[i]
@@ -598,8 +595,7 @@ class Preprocessing:
             # save image as tif
             if self.use_tif:
                 img_out_path = os.path.join(self.img_outdir, img_fname+'.tif')
-                tifffile.imwrite(img_out_path, img, compression=('zlib', 1))
-                # imsave(img_out_path, img)
+                tifffile.imwrite(img_out_path, img, compression=('zlib'), compressionargs={'level': 1})
                 # tifffile.imwrite(img_out_path, img) # no compression --> increased training speed!
             # save image as npy
             else:
@@ -608,12 +604,10 @@ class Preprocessing:
 
             # save mask
             if self.msk_outdir is not None: 
-                # imsave(msk_out_path, msk)
                 # save image as tif
                 if self.use_tif:
                     msk_out_path = os.path.join(self.msk_outdir, img_fname+'.tif')
-                    tifffile.imwrite(msk_out_path, msk, compression=('zlib', 1))
-                    # imsave(msk_out_path, msk)
+                    tifffile.imwrite(msk_out_path, msk, compression=('zlib'), compressionargs={'level': 1})
                     # tifffile.imwrite(msk_out_path, msk) # no compression --> increased training speed!
                 # save image as npy
                 else:
@@ -649,6 +643,7 @@ def auto_config_preprocess(
         desc="unet", 
         max_dim=128,
         num_epochs=1000,
+        num_workers=6,
         skip_preprocessing=False,
         no_auto_config=False,
         logs_dir='logs/',
@@ -675,10 +670,6 @@ def auto_config_preprocess(
         intensity_moments = [mean, std]
         if not print_param: print("Done!")
     else:
-        # median_size = None
-        # median_spacing = []
-        # if sum(median_spacing)==len(median_size): # in case spacing all = 1 = default value
-        #     median_spacing = []
         clipping_bounds = []
         intensity_moments = []
 
@@ -739,6 +730,7 @@ def auto_config_preprocess(
             INTENSITY_MOMENTS=intensity_moments,
             DESC=desc,
             NB_EPOCHS=num_epochs,
+            NUM_WORKERS=num_workers,
             LOG_DIR=logs_dir,
         )
 
@@ -769,6 +761,8 @@ if __name__=='__main__':
         help="(default=128) max_dim^3 determines the maximum size of patch for auto-config.")
     parser.add_argument("--num_epochs", type=int, default=1000,
         help="(default=1000) Number of epochs for the training.")
+    parser.add_argument("--num_workers", type=int, default=6,
+        help="(default=6) Number of workers for the training. Half of it will be used for validation.")
     parser.add_argument("--config_dir", type=str, default='configs/',
         help="(default=\'configs/\') Configuration folder to save the auto-configuration.")
     parser.add_argument("--logs_dir", type=str, default='logs/',
@@ -810,6 +804,7 @@ if __name__=='__main__':
         desc=args.desc, 
         max_dim=args.max_dim,
         num_epochs=args.num_epochs,
+        num_workers=args.num_workers,
         skip_preprocessing=args.skip_preprocessing,
         no_auto_config=args.no_auto_config,
         logs_dir=args.logs_dir,

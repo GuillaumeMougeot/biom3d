@@ -223,7 +223,6 @@ def efficientnet3d(width_coefficient=None, depth_coefficient=None, dropout_rate=
         batch_norm_epsilon=1e-3,
         dropout_rate=dropout_rate,
         drop_connect_rate=drop_connect_rate,
-        # data_format='channels_last',  # removed, this is always true in PyTorch
         num_classes=num_classes,
         width_coefficient=width_coefficient,
         depth_coefficient=depth_coefficient,
@@ -263,8 +262,6 @@ class MBConvBlock3D(nn.Module):
     """
 
     def __init__(self, block_args, global_params):
-        # print("block_arg", block_args)
-        # print("global_params", global_params)
         super().__init__()
         self._block_args = block_args
         self._bn_mom = 1 - global_params.batch_norm_momentum
@@ -273,7 +270,6 @@ class MBConvBlock3D(nn.Module):
         self.id_skip = block_args.id_skip  # skip connection and drop connect
 
         # Get static or dynamic convolution depending on image size
-        # Conv3d = get_same_padding_conv3d(image_size=global_params.image_size)
         Conv3d = nn.Conv3d
 
         # Expansion phase
@@ -281,7 +277,6 @@ class MBConvBlock3D(nn.Module):
         oup = self._block_args.input_filters * self._block_args.expand_ratio  # number of output channels
         if self._block_args.expand_ratio != 1:
             self._expand_conv = Conv3d(in_channels=inp, out_channels=oup, kernel_size=1, bias=False)
-            # self._bn0 = nn.BatchNorm3d(num_features=oup, momentum=self._bn_mom, eps=self._bn_eps)
             self._bn0 = nn.InstanceNorm3d(num_features=oup)
 
         # Depthwise convolution phase
@@ -290,7 +285,6 @@ class MBConvBlock3D(nn.Module):
         self._depthwise_conv = Conv3d(
             in_channels=oup, out_channels=oup, groups=oup,  # groups makes it depthwise
             kernel_size=k, stride=s, bias=False, padding=np.array(k)//2)
-        # self._bn1 = nn.BatchNorm3d(num_features=oup, momentum=self._bn_mom, eps=self._bn_eps)
         self._bn1 = nn.InstanceNorm3d(num_features=oup)
 
         # Squeeze and Excitation layer, if desired
@@ -302,7 +296,6 @@ class MBConvBlock3D(nn.Module):
         # Output phase
         final_oup = self._block_args.output_filters
         self._project_conv = Conv3d(in_channels=oup, out_channels=final_oup, kernel_size=1, bias=False)
-        # self._bn2 = nn.BatchNorm3d(num_features=final_oup, momentum=self._bn_mom, eps=self._bn_eps)
         self._bn2 = nn.InstanceNorm3d(num_features=final_oup)
         self._swish = MemoryEfficientSwish()
 
@@ -371,7 +364,6 @@ class EfficientNet3D(nn.Module):
         # Stem
         out_channels = round_filters(32, self._global_params)  # number of output channels
         self._conv_stem = Conv3d(in_channels, out_channels, kernel_size=3, stride=first_stride, bias=False, padding=1)
-        # self._bn0 = nn.BatchNorm3d(num_features=out_channels, momentum=bn_mom, eps=bn_eps)
         self._bn0 = nn.InstanceNorm3d(num_features=out_channels)
 
         # Set adaptive number of pools
@@ -386,7 +378,6 @@ class EfficientNet3D(nn.Module):
             st=np.roll(st,-num_zeros//2)
             strides += [st]
         strides = np.array(strides).astype(int).T+1
-        # kernels = (strides*3//2).tolist()
         strides = strides.tolist()
         
         # Build blocks
@@ -402,7 +393,6 @@ class EfficientNet3D(nn.Module):
             )
             
             if np.greater(block_args.stride,1):
-                # block_args = block_args._replace(stride=strides[crt_stride],kernel_size=kernels[crt_stride])
                 block_args = block_args._replace(stride=strides[crt_stride])
                 crt_stride += 1
 
@@ -424,7 +414,6 @@ class EfficientNet3D(nn.Module):
         self._dropout = nn.Dropout(self._global_params.dropout_rate)
         self._fc = nn.Linear(out_channels, self._global_params.num_classes)
         self._swish = MemoryEfficientSwish()
-        # self.set_swish(memory_efficient=False)
 
     def set_swish(self, memory_efficient=True):
         """Sets swish function as memory efficient (for training) or standard (for export)"""

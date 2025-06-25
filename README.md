@@ -83,6 +83,18 @@ If you find Biom3d useful in your research, please cite:
   howpublished = {\url{https://github.com/GuillaumeMougeot/biom3d}},
   year={2023}
   }
+
+@article {Mougeot2024.07.25.604800,
+	author = {Mougeot, Guillaume and Safarbati, Sami and Al{\'e}got, Herv{\'e} and Pouchin, Pierre and Field, Nadine and Almagro, S{\'e}bastien and Pery, {\'E}milie and Probst, Aline and Tatout, Christophe and Evans, David E. and Graumann, Katja and Chausse, Fr{\'e}d{\'e}ric and Desset, Sophie},
+	title = {Biom3d, a modular framework to host and develop 3D segmentation methods},
+	elocation-id = {2024.07.25.604800},
+	year = {2024},
+	doi = {10.1101/2024.07.25.604800},
+	publisher = {Cold Spring Harbor Laboratory},
+	URL = {https://www.biorxiv.org/content/early/2024/10/28/2024.07.25.604800},
+	eprint = {https://www.biorxiv.org/content/early/2024/10/28/2024.07.25.604800.full.pdf},
+	journal = {bioRxiv}
+}
 ```
 
 ## 💰 Fundings and Acknowledgements 

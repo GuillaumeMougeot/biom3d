@@ -9,11 +9,10 @@
 import torch
 import os
 from shutil import copyfile
-# from telegram_send import send
 import matplotlib.pyplot as plt
 plt.switch_backend('Agg')  # bug fix: change matplotlib backend 
 from torch.utils.tensorboard import SummaryWriter
-
+from abc import abstractmethod
 import numpy as np
 
 #----------------------------------------------------------------------------
@@ -39,18 +38,23 @@ class Callback(object):
     def set_trainer(self, metrics):
         self.metrics = metrics
 
+    @abstractmethod
     def on_batch_begin(self, batch):
         pass
 
+    @abstractmethod
     def on_batch_end(self, batch):
         pass
 
+    @abstractmethod
     def on_epoch_begin(self, epoch):
         pass
 
+    @abstractmethod
     def on_epoch_end(self, epoch):
         pass
 
+    @abstractmethod
     def on_train_begin(self, epoch=None):
         pass
 
@@ -215,15 +219,7 @@ class LogSaver(Callback):
         train_metrics=None,
         val_metrics=None,
         scheduler=None,
-        # save_best=False,    # save the best metrics in another text file ? 
-        # every_batch=10
         ):    # save period (in batch)
-
-        # old documentation about save best:
-        # save_best : bool, default=True
-        #     Whether to save the best loss in other CSV file. This will create another CSV file that will be called `log_best.csv` in the log folder.
-        # every_batch : int, default=10
-        #     Batch period when to save the log.
 
         self.path = os.path.join(log_dir,'log.csv')
 
@@ -235,14 +231,6 @@ class LogSaver(Callback):
         self.val_metrics = val_metrics
 
         self.scheduler = scheduler if hasattr(scheduler, 'get_last_lr') else None
-
-        # if save_best:
-        #     self.save_best = save_best # self.tracked_loss = val_loss
-        #     self.best_loss = float('inf')
-        #     self.best_path = log_dir + '/log_best.csv'
-        #     self.f_best = None
-
-        # self.every_batch = every_batch
 
         f = open(self.path, "a")
         if os.stat(self.path).st_size == 0: # if the file is empty
@@ -267,35 +255,6 @@ class LogSaver(Callback):
             for m in self.val_metrics:
                 head += "," + m.name
         f.write(head + "\n")
-
-    # def on_epoch_begin(self, epoch):
-    #     self.crt_epoch = epoch+1
-
-    # def on_batch_end(self, batch):
-    #     if batch % self.every_batch == 0:
-    #         template =  str(self.crt_epoch)
-    #         template += "," + str(batch)
-    #         template += "," + str(self.scheduler.get_last_lr()[0])
-    #         template += "," + str(self.train_loss.val.item()) # TODO: save the avg value only
-    #         # BUG fix below: TODO, simplify it! 
-    #         val_loss = self.val_loss.val if type(self.val_loss.val)==int else self.val_loss.val.item()
-    #         template += "," + str(val_loss)
-    #         for m in self.train_metrics: template += "," + str(m.val.item())
-    #         for m in self.val_metrics: 
-    #             # TODO: cf. previous comment
-    #             val_m = m.avg if type(m.avg)==int else m.avg.item() 
-    #             template += "," + str(val_m)
-    #         self.f.write(template + "\n")
-        
-            # save best if needed
-            # if self.save_best \
-            #     and (self.best_loss > self.val_loss.val) \
-            #     and (self.val_loss.avg != 0): # to avoid saving during the first epoch
-            #     self.best_loss = self.val_loss.avg
-            #     self.f_best = open(self.best_path, "w") # open it in write mode
-            #     self.write_file_head(self.f_best)
-            #     self.f_best.write(template)
-            #     self.f_best.close()
     
     def on_epoch_end(self, epoch):
         f = open(self.path, "a")
@@ -310,7 +269,7 @@ class LogSaver(Callback):
         
         # add the validation loss if needed
         if self.val_loss is not None:
-            val_loss = self.val_loss.avg if type(self.val_loss.avg)==float else self.val_loss.avg.item()
+            val_loss = self.val_loss.avg if isinstance(self.val_loss.avg,float) else self.val_loss.avg.item()
             template += "," + str(val_loss)
         
         # add the training metrics
@@ -320,7 +279,7 @@ class LogSaver(Callback):
         # adde the validation metrics
         if self.val_metrics is not None:
             for m in self.val_metrics: 
-                val_m = m.avg if type(m.avg)==int else m.avg.item() 
+                val_m = m.avg if isinstance(m.avg,int) else m.avg.item() 
                 template += "," + str(val_m)
         
         # write in the output file
@@ -371,12 +330,11 @@ class ImageSaver(Callback):
                 for i in range(self.plot_size):
                 # make prediction
                     X, y = next(iter(self.val_dataloader))
-                    # X, y = self.val_dataloader.get_sample()
                     if torch.cuda.is_available():
                         X, y = X.cuda(), y.cuda()
                     with torch.cuda.amp.autocast(self.use_fp16):
                         pred = self.model(X)
-                        if type(pred)==list:
+                        if isinstance(pred,list):
                             pred = pred[-1]
                     if self.use_sigmoid:
                         pred = (torch.sigmoid(pred)>0.5).int()*255
@@ -389,14 +347,13 @@ class ImageSaver(Callback):
                     X, y, pred = l
 
                     # plot 
-                    # plt.figure(figsize=(15,5))
                     plt.figure(dpi=100)
-                    # print original
+                    # print the original
                     plt.subplot(self.plot_size,3,3*i+1)
                     plt.imshow(X)
                     plt.title('raw')
                     plt.axis('off')
-                    # print prediction
+                    # print the prediction
                     plt.subplot(self.plot_size,3,3*i+2)
                     plt.imshow(pred)
                     plt.title('pred')
@@ -456,9 +413,7 @@ class TensorboardSaver(Callback):
     def on_epoch_begin(self, epoch):
         self.crt_epoch = epoch
     
-    # def on_batch_end(self, batch):
     def on_epoch_end(self, epoch):
-        # n_iter = (self.n_batch_per_epoch * self.crt_epoch + batch) * self.batch_size
         n_iter = (epoch+1) * self.batch_size * self.n_batch_per_epoch
         self.writer.add_scalar('Loss/train', self.train_loss.avg, n_iter)
         if self.val_loss:
@@ -509,17 +464,6 @@ class LogPrinter(Callback):
                 template += ", {}".format(self.metrics[i])
             print(template)
 
-# class Telegram(Callback):
-#     """
-#     Send message when training finishes
-#     """
-#     def __init__(self, loss, test_loss=None):
-#         self.loss = loss
-#         self.test_loss = test_loss
-#         self.template = "Finished training with loss {} and test loss {}"
-    
-#     def on_train_end(self):
-#         send(messages=[self.template.format(self.loss.val, self.test_loss.avg)])
 
 #----------------------------------------------------------------------------
 # schedulers
@@ -599,31 +543,9 @@ class LRSchedulerPoly(Callback):
         self.exponent = exponent
         self.optimizer = optimizer
 
-    # def get_last_lr(self):
-    #     return self.optimizer.param_groups[0]['lr']
-    
-    # def on_train_begin(self, epoch=None):
-    #     self.optimizer.param_groups[0]['lr'] = self.initial_lr * (1 - epoch / self.max_epochs)**self.exponent
-    #     print("Current learning rate: {}".format(self.optimizer.param_groups[0]['lr']))
-
     def on_epoch_begin(self, epoch):
         self.optimizer.param_groups[0]['lr'] = self.initial_lr * (1 - epoch / self.max_epochs)**self.exponent
         print("Current learning rate: {}".format(self.optimizer.param_groups[0]['lr']))
-
-
-# class LRSchedulerCosine(Callback):
-#     """
-#     Multi-step scheduler only for now
-#     """
-#     def __init__(self, optimizer, T_max):
-#         self.scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=50, T_mult=2, eta_min=1e-6, last_epoch=-1, verbose=False)
-
-#     def get_last_lr(self):
-#         return self.scheduler.get_last_lr()
-    
-#     def on_epoch_end(self, epoch):
-#         self.scheduler.step()
-#         print("Current learning rate: {}".format(self.scheduler.get_last_lr()))
 
 class ForceFGScheduler(Callback):
     """Force foreground scheduler. Uses a polynomial scheduler.
@@ -650,10 +572,6 @@ class ForceFGScheduler(Callback):
         self.min_rate = min_rate
         self.max_epochs = max_epochs
         self.exponent = exponent
-
-    # def on_train_begin(self, epoch=None):
-    #     self.dataloader.dataset.set_fg_rate(self.initial_rate)
-    #     print("Current foreground rate: {}".format(self.initial_rate))
     
     def on_epoch_begin(self, epoch):
         crt_rate = (self.initial_rate-self.min_rate) * (1 - epoch / self.max_epochs)**self.exponent + self.min_rate
@@ -685,7 +603,6 @@ class OverlapScheduler(Callback):
         self.max_epochs = max_epochs
         self.exponent = exponent
 
-    # def on_train_begin(self, epoch=None):
         self.dataloader.dataset.set_min_overlap(self.initial_rate)
         print("Current overlap: {}".format(self.initial_rate))
     
@@ -717,10 +634,6 @@ class GlobalScaleScheduler(Callback):
         self.min_rate = min_rate
         self.max_epochs = max_epochs
         self.exponent = exponent
-
-    # def on_train_begin(self, epoch=None):
-    #     self.dataloader.dataset.set_global_crop(self.initial_rate)
-    #     print("Current global crop scale: {}".format(self.initial_rate))
     
     def on_epoch_begin(self, epoch):
         crt_rate = (self.initial_rate-self.min_rate) * (1 - epoch / self.max_epochs)**self.exponent + self.min_rate
@@ -752,10 +665,6 @@ class WeightDecayScheduler(Callback):
         self.nb_epochs = nb_epochs
         self.use_poly = use_poly 
         self.exponent = exponent
-
-    # def on_train_begin(self, epoch=None):
-    #     self.optimizer.param_groups[0]["weight_decay"] = self.initial_wd
-    #     print("Current weight decay:", self.optimizer.param_groups[0]["weight_decay"] )
     
     def on_epoch_begin(self, epoch):
         if self.use_poly:
@@ -800,11 +709,6 @@ class MomentumScheduler(Callback):
                 self.crt_momentum = self.final_momentum
             else:
                 self.crt_momentum = self.initial_momentum + (self.final_momentum - self.initial_momentum) * epoch / self.nb_epochs
-        # elif self.mode=='mix': # linear increase and then an exponential increase
-        #     if epoch > self.nb_epochs:
-        #         self.crt_momentum = self.final_momentum
-        #     else:
-        #         self.crt_momentum = self.initial_momentum + (self.final_momentum - self.initial_momentum) * epoch / self.nb_epochs
         else: # cosine
             self.crt_momentum = self.final_momentum + 0.5 * (self.initial_momentum - self.final_momentum) * (1 + np.cos(np.pi * epoch / self.nb_epochs))
         return self.crt_momentum

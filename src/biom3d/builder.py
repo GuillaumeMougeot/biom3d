@@ -11,8 +11,6 @@ import shutil
 
 import torch
 from torch.utils.data import DataLoader
-# from monai.data import ThreadDataLoader
-# import torch.distributed as dist
 import numpy as np
 
 from biom3d import register
@@ -63,38 +61,9 @@ class Logger(object):
         self.terminal.write(message)
         self.log.write(message)  
 
+    #TODO implementation needed
     def flush(self):
         pass   
-
-# class ErrorLogger(object):
-#     def __init__(self, filename):
-#         self.terminal = sys.stderr
-#         self.log = open(filename, "a")
-   
-#     def write(self, message):
-#         self.terminal.write(message)
-#         self.log.write(message)  
-
-#     def flush(self):
-#         pass  
-
-#---------------------------------------------------------------------------
-# for distributed data parallel
-
-# TODO: use DDP...
-# def setup_ddp(rank, world_size):
-#     os.environ['MASTER_ADDR'] = 'localhost'
-#     os.environ['MASTER_PORT'] = '12355'
-
-#     # initialize the process group
-#     dist.init_process_group("gloo", rank=rank, world_size=world_size)
-
-# def cleanup_ddp():
-#     dist.destroy_process_group()
-
-#---------------------------------------------------------------------------
-# self-supervised specific
-# optimizer and parameters getter
 
 def get_params_groups(model):
     regularized = []
@@ -200,8 +169,8 @@ class Builder:
         # for training or fine-tuning:
         # load the config file and change some parameters if multi-gpus training
         if config is not None: 
-            assert type(config)==str or type(config)==dict or type(config)==utils.Dict, "[Error] Config has the wrong type {}".format(type(config))
-            if type(config)==str:
+            assert isinstance(config,str) or isinstance(config,dict) or isinstance(config,utils.Dict), "[Error] Config has the wrong type {}".format(type(config))
+            if isinstance(config,str):
                 self.config_path = config
                 self.config = utils.adaptive_load_config(config)
             else:
@@ -363,13 +332,12 @@ class Builder:
             if 'Self' in self.config.MODEL.fct: params = get_params_groups(self.model[0])
             else: params = [{'params': self.model.parameters()}, {'params': self.loss_fn.parameters()}]
 
-            weight_decay = 0 if not ('WEIGHT_DECAY' in self.config.keys()) else 3e-5
+            weight_decay = 0 if ('WEIGHT_DECAY' not in self.config.keys()) else 3e-5
 
             self.optim = torch.optim.SGD(
                 # [{'params': self.model.parameters()}, {'params': self.loss_fn.parameters()}], 
                 params, 
                 lr=lr, momentum=0.99, nesterov=True, weight_decay=weight_decay)
-            # self.optim = LARS(params)
 
 
     def build_callbacks(self):
@@ -426,12 +394,6 @@ class Builder:
                 final_momentum=self.config.INITIAL_MOMENTUM,
                 nb_epochs=50,
                 mode='linear',
-                
-                # initial_momentum=self.config.INITIAL_MOMENTUM,
-                # final_momentum=1.0,
-                # nb_epochs=self.config.NB_EPOCHS,
-                # mode='exp',
-                # exponent=6.0,
             )
             clbk_dict["momentum_scheduler"] = self.clbk_momentum_scheduler
         
@@ -515,12 +477,6 @@ class Builder:
                 every_batch=10)
         clbk_dict["log_printer"] = self.clbk_logprinter
         
-        # [DEPRECATED]
-        # self.clbk_telegram = clbk.Telegram(
-        #         loss=self.loss_fn,
-        #         test_loss=self.val_loss_fn)
-        # clbk_list += [self.clbk_telegram]
-
         self.callbacks = clbk.Callbacks(clbk_dict)
 
 
@@ -547,7 +503,6 @@ class Builder:
         # redirect all prints to file and to terminal
         logger = Logger(sys.stdout, os.path.join(self.log_dir,datetime.now().strftime("%Y%m%d-%H%M%S")+'-prints.txt'))
         sys.stdout = logger
-        # sys.stderr = logger
         
         # save the config file
         if self.config_path is not None:
@@ -577,7 +532,7 @@ class Builder:
             print("[Warning] CUDA is not available! The training might be extremely slow. We strongly advise to use a CUDA machine to train a model. Predictions can be done using a CPU only machine.")
 
         if torch.cuda.is_available() and 'USE_FP16' in self.config.keys() and self.config.USE_FP16:
-            scaler = torch.cuda.amp.GradScaler()
+            scaler = torch.amp.GradScaler('cuda')
         else:
             scaler = None
         self.callbacks.on_train_begin(self.initial_epoch)
@@ -609,22 +564,6 @@ class Builder:
                         use_deep_supervision=self.config.USE_DEEP_SUPERVISION,)
             self.callbacks.on_epoch_end(epoch)
         self.callbacks.on_train_end(self.config.NB_EPOCHS)
-    
-    # def main_ddp(self, rank, world_size): # TODO: use DDP...
-    #     setup_ddp(rank, world_size)
-
-    #     self.build_model()
-
-    #     self.run_training()
-    #     cleanup_ddp()
-
-    # def run_training_ddp(self):
-    #     torch.multiprocessing.spawn(
-    #         self.main_ddp,
-    #         args=(torch.cuda.device_count(),),
-    #         nprocs=torch.cuda.device_count(),
-    #         join=True,
-    #     )
 
     def run_prediction_single(self, img_path=None, img=None, img_meta=None, return_logit=True):
         """Compute a prediction for one image using the predictor defined in the configuration file.
@@ -654,7 +593,7 @@ class Builder:
         
         print("Input shape:", img.shape)
 
-        if type(self.config)==list: # multi-model mode!
+        if isinstance(self.config,list): # multi-model mode!
             # check if the preprocessing are all equal, then only use one preprocessing
             # TODO: make it more flexible?
             assert np.all([config.PREPROCESSOR==self.config[0].PREPROCESSOR for config in self.config[1:]]), "[Error] For multi-model prediction, the current version of biom3d imposes that all preprocessor are identical. {}".format([config.PREPROCESSOR==self.config[0].PREPROCESSOR for config in self.config[1:]])
@@ -664,7 +603,7 @@ class Builder:
 
             # same for postprocessors
             for i in range(len(self.config)):
-                if not 'POSTPROCESSOR' in self.config[i].keys():
+                if 'POSTPROCESSOR' not in self.config[i].keys():
                     self.config[i].POSTPROCESSOR = utils.Dict(fct="Seg", kwargs=utils.Dict())
 
             assert np.all([config.POSTPROCESSOR==self.config[0].POSTPROCESSOR for config in self.config[1:]]), "[Error] For multi-model prediction, the current version of biom3d imposes that all postprocessors are identical. {}".format([config.POSTPROCESSOR==self.config[0].POSTPROCESSOR for config in self.config[1:]])
@@ -710,7 +649,7 @@ class Builder:
             print("Model output shape:", out.shape)
             
             # retro-compatibility: use "Seg" post-processor as default 
-            if not 'POSTPROCESSOR' in self.config.keys():
+            if 'POSTPROCESSOR' not in self.config.keys():
                 self.config.POSTPROCESSOR = utils.Dict(fct="Seg", kwargs=utils.Dict())
             
             # postprocessing
@@ -740,9 +679,6 @@ class Builder:
             os.makedirs(dir_out, exist_ok=True)
         
         # remove extension
-        # fnames_out = [f[:f.rfind('.')] for f in sorted(os.listdir(dir_in))]
-        # fnames_out = [os.path.basename(f).split('.')[0] for f in sorted(os.listdir(dir_in))]
-
         fnames_out = sorted(os.listdir(dir_in))
 
         # add folder path
@@ -779,15 +715,11 @@ class Builder:
         self.log_dir = os.path.join(path, 'log')
         self.model_dir = os.path.join(path, 'model')
 
-        # self.log_path = os.path.join(self.log_dir, 'log.csv')
-        # self.log_best_path = os.path.join(self.log_dir, 'log_best.csv')
-
         self.model_path = os.path.join(self.model_dir, self.config.DESC)
 
         # redirect all prints to file and to terminal
         logger = Logger(sys.stdout, os.path.join(self.log_dir,datetime.now().strftime("%Y%m%d-%H%M%S")+'-prints.txt'))
         sys.stdout = logger
-        # sys.stderr = logger
 
         # call the build method
         self.build_model()
@@ -810,16 +742,6 @@ class Builder:
 
         # load callbacks
         self.build_callbacks()
-
-        # load the best loss for the model saver and the log saver
-        # if os.path.exists(self.log_best_path):
-        #     df_best = pd.read_csv(self.log_best_path)
-        #     if hasattr(self, 'clbk_logsaver'):
-        #         self.clbk_logsaver.best_loss= df_best.val_loss[0]
-        #         print('Loads log saver')
-        #     if hasattr(self, 'clbk_modelsaver'):
-        #         self.clbk_modelsaver.best_loss= df_best.val_loss[0]
-        #         print('Load model saver')
     
     def load_test(self, 
         path, 
@@ -835,7 +757,7 @@ class Builder:
             Whether to load the best model or the final model.
         """
         # if the path is a list of path then multi-model mode
-        if type(path)==list:
+        if isinstance(path,list):
             print("We found a list of path for your model loading. Let's switch to multi-model mode!")
             self.config = []
             self.model = []

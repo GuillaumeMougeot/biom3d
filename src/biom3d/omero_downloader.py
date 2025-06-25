@@ -31,10 +31,10 @@ def download_datasets_cli(datasets, target_dir):
                 if image.getFileset() is None:
                     print("No files to download for Image", image.id)
                     continue
-                # image_dir = os.path.join(dataset_dir, image.name)
+
                 # If each image is a single file, or are guaranteed not to clash
                 # then we don't need image_dir. Could use dataset_dir instead
-                # cli.invoke(["download", f'Image:{image.id}', image_dir])
+
                 cli.invoke(["download", f'Image:{image.id}', dataset_dir])
 
 
@@ -70,6 +70,7 @@ def download_object_cli(cli, obj, target_dir):
 
     print("Downloading to ", target_dir)
 
+    #TODO fix the missing argument
     download_datasets(datasets, target_dir)
 
     return datasets, target_dir
@@ -86,7 +87,7 @@ def download_datasets(conn, datasets, target_dir):
             if image.getFileset() is None:
                 print("No files to download for Image", image.id)
                 continue
-            # image_dir = os.path.join(dataset_dir, image.name)
+            
             # If each image is a single file, or are guaranteed not to clash
             # then we don't need image_dir. Can use dataset_dir instead
             
