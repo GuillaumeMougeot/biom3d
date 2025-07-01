@@ -44,10 +44,15 @@ def compute_median(path, return_spacing=False):
         sizes += [list(img.shape)]
         if return_spacing and (spacing is not None): spacings+=[spacing]
     assert len(sizes)>0, "[Error] List of sizes for median computation is empty. It is probably due to an empty image folder."
+    num_dims = [len(s) for s in sizes]
+    assert min(num_dims)==max(num_dims), f"Inconsistent number of dimensions in images: {num_dims}"
     sizes = np.array(sizes)
     median = np.median(sizes, axis=0).astype(int)
     
     if return_spacing: 
+        if len(spacings)==0: 
+            print("Warning: `return_spacing` was set to True but no spacing was found in the image metadata, will return an empty `median_spacing` array.")
+            return median, spacings
         spacings = np.array(spacings)
         median_spacing = np.median(spacings, axis=0)
         return median, median_spacing
