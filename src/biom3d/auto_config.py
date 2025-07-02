@@ -40,8 +40,13 @@ def compute_median(path, return_spacing=False):
         img,metadata = adaptive_imread(path_imgs[i])
         spacing = None if 'spacing' not in metadata.keys() else metadata['spacing']
 
-        assert len(img.shape)>0, "[Error] Wrong image image."
-        sizes += [list(img.shape)]
+        assert len(img.shape)>0, f"[Error] Wrong image {path}."
+        img_shape = img.shape 
+        # Check if the image is 2D (has two dimensions)
+        if len(img_shape) == 2:
+            # Add a third dimension with size 1 to make it 3D
+            img_shape = (1,) + img_shape
+        sizes += [list(img_shape)]
         if return_spacing and (spacing is not None): spacings+=[spacing]
     assert len(sizes)>0, "[Error] List of sizes for median computation is empty. It is probably due to an empty image folder."
     num_dims = [len(s) for s in sizes]
@@ -102,7 +107,12 @@ def data_fingerprint(img_dir, msk_dir=None, num_samples=10000,seed=42):
         spacing = None if 'spacing' not in metadata.keys() else metadata['spacing']
 
         # store the size
-        sizes += [list(img.shape)]
+        img_shape = img.shape 
+        # Check if the image is 2D (has two dimensions)
+        if len(img_shape) == 2:
+            # Add a third dimension with size 1 to make it 3D
+            img_shape = (1,) + img_shape
+        sizes += [list(img_shape)]
 
         # store the spacing
         if spacing is not None or spacing!=[]: 
