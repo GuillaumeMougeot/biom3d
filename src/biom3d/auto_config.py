@@ -11,7 +11,7 @@ import numpy as np
 import itertools
 import argparse
 
-from biom3d.utils import adaptive_imread, abs_listdir
+from biom3d.utils import adaptive_imread, abs_listdir, save_python_config
 
 # ----------------------------------------------------------------------------
 # Median computation
@@ -289,6 +289,16 @@ def get_aug_patch(patch_size):
 # ----------------------------------------------------------------------------
 # Display 
 
+def parameters_return(patch, pool, batch, config_path):
+    """
+    Displays the provided parameters.
+    """
+    print(batch)
+    print(patch)
+    print(get_aug_patch(patch))
+    print(pool)
+    print(config_path)
+
 def display_info(patch, pool, batch):
     """Print in terminal the patch size, the number of pooling and the batch size.
     """
@@ -351,6 +361,8 @@ if __name__=='__main__':
         help="(default=\'configs/\') Configuration folder to save the auto-configuration.")
     parser.add_argument("--base_config", type=str, default=None,
         help="(default=None) Optional. Path to an existing configuration file which will be updated with the preprocessed values.")
+    parser.add_argument("--remote", default=False, dest='remote',
+        help="Use this argument when using remote autoconfig only.")
     args = parser.parse_args()
 
     median = compute_median(path=args.img_dir, return_spacing=args.spacing)
@@ -358,30 +370,29 @@ if __name__=='__main__':
     if args.spacing: 
         median_spacing = median[1]
         median = median[0]
+    else:
+        median_spacing = None
 
     patch, pool, batch = find_patch_pool_batch(dims=median, max_dims=(args.max_dim, args.max_dim, args.max_dim))
     aug_patch = np.array(patch)+2**(np.array(pool)+1)
 
-    display_info(patch, pool, batch)
-    
+    if args.remote or args.save_config:
+        config_path = save_python_config(
+            config_dir=args.config_dir,
+            base_config=args.base_config,
+            
+            BATCH_SIZE=batch,
+            AUG_PATCH_SIZE=aug_patch,
+            PATCH_SIZE=patch,
+            NUM_POOLS=pool,
+            MEDIAN_SPACING=median_spacing,
+        )
+    if args.remote:
+        parameters_return(patch, pool, batch, config_path, median_spacing)   
+    else:
+        display_info(patch, pool, batch)
+
     if args.spacing:print("MEDIAN_SPACING =",list(median_spacing))
     if args.median:print("MEDIAN =", list(median))
-
-    if args.save_config:
-        try: 
-            from biom3d.utils import save_python_config
-            config_path = save_python_config(
-                config_dir=args.config_dir,
-                base_config=args.base_config,
-                
-                BATCH_SIZE=batch,
-                AUG_PATCH_SIZE=aug_patch,
-                PATCH_SIZE=patch,
-                NUM_POOLS=pool,
-                MEDIAN_SPACING=median_spacing,
-            )
-        except:
-            print("[Error] Import error. Biom3d must be installed if you want to save your configuration. Another solution is to config the function function in biom3d.utils here...")
-            raise ImportError
 
 # ----------------------------------------------------------------------------
