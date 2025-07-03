@@ -35,13 +35,17 @@ def compute_median(path, return_spacing=False):
     path_imgs = abs_listdir(path)
     sizes = []
     if return_spacing: spacings = []
+    num_dims = None
     for i in range(len(path_imgs)):
 
         img,metadata = adaptive_imread(path_imgs[i])
         spacing = None if 'spacing' not in metadata.keys() else metadata['spacing']
 
-        assert len(img.shape)>0, f"[Error] Wrong image {path}."
+        assert len(img.shape)>0, f"[Error] Wrong image {path_imgs[i]}."
         img_shape = img.shape 
+        # Check if the number of dimension is consistent across the dataset
+        if num_dims is None: num_dims = len(img_shape)
+        else: assert num_dims == len(img_shape), f"[Error] Inconsistency in the number of dimensions across the dataset: {num_dims} and {len(img_shape)}."
         # Check if the image is 2D (has two dimensions)
         if len(img_shape) == 2:
             # Add a third dimension with size 1 to make it 3D
@@ -101,13 +105,19 @@ def data_fingerprint(img_dir, msk_dir=None, num_samples=10000,seed=42):
     sizes = []
     spacings = []
     samples = []
-        
+
+    assert len(path_imgs) > 0, f"[Error] Empty folder: {img_dir}"
+    num_dims = None
+
     for i in range(len(path_imgs)):
         img,metadata = adaptive_imread(path_imgs[i])
         spacing = None if 'spacing' not in metadata.keys() else metadata['spacing']
 
         # store the size
         img_shape = img.shape 
+        # Check if the number of dimension is consistent across the dataset
+        if num_dims is None: num_dims = len(img_shape)
+        else: assert num_dims == len(img_shape), f"[Error] Inconsistency in the number of dimensions across the dataset: {num_dims} and {len(img_shape)}."
         # Check if the image is 2D (has two dimensions)
         if len(img_shape) == 2:
             # Add a third dimension with size 1 to make it 3D
@@ -128,7 +138,8 @@ def data_fingerprint(img_dir, msk_dir=None, num_samples=10000,seed=42):
             # to get a global sample of all the images, 
             # we use random sampling on the image voxels inside the mask
             rng = np.random.default_rng(seed)
-            samples.append(rng.choice(img, num_samples, replace=True) if len(img)>0 else [])
+            if len(img) > 0:
+                samples.append(rng.choice(img, num_samples, replace=True) if len(img)>0 else [])
 
     # median computation
     try:
@@ -137,11 +148,14 @@ def data_fingerprint(img_dir, msk_dir=None, num_samples=10000,seed=42):
         raise ValueError( "Images don't have the same number of dimensions" )
     median_spacing = np.median(np.array(spacings), axis=0)
     
+    if not samples: 
+        return median_size, median_spacing, 0, 0, 0, 0
+
     # compute fingerprints
-    mean = float(np.mean(samples)) if samples!=[] else 0
-    std = float(np.std(samples)) if samples!=[] else 0
-    perc_005 = float(np.percentile(samples, 0.5)) if samples!=[] else 0
-    perc_995 = float(np.percentile(samples, 99.5)) if samples!=[] else 0
+    mean = float(np.mean(samples)) 
+    std = float(np.std(samples)) 
+    perc_005 = float(np.percentile(samples, 0.5)) 
+    perc_995 = float(np.percentile(samples, 99.5)) 
 
     return median_size, median_spacing, mean, std, perc_005, perc_995 
 

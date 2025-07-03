@@ -208,6 +208,7 @@ def seg_preprocessor(
     channel_axis=0,
     num_channels=1,
     seed = 42,
+    is_2d=False,
     ):
     """Segmentation pre-processing.
     """
@@ -221,7 +222,15 @@ def seg_preprocessor(
         msk = sanity_check(msk, num_classes)
 
     # expand image dim
-    if len(img.shape)==3:
+    if len(img.shape) == 2:
+        original_shape = img.shape
+        img = np.expand_dims(img, axis=(0,1))
+    # Expand image dimension, we consider the Z dim as the smallest dimension 
+    # (we put it in the second position [C,Z,Y,X]) 
+    elif is_2d and len(img.shape)==3:
+        original_shape = img.shape
+        img = np.expand_dims(img, 1)
+    elif len(img.shape)==3:
         # keep the input shape, used for preprocessing before prediction
         original_shape = img.shape
         img = np.expand_dims(img, 0)
@@ -243,7 +252,9 @@ def seg_preprocessor(
 
     # one hot encoding for the mask if needed
     if do_msk and len(msk.shape)!=4: 
-        if use_one_hot:
+        if len(msk.shape) == 2:
+            msk = np.expand_dims(msk, axis=(0,1))
+        elif use_one_hot:
             msk = one_hot_fast(msk, num_classes)
             if remove_bg:
                 msk = msk[1:]
