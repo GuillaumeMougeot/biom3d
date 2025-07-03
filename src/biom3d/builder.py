@@ -565,7 +565,7 @@ class Builder:
             self.callbacks.on_epoch_end(epoch)
         self.callbacks.on_train_end(self.config.NB_EPOCHS)
 
-    def run_prediction_single(self, img_path=None, img=None, img_meta=None, return_logit=True):
+    def run_prediction_single(self, handler=None, img=None, img_meta=None, return_logit=True):
         """Compute a prediction for one image using the predictor defined in the configuration file.
         Two input options are available: either give the image path or the image and its associated metadata.
 
@@ -586,10 +586,10 @@ class Builder:
             Output images.
         """
         # load image
-        if img_path is not None:
-            img, img_meta = utils.adaptive_imread(img_path=img_path)
+        if handler is not None:
+            img, img_meta = handler.load(handler.images[0])
         else:
-            assert img is not None and img_meta is not None, '[Error] If the image path is not provided, provide the image array and its metadata'
+            assert img is not None and img_meta is not None, '[Error] If the handler not provided, provide the image array and its metadata'
         
         print("Input shape:", img.shape)
 
@@ -674,23 +674,23 @@ class Builder:
         return_logit : bool, default=False
             Whether to save the logit, i.e. the model output before the final activation.
         """
-        fnames_in = sorted(utils.abs_listdir(dir_in))
-        if not os.path.isdir(dir_out):
-            os.makedirs(dir_out, exist_ok=True)
+        handler = utils.DataHandlerFactory.get(
+            dir_in,
+            output=dir_out,
+            img_path = dir_in,
+            img_outdir = dir_out,
+        )
         
-        # remove extension
-        fnames_out = sorted(os.listdir(dir_in))
-
-        # add folder path
-        fnames_out = utils.abs_path(dir_out,fnames_out)
-
-        for i, img_path in enumerate(fnames_in):
-            print("running prediction for image: ", img_path)
-            img, img_meta = utils.adaptive_imread(img_path)
+        for i,_,_ in enumerate(handler):
+            print("running prediction for image: ", i)
+            img, img_meta = handler.load(i)
             pred = self.run_prediction_single(img=img, img_meta=img_meta, return_logit=return_logit)
 
-            print("Saving images in", fnames_out[i])
-            utils.adaptive_imsave(fnames_out[i], pred, img_meta)
+            # add folder path
+            fnames_out = handler.get_output(i)
+
+            print("Saving images in", fnames_out)
+            handler.save(i,pred)
                 
     def load_train(self, 
         path, 

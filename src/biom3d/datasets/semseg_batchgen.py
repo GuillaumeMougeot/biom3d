@@ -27,7 +27,7 @@ from batchgenerators.dataloading.multi_threaded_augmenter import MultiThreadedAu
 
 from typing import Union, Tuple, List
 
-from biom3d.utils import adaptive_imread, get_folds_train_test_df
+from biom3d.utils import DataHandlerFactory, get_folds_train_test_df
 
 #---------------------------------------------------------------------------
 # random crop and pad with batchgenerator
@@ -199,9 +199,9 @@ class RandomCropAndPadTransform(AbstractTransform):
 #---------------------------------------------------------------------------
 # image reader
 
-def imread(img, msk, threeD=True):
-    img = adaptive_imread(img)[0]
-    msk = adaptive_imread(msk)[0]
+def imread(handler,img, msk, threeD=True):
+    img,_ = handler.load(img)
+    msk,_ = handler.load(msk)
 
     if (threeD and len(img.shape)==3) or (not threeD and len(img.shape)==2):
         img = np.expand_dims(img,0)
@@ -214,20 +214,21 @@ def imread(img, msk, threeD=True):
 class DataReader(AbstractTransform):
     """Return a data and seg instead of a dictionary.
     """
-    def __init__(self, threeD=True, data_key="data", label_key="seg"):
+    def __init__(self, handler,threeD=True, data_key="data", label_key="seg"):
         self.threeD = threeD
         self.data_key = data_key
         self.label_key = label_key
+        self.handler=handler
     
     def __call__(self, **data_dict):
         data = data_dict.get(self.data_key)
         seg = data_dict.get(self.label_key)
         
-        if type(data)==list:
+        if isinstance(data,list):
             for i in range(len(data)):
-                data[i], seg[i] = imread(data[i], seg[i])
+                data[i], seg[i] = imread(self.handler,data[i], seg[i])
         else:
-            data, seg = imread(data, seg)
+            data, seg = imread(self.handler,data, seg)
 
         data_dict[self.data_key] = data
         if seg is not None:
@@ -491,6 +492,7 @@ def get_training_transforms(aug_patch_size: Union[np.ndarray, Tuple[int]],
                             rotation_for_DA: dict,
                             deep_supervision_scales: Union[List, Tuple],
                             mirror_axes: Tuple[int, ...],
+                            handler,
                             do_dummy_2d_data_aug: bool,
                             order_resampling_data: int = 3,
                             order_resampling_seg: int = 1,
@@ -500,7 +502,7 @@ def get_training_transforms(aug_patch_size: Union[np.ndarray, Tuple[int]],
     tr_transforms = []
     
     if use_data_reader:
-        tr_transforms.append(DataReader())
+        tr_transforms.append(DataReader(handler))
     
 #     tr_transforms.append(RandomCropAndPadTransform(aug_patch_size, fg_rate))
     tr_transforms.append(nnUNetRandomCropAndPadTransform(aug_patch_size, 
@@ -634,6 +636,14 @@ class BatchGenDataLoader(SlimDataLoaderBase):
         self.nbof_steps = nbof_steps
 
         self.load_data = load_data
+
+        handler = DataHandlerFactory.get(
+            self.img_dir,
+            read_only=True,
+            img_path = img_dir,
+            msk_path = msk_dir,
+            fg_path = fg_dir,
+        )
         
         # get the training and validation names 
         if folds_csv is not None:
@@ -648,7 +658,7 @@ class BatchGenDataLoader(SlimDataLoaderBase):
             for i in trainset: self.train_imgs += i
 
         else: # tmp: validation split = 50% by default
-            all_set = os.listdir(img_dir)
+            all_set = handler.extract_inner_path(handler.images)
             val_split = np.round(val_split * len(all_set)).astype(int)
             if val_split == 0: val_split=1
             self.train_imgs = all_set[val_split:]
@@ -663,30 +673,30 @@ class BatchGenDataLoader(SlimDataLoaderBase):
             length of the testing set: {}".format(fold, len(self.train_imgs), len(self.val_imgs), len(testset)))
 
         self.fnames = self.train_imgs if self.train else self.val_imgs
+        handler.open(
+            img_path = img_dir,
+            msk_path = msk_dir,
+            fg_dir = fg_dir,
+            img_inner_path_list = self.fnames,
+            msk_inner_path_list = self.fnames,
+            fg_inner_path_list = self.fnames,
+        )
 
         # print train and validation image names
         print("{} images: {}".format("Training" if self.train else "Validation", self.fnames))
         
-        def generate_data(fnames):
-            data = []
-            for idx in range(len(fnames)):
+        def generate_data(handler):
+            for i,m,f in handler:
                 # file names
-                img = os.path.join(self.img_dir, fnames[idx])
-                msk = os.path.join(self.msk_dir, fnames[idx])
+                img = handler.load(i)
+                msk = handler.load(m)
                 if self.fg_dir is not None:
-                    fg  = os.path.join(self.fg_dir, os.path.basename(fnames[idx]).split('.')[0]+'.pkl')
-
-                # load img and msks
-                if self.load_data:
-                    img = adaptive_imread(img)[0]
-                    msk = adaptive_imread(msk)[0]
-                if self.fg_dir is not None: fg = pickle.load(open(fg, 'rb'))
-                else: fg = None
+                    fg  = handler.load(f)
                 data += [{'data': img, 'seg': msk, 'loc': fg}]
                 
             return data
 
-        data = generate_data(self.fnames)
+        data = generate_data(handler)
         super(BatchGenDataLoader, self).__init__(
             data,
             batch_size,
@@ -844,6 +854,13 @@ class MTBatchGenDataLoader(MultiThreadedAugmenter):
         )
 
         self.length = nbof_steps
+
+        handler = DataHandlerFactory.get(
+            img_dir,
+            read_only=True,
+            img_path = img_dir,
+            msk_path = msk_dir,
+        )
         
         if train:
             rotation_for_DA, do_dummy_2d_data_aug, aug_patch_size, mirror_axes=configure_rotation_dummyDA_mirroring_and_inital_patch_size(patch_size)
@@ -855,6 +872,7 @@ class MTBatchGenDataLoader(MultiThreadedAugmenter):
                                 # deep_supervision_scales=[[1, 1, 1], [1.0, 0.5, 0.5], [1.0, 0.25, 0.25], [0.5, 0.125, 0.125], [0.25, 0.0625, 0.0625]],
                                 deep_supervision_scales=None,
                                 mirror_axes=mirror_axes,
+                                handler=handler,
                                 do_dummy_2d_data_aug=do_dummy_2d_data_aug,
                                 use_data_reader=not load_data,
                                 )
@@ -863,6 +881,7 @@ class MTBatchGenDataLoader(MultiThreadedAugmenter):
                                 patch_size=patch_size,
                                 fg_rate = fg_rate,
                                 use_data_reader=not load_data,
+                                handler=handler,
                                 )
         
         super(MTBatchGenDataLoader, self).__init__(

@@ -61,6 +61,7 @@ if __name__=='__main__':
         help="(default=unet_default) Optional. A name used to describe the model.")
     parser.add_argument("--ct_norm", default=False,  action='store_true', dest='ct_norm',
         help="(default=False) Whether to use CT-Scan normalization routine (cf. nnUNet).") 
+
     args = parser.parse_args()
 
     preprocess_train(

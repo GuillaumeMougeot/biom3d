@@ -7,11 +7,12 @@
 # - the number of poolings in the 3D U-Net
 #---------------------------------------------------------------------------
 
+import h5py
 import numpy as np
 import itertools
 import argparse
 
-from biom3d.utils import adaptive_imread, abs_listdir
+from biom3d.utils import DataHandlerFactory
 
 # ----------------------------------------------------------------------------
 # Median computation
@@ -27,26 +28,33 @@ def compute_median(path, return_spacing=False):
     return_spacing: bool
         Whether to return the mean image spacing. Works only for Nifti format.
 
+
     Returns
     -------
     numpy.ndarray
         Median shape of the images in the folder. 
     """
-    path_imgs = abs_listdir(path)
+    handler = DataHandlerFactory.get(
+        path,
+        read_only=True,
+        output=None,
+        img_path = path,
+    )
+
     sizes = []
     if return_spacing: spacings = []
-    for i in range(len(path_imgs)):
+    for img_path,_,_ in handler:
 
-        img,metadata = adaptive_imread(path_imgs[i])
+        img,metadata = handler.load(img_path)
         spacing = None if 'spacing' not in metadata.keys() else metadata['spacing']
 
-        assert len(img.shape)>0, "[Error] Wrong image image."
+        assert len(img.shape)>0, "[Error] Wrong image image." # TODO typo ? clarify
         sizes += [list(img.shape)]
         if return_spacing and (spacing is not None): spacings+=[spacing]
+    handler.close()
     assert len(sizes)>0, "[Error] List of sizes for median computation is empty. It is probably due to an empty image folder."
     sizes = np.array(sizes)
     median = np.median(sizes, axis=0).astype(int)
-    
     if return_spacing: 
         spacings = np.array(spacings)
         median_spacing = np.median(spacings, axis=0)
@@ -84,28 +92,32 @@ def data_fingerprint(img_dir, msk_dir=None, num_samples=10000,seed=42):
     perc_995 : float
         99.5% percentile of the intensities.
     """ 
-    path_imgs = abs_listdir(img_dir)
-    if msk_dir is not None:
-        path_msks = abs_listdir(msk_dir)
+    handler = DataHandlerFactory.get(
+        img_dir,
+        read_only=True,
+        output=None,
+        img_path = img_dir,
+        msk_path = msk_dir,
+    )
     
     sizes = []
     spacings = []
     samples = []
         
-    for i in range(len(path_imgs)):
-        img,metadata = adaptive_imread(path_imgs[i])
+    for img_path,msk_path,_ in handler:
+        img,metadata = handler.load(img_path)
         spacing = None if 'spacing' not in metadata.keys() else metadata['spacing']
 
         # store the size
         sizes += [list(img.shape)]
 
         # store the spacing
-        if spacing is not None or spacing!=[]: 
+        if spacing is not None and spacing!=[]: 
             spacings+=[spacing]
 
         if msk_dir is not None:
             # read msk
-            msk,_ = adaptive_imread(path_msks[i])
+            msk,_ = handler.load(msk_path)
             
             # extract only useful voxels
             img = img[msk > 0]
@@ -114,7 +126,7 @@ def data_fingerprint(img_dir, msk_dir=None, num_samples=10000,seed=42):
             # we use random sampling on the image voxels inside the mask
             rng = np.random.default_rng(seed)
             samples.append(rng.choice(img, num_samples, replace=True) if len(img)>0 else [])
-
+    handler.close()
     # median computation
     try:
         median_size = np.median(np.array(sizes), axis=0).astype(int)
@@ -294,7 +306,7 @@ def display_info(patch, pool, batch):
     print("AUG_PATCH_SIZE =",list(aug_patch))
     print("NUM_POOLS =", list(pool))
 
-def auto_config(img_dir=None, median=None, max_dims=(128,128,128), max_batch=16, min_batch=2):
+def auto_config(img_dir=None, median=None, max_dims=(128,128,128), max_batch=16, min_batch=2,use_h5=False):
     """Given an image folder, return the batch size, the patch size and the number of pooling.
     Provide either an image directory or a median shape. If a median shape is provided it will not be recomputed and the auto-configuration will be much faster.
 
@@ -306,6 +318,8 @@ def auto_config(img_dir=None, median=None, max_dims=(128,128,128), max_batch=16,
         Median size of the images in the image directory.
     max_dims: tuple, default=(128,128,128)
         Maximum patch size. The product of `max_dims` is used to determine the maximum patch size
+    use_h5: bool, default=False
+        If img_dir is a h5 archive.
 
     Returns
     -------
@@ -319,7 +333,7 @@ def auto_config(img_dir=None, median=None, max_dims=(128,128,128), max_batch=16,
         Number of pooling.
     """
     assert not(img_dir is None and median is None), "[Error] Please provide either an image directory or a median shape."
-    if median is None: median = compute_median(path=img_dir) 
+    if median is None: median = compute_median(path=img_dir,use_h5=use_h5) 
     patch, pool, batch = find_patch_pool_batch(dims=median, max_dims=max_dims) 
     aug_patch = get_aug_patch(patch)
     if batch > max_batch: batch = max_batch
@@ -346,9 +360,11 @@ if __name__=='__main__':
         help="(default=\'configs/\') Configuration folder to save the auto-configuration.")
     parser.add_argument("--base_config", type=str, default=None,
         help="(default=None) Optional. Path to an existing configuration file which will be updated with the preprocessed values.")
+    parser.add_argument("--use_h5", type=bool, default=False,
+        help="(default=False) Optional. If img_dir is a h5 archive instead of a folder.")
     args = parser.parse_args()
 
-    median = compute_median(path=args.img_dir, return_spacing=args.spacing)
+    median = compute_median(path=args.img_dir, return_spacing=args.spacing,use_h5=args.use_h5)
     
     if args.spacing: 
         median_spacing = median[1]

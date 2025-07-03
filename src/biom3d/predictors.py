@@ -150,7 +150,7 @@ class LoadImgPatch:
         
         # prepare image
         # load the image
-        img,metadata = adaptive_imread(self.fname)
+        img,metadata = adaptive_imread(self.fname) # We don't replace this call since it is in a already depreciated method
         self.spacing = None if 'spacing' not in metadata.keys() else metadata['spacing']
 
         # store img shape (for post processing)

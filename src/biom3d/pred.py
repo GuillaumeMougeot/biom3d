@@ -8,20 +8,27 @@ import pathlib
 import numpy as np
 
 from biom3d.builder import Builder
-from biom3d.utils import abs_listdir, versus_one, dice, adaptive_imread, adaptive_imsave
+from biom3d.utils import versus_one, dice, DataHandlerFactory
+from biom3d.eval import eval
 
 #---------------------------------------------------------------------------
 # prediction base fonction
 
-def pred_single(log, img_path, out_path):
+def pred_single(log, img_path,out_path):
     """Prediction on a single image.
     """
     if not isinstance(log,list): log=str(log)
     builder = Builder(config=None,path=log, training=False)
-    img = builder.run_prediction_single(img_path, return_logit=False)
+    handler = DataHandlerFactory.get(
+            img_path,
+            output=out_path,
+            img_path = img_path,
+            img_outdir = out_path,
+        )
+    img = builder.run_prediction_single(handler, return_logit=False)
 
-    metadata = adaptive_imread(img_path)[1]
-    adaptive_imsave(out_path, img, metadata)
+    _,metadata = handler.load(handler.images[0])
+    handler.save(handler.images[0], img, metadata)
     return builder.config.NUM_CLASSES+1 # for pred_seg_eval_single
 
 def pred(log, dir_in, dir_out):
@@ -69,30 +76,24 @@ def pred_seg_eval(log=pathlib.Path.home(), dir_in=pathlib.Path.home(), dir_out=p
 
 
     if dir_lab is not None:
+        if isinstance(builder_pred.config,list):
+            num_classes = builder_pred.config[0].NUM_CLASSES+1
+        else:
+            num_classes = builder_pred.config.NUM_CLASSES+1
         # eval
-        print("Start evaluation")
-        paths_lab = [dir_lab, dir_out]
-        list_abs = [sorted(abs_listdir(p)) for p in paths_lab]
-        assert sum([len(t) for t in list_abs])%len(list_abs)==0, "[Error] Not the same number of labels and predictions! {}".format([len(t) for t in list_abs])
-
-        results = []
-        for idx in range(len(list_abs[0])):
-            print("Metric computation for:", list_abs[1][idx])
-            if isinstance(builder_pred.config,list):
-                num_classes = builder_pred.config[0].NUM_CLASSES+1
-            else:
-                num_classes = builder_pred.config.NUM_CLASSES+1
-            results += [versus_one(
-                fct=dice, 
-                in_path=list_abs[1][idx], 
-                tg_path=list_abs[0][idx], 
-                num_classes=num_classes, 
-                single_class=None,
-                )]
-            print("Metric result:", results[-1])
-        print("Evaluation done! Average result:", np.mean(results))
+        eval(dir_lab,dir_out,num_classes=num_classes,single_class=None)
 
 def pred_seg_eval_single(log, img_path, out_path, msk_path):
+    handler1 = DataHandlerFactory.get(
+        dir_lab,
+        read_only=True,
+        img_path = dir_lab,
+    )
+    handler2 = DataHandlerFactory.get(
+        dir_out,
+        read_only=True,
+        img_path = dir_out,
+    )
     print("Run prediction for:", img_path)
     num_classes = pred_single(log, img_path, out_path)
     print("Done! Prediction saved in:", out_path)

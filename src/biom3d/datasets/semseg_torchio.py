@@ -18,7 +18,7 @@ from torchio import SubjectsDataset
 from torchio import Subject
 import copy
 
-from biom3d.utils import get_folds_train_test_df, adaptive_imread
+from biom3d.utils import get_folds_train_test_df, DataHandlerFactory
 
 #---------------------------------------------------------------------------
 # utilities to random crops
@@ -147,10 +147,6 @@ class RandomCropOrPad(RandomTransform, SpatialTransform):
                 # center=random.choice(locations.numpy()) # choose a random voxel of this label
                 center=locations[torch.randint(locations.size(0), (1,)).item()]
                 # margin=np.zeros(3) # TODO: make this a parameter
-                # lower_bound = np.clip(center-np.array(self.patch_size)+margin, 0., valid_range)
-                # higher_bound = np.clip(center-margin, lower_bound+1, valid_range)
-                # index_ini = tuple(np.random.randint(low=lower_bound, high=higher_bound))
-                # index_ini = tuple(np.maximum(center-np.array(self.patch_size)//2, 0).astype(int))
                 index_ini = tuple(int(np.maximum(x,0)) for x in (center.numpy()-self.patch_size//2))
         else:
             index_ini = tuple(int(torch.randint(np.maximum(x,0) + 1, (1,)).item()) for x in valid_range)
@@ -201,8 +197,12 @@ class LabelToBool:
 
 #---------------------------------------------------------------------------
 
-def reader(x):
-    return adaptive_imread(str(x))[0], None
+class TorchIOReaderWrapper:
+    def __init__(self, handler):
+        self.handler = handler  
+
+    def __call__(self, path):
+        return self.handler.load(path), None
 
 #---------------------------------------------------------------------------
 # Based on torchio.SubjectsDataset
@@ -248,6 +248,14 @@ class TorchioDataset(SubjectsDataset):
         self.nbof_steps = nbof_steps
 
         self.load_data = load_data
+
+        self.handler = DataHandlerFactory.get(
+            self.img_dir,
+            read_only=True,
+            img_path = img_dir,
+            msk_path = msk_dir,
+            fg_path = fg_dir,
+        )
         
         # get the training and validation names 
         if folds_csv is not None:
@@ -262,7 +270,7 @@ class TorchioDataset(SubjectsDataset):
             for i in trainset: self.train_imgs += i
 
         else: 
-            all_set = os.listdir(img_dir)
+            all_set = self.handler.extract_inner_path(self.handler.images)
             val_split = np.round(val_split * len(all_set)).astype(int)
 
             # force validation to contain at least one image
@@ -280,6 +288,15 @@ class TorchioDataset(SubjectsDataset):
 
         self.fnames = self.train_imgs if self.train else self.val_imgs
 
+        self.handler.open(
+            img_path = img_dir,
+            msk_path = msk_dir,
+            fg_dir = fg_dir,
+            img_inner_path_list = self.fnames,
+            msk_inner_path_list = self.fnames,
+            fg_inner_path_list = self.fnames,
+        )
+
         if len(self.fnames)==1: self.load_data=True # we force dataloading for single images.
 
         # print train and validation image names
@@ -288,34 +305,31 @@ class TorchioDataset(SubjectsDataset):
         if self.load_data:
             print("Loading the whole dataset into computer memory...")
             
-        def load_subjects(fnames):
+        def load_subjects():
             subjects_list = []
-            for idx in range(len(fnames)):
-                img_path = os.path.join(self.img_dir, fnames[idx])
-                msk_path = os.path.join(self.msk_dir, fnames[idx])
+            for i,m,f in self.handler:
                 if self.fg_dir is not None:
-                    fg_path = os.path.join(self.fg_dir, fnames[idx][:fnames[idx].find(".")]+'.pkl')
-                    fg = pickle.load(open(fg_path, 'rb'))
-                    fg = {k:torch.tensor(v) for k,v in fg.items()}
+                    fg = self.handler.load(f)
                 else: 
                     fg = None
 
                 # load img and msks
                 if self.load_data:
-                    img = torch.from_numpy(adaptive_imread(img_path)[0].astype(np.float32))
-                    msk = torch.from_numpy(adaptive_imread(msk_path)[0].astype(np.int8)).long()
+                    img = torch.from_numpy(self.handler.load(i)[0].astype(np.float32))
+                    msk = torch.from_numpy(self.handler.load(m)[0].astype(np.int8)).long()
                     subjects_list += [
                         tio.Subject(
                             img=tio.ScalarImage(tensor=img),
                             msk=tio.LabelMap(tensor=msk) if fg is None else tio.LabelMap(tensor=msk, fg=fg))]    
                 else:
+                    reader = TorchIOReaderWrapper(self.handler)
                     subjects_list += [
                         tio.Subject(
-                            img=tio.ScalarImage(img_path, reader=reader),
-                            msk=tio.LabelMap(msk_path, reader=reader) if fg is None else tio.LabelMap(tensor=msk, reader=reader, fg=fg))] 
+                            img=tio.ScalarImage(i, reader=reader),
+                            msk=tio.LabelMap(m, reader=reader) if fg is None else tio.LabelMap(tensor=msk, reader=reader, fg=fg))] 
             return subjects_list
 
-        self.subjects_list = load_subjects(self.fnames)
+        self.subjects_list = load_subjects()
         self.use_aug = use_aug
         self.fg_rate = fg_rate
         self.use_softmax = use_softmax
@@ -330,10 +344,6 @@ class TorchioDataset(SubjectsDataset):
 
             # [aug] 'degrees' for tio.RandomAffine
             if np.any(ps/ps.min()>3): # then use dummy_2d
-                # norm = ps*3/ps.min()
-                # softmax=np.exp(norm)/sum(np.exp(norm))
-                # degrees=softmax.min()*90/softmax
-                # degrees = 180*ps.min()/ps
                 degrees = []
                 for dim in ps/ps.min():
                     if dim < 3:
@@ -354,41 +364,25 @@ class TorchioDataset(SubjectsDataset):
             self.transform = tio.Compose([
                 # pre-cropping to aug_patch_size
                 tio.OneOf({
-                    tio.Compose([# RandomCropOrPad(self.aug_patch_size, fg_rate=self.fg_rate, label_name='msk', use_softmax=self.use_softmax),
-                                #  tio.RandomAffine(scales=(0.7,1.4), degrees=degrees, translation=0),
+                    tio.Compose([
                                  tio.RandomAffine(scales=0, degrees=degrees, translation=0, default_pad_value=0),
                                  tio.Crop(cropping=cropping),
                                  LabelToLong(label_name='msk')
                                 ]): 0.2,
                     tio.Crop(cropping=cropping): 0.8,
-#                     RandomCropOrPad(self.patch_size, fg_rate=self.fg_rate, label_name='msk',use_softmax=self.use_softmax): 0.8,
                 }),
 
                 tio.Compose([tio.RandomAffine(scales=(0.7,1.4), degrees=0, translation=0),
                              LabelToLong(label_name='msk')
                             ], p=0.2),
-                # RandomCropOrPad(AUG_PATCH_SIZE),
-
                 # spatial augmentations
                 tio.RandomAnisotropy(p=0.2, axes=anisotropy_axes, downsampling=(1,2)),
-                # tio.RandomAffine(p=0.25, scales=(0.7,1.4), degrees=degrees, translation=0),
-                # tio.Crop(cropping=cropping),
                 tio.RandomFlip(p=1, axes=(0,1,2)),
-                # tio.OneOf({
-                #     tio.RandomAffine(scales=0.1, degrees=10, translation=0): 0.8,
-                #     tio.RandomElasticDeformation(): 0.2,
-                # }),
-
-                # intensity augmentations
-                # tio.RandomMotion(p=0.2),
-                # tio.RandomGhosting(p=0.2),
-                # tio.RandomSpike(p=0.15),
                 tio.RandomBiasField(p=0.15, coefficients=0.2),
                 tio.RandomBlur(p=0.2, std=(0.5,1)),
                 tio.RandomNoise(p=0.2, std=(0,0.1)),
                 tio.RandomSwap(p=0.2, patch_size=ps//8),
                 tio.RandomGamma(p=0.3, log_gamma=(-0.35,0.4)),
-                # LabelToFloat(label_name='msk')
             ])
 
         SubjectsDataset.__init__(self, subjects=self.subjects_list)

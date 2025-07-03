@@ -9,14 +9,12 @@ from sys import platform
 import sys 
 import numpy as np
 import os 
-import pickle # for foreground storage
 from tqdm import tqdm
 import argparse
-import tifffile
 import pandas as pd
 
-from biom3d.auto_config import auto_config, data_fingerprint, get_aug_patch
-from biom3d.utils import adaptive_imread, one_hot_fast, resize_3d, save_python_config
+from biom3d.auto_config import auto_config, data_fingerprint
+from biom3d.utils import one_hot_fast, resize_3d, save_python_config,DataHandlerFactory
 
 #---------------------------------------------------------------------------
 # Define the CSV file for KFold split
@@ -371,40 +369,22 @@ class Preprocessing:
         split_rate_for_single_img=0.25,
         num_kfolds=5,
         ):
-        assert img_dir!='', "[Error] img_dir must not be empty."
+               
 
-        # fix bug path/folder/ to path/folder
-        if os.path.basename(img_dir)=='':
-            img_dir = os.path.dirname(img_dir)
-        if msk_dir is not None and os.path.basename(msk_dir)=='':
-            msk_dir = os.path.dirname(msk_dir)
-        
         self.img_dir=img_dir
         self.msk_dir=msk_dir
-        self.img_fnames=sorted(os.listdir(self.img_dir))
+        self.handler = DataHandlerFactory.get(
+            self.img_dir,
+            preprocess=True,
+            output=img_outdir,
+            img_path = self.img_dir,
+            msk_path = self.msk_dir,
+            img_outdir = img_outdir,
+            msk_outdir = msk_outdir,
+            fg_outdir = fg_outdir,
+            use_tif=use_tif,
+        )
 
-        if img_outdir is None: # name the out dir the same way as the input and add the _out suffix
-            img_outdir = img_dir+'_out'
-            print("Image output path:", img_outdir)
-        if msk_dir is not None and msk_outdir is None:
-            msk_outdir = msk_dir+'_out'
-            print("Mask output path:", msk_outdir)
-            if fg_outdir is None:
-                # get parent directory of mask dir
-                fg_outdir = os.path.join(os.path.dirname(msk_dir), 'fg_out')
-                print("Foreground output path:", fg_outdir)
-
-        self.img_outdir=img_outdir 
-        self.msk_outdir=msk_outdir
-        self.fg_outdir =fg_outdir
-
-        # create output directory if needed
-        if not os.path.exists(self.img_outdir):
-            os.makedirs(self.img_outdir, exist_ok=True)
-        if msk_dir is not None and not os.path.exists(self.msk_outdir):
-            os.makedirs(self.msk_outdir, exist_ok=True)
-        if msk_dir is not None and not os.path.exists(self.fg_outdir):
-            os.makedirs(self.fg_outdir, exist_ok=True)
 
         # create csv along with the img folder
         self.csv_path = os.path.join(os.path.dirname(img_dir), 'folds.csv')
@@ -419,6 +399,9 @@ class Preprocessing:
 
         self.num_channels = 1
         self.channel_axis = 0
+        self.img_outdir = img_outdir
+        self.msk_outdir = msk_dir
+        self.fg_outdir = fg_outdir
 
         # if the 3D image has 4 dimensions then there is a channel dimension.
         if len(self.median_size)==4:
@@ -440,23 +423,20 @@ class Preprocessing:
 
         self.use_one_hot = use_one_hot
 
+        self.img_len = len(self.handler)
         self.num_kfolds = num_kfolds
-        if self.num_kfolds * 2 > len(self.img_fnames):
-            self.num_kfolds = max(len(self.img_fnames) // 2, 2)
-            print("[Warning] The number of images {} is smaller than twice the number of folds {}. The number of folds will be reduced to {}.".format(len(self.img_fnames), num_kfolds * 2, self.num_kfolds))
+        if self.num_kfolds * 2 > self.img_len:
+            self.num_kfolds = max(self.img_len // 2, 2)
+            print("[Warning] The number of images {} is smaller than twice the number of folds {}. The number of folds will be reduced to {}.".format(self.img_len, num_kfolds * 2, self.num_kfolds))
         
     def _split_single(self):
         """
         if there is only a single image/mask in each folder, then split them both in two portions with self.split_rate_for_single_img
         """
-        # set image and mask name
-        img_fname = self.img_fnames[0]
-        img_path = os.path.join(self.img_dir, img_fname)
-        msk_path = os.path.join(self.msk_dir, img_fname) # mask must be present
 
         # read image and mask
-        img, metadata = adaptive_imread(img_path)
-        msk = adaptive_imread(msk_path)[0]
+        img, metadata = self.handler.load(self.handler.images[0])
+        msk, _ = self.handler.load(self.handler.masks[0])
 
         # determine the slicing indices to crop an image along its maximum dimension
         idx = lambda start,end,shape: tuple(slice(s) if s!=max(shape) else slice(start,end) for s in shape)
@@ -482,46 +462,31 @@ class Preprocessing:
         # save the images and masks 
         # validation names start with a 0
         # training names start with a 1
+        handler_tmp = DataHandlerFactory.get(
+            self.img_dir,
+            output=self.msk_dir,
+            preprocess=False,
+            img_path= self.img_dir,
+            msk_path=self.msk_dir,
+            use_tif=self.use_tif,
+            )
 
         # validation
-        val_img_name = "0_"+os.path.basename(img_path).split('.')[0]
-        val_img_name += '.tif' if self.use_tif else '.npy'
+        val_img_path = self.handler.insert_prefix_to_name(self.handler.images[0],'0')
+        handler_tmp.save(val_img_path,val_img)
+        val_msk_path = self.handler.insert_prefix_to_name(self.handler.msk[0],'0')
+        handler_tmp.save(val_msk_path,val_msk)
 
-        val_img_path = os.path.join(self.img_outdir, val_img_name)
-        if self.use_tif:
-            tifffile.imwrite(val_img_path, val_img, compression=('zlib'), compressionargs={'level': 1})
-        else:
-            np.save(val_img_path, val_img)
-
-        val_msk_path = os.path.join(self.msk_outdir, val_img_name)
-        if self.use_tif:
-            tifffile.imwrite(val_msk_path, val_msk, compression=('zlib'), compressionargs={'level': 1})
-        else:
-            np.save(val_msk_path, val_msk)
-
-        # training save
-        train_img_name = "1_"+os.path.basename(img_path).split('.')[0]
-        train_img_name += '.tif' if self.use_tif else '.npy'
-
-        train_img_path = os.path.join(self.img_outdir, train_img_name)
-        if self.use_tif:
-            tifffile.imwrite(train_img_path, train_img, compression=('zlib'), compressionargs={'level': 1})
-        else:
-            np.save(train_img_path, train_img)
-
-        train_msk_path = os.path.join(self.msk_outdir, train_img_name)
-        if self.use_tif:
-            tifffile.imwrite(train_msk_path, train_msk, compression=('zlib'), compressionargs={'level': 1})
-        else:
-            np.save(train_msk_path, train_msk)
+        train_img_path = self.handler.insert_prefix_to_name(self.handler.images[0],'1')
+        handler_tmp.save(train_img_path,train_img)
+        train_msk_path = self.handler.insert_prefix_to_name(self.handler.msk[0],'1')
+        handler_tmp.save(train_msk_path,train_msk)
 
         # replace self.img_fnames and self.img_dir/self.msk_dir
-        self.img_fnames = os.listdir(self.img_outdir)
-        self.img_dir = self.img_outdir
-        self.msk_dir = self.msk_outdir
-
+        self.handler.open(handler_tmp.get_output())
+        handler_tmp.close()
         # generate the csv file
-        df = pd.DataFrame([train_img_name, val_img_name], columns=['filename'])
+        df = pd.DataFrame([train_img_path, val_img_path], columns=['filename'])
         df['hold_out'] = [0,0]
         df['fold'] = [1,0]
         df.to_csv(self.csv_path, index=False)
@@ -538,26 +503,21 @@ class Preprocessing:
         print("Preprocessing...")
         # if there is only a single image/mask, then split them both in two portions
         image_was_split = False
-        if len(self.img_fnames)==1 and self.msk_dir is not None:
+        if self.img_len==1 and self.msk_dir is not None:
             print("Single image found per folder. Split the images...")
             split_meta = self._split_single()
             image_was_split = True
         
-        if debug: ran = range(len(self.img_fnames))
-        else: ran = tqdm(range(len(self.img_fnames)),file=sys.stdout)
-        for i in ran:
-            # set image and mask name
-            img_fname = self.img_fnames[i]
-            img_path = os.path.join(self.img_dir, img_fname)
-            if self.msk_dir is not None: msk_path = os.path.join(self.msk_dir, img_fname)
-
+        if debug: ran = self.handler
+        else: ran = tqdm(self.handler,file=sys.stdout)
+        for i,m,_ in ran:
             # print image name if debug mode
             if debug: 
-                print("[{}/{}] Preprocessing:".format(i,len(self.img_fnames)),img_path)
+                print("[{}/{}] Preprocessing:{}".format(self.handler._image_index,len(self.handler),i))
 
-            img,img_meta = adaptive_imread(img_path)
+            img,img_meta = self.handler.load(i)
             if self.msk_dir is not None:
-                msk, _ = adaptive_imread(msk_path)
+                msk, _ = self.handler.load(m)
                 img, msk, fg = seg_preprocessor(
                     img                 =img, 
                     img_meta            =img_meta if not image_was_split else split_meta,
@@ -586,41 +546,18 @@ class Preprocessing:
             s = img.shape
             if len(s)==4: # only for images with 4 dimensionalities
                 if i==0: self.num_channels = s[0]
-                else: assert len(s)==4 and self.num_channels==s[0], "[Error] Not all images have {} channels. Problematic image: {}".format(self.num_channels, img_path)
+                else: assert len(s)==4 and self.num_channels==s[0], "[Error] Not all images have {} channels. Problematic image: {}".format(self.num_channels, i)
 
-            # save the image and the mask as tif
-            img_fname = os.path.basename(img_path).split('.')[0]
             # save image
-
-            # save image as tif
-            if self.use_tif:
-                img_out_path = os.path.join(self.img_outdir, img_fname+'.tif')
-                tifffile.imwrite(img_out_path, img, compression=('zlib'), compressionargs={'level': 1})
-                # tifffile.imwrite(img_out_path, img) # no compression --> increased training speed!
-            # save image as npy
-            else:
-                img_out_path = os.path.join(self.img_outdir, img_fname+'.npy')
-                np.save(img_out_path, img)
+            self.handler.save(i,img)
 
             # save mask
             if self.msk_outdir is not None: 
-                # save image as tif
-                if self.use_tif:
-                    msk_out_path = os.path.join(self.msk_outdir, img_fname+'.tif')
-                    tifffile.imwrite(msk_out_path, msk, compression=('zlib'), compressionargs={'level': 1})
-                    # tifffile.imwrite(msk_out_path, msk) # no compression --> increased training speed!
-                # save image as npy
-                else:
-                    msk_out_path = os.path.join(self.msk_outdir, img_fname+'.npy')
-                    np.save(msk_out_path, msk)
-
-                # store it in a pickle format
-                fg_file = os.path.join(self.fg_outdir, img_fname+'.pkl')
-                with open(fg_file, 'wb') as handle:
-                    pickle.dump(fg, handle, protocol=pickle.HIGHEST_PROTOCOL)
+                self.handler.save(m,msk)
+                self.handler.save(m,fg,save_fg=True)
 
         # create csv file
-        filenames = sorted(os.listdir(self.img_outdir))
+        filenames = sorted(self.handler.get_output()[0])
         if not image_was_split:
             generate_kfold_csv(filenames, self.csv_path, kfold=self.num_kfolds)
 
@@ -693,13 +630,18 @@ def auto_config_preprocess(
 
     if not no_auto_config:
         if not print_param: print("Start auto-configuration")
-        
+        handler = DataHandlerFactory.get(
+            img_dir,
+            read_only=True,
+            output=None,
+            img_path = img_dir,
+        )
 
         batch, aug_patch, patch, pool = auto_config(
             median=p.median_size,
             img_dir=img_dir if p.median_size is None else None,
             max_dims=(max_dim, max_dim, max_dim),
-            max_batch = len(os.listdir(img_dir))//20, # we limit batch to avoid overfitting
+            max_batch = len(handler)//20, # we limit batch to avoid overfitting
             )
         
         # convert path for windows systems before writing them
@@ -786,7 +728,7 @@ if __name__=='__main__':
     parser.add_argument("--remote", default=False,  action='store_true', dest='remote',
         help="(default=False) Whether to print auto-config parameters. Used for remote preprocessing using the GUI.") 
     parser.add_argument("--debug", default=False,  action='store_true', dest='debug',
-        help="(default=False) Debug mode. Whether to print all image filenames while preprocessing.") 
+        help="(default=False) Debug mode. Whether to print all image filenames while preprocessing.")    
     args = parser.parse_args()
 
     auto_config_preprocess(
@@ -810,6 +752,7 @@ if __name__=='__main__':
         logs_dir=args.logs_dir,
         print_param=args.remote,
         debug=args.debug,
+
         )
 
 #---------------------------------------------------------------------------

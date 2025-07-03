@@ -11,9 +11,8 @@ import random
 from torch.utils.data import Dataset
 # from monai.data import CacheDataset
 import pandas as pd 
-# from tifffile import imread
-
-from biom3d.utils import centered_pad, get_folds_train_test_df, adaptive_imread
+# from tifffile import imrea
+from biom3d.utils import centered_pad, get_folds_train_test_df, DataHandlerFactory
 
 #---------------------------------------------------------------------------
 # utilities to random crops
@@ -28,13 +27,9 @@ def centered_crop(img, msk, center, crop_shape, margin=np.zeros(3)):
     margin = np.array(margin)
     
     # middle of the crop
-    # start = np.maximum(0,center-crop_shape//2+margin).astype(int)
     start = (center-crop_shape//2+margin).astype(int)
 
     # assert that the end will not be out of the crop
-    # start = start - np.maximum(start+crop_shape-img_shape, 0)
-
-    # end = center+(crop_shape-crop_shape//2)
     end = start+crop_shape
 
     # we make sure that we are not out of the image shape
@@ -246,6 +241,14 @@ class SemSeg3DPatchFast(Dataset):
         self.nbof_steps = nbof_steps
 
         self.load_data = load_data
+
+        self.handler = DataHandlerFactory.get(
+            self.img_dir,
+            read_only=True,
+            img_path = img_dir,
+            msk_path = msk_dir,
+            fg_path = fg_dir,
+        )
         
         # get the training and validation names 
         if folds_csv is not None:
@@ -260,7 +263,7 @@ class SemSeg3DPatchFast(Dataset):
             for i in trainset: self.train_imgs += i
 
         else: 
-            all_set = sorted(os.listdir(img_dir))
+            all_set = self.handler.extract_inner_path(self.handler.images)
             assert len(all_set) > 0, "[Error] Incorrect path for folder of images or your folder is empty."
             np.random.shuffle(all_set) # shuffle all_set
             val_split = np.round(val_split * len(all_set)).astype(int)
@@ -278,32 +281,36 @@ class SemSeg3DPatchFast(Dataset):
 
         self.fnames = self.train_imgs if self.train else self.val_imgs
 
+        self.handler.open(
+            img_path = img_dir,
+            msk_path = msk_dir,
+            fg_dir = fg_dir,
+            img_inner_path_list = self.fnames,
+            msk_inner_path_list = self.fnames,
+            fg_inner_path_list = self.fnames,
+        )
+
         # print train and validation image names
         print("{} images: {}".format("Training" if self.train else "Validation", self.fnames))
         
         if self.load_data:
             print("Loading the whole dataset into computer memory...")
-            def load_data(fnames, fg_dir=None):
+            def load_data():
+                nonlocal fg_dir
                 imgs_data = []
                 msks_data = []
                 fg_data   = []
-                for idx in range(len(fnames)):
-                    # file names
-                    img_path = os.path.join(self.img_dir, fnames[idx])
-                    msk_path = os.path.join(self.msk_dir, fnames[idx])
-
+                for i,m,f in self.handler:
                     # load img and msks
-                    imgs_data += [adaptive_imread(img_path)[0]]
-                    msks_data += [adaptive_imread(msk_path)[0]]
+                    imgs_data += [self.handler.load(i)[0]]
+                    msks_data += [self.handler.load(m)[0]]
 
                     # load foreground 
                     if fg_dir is not None:
-                        fg_path = os.path.join(self.fg_dir, fnames[idx][:fnames[idx].find(".")]+'.pkl')
-                        fg = pickle.load(open(fg_path, 'rb'))
-                        fg_data += [fg]
+                        fg_data += [self.handler.load(m)[0]]
                 return imgs_data, msks_data, fg_data
 
-            self.imgs_data, self.msks_data, self.fg_data = load_data(self.fnames, fg_dir=fg_dir)
+            self.imgs_data, self.msks_data, self.fg_data = load_data()
             print("Done!")
 
         self.use_aug = use_aug
@@ -322,14 +329,9 @@ class SemSeg3DPatchFast(Dataset):
 
             # [aug] 'degrees' for tio.RandomAffine
             if np.any(ps/ps.min()>3): # then use dummy_2d
-                # norm = ps*3/ps.min()
-                # softmax=np.exp(norm)/sum(np.exp(norm))
-                # degrees=softmax.min()*90/softmax
-                # degrees = 180*ps.min()/ps
                 degrees = tuple(180 if p==ps.argmin() else 0 for p in range(len(ps)))
             else:
                 degrees = (-45,45)
-                # degrees = 90
 
             # [aug] 'cropping'
             # the affine transform is computed on bigger patches than the other transform
@@ -341,54 +343,13 @@ class SemSeg3DPatchFast(Dataset):
             # the foreground-crop-function forces the foreground to be in the center of the patch
             # so that, when doing the second centrering crop, the foreground is still present in the patch,
             # that's why there is a margin here
-            # [DEPRECATED] 2023/05/22 Guillaume: this is not the case anymore, will be removed
-            # self.fg_margin = start 
             self.fg_margin = np.zeros(len(patch_size))
 
-
-            # self.transform = tio.Compose([
-            #     # spatial augmentations
-            #     # tio.RandomFlip(p=0.8, axes=(0), flip_probability=flip_prop[0]),
-            #     # tio.RandomFlip(p=0.8, axes=(1), flip_probability=flip_prop[1]),
-            #     # tio.RandomFlip(p=0.8, axes=(2), flip_probability=flip_prop[2]),
-            #     # tio.RandomFlip(p=0.2, axes=(0,1,2)),
-            #     # tio.RandomAnisotropy(p=0.25, axes=anisotropy_axes, downsampling=(1,2)),
-            #     tio.RandomAffine(p=0.25, scales=(0.7,1.4), degrees=degrees, translation=0),
-            #     tio.Crop(p=1, cropping=cropping),
-
-            #     tio.RandomFlip(p=0.7, axes=(0,1,2)),
-            #     # tio.RandomElasticDeformation(p=0.2, num_control_points=4, locked_borders=1),
-            #     # tio.OneOf({
-            #     #     tio.RandomAffine(scales=0.1, degrees=10, translation=0): 0.8,
-            #     #     tio.RandomElasticDeformation(): 0.2,
-            #     # }),
-                
-
-            #     # intensity augmentations
-            #     # tio.RandomMotion(p=0.2),
-            #     # tio.RandomGhosting(p=0.2),
-            #     # tio.RandomSpike(p=0.15),
-            #     tio.RandomBiasField(p=0.15, coefficients=0.2),
-            #     tio.RandomBlur(p=0.2, std=(0.5,1.5)),
-            #     tio.RandomNoise(p=0.2, std=(0,0.1)),
-            #     # tio.RandomSwap(p=0.2, patch_size=ps//8),
-            #     tio.RandomGamma(p=0.3, log_gamma=(-0.35,0.4)),
-            # ])
-            # separate rotation as it requires a bigger patch size
             self.rotate = tio.Compose([
                                  tio.RandomAffine(scales=0, degrees=degrees, translation=0, default_pad_value=0),
                                  tio.Crop(cropping=cropping),
                                  LabelToLong(label_name='msk')])
             self.transform = tio.Compose([
-                # pre-cropping to aug_patch_size
-                # tio.OneOf({
-                #     tio.Compose([
-                #                  tio.RandomAffine(scales=0, degrees=degrees, translation=0, default_pad_value=0),
-                #                  tio.Crop(cropping=cropping),
-                #                  LabelToLong(label_name='msk')
-                #                 ]): 0.2,
-                #     tio.Crop(cropping=cropping): 0.8,
-                # }),
 
                 tio.Compose([tio.RandomAffine(scales=(0.7,1.4), degrees=0, translation=0),
                              LabelToLong(label_name='msk')
@@ -396,27 +357,14 @@ class SemSeg3DPatchFast(Dataset):
 
                 # spatial augmentations
                 tio.RandomAnisotropy(p=0.1, axes=anisotropy_axes, downsampling=(1,1.5)),
-                # tio.RandomAffine(p=0.25, scales=(0.7,1.4), degrees=degrees, translation=0),
-                # tio.Crop(cropping=cropping),
                 tio.RandomFlip(p=1, axes=(0,1,2)),
-                # tio.OneOf({
-                #     tio.RandomAffine(scales=0.1, degrees=10, translation=0): 0.8,
-                #     tio.RandomElasticDeformation(): 0.2,
-                # }),
-
-                # intensity augmentations
-                # tio.RandomMotion(p=0.2),
-                # tio.RandomGhosting(p=0.2),
-                # tio.RandomSpike(p=0.15),
                 tio.RandomBiasField(p=0.15, coefficients=0.2),
                 tio.RandomBlur(p=0.2, std=(0.5,1)),
                 tio.RandomNoise(p=0.2, std=(0,0.1)),
                 tio.RandomSwap(p=0.2, patch_size=ps//8),
                 tio.RandomGamma(p=0.3, log_gamma=(-0.35,0.4)),
-                # LabelToFloat(label_name='msk')
             ])
 
-        # self.fg_rate = fg_rate if self.train else 1
         self.fg_rate = fg_rate
         self.crop_scale = crop_scale 
         assert self.crop_scale >= 1, "[Error] crop_scale must be higher or equal to 1"
@@ -442,7 +390,6 @@ class SemSeg3DPatchFast(Dataset):
             self.batch_idx = 0
     
     def __len__(self):
-        # return len(self.train_imgs) if self.training else len(self.val_imgs)
         return self.nbof_steps*self.batch_size
     
     def __getitem__(self, idx):
@@ -453,21 +400,15 @@ class SemSeg3DPatchFast(Dataset):
             if len(self.fg_data)>0: fg = self.fg_data[idx%len(self.fg_data)]
             else: fg = None
         else:
-            # img_fname = np.random.choice(fnames)
             img_fname = self.fnames[idx%len(self.fnames)]
-            
-            # file names
-            img_path = os.path.join(self.img_dir, img_fname)
-            msk_path = os.path.join(self.msk_dir, img_fname)
 
             # read the images
-            img = adaptive_imread(img_path)[0]
-            msk = adaptive_imread(msk_path)[0]
+            img = self.handler.load(self.handler.images[idx])[0]
+            msk = self.handler.load(self.handler.masks[idx])[0]
 
             # read foreground data
             if self.fg_dir is not None:
-                fg_path = os.path.join(self.fg_dir, img_fname[:img_fname.find(".")]+'.pkl')
-                fg = pickle.load(open(fg_path, 'rb'))
+                fg = self.handler.load(self.handler.fg[idx])[0]
             else:
                 fg = None
 
@@ -490,7 +431,6 @@ class SemSeg3DPatchFast(Dataset):
                 img,
                 msk,
                 final_size=final_size,
-                # fg_rate=self.fg_rate,
                 fg_rate=int(self._do_fg()),
                 fg_margin=fg_margin,
                 fg = fg,
