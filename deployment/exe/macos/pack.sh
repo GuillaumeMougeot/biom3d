@@ -4,23 +4,22 @@ set -e
 
 ENV_NAME=installer
 DIR="Biom3d"
-ARCH="arm64"
-if [ ! -z "$1" ]; then
-    ARCH="$1"
-fi
-DIR="${DIR}_${ARCH}.app"
+ARCH=$(uname -m)
+ARCHIVE_NAME="${DIR}_MacOS_${ARCH}.zip"
+DIR="${DIR}.app"
+# Activate environment
+source "$(conda info --base)/etc/profile.d/conda.sh"
 
 # Check if environment exists
 if conda env list | grep -i "^${ENV_NAME}[[:space:]]" > /dev/null; then
     echo "Environment '${ENV_NAME}' already exists."
 else
     echo "Create environment '${ENV_NAME}'..."
-    "$CONDA_PATH" create -y -n "$ENV_NAME" python=3.11 tk
+    conda create -y -n "$ENV_NAME" python=3.11 tk
 fi
 
-# Activate environment
-source "$(conda info --base)/etc/profile.d/conda.sh"
-source conda activate "$ENV_NAME"
+conda activate "$ENV_NAME"
+conda install -y conda-pack
 
 # Avoid pip/conda conflicts
 conda install -y pip=23.1
@@ -34,7 +33,7 @@ pip install pillow future portalocker requests "urllib3<2"
 # pip install omero-py sans dépendances car zeroc-ice est déjà installé
 pip install --no-deps omero-py
 pip install --no-deps ezomero
-pip install biom3d
+pip install ../../../
 pip cache purge
 
 # Pack
@@ -47,10 +46,11 @@ mkdir -p "$DIR/Contents"
 DIR="$DIR/Contents"
 mkdir -p "$DIR/MacOS"
 mkdir -p "$DIR/Resources"
-echo "FIRST_LAUNCH=1" > "$DIR/MacOS/bin/.env"
 
 # conda pack (change output path)
-conda pack --format=no-archive -o "$DIR/bin"
+conda pack --format=no-archive -o "$DIR/MacOS/bin"
+echo "export FIRST_LAUNCH=1" > "$DIR/MacOS/bin/env.sh"
+chmod +x "$DIR/MacOS/bin/env.sh"
 
 conda deactivate
 
@@ -62,8 +62,8 @@ chmod +x "$DIR/MacOS/Biom3d.sh"
 
 # Zip (7z if installed, else default zip)
 if command -v 7z >/dev/null 2>&1; then
-    7z a -tzip Biom3d.zip "$DIR"
+    7z a -tzip "$ARCHIVE_NAME" "$DIR"
 else
     # zip natif macOS
-    zip -r Biom3d.zip "$DIR"
+    zip -r "$ARCHIVE_NAME" "$DIR"
 fi

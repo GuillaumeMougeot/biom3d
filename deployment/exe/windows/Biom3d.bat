@@ -11,7 +11,6 @@ if "%FIRST_LAUNCH%"=="1" (
     call "%~dp0bin\Scripts\conda-unpack.exe"
     echo Virtual environment initialized
     echo Checking for installed version of CUDA and installing appropriate PyTorch
-    REM Avoid dependency conflict, to remove when not needed anymore
     "%~dp0bin\python.exe" "%~dp0bin\auto_update.py"
     echo Done
     (

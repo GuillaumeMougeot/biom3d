@@ -6,13 +6,13 @@ Biom3d code is modular, which means that it is easy to plug in or out so-called 
 
 
 
-### Training configuration file definition
+## Training configuration file definition
 
 All of the hyper-parameters are defined in the configuration file. The configuration files are stored in Python format in the `configs` folder. You can create a new config file by copy/paste one of the existing ones and by adapting the parameters defined below. For instance, copy/paste and rename `unet_pancreas.py` in the same folder and open this Python script with your favourite text editor. 
 
 There are two types of hyper-parameters in the configuration file: builder parameters and modules parameters. 
 
-#### Builder parameters
+### Builder parameters
 
 Builder parameters are written as follows: `NAME=value`. The dataset builder parameters must be adapted to your own dataset and the Auto-config builder parameters value can be set with the pre-processing values. The rest of the builder parameters is optional. 
 
@@ -114,7 +114,7 @@ USE_FG_CLBK = True
 
 ```
 
-#### :rocket: Module parameters
+### Module parameters
 
 The modules parameters are written as follows in the configuration file:
 
@@ -129,7 +129,7 @@ NAME=Dict(
 
 The `fct` argumentation correspond to one of the module name listed in the `register.py` file. The `register.py` file lists all existing modules in Biom3d. To have more details about one specific module, we recommended to read the documentation of the module. There are currently 5 main modules type: dataset, model, metric, trainer and predictor. Each modules are not compatible with all modules, read the documentation for more details.
 
-### :muscle: Training
+## Training
 
 Please create a folder named `logs/` in the current directory. 
 
@@ -152,11 +152,11 @@ You can plot the training curves during model training with the following comman
 tensorboard --logdir=logs/
 ```
 
-#### :rocket: Advanced training/evaluation/prediction
+### Advanced training/evaluation/prediction
 
 Biom3d has originally been designed to fasten state-of-the-art tools development for 3d bio-medical imaging, that's why it possible to run in a single command: the training, the test prediction and the test metrics computations. Use `python biom3d/train.py --help` to get more details.
 
-### :dart: Prediction
+## Prediction
 
 Once your model is trained, it is ready to use for prediction with the following command:
 
@@ -178,6 +178,6 @@ python biom3d/omero_pred.py --obj Project:ID
 
 The previous command will ask you to provide your omero server name, your omero identification and your omero password. 
 
-#### :rocket: Advanced prediction
+### Advanced prediction
 
 `pred.py` can also be used to compare the prediction results with existing test annotations. Use `python biom3d/pred.py --help` for more details.

@@ -25,7 +25,8 @@ This tool is addressed to three different profiles:
 
    quick_run_gui.md
    tuto_cli.md
-   docker.md
+   tuto_docker.md
+   tuto_config.md
 
 .. toctree::
    :maxdepth: 2
@@ -44,3 +45,14 @@ This tool is addressed to three different profiles:
    callbacks.rst
    trainers.rst
    predictors.rst
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Deployment
+
+   dep/docker.md
+   dep/installer.md
+   dep/server.md
+   dep/cicd.md
+
+

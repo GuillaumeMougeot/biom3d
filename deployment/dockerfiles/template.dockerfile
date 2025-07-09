@@ -26,7 +26,6 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     && apt-get clean && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /workspace && chmod 777 /workspace \
-    #
     # Upgrade pip & install OMERO
     && ${PYTHON_BIN} -m pip install --upgrade pip setuptools wheel && \
     ${PYTHON_BIN} -m pip install \
