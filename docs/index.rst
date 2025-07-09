@@ -25,6 +25,7 @@ This tool is addressed to three different profiles:
 
    quick_run_gui.md
    tuto_cli.md
+   docker.md
 
 .. toctree::
    :maxdepth: 2
