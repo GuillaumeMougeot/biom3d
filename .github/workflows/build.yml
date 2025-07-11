@@ -189,7 +189,8 @@ jobs:
             --icon=deployment/exe/windows/logo.ico `
             src/biom3d/gui.py
 
-          copy D:\a\biom3d\biom3d\dist %GITHUB_WORKSPACE%
+          Copy-Item -Path "dist\Biom3d_Windows_${{ steps.arch.outputs.ARCH }}_Remote.exe" -Destination "$env:GITHUB_WORKSPACE"
+
 
       - name: Prepare artifact folder
         run: |
