@@ -41,6 +41,7 @@ jobs:
           np.save('label/1.npy', mask)" &&\
           ls raw &&\
           ls label &&\
+          open Biom3d.app &&\
           Biom3d.app/Contents/MacOS/bin/bin/python3.11 -m biom3d.preprocess_train --img_dir raw --msk_dir label --num_epochs=1 --desc Unit --num_classes=1 &&\
           Biom3d.app/Contents/MacOS/bin/bin/python3.11 -m biom3d.pred -i raw -l Unit && \
           Biom3d.app/Contents/MacOS/bin/bin/python3.11 -c "
