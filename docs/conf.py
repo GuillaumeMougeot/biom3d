@@ -102,6 +102,7 @@ html_theme_options = {
             'url': 'https://github.com/GuillaumeMougeot/biom3d'
         },
     ],
+    "navigation_with_keys": True,
     # Specify the language of shared menu
     'menu_lang':
     'en'

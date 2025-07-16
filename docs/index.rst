@@ -18,6 +18,7 @@ This tool is addressed to three different profiles:
    :caption: Installation
 
    installation.md
+   server.md
 
 .. toctree::
    :maxdepth: 2
@@ -36,23 +37,10 @@ This tool is addressed to three different profiles:
 
 .. toctree::
    :maxdepth: 2
-   :caption: API 
-
-   preprocess.rst
-   auto_config.rst
-   builder.rst
-   metrics.rst
-   callbacks.rst
-   trainers.rst
-   predictors.rst
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Deployment
-
-   dep/docker.md
-   dep/installer.md
-   dep/server.md
-   dep/cicd.md
+   :caption: Developper 
+   
+   api/api.rst
+   dep/dep.rst
+   
 
 

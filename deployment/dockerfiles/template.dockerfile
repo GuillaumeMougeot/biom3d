@@ -16,6 +16,7 @@ ENV PYTHON_BIN=python${PYTHON_VERSION}
 RUN apt-get update && apt-get install -y \
     software-properties-common \
     curl \
+    git \
     openjdk-11-jre-headless \
     && add-apt-repository ppa:deadsnakes/ppa \
     && apt-get update && apt-get install -y \
@@ -26,19 +27,26 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     && apt-get clean && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /workspace && chmod 777 /workspace \
+    && mkdir -p /Biom3d && chmod 777 //Biom3d \
+    #
     # Upgrade pip & install OMERO
     && ${PYTHON_BIN} -m pip install --upgrade pip setuptools wheel && \
     ${PYTHON_BIN} -m pip install \
     https://github.com/glencoesoftware/zeroc-ice-py-linux-x86_64/releases/download/20240202/zeroc_ice-3.6.5-cp311-cp311-manylinux_2_28_x86_64.whl \
     omero-py==${OMERO_VERSION}\
-    && ${PYTHON_BIN} -m pip install --no-cache-dir --no-deps ezomero
+    && ${PYTHON_BIN} -m pip install --no-cache-dir --no-deps ezomero \
+    #
+    # Clone project
+    && git clone https://github.com/GuillaumeMougeot/biom3d /Biom3d
+
+WORKDIR /Biom3d
 
 # Copy entrypoint
 COPY entrypoint.sh /biom3d
 RUN chmod +x /biom3d \
     #
     # Install biom3d
-    && ${PYTHON_BIN} -m pip install --no-cache-dir biom3d \
+    && ${PYTHON_BIN} -m pip install . \
     #
     # Conditional: Install torch or fix symlink depending on CPU or GPU
     && if [ "$TARGET" = "cpu" ]; then \
