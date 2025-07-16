@@ -82,6 +82,11 @@ jobs:
           source $HOME/miniforge/etc/profile.d/conda.sh
           conda activate base
 
+      - name: Get architecture
+        id: arch
+        run: echo "ARCH=$(uname -m)" >> $GITHUB_OUTPUT
+        shell: bash
+
       - name: Build macOS app
         run: |
           cd deployment/exe/macos && \
@@ -89,12 +94,7 @@ jobs:
           source $HOME/miniforge/etc/profile.d/conda.sh && \
           conda activate base &&\
           chmod +x ./pack.sh &&\
-          ./pack.sh 
-
-      - name: Get architecture
-        id: arch
-        run: echo "ARCH=$(uname -m)" >> $GITHUB_OUTPUT
-        shell: bash
+          ./pack.sh ${{ steps.arch.outputs.ARCH }}
 
       - name: Set REMOTE = True for remote build
         run: sed -i '' 's/^REMOTE = False/REMOTE = True/' src/biom3d/gui.py

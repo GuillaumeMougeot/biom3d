@@ -2082,7 +2082,7 @@ class Root(Tk):
         self.welcome_message.grid(column=0, row=1, sticky=(W,E), pady=12)
         
         modulename='biom3d'
-        if modulename in sys.modules :
+        if not REMOTE and modulename in sys.modules :
             self.start_locally.grid(column=0, row=4, ipady=4, pady=12)
             self.local_path_label.grid(column=0, row=2, sticky=(W), pady=12)
             self.local_path_browse_button.grid(column=0, row=3, sticky=(W,E),ipadx=25,padx=20, pady=12) 

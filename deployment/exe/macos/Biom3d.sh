@@ -23,4 +23,4 @@ if [ "$FIRST_LAUNCH" = "1" ]; then
 
 echo "Starting Biom3d..."
 # Launch Biom3d GUI
-./bin/bin/python3.11 -m biom3d.gui
+./bin/bin/python3.11 -c "print('test')"
