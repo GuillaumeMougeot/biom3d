@@ -96,13 +96,13 @@ html_css_files = ["css/readthedocs.css"]
 
 
 html_theme_options = {
+    "navigation_with_keys": True,
     'menu': [
         {
             'name': 'GitHub',
             'url': 'https://github.com/GuillaumeMougeot/biom3d'
         },
     ],
-    "navigation_with_keys": True,
     # Specify the language of shared menu
     'menu_lang':
     'en'

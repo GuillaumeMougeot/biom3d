@@ -43,7 +43,9 @@ jobs:
           ls label &&\
           open Biom3d.app &&\
           Biom3d.app/Contents/MacOS/bin/bin/python3.11 -u -m biom3d.preprocess_train --img_dir raw --msk_dir label --num_epochs=1 --desc Unit --num_classes=1 &&\
-          Biom3d.app/Contents/MacOS/bin/bin/python3.11 -u -m biom3d.pred -i raw -l Unit && \
+          ls && ls logs &&\
+          echo $(ls logs/*Unit* 2>/dev/null) &&\
+          Biom3d.app/Contents/MacOS/bin/bin/python3.11 -u -m biom3d.pred -i raw -l logs/$(ls logs 2>/dev/null) && \
           Biom3d.app/Contents/MacOS/bin/bin/python3.11 -u -c "
           import tkinter as tk
           root = tk.Tk()
