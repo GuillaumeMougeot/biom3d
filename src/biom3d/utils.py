@@ -24,7 +24,7 @@ from skimage.transform import resize
 from skimage import measure
 import SimpleITK as sitk
 import torchio as tio
-from numba import njit
+from numba import njit, prange
 
 try: import napari
 except: pass
@@ -455,7 +455,7 @@ def one_hot(values, num_classes=None):
     return np.moveaxis(out, -1, 0).astype(np.int64)
 
 @njit
-def one_hot_fast(values, num_classes=None):
+def one_hot_fast_v1(values, num_classes=None):
     """
     transform the 'values' array into a one_hot encoded one
 
@@ -490,6 +490,92 @@ def one_hot_fast(values, num_classes=None):
     out = np.zeros((n_values, *values.shape), dtype=np.uint8)
     for i in range(n_values):
         out[i] = (values==uni[i]).astype(np.uint8)
+    return out
+
+@njit
+def one_hot_final(values, num_classes=None, mapping_mode='strict'):
+    """
+    Transforms an integer array into a one-hot encoded array with robust mapping control.
+
+    This function is accelerated with Numba and designed to be a safe, standalone utility.
+
+    Args:
+        values (np.ndarray): The integer label array to be encoded.
+        num_classes (int, optional): The total number of classes. If None, this is
+            inferred from the unique values in the array, and `mapping_mode` is
+            forced to 'remap'.
+        mapping_mode (str, optional): Controls how input values are mapped to class channels.
+            - 'strict' (Default): Safest mode. Requires all values to be within the
+              range [0, num_classes-1]. Raises a ValueError if any value is outside
+              this range.
+            - 'remap': For arbitrarily numbered labels. Remaps the `N` unique values
+              in the input array to `[0, 1, ..., N-1]`. Requires that the number of
+              unique values equals `num_classes`.
+            - 'pad': For correctly-numbered labels where some classes may be missing.
+              Creates channels for all classes in `range(num_classes)` and populates
+              the ones present in `values`. Raises a ValueError if any value is
+              outside the `[0, num_classes-1]` range.
+
+    Returns:
+        np.ndarray: The one-hot encoded array of shape (num_classes, *values.shape)
+                    and dtype `np.uint8`.
+    Raises:
+        ValueError: If the input values are incompatible with the chosen mode.
+    """
+    uni = np.unique(values)
+
+    # --- 1. Handle `num_classes = None` (Inference Mode) ---
+    if num_classes is None:
+        num_classes = len(uni)
+        mapping_mode = 'remap' # Remapping is the only logical mode here
+
+    # --- 2. Validate input and prepare for encoding based on mode ---
+    if mapping_mode == 'strict':
+        if uni.min() < 0 or uni.max() >= num_classes:
+            raise ValueError(
+                f"In 'strict' mode, all values must be in [0, {num_classes-1}], "
+                f"but found values from {uni.min()} to {uni.max()}."
+            )
+        # In strict mode, the values are already correct. We just encode them.
+
+    elif mapping_mode == 'pad':
+        if uni.min() < 0 or uni.max() >= num_classes:
+            raise ValueError(
+                f"In 'pad' mode, all values must be in [0, {num_classes-1}], "
+                f"but found values from {uni.min()} to {uni.max()}."
+            )
+        # Similar to strict, the values are correct, and the encoding loop will handle padding.
+
+    elif mapping_mode == 'remap':
+        if len(uni) != num_classes:
+            raise ValueError(
+                f"In 'remap' mode, the number of unique values ({len(uni)}) must "
+                f"equal num_classes ({num_classes})."
+            )
+        # Create a lookup table for efficient remapping.
+        # This is much faster than searching for each value.
+        # Note: This part is not easily JIT-able in a simple way with a hash map.
+        # But we can pre-process the `values` array before the Numba loop.
+        # The following logic is for a pure-python version, we'll adapt for Numba.
+
+        # Numba-friendly remapping:
+        # We need to create a new `values` array where original values are replaced by their index.
+        remapped_values = np.empty_like(values)
+        for i in prange(len(uni)):
+            original_val = uni[i]
+            remapped_values[values == original_val] = i
+        values = remapped_values # The `values` array is now remapped to [0, 1, ...]
+    
+    else:
+        raise ValueError(f"Unknown mapping_mode: '{mapping_mode}'")
+
+    # --- 3. Perform the one-hot encoding ---
+    # This part is now simple and safe because the data has been validated/corrected.
+    out = np.zeros((num_classes, *values.shape), dtype=np.uint8)
+    # Using prange for potential parallelization on the outer loop
+    for i in prange(num_classes):
+        out[i] = (values == i).astype(np.uint8)
+
     return out
 
 def resize_segmentation(segmentation, new_shape, order=3):
