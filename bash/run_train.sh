@@ -30,16 +30,16 @@
 #     --dir_out data/reims/test_match/preds\
 #     --dir_lab data/reims/test_match/msk
 
-python -m biom3d.train\
-    --name seg_pred_eval\
-    --config configs/20240718-152732-exp21_supervised_baseline_pancreas_small.py\
-    --dir_in data/pancreas/imagesTs_small\
-    --dir_out data/pancreas/preds\
-    --dir_lab data/pancreas/labelsTs_small
-
 # python -m biom3d.train\
 #     --name seg_pred_eval\
-#     --config configs/20240718-152732-exp22_supervised_baseline_pancreas_small.py\
+#     --config configs/20240718-152732-exp21_supervised_baseline_pancreas_small.py\
 #     --dir_in data/pancreas/imagesTs_small\
 #     --dir_out data/pancreas/preds\
 #     --dir_lab data/pancreas/labelsTs_small
+
+python -m biom3d.train\
+    --name seg_pred_eval\
+    --config configs/20250715-140155-unet_lung.py\
+    --dir_in data/msd/Task06_Lung/imagesTr_test\
+    --dir_out data/msd/Task06_Lung/preds\
+    --dir_lab data/msd/Task06_Lung/labelsTr_test
