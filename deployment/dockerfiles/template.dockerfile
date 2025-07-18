@@ -17,7 +17,6 @@ RUN apt-get update && apt-get install -y \
     software-properties-common \
     curl \
     git \
-    openjdk-11-jre-headless \
     && add-apt-repository ppa:deadsnakes/ppa \
     && apt-get update && apt-get install -y \
     python${PYTHON_VERSION} \

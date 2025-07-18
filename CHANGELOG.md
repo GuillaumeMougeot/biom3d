@@ -34,7 +34,8 @@ This release merge several fork and add new functionality to Biom3d.
 - Integration in Bacmman
 - HDF5 integration
 - Bioimage Model Zoo model exportation
-- Docker Desktop documentation
+- Docker Desktop documentation and DockerHub link to include
+
 
 ## [v0.0.30] - 2023-Sep-26
 All notable changes to this project will be documented in this file.

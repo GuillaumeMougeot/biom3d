@@ -85,15 +85,15 @@ Let's go break down our `docker run docker_arguments image_name image_argument` 
     Those are the basics in Docker argument, you can find a complete list [here](https://docs.docker.com/reference/cli/docker/container/run/)
 
 2. **Image name**, seen earlier. The image is pulled if not on your machine and by default the tag used is `latest` if not specified. Biom3d doesn't have a latest tag, so a precise tag must be given, which means :
-  ```shell
-    docker run biom3d # Will not work
-    docker run biom3d:0.0.30-x86_64-torch2.7.1-cpu # Will work
-  ```
+```shell
+  docker run biom3d # Will not work
+  docker run biom3d:v1.0.0-x86_64-torch2.7.1-cpu # Will work
+```
 3. **Image arguments**, they depends on the image entrypoint that is by default not defined. This entrypoint describe what script is launch when you do a run on an image. Biom3d containers have Biom3d as entry point which mean they want to know the module you want to use.
-  ```bash
-    docker run biom3d:0.0.30-x86_64-torch2.7.1-cpu pred -i foo -o bar # Will run prediction on the foo folder and send it to bar
-    docker run biom3d:0.0.30-x86_64-torch2.7.1-cpu # Will crash because the entry point want you to say which submodule you want to use and then its parameters
-  ```
+```bash
+  docker run biom3d:v1.0.0-x86_64-torch2.7.1-cpu pred -i foo -o bar # Will run prediction on the foo folder and send it to bar
+  docker run biom3d:v1.0.0-x86_64-torch2.7.1-cpu # Will crash because the entry point want you to say which submodule you want to use and then its parameters
+```
   Keep in mind that everything that is written **after** the image name will be treated as a command to execute in the container.
 
 ##### Listing containers
@@ -185,6 +185,22 @@ Now you should know some basics on how to use Docker, so here we will see how to
 
 You run a command -> it executes -> it exits -> it gets removed.
 
+#### Image tagging
+As said earlier, Biom3d doesn't have a `latest` tag, meaning that specific tag must be given.
+```shell
+  docker run biom3d # Will not work
+  docker run biom3d:v1.0.0-x86_64-torch2.7.1-cpu # Will work
+```
+
+Here is how our tag is structured :
+```bash
+# CPU only image
+biom3d:<Version>-<Architecture>-torch<torch version>-cpu
+# GPU images
+biom3d:<Version>-<Architecture>-torch<torch version>-cuda<cuda version>-cudnn<cudnn version>
+```
+
+#### Running
 Here is the basic command for using Biom3d container :
 ```shell
   docker run --rm \
@@ -196,7 +212,7 @@ Here is the basic command for using Biom3d container :
   # Example
   docker run --rm\
   -v /home/me/dataset1:/workspace \
-  biom3d:0.0.30-x86_64-torch2.7.1-cpu \
+  biom3d:v1.0.0-x86_64-torch2.7.1-cpu \
   preprocess_train \
   --img_dir raw \ # Is a subfolder of /home/me/dataset1
   --img_dir pred  # Will use or create subfolder of /home/me/dataset1
@@ -212,7 +228,7 @@ Or on windows :
   :: Example
   docker run --rm^
   -v C:\users\me\dataset1:/workspace ^
-  biom3d:0.0.30-x86_64-torch2.7.1-cpu ^
+  biom3d:v1.0.0-x86_64-torch2.7.1-cpu ^
   preprocess_train ^
   --img_dir raw ^ :: Is a subfolder of C:\users\me\dataset1
   --img_dir pred  :: Will use or create subfolder of C:\users\me\dataset1
@@ -223,6 +239,7 @@ Here is a description.
 3. We select the tag that is the most pertinent for your use case (CUDA drivers, Biom3d version, architecture,...). 
 4. We pass the submodule and it's argument (that are described in [CLI Documentation](../tuto/cli.md)).
 
+#### GUI specificity
 However there is a twist, if you want to use the `GUI` module, you have another thing to do, and it is giving the container access to you screen.
 
 On Linux with :
@@ -238,11 +255,70 @@ On Linux with :
   -v /tmp/.X11-unix:/tmp/.X11-unix:ro \
   -v $HOME/.Xauthority:/root/.Xauthority:ro \
   -v /home/me/dataset1:/workspace \
-  biom3d:0.0.30-torch2.3.1-cpu gui
+  biom3d:v1.0.0-x86_64-torch2.7.1-cpu gui
 ```
 On Windows : 
 *Not documented yet*
 
 
+#### GPU specificity
+If you want to use a container with your GPU you have to meet two condition :
+- Use a container with the correct version of CUDA and cudNN
+- Use the container argument `--gpus all`, it will allow your container to interact with your GPU
+  ```bash
+    docker run --rm\
+    -v /home/me/dataset1:/workspace \
+    --gpus all \
+    biom3d:v1.0.0-x86_64-torch2.7.1-cpu \
+    preprocess_train \
+    --img_dir raw \ # Is a subfolder of /home/me/dataset1
+    --img_dir pred
+  ```
 
+#### Memory troubleshooting
+If you encounter a memory problem. It can be two thing :
+##### RAM problem
+You don't have enough RAM to allocate everything Biom3d needs. You can see the RAM accessible to your container by doing :
+```bash
+  # Create a permanent container
+  docker run --rm\
+  biom3d:v1.0.0-x86_64-torch2.7.1-cpu \
+  gui
 
+  docker inspect --format='{{.HostConfig.Memory}}' gui_container_identifier
+```
+It will give you an int, if it is `0` there is no memory limit and you don't have enough free RAM it is either you don't have enough on your computer or other process use too much. Else it is the limit in Byte, the default value is `0` (unlimited).
+
+You can set the limit with the `--memory` parameter.
+
+```bash
+  docker run --rm\
+  -v /home/me/dataset1:/workspace \
+  --memory=32g \
+  biom3d:v1.0.0-x86_64-torch2.7.1-cpu \
+  preprocess_train \
+  --img_dir raw \ # Is a subfolder of /home/me/dataset1
+  --img_dir pred
+```
+
+##### Shared memory problem
+This problem is more common, it is caused by the multiprocessing used by Biom3d. First you need to know how much of shared memory your container can use :
+```bash
+  # Create a permanent container
+  docker run --rm\
+  biom3d:v1.0.0-x86_64-torch2.7.1-cpu \
+  gui
+
+  docker inspect --format='{{.HostConfig.ShmSize}}' gui_container_identifier
+```
+It will give you the shared memory size in Byte, default being 64 MiB, so around 67MB. You can augment it by using `--shm-size`.
+```bash
+  docker run --rm\
+  -v /home/me/dataset1:/workspace \
+  --shm-size=12g \
+  biom3d:v1.0.0-x86_64-torch2.7.1-cpu \
+  preprocess_train \
+  --img_dir raw \ # Is a subfolder of /home/me/dataset1
+  --img_dir pred
+```
+The amount of shared memory allowed will depends on your OS, whether it is RAM or VRAM (so your GPU). If it isn't enough (or you don't want to meddle with memory), you can reduce the `NUM_WORKERS` variable in the model's config file (`model/log/config.yaml`).
