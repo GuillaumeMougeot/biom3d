@@ -6,7 +6,7 @@ This release merge several fork and add new functionality to Biom3d.
 **New funtionalities**
 - 2D images can be taken as input
 - OMERO training data (same way as the prediction does)
-- Easier to install with our brand new installers
+- Easier to install with our brand new installers (Windows and macOS)
 - Remote mode on macOS
 - Official Docker images
 - Automated deployment pipeline
