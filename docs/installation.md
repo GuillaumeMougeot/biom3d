@@ -1,9 +1,11 @@
 # Installation 
 
-As biom3d integrates a Remote Graphical User Interface (GUI), a Local GUI, a package or Application Programming Interface (API) and a source code, this installation tutorial has been divided into four sections. The first section is addressed remote GUI-users, the GUI client with a simple link. The second section is addressed non programmer who would like to use Biom3d on their own computer by using an installer/executable. The third section is for programmer that want the API of biom3d. The fourth section is addressed to programmers who would like to configure a Python environment to install the source code of Biom3d and eventually modify it.
+As biom3d integrates a Remote Graphical User Interface (GUI), a Local GUI, a package or Application Programming Interface (API) and a source code, this installation tutorial has been divided into four sections. The first section is addressed to remote GUI-users, non programmers with limited computation means. The second section is addressed to non programmer who would like to use Biom3d on their own computer by using an installer/executable. The third section is for programmer that want the API of biom3d. The fourth section is addressed to programmers who would like to configure a Python environment to install the source code of Biom3d and eventually modify it.
 
 ## Remote graphical interface
-Biom3d has been deployed for Windows and macOS only. Use the following link to download the latest executable file (end with Remote): [link](https://github.com/GuillaumeMougeot/biom3d/releases/). To use Biom3d, double-click on the downloaded file. Then you can follow the [remote documentation](remote).
+Biom3d has been deployed for Windows and macOS only. Use the following link to download the latest executable file (end with Remote): [link](https://github.com/GuillaumeMougeot/biom3d/releases/). 
+
+To use Biom3d, double-click on the downloaded file. Then you can follow the [remote documentation](remote).
 
 > This downloadable version is remote only which means that you must connect to a Linux server where biom3d is installed. To install biom3d on a server, follow the [server documentation](server).
 > You won't need a powerful computer as every computation will be done one server, however, if you use a dataset that is on your computer, a good internet connexion with the server will speed up the dataset transfert.
@@ -19,12 +21,15 @@ Biom3d has been deployed for Windows and macOS only. Use the following link to d
 Other OS or version have not been tested.
 
 **Architecture**
+
 Biom3d can run on `x86_64` processor (most common for Windows and Linux) and on `arm64` processor (for macOS). 
 
 **Memory** 
-At least 12Go but we recommend 16Go or higher.
+
+Will mostly depends on your dataset. At least 12Go but we recommend 16Go or higher (lower than 12Go can still work).
 
 **GPU**
+
 A GPU is not necessary but it is recommended  as it is significantly slower without. The GPU must be a Nvidia GPU with CUDA 11 or 12 compatibility (other version have not been tested). 
 AMD with RocM or Apple with Metal are not implemented yet. 
 At least 10Go of VRAM is advised (Predictions can be done with less but not training), smaller Graphic card might also work but some reconfiguration might be required (such as the patch size). 
@@ -51,7 +56,7 @@ There are two types of installations:
 * **Conda installation** is easier.
 * **Python environment** will be lighter and more versatile.
 
-It is recommened to use python 3.11 as it has been tested and is completly compatible with all dependencies.
+Python >=3.9 is needed, it is recommened to use python 3.11 as it has been tested and is completly compatible with all dependencies.
 
 To know the CUDA version of your GPU, simply use `nvidia-smi`
 ```text

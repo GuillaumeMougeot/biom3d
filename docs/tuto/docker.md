@@ -287,7 +287,7 @@ You don't have enough RAM to allocate everything Biom3d needs. You can see the R
 
   docker inspect --format='{{.HostConfig.Memory}}' gui_container_identifier
 ```
-It will give you an int, if it is `0` there is no memory limit and you don't have enough free RAM it is either you don't have enough on your computer or other process use too much. Else it is the limit in Byte, the default value is `0` (unlimited).
+It will give you an int, if it is `0` there is no memory limit and if you still don't have enough free RAM it is either you don't have enough on your computer or other processes use too much. Else it is the limit in Byte, the default value is `0` (unlimited).
 
 You can set the limit with the `--memory` parameter.
 
@@ -300,6 +300,7 @@ You can set the limit with the `--memory` parameter.
   --img_dir raw \ # Is a subfolder of /home/me/dataset1
   --img_dir pred
 ```
+You you can also reduce the `NUM_WORKERS` variable in the model's config file (`model/log/config.yaml`)
 
 ##### Shared memory problem
 This problem is more common, it is caused by the multiprocessing used by Biom3d. First you need to know how much of shared memory your container can use :

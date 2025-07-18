@@ -36,7 +36,7 @@ It means OMERO connection fail, it can be caused by :
 The simpliest way to solve it is by reentering your credentials and try again. If it persist it may be a connection with the server error, if you can't acces your OMERO server with other means (Webclient, insight,...), contact your IT support.
 
 ### Uploading
-Using OMERO uploading can be quite long. For the moment, there isn't much feedbacks to indicate that upload is finished (we are working on it). On GUI, the `Start` button is white while it is running and become red when it is finished. Also, in the terminal, you see somethong like this :
+OMERO uploading can be quite long. For the moment, there isn't much feedbacks to indicate that upload is finished (we are working on it). On GUI, the `Start` button is white while it is running and become red when it is finished. Also, in the terminal, you see something like this :
 ```
 Importing: Test_dataset_predictions/Unit/2.tif
 Uploading: Test_dataset_predictions/Unit/2.tif
@@ -45,7 +45,7 @@ Hashes:
 
 Imported Image ID: 301018
 ```
-each time an image is uploaded, you can keep track of uploading with that. However there are cases when nothing is shown in terminal and it is still uploaded. If you are not using the GUI (and can't see the button feedback), we recommand checking in real time the destination folder in OMERO.
+each time an image is uploaded, you can keep track of uploading with that. However there are cases where nothing is shown in terminal and it is still uploaded. If you are not using the GUI (and can't see the button feedback), we recommand checking in real time the destination folder in OMERO.
 
 ## NaN loss
 

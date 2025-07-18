@@ -26,6 +26,7 @@ This release merge several fork and add new functionality to Biom3d.
 - Code 
   - Simples refactorings and code cleaning
   - Added condition `if not REMOTE` to display start locally button in GUI
+  - Put constant initialization before imports in `gui.py`
 - Miscellaneous
   - Added `CHANGELOG.md` file  
   - Now using semantic versionning
