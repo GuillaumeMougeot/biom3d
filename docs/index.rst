@@ -18,16 +18,16 @@ This tool is addressed to three different profiles:
    :caption: Installation
 
    installation.md
-   server.md
 
 .. toctree::
    :maxdepth: 2
    :caption: Tutorials
 
-   quick_run_gui.md
-   tuto_cli.md
-   tuto_docker.md
-   tuto_config.md
+   tuto/gui.md
+   tuto/cli.md
+   tuto/docker.md
+   tuto/config.md
+   tuto/server.md
 
 .. toctree::
    :maxdepth: 2
