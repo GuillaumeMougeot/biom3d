@@ -292,7 +292,8 @@ def tif_read_imagej(img_path, axes_order='CZYX'):
 
         img = tiff.tifffile.transpose_axes(img, series.axes, axes_order)
         
-        img_meta["axes"] = axes_order
+        # img_meta["axes"] = axes_order
+        img_meta["axes"] = series.axes
     
     return img, img_meta
 
