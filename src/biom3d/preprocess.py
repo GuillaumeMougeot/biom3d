@@ -296,8 +296,17 @@ def correct_mask(
             if not auto_correct:
                 raise RuntimeError("Mask is invalid and auto_correct is False.")
                 
-            # Heuristic 1: Binary case with wrong labels (e.g., [10, 255])
-            if num_classes == 2:
+            
+            
+            # Heuristic 1: Right number of classes, but wrong values (e.g., [10, 20, 30] for num_classes=3)
+            if len(uni) == num_classes:
+                print(f"[WARNING] Remapping labels: {uni} -> {expected_labels}")
+                mapper = np.zeros(uni.max() + 1, dtype=np.intp)
+                mapper[uni] = expected_labels
+                processed_mask = mapper[processed_mask]
+
+            # Heuristic 2: Binary case with wrong labels (e.g., [-1, 10, 255])
+            elif num_classes == 2:
                 print("[INFO] Attempting binary correction for label mask.")
                 if binary_correction_strategy == 'majority_is_bg':
                     counts = np.bincount(processed_mask.ravel())
@@ -307,13 +316,6 @@ def correct_mask(
                 # Add other strategies here if needed
                 else:
                     raise RuntimeError(f"Unknown binary_correction_strategy: {binary_correction_strategy}")
-            
-            # Heuristic 2: Right number of classes, but wrong values (e.g., [10, 20, 30] for num_classes=3)
-            elif len(uni) == num_classes:
-                print(f"[WARNING] Remapping labels: {uni} -> {expected_labels}")
-                mapper = np.zeros(uni.max() + 1, dtype=np.intp)
-                mapper[uni] = expected_labels
-                processed_mask = mapper[processed_mask]
                 
             else:
                 print("[ERROR] Cannot solve ambiguity. The number of unique labels "
