@@ -142,6 +142,11 @@ class TestComputeMedian:
                 [(50, 50), (60, 60), (70, 70)],
                 [1, 60, 60]
             ),
+            # Test with 2D images with 3 dimensions
+            (
+                [(1, 50, 50), (1, 60, 60), (1, 70, 70)],
+                [1, 60, 60]
+            ),
         ]
     )
     def test_compute_median_varying_shapes(self, mock_image_folder_factory, shapes, expected_median):

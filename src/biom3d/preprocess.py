@@ -577,6 +577,8 @@ class Preprocessing:
         If a single image is present in image/mask folders, then the image/mask are split in 2 portions of size split_rate_for_single_img*largest_dimension for validation and split_rate_for_single_img*(1-largest_dimension) for training.
     num_kfolds : int, default=5
         Number of K-fold for cross validation.
+    is_2d : bool, default=False,
+        Whether the image is 2D or 3D.
     """
     def __init__(
         self,
@@ -595,8 +597,10 @@ class Preprocessing:
         use_tif=False, # use tif instead of npy 
         split_rate_for_single_img=0.25,
         num_kfolds=5,
+        is_2d=False,
         ):
         assert img_dir!='', "[Error] img_dir must not be empty."
+        assert len(median_size)>0, "[Error] Median size must be provided."
 
         # fix bug path/folder/ to path/folder
         if os.path.basename(img_dir)=='':
@@ -646,7 +650,7 @@ class Preprocessing:
         self.channel_axis = 0
 
         # if the 3D image has 4 dimensions then there is a channel dimension.
-        if len(self.median_size)==4:
+        if len(self.median_size)==4 or (is_2d and len(self.median_size)==3):
             # the channel dimension is consider to be the smallest dimension
             # this could cause problem in case where there are more z than c for instance...
             self.num_channels = np.min(median_size)
@@ -670,6 +674,9 @@ class Preprocessing:
             self.num_kfolds = max(len(self.img_fnames) // 2, 2)
             print("[Warning] The number of images {} is smaller than twice the number of folds {}. The number of folds will be reduced to {}.".format(len(self.img_fnames), num_kfolds * 2, self.num_kfolds))
         
+        # If the image is 2d:
+        self.is_2d = is_2d
+
     def _split_single(self):
         """
         if there is only a single image/mask in each folder, then split them both in two portions with self.split_rate_for_single_img
@@ -795,6 +802,7 @@ class Preprocessing:
                     intensity_moments   =self.intensity_moments,
                     channel_axis        =self.channel_axis,
                     num_channels        =self.num_channels,
+                    is_2d               =self.is_2d
                     )
             else:
                 img, _ = seg_preprocessor(
@@ -805,6 +813,7 @@ class Preprocessing:
                     intensity_moments   =self.intensity_moments,
                     channel_axis        =self.channel_axis,
                     num_channels        =self.num_channels,
+                    is_2d               =self.is_2d,
                     )
 
             # sanity check to be sure that all images have the save number of channel
@@ -874,6 +883,7 @@ def auto_config_preprocess(
         logs_dir='logs/',
         print_param=False,
         debug=False,
+        is_2d=False,
         ):
     """Helper function to do auto-config and preprocessing.
     """
@@ -911,6 +921,7 @@ def auto_config_preprocess(
         median_size=median_size,
         clipping_bounds=clipping_bounds,
         intensity_moments=intensity_moments,
+        is_2d=is_2d,
     )
 
     if not skip_preprocessing:
@@ -957,6 +968,7 @@ def auto_config_preprocess(
             NB_EPOCHS=num_epochs,
             NUM_WORKERS=num_workers,
             LOG_DIR=logs_dir,
+            IS_2D=is_2d,
         )
 
         if not print_param: print("Auto-config done! Configuration saved in: ", config_path)
@@ -1012,6 +1024,8 @@ if __name__=='__main__':
         help="(default=False) Whether to print auto-config parameters. Used for remote preprocessing using the GUI.") 
     parser.add_argument("--debug", default=False,  action='store_true', dest='debug',
         help="(default=False) Debug mode. Whether to print all image filenames while preprocessing.") 
+    parser.add_argument("--is_2d", default=False,  
+        help="(default=False) Whether the image is 2d.")
     args = parser.parse_args()
 
     auto_config_preprocess(
@@ -1035,6 +1049,7 @@ if __name__=='__main__':
         logs_dir=args.logs_dir,
         print_param=args.remote,
         debug=args.debug,
+        is_2d=args.is_2d,
         )
 
 #---------------------------------------------------------------------------
