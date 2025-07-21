@@ -493,7 +493,7 @@ def one_hot_fast_v1(values, num_classes=None):
     return out
 
 @njit
-def one_hot_final(values, num_classes=None, mapping_mode='strict'):
+def one_hot_fast(values, num_classes=None, mapping_mode='strict'):
     """
     Transforms an integer array into a one-hot encoded array with robust mapping control.
 

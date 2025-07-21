@@ -448,8 +448,7 @@ def seg_preprocessor(
     # Standardize Image and Mask Dimensions and Correct Mask
     img, original_shape = standardize_img_dims(img, num_channels, channel_axis, is_2d)
 
-    if do_msk: 
-        # sanity check
+    if do_msk:
         # msk = sanity_check(msk, num_classes)
         msk = correct_mask(
             msk,
@@ -465,25 +464,6 @@ def seg_preprocessor(
     # At this point, both img and msk are guaranteed to be 4D tensors
     assert img.ndim == 4
     if do_msk: assert msk.ndim == 4
-
-    assert img.shape[0]==num_channels, "[Error] Invalid image shape {}. Expected to have {} numbers of channel at {} channel axis.".format(img.shape, num_channels, channel_axis)
-
-    # one hot encoding for the mask if needed
-    if do_msk and len(msk.shape)!=4: 
-        if len(msk.shape) == 2:
-            msk = np.expand_dims(msk, axis=(0,1))
-        elif use_one_hot:
-            msk = one_hot_fast(msk, num_classes)
-            if remove_bg:
-                msk = msk[1:]
-        else:
-            msk = np.expand_dims(msk, 0)
-    elif do_msk and len(msk.shape)==4:
-        # normalize each channel
-        msk = (msk > msk.min()).astype(np.uint8)
-
-    assert len(img.shape)==4
-    if do_msk: assert len(msk.shape)==4
 
     # Intensity Transformations
     if clipping_bounds:
@@ -509,7 +489,7 @@ def seg_preprocessor(
         else:
             img = resize_3d(img, output_shape)
 
-    # set image type
+    # Cast image type
     img = img.astype(np.float32)
     
     # Foreground Computation
