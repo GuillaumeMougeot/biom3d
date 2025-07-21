@@ -41,7 +41,6 @@ try:
     from biom3d.utils import load_python_config 
     from biom3d.train import train
     from biom3d.eval import eval
-    from biom3d.omero_downloader import download_object
     
     import torch
 except ImportError as e:
@@ -50,6 +49,7 @@ except ImportError as e:
 
 try:
     import biom3d.omero_pred
+    from biom3d.omero_downloader import download_object
 except  ImportError as e:
     print("Couldn't import Omero modules", e)
     pass
