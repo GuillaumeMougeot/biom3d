@@ -73,8 +73,9 @@ def seg_train(
             torch.cuda.synchronize()
         t_data_loading = time()
 
-        if t_data_loading-t_start_epoch > 1:
-            print("SLOW!", batch, "[time] data loading:", t_data_loading-t_start_epoch)
+        batch_duration = t_data_loading - t_start_epoch
+        if batch_duration > 1:
+            print(f"[Warning] Batch {batch_idx} took {batch_duration:.2f}s — possible slowdown.")
 
         # Compute prediction error
 
