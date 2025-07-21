@@ -26,13 +26,13 @@ Biom3d can run on `x86_64` processor (most common for Windows and Linux) and on 
 
 **Memory** 
 
-Will mostly depends on your dataset. At least 12Go but we recommend 16Go or higher (lower than 12Go can still work).
+Will mostly depends on your dataset. At least 12GB but we recommend 16GB or higher (lower than 12GB can still work).
 
 **GPU**
 
 A GPU is not necessary but it is recommended  as it is significantly slower without. The GPU must be a Nvidia GPU with CUDA 11 or 12 compatibility (other version have not been tested). 
 AMD with RocM or Apple with Metal are not implemented yet. 
-At least 10Go of VRAM is advised (Predictions can be done with less but not training), smaller Graphic card might also work but some reconfiguration might be required (such as the patch size). 
+At least 10GB of VRAM is advised (Predictions can be done with less but not training), smaller Graphic card might also work but some reconfiguration might be required (such as the patch size). 
 We tested the following graphic cards: T4, RTX 2080Ti, RTX 3090, P100, V100, A100 and Quadro T1000 (with patch size reduction).
 
 ## Local graphical interface
