@@ -690,7 +690,7 @@ class Builder:
             fnames_out = handler.get_output(i)
 
             print("Saving images in", fnames_out)
-            handler.save(i,pred)
+            handler.save(i,pred,"msk")
                 
     def load_train(self, 
         path, 

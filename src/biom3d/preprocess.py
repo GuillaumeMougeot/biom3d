@@ -413,7 +413,6 @@ class Preprocessing:
                 print("[Warning] 4 dimensions detected and channel axis is {}. All image dimensions will be swapped.".format(self.channel_axis))
             self.median_size[[0,self.channel_axis]] = self.median_size[[self.channel_axis,0]]
             self.median_size = self.median_size[1:]
-
         self.median_spacing = np.array(median_spacing)
         self.clipping_bounds = np.array(clipping_bounds)
         self.intensity_moments = intensity_moments
@@ -465,7 +464,8 @@ class Preprocessing:
         handler_tmp = DataHandlerFactory.get(
             self.img_dir,
             output=self.msk_dir,
-            preprocess=False,
+            preprocess=True,
+            read_only=False,
             img_path= self.img_dir,
             msk_path=self.msk_dir,
             use_tif=self.use_tif,
@@ -473,18 +473,21 @@ class Preprocessing:
 
         # validation
         val_img_path = self.handler.insert_prefix_to_name(self.handler.images[0],'0')
-        handler_tmp.save(val_img_path,val_img)
-        val_msk_path = self.handler.insert_prefix_to_name(self.handler.msk[0],'0')
-        handler_tmp.save(val_msk_path,val_msk)
+        handler_tmp.save(val_img_path,val_img,"img")
+        val_msk_path = self.handler.insert_prefix_to_name(self.handler.masks[0],'0')
+        handler_tmp.save(val_msk_path,val_msk,"msk")
 
         train_img_path = self.handler.insert_prefix_to_name(self.handler.images[0],'1')
-        handler_tmp.save(train_img_path,train_img)
-        train_msk_path = self.handler.insert_prefix_to_name(self.handler.msk[0],'1')
-        handler_tmp.save(train_msk_path,train_msk)
+        handler_tmp.save(train_img_path,train_img,"img")
+        train_msk_path = self.handler.insert_prefix_to_name(self.handler.masks[0],'1')
+        handler_tmp.save(train_msk_path,train_msk,"msk")
 
         # replace self.img_fnames and self.img_dir/self.msk_dir
-        self.handler.open(handler_tmp.get_output())
+        
+        images,masks,_ = handler_tmp.get_output()
+        self.handler.open(images,masks) # Not good but it work
         handler_tmp.close()
+
         # generate the csv file
         df = pd.DataFrame([train_img_path, val_img_path], columns=['filename'])
         df['hold_out'] = [0,0]
@@ -549,12 +552,12 @@ class Preprocessing:
                 else: assert len(s)==4 and self.num_channels==s[0], "[Error] Not all images have {} channels. Problematic image: {}".format(self.num_channels, i)
 
             # save image
-            self.handler.save(i,img)
+            self.handler.save(i,img,"img")
 
             # save mask
             if self.msk_outdir is not None: 
-                self.handler.save(m,msk)
-                self.handler.save(m,fg,save_fg=True)
+                self.handler.save(m,msk,"msk")
+                self.handler.save(m,fg,"fg")
 
         # create csv file
         filenames = sorted(self.handler.get_output()[0])

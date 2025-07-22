@@ -28,7 +28,7 @@ def pred_single(log, img_path,out_path):
     img = builder.run_prediction_single(handler, return_logit=False)
 
     _,metadata = handler.load(handler.images[0])
-    handler.save(handler.images[0], img, metadata)
+    handler.save(handler.images[0], img, metadata,"msk")
     return builder.config.NUM_CLASSES+1 # for pred_seg_eval_single
 
 def pred(log, dir_in, dir_out):

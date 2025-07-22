@@ -1,5 +1,5 @@
 from typing import Optional, Tuple
-from biom3d.utils import DataHandler
+from .data_handler_abstract import DataHandler
 import h5py
 import numpy as np
 import os
@@ -9,7 +9,7 @@ class HDF5Handler(DataHandler):
     def __init__(self):
         super().__init__()
             
-    def _input_parse(self,img_path:str, msk_path:Optional[str]=None,fg_path:Optional[str]=None):
+    def _input_parse(self,img_path:str, msk_path:Optional[str]=None,fg_path:Optional[str]=None,**kwargs):
         if not exists(img_path) : raise ValueError(f"File '{img_path}' can't be found.")
         if msk_path != None and not exists(msk_path) : raise ValueError(f"File '{msk_path}' can't be found.")
         if fg_path != None and not exists(fg_path) : raise ValueError(f"File '{fg_path}' can't be found.")
@@ -52,7 +52,7 @@ class HDF5Handler(DataHandler):
         return name
 
 
-    def _output_parse_preprocess(self,img_path:str,img_outdir:Optional[str]=None):
+    def _output_parse_preprocess(self,img_path:str,img_outdir:Optional[str]=None,**kwargs):
         if img_outdir is None: # name the out dir the same way as the input and add the _out suffix
             img_outdir = splitext(basename(img_path))[0]+'_out.h5' 
             img_outdir = join(dirname(img_path),img_outdir)
@@ -60,7 +60,7 @@ class HDF5Handler(DataHandler):
         self.img_out_path = img_outdir
         self.img_out = h5py.File(img_outdir, "w")
 
-    def _output_parse(self,img_path:str,msk_outdir:str):
+    def _output_parse(self,img_path:str,msk_outdir:str,**kwargs):
         if msk_outdir is None: # name the out dir the same way as the input and add the _out suffix
             img_outdir = splitext(basename(img_path))[0]+'_out.h5' 
             img_outdir = join(dirname(img_path),img_outdir)
