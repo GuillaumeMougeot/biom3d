@@ -1,5 +1,7 @@
-from os.path import isdir,splitext
+from os.path import isdir,splitext,exists
+from os import lstat,getcwd,access,W_OK
 from typing import Optional, Type
+from urllib.parse import urlparse
 
 from .file_handler import FileHandler
 from .hdf5_handler import HDF5Handler
@@ -10,6 +12,43 @@ class DataHandlerFactory:
         ".hdf5": HDF5Handler,
         "folder": FileHandler
     }
+
+    @staticmethod
+    def _is_url(path: str) -> bool:
+        return urlparse(path).scheme in ("http", "https", "ftp", "s3")
+    
+    @staticmethod
+    def is_nonexistent_folder(path: str) -> bool:
+        def is_path_valid(pathname: str) -> bool:
+            # Assume path is valid unless proven otherwise
+            try:
+                if not pathname or pathname.isspace():
+                    return False
+                lstat(pathname)
+                return True
+            except (OSError, ValueError):
+                return True  # We allow non-existing paths
+            except Exception:
+                return False
+        
+        def is_path_creatable(pathname: str) -> bool:
+            # Check for writing authorisation
+            dirname = dirname(pathname) or getcwd()
+            return access(dirname, W_OK)
+    
+        if DataHandlerFactory._is_url(path):
+            return False
+        _, ext = splitext(path)
+        if ext:  # Probably a file
+            return False
+        
+        try:
+            return is_path_valid(path) and (
+                exists(path) or is_path_creatable(path)
+            )
+        except OSError:
+            return False
+
 
     # Would need update if URL are added
     @staticmethod
@@ -69,6 +108,7 @@ class DataHandlerFactory:
         handler = INPUT()
         handler._input_parse(**kwargs)
         handler._preprocess=preprocess
+        print(output)
         if read_only:
             saver=None
         elif output == None:

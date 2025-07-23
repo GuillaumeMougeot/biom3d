@@ -401,6 +401,8 @@ class SemSeg3DPatchFast(Dataset):
             else: fg = None
         else:
             img_fname = self.fnames[idx%len(self.fnames)]
+            idx=idx%len(self.fnames)
+            print(idx, self.fnames,self.handler.images)
 
             # read the images
             img = self.handler.load(self.handler.images[idx])[0]

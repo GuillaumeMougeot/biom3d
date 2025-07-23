@@ -38,7 +38,6 @@ def pred(log, dir_in, dir_out):
     dir_in=str(dir_in)
     dir_out=str(dir_out)
 
-    dir_out = os.path.join(dir_out,os.path.split(log[0] if isinstance(log,list) else log)[-1]) # name the prediction folder with the model folder name
     builder = Builder(config=None,path=log, training=False)
     builder.run_prediction_folder(dir_in=dir_in, dir_out=dir_out, return_logit=False)
     return dir_out

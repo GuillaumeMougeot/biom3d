@@ -399,9 +399,7 @@ class Preprocessing:
 
         self.num_channels = 1
         self.channel_axis = 0
-        self.img_outdir = img_outdir
-        self.msk_outdir = msk_dir
-        self.fg_outdir = fg_outdir
+        self.img_outdir, self.msk_outdir, self.fg_outdir = self.handler.get_output()
 
         # if the 3D image has 4 dimensions then there is a channel dimension.
         if len(self.median_size)==4:
@@ -628,8 +626,10 @@ def auto_config_preprocess(
         intensity_moments=intensity_moments,
     )
 
+
     if not skip_preprocessing:
         p.run(debug=debug)
+
 
     if not no_auto_config:
         if not print_param: print("Start auto-configuration")
@@ -640,6 +640,8 @@ def auto_config_preprocess(
             img_path = img_dir,
         )
 
+        
+
         batch, aug_patch, patch, pool = auto_config(
             median=p.median_size,
             img_dir=img_dir if p.median_size is None else None,
@@ -649,9 +651,6 @@ def auto_config_preprocess(
         
         # convert path for windows systems before writing them
         if platform=='win32':
-            if p.img_outdir is not None: p.img_outdir = p.img_outdir.replace('\\','\\\\')
-            if p.msk_outdir is not None: p.msk_outdir = p.msk_outdir.replace('\\','\\\\')
-            if p.fg_outdir is not None: p.fg_outdir = p.fg_outdir.replace('\\','\\\\')
             if p.csv_path is not None: p.csv_path = p.csv_path.replace('\\','\\\\')
 
         config_path = save_python_config(

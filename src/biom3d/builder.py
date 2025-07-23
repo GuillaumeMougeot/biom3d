@@ -677,20 +677,19 @@ class Builder:
         handler = utils.DataHandlerFactory.get(
             dir_in,
             output=dir_out,
+            read_only=False,
             img_path = dir_in,
-            img_outdir = dir_out,
+            msk_outdir = dir_out,
+            modele_name = self.config.DESC,
         )
-        
-        for i,_,_ in enumerate(handler):
+
+        for i,_,_ in handler:
             print("running prediction for image: ", i)
             img, img_meta = handler.load(i)
             pred = self.run_prediction_single(img=img, img_meta=img_meta, return_logit=return_logit)
-
-            # add folder path
-            fnames_out = handler.get_output(i)
-
+            print("Saving image...")
+            fnames_out= handler.save(i,pred,"msk")
             print("Saving images in", fnames_out)
-            handler.save(i,pred,"msk")
                 
     def load_train(self, 
         path, 

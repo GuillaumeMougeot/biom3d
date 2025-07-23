@@ -201,7 +201,7 @@ def seg_validate(
 #---------------------------------------------------------------------------
 # model trainers for segmentation with patches 
 
-def seg_patch_validate(dataloader, model, loss_fn, metrics):
+def seg_patch_validate(dataloader, model, loss_fn, metrics,**kwargs):
     """
     Validate the segmentation model with TorchIO patch-based approach.
 
@@ -222,9 +222,9 @@ def seg_patch_validate(dataloader, model, loss_fn, metrics):
     with torch.no_grad(): # set all the requires_grad flags to zeros
         for it in tqdm(dataloader):
             patch_loader = torch.utils.data.DataLoader(it, batch_size=dataloader.batch_size,num_workers=0)
-            for patch in patch_loader:
-                X = patch['img'][tio.DATA]
-                y = patch['msk'][tio.DATA]
+            for (X,y) in patch_loader:
+                #X = patch['img'][tio.DATA]
+                #y = patch['msk'][tio.DATA]
                 if torch.cuda.is_available():
                     X, y = X.cuda(), y.cuda()
                 pred=model(X).detach()
@@ -247,7 +247,8 @@ def seg_patch_train(
     optimizer, 
     callbacks, 
     epoch = None, # required by deep supervision
-    use_deep_supervision=False):
+    use_deep_supervision=False,
+    **kwargs):
     """
     Train the segmentation model using a TorchIO patch-based approach.
 

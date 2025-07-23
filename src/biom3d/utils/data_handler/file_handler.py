@@ -9,6 +9,7 @@ from os.path import isdir, join, dirname,exists,splitext,basename
 from os import makedirs
 import pickle
 from pathlib import Path
+from sys import platform
 
 class FileHandler(DataHandler):       
     def __init__(self):
@@ -55,6 +56,7 @@ class FileHandler(DataHandler):
         self._images_path_root = img_path
         self._iterator :int = 0
 
+
     def _output_parse_preprocess(self,img_path:str, msk_path:Optional[str]=None, img_outdir:Optional[str]=None,msk_outdir:Optional[str]=None,fg_outdir:Optional[str] = None,use_tif:bool=False,**kwargs):
         self._use_tif = use_tif
         if img_outdir is None: # name the out dir the same way as the input and add the _out suffix
@@ -78,11 +80,23 @@ class FileHandler(DataHandler):
             if msk_path is not None and not exists(self.fg_outdir):
                 makedirs(self.fg_outdir, exist_ok=True)
 
-    def _output_parse(self,msk_outdir:str,**kwargs):
+        if platform=='win32':
+            if self.img_outdir is not None: self.img_outdir = self.img_outdir.replace('\\','\\\\')
+            if self.msk_outdir is not None: self.msk_outdir = self.msk_outdir.replace('\\','\\\\')
+            if self.fg_outdir is not None: self.fg_outdir = self.fg_outdir.replace('\\','\\\\')
+
+    def _output_parse(self,msk_outdir:str,model_name:Optional[str]=None,**kwargs):
         self.msk_outdir=msk_outdir
         # create output directory if needed
         if not exists(self.msk_outdir):
             makedirs(self.msk_outdir, exist_ok=True)
+
+        # Used for prediction
+        if model_name != None :
+            self.msk_outdir = join(self.msk_outdir,model_name)
+            makedirs(self.msk_outdir, exist_ok=True)
+
+        if platform=='win32' and self.msk_outdir is not None: self.msk_outdir = self.msk_outdir.replace('\\','\\\\')
 
     def get_output(self):
         img = self._saver.img_outdir
@@ -111,7 +125,7 @@ class FileHandler(DataHandler):
 
     def load(self,fname:str)->Tuple[np.ndarray,dict]:
         if isdir(fname) : raise ValueError(f"Expected an image, found a directory '{fname}'")
-        if self.fg != None and fname in self.fg : return pickle.pickle.load(open(fname, 'rb')),{}
+        if self.fg != None and fname in self.fg : return pickle.load(open(fname, 'rb')),{}
         else :
             try : return ImageManager.adaptive_imread(fname)
             except : raise ValueError(f"Couldn't read image '{fname}', is it a valid tiff, nifty or numpy ?")
@@ -150,6 +164,8 @@ class FileHandler(DataHandler):
             relative = relative.with_suffix(".pkl")
             with open(self.fg_outdir / relative, 'wb') as handle:
                 pickle.dump(img, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+        return str(self.msk_outdir / relative)
 
     def extract_inner_path(self,list):
         path = []

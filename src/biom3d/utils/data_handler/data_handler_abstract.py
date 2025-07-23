@@ -77,7 +77,7 @@ class DataHandler :
 
     def save(self,fname,img,type:OutputType):
         if self._saver == None : raise NotImplementedError("This handler is in read only")
-        self._saver._save(fname,img,type)
+        return self._saver._save(fname,img,type)
 
     def reset_iterator(self):
         self._iterator = 0
@@ -104,16 +104,14 @@ class DataHandler :
 
     @abstractmethod
     def __next__(self):
-        # Should increment _iterator and _image_index and return the tuple (path to image, path to mask | None, path to foregroun | None) (type of path may depend of implementation) 
+        # Should increment _iterator and _image_index and return the tuple (path to image, path to mask | None, path to foreground | None) (type of path may depend of implementation) 
         if self._iterator >= self._size:
             raise StopIteration
         self._image_index = self._iterator
         self._iterator += 1
-
         img_path = self.images[self._image_index]
         msk_path = self.masks[self._image_index] if self.masks != None else None
         fg_path = self.fg[self._image_index] if self.fg != None else None
-
         return (img_path, msk_path,fg_path)
 
     def __len__(self):

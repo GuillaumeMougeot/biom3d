@@ -567,13 +567,14 @@ def get_training_transforms(aug_patch_size: Union[np.ndarray, Tuple[int]],
 
 def get_validation_transforms(patch_size: Union[np.ndarray, Tuple[int]],
                               fg_rate: float,
+                              handler,
                               deep_supervision_scales: Union[List, Tuple] = None,
                               use_data_reader: bool = True,
                               ) -> AbstractTransform:
     val_transforms = []
 
     if use_data_reader:
-        val_transforms.append(DataReader())
+        val_transforms.append(DataReader(handler))
 
 #     val_transforms.append(RandomCropAndPadTransform(patch_size, fg_rate))
     val_transforms.append(nnUNetRandomCropAndPadTransform(patch_size, 
@@ -686,14 +687,16 @@ class BatchGenDataLoader(SlimDataLoaderBase):
         print("{} images: {}".format("Training" if self.train else "Validation", self.fnames))
         
         def generate_data(handler):
+            print(handler.images,handler.masks)
+            data=[]
             for i,m,f in handler:
+                fg=None
                 # file names
                 img = handler.load(i)
                 msk = handler.load(m)
                 if self.fg_dir is not None:
                     fg  = handler.load(f)
                 data += [{'data': img, 'seg': msk, 'loc': fg}]
-                
             return data
 
         data = generate_data(handler)
@@ -835,6 +838,7 @@ class MTBatchGenDataLoader(MultiThreadedAugmenter):
         load_data = False,
         fg_rate     = 0.33,
         num_threads_in_mt=12, 
+        **kwargs,
     ):
         
         gen = BatchGenDataLoader(
@@ -879,9 +883,9 @@ class MTBatchGenDataLoader(MultiThreadedAugmenter):
         else:
             transform = get_validation_transforms(
                                 patch_size=patch_size,
+                                handler=handler,
                                 fg_rate = fg_rate,
                                 use_data_reader=not load_data,
-                                handler=handler,
                                 )
         
         super(MTBatchGenDataLoader, self).__init__(
@@ -893,5 +897,6 @@ class MTBatchGenDataLoader(MultiThreadedAugmenter):
 
     def __len__(self):
         return self.length
+    
 
 #---------------------------------------------------------------------------

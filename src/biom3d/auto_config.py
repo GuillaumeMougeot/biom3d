@@ -312,7 +312,7 @@ def display_info(patch, pool, batch):
     print("AUG_PATCH_SIZE =",list(aug_patch))
     print("NUM_POOLS =", list(pool))
 
-def auto_config(img_dir=None, median=None, max_dims=(128,128,128), max_batch=16, min_batch=2,use_h5=False):
+def auto_config(img_dir=None, median=None, max_dims=(128,128,128), max_batch=16, min_batch=2):
     """Given an image folder, return the batch size, the patch size and the number of pooling.
     Provide either an image directory or a median shape. If a median shape is provided it will not be recomputed and the auto-configuration will be much faster.
 
@@ -324,8 +324,6 @@ def auto_config(img_dir=None, median=None, max_dims=(128,128,128), max_batch=16,
         Median size of the images in the image directory.
     max_dims: tuple, default=(128,128,128)
         Maximum patch size. The product of `max_dims` is used to determine the maximum patch size
-    use_h5: bool, default=False
-        If img_dir is a h5 archive.
 
     Returns
     -------
@@ -339,7 +337,7 @@ def auto_config(img_dir=None, median=None, max_dims=(128,128,128), max_batch=16,
         Number of pooling.
     """
     assert not(img_dir is None and median is None), "[Error] Please provide either an image directory or a median shape."
-    if median is None: median = compute_median(path=img_dir,use_h5=use_h5) 
+    if median is None: median = compute_median(path=img_dir) 
     patch, pool, batch = find_patch_pool_batch(dims=median, max_dims=max_dims) 
     aug_patch = get_aug_patch(patch)
     if batch > max_batch: batch = max_batch
@@ -366,11 +364,9 @@ if __name__=='__main__':
         help="(default=\'configs/\') Configuration folder to save the auto-configuration.")
     parser.add_argument("--base_config", type=str, default=None,
         help="(default=None) Optional. Path to an existing configuration file which will be updated with the preprocessed values.")
-    parser.add_argument("--use_h5", type=bool, default=False,
-        help="(default=False) Optional. If img_dir is a h5 archive instead of a folder.")
     args = parser.parse_args()
 
-    median = compute_median(path=args.img_dir, return_spacing=args.spacing,use_h5=args.use_h5)
+    median = compute_median(path=args.img_dir, return_spacing=args.spacing)
     
     if args.spacing: 
         median_spacing = median[1]
