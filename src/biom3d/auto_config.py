@@ -11,7 +11,7 @@ import numpy as np
 import itertools
 import argparse
 
-from biom3d.utils import adaptive_imread, abs_listdir
+from biom3d.utils import adaptive_imread, abs_listdir, save_python_config
 
 # ----------------------------------------------------------------------------
 # Median computation
@@ -35,30 +35,40 @@ def compute_median(path, return_spacing=False):
     path_imgs = abs_listdir(path)
     sizes = []
     if return_spacing: spacings = []
+    num_dims = None
     for i in range(len(path_imgs)):
 
         img,metadata = adaptive_imread(path_imgs[i])
-        # Check if the image is 2D (has two dimensions)
-        if len(img.shape) == 2:
-            # Add a third dimension with size 1 to make it 3D
-            img = np.expand_dims(img, axis=0)
-        spacing = None if not 'spacing' in metadata.keys() else metadata['spacing']
+        spacing = None if 'spacing' not in metadata.keys() else metadata['spacing']
 
-        assert len(img.shape)>0, "[Error] Wrong image image."
-        sizes += [list(img.shape)]
+        assert len(img.shape)>0, f"[Error] Wrong image {path_imgs[i]}."
+        img_shape = img.shape 
+        # Check if the number of dimension is consistent across the dataset
+        if num_dims is None: num_dims = len(img_shape)
+        else: assert num_dims == len(img_shape), f"[Error] Inconsistency in the number of dimensions across the dataset: {num_dims} and {len(img_shape)}."
+        # Check if the image is 2D (has two dimensions)
+        if len(img_shape) == 2:
+            # Add a third dimension with size 1 to make it 3D
+            img_shape = (1,) + img_shape
+        sizes += [list(img_shape)]
         if return_spacing and (spacing is not None): spacings+=[spacing]
     assert len(sizes)>0, "[Error] List of sizes for median computation is empty. It is probably due to an empty image folder."
+    num_dims = [len(s) for s in sizes]
+    assert min(num_dims)==max(num_dims), f"Inconsistent number of dimensions in images: {num_dims}"
     sizes = np.array(sizes)
     median = np.median(sizes, axis=0).astype(int)
     
     if return_spacing: 
+        if len(spacings)==0: 
+            print("Warning: `return_spacing` was set to True but no spacing was found in the image metadata, will return an empty `median_spacing` array.")
+            return median, spacings
         spacings = np.array(spacings)
         median_spacing = np.median(spacings, axis=0)
         return median, median_spacing
 
     return median 
 
-def data_fingerprint(img_dir, msk_dir=None, num_samples=10000):
+def data_fingerprint(img_dir, msk_dir=None, num_samples=10000,seed=42):
     """Compute the data fingerprint. 
 
     Parameters 
@@ -69,6 +79,9 @@ def data_fingerprint(img_dir, msk_dir=None, num_samples=10000):
         (Optional) Path to the corresponding directory of masks. If provided the function will compute the mean, the standard deviation, the 0.5% percentile and the 99.5% percentile of the intensity values of the images located inside the masks. If not provide, the function returns zeros for each of these values.
     num_samples : int, default=10000
         We compute the intensity characteristic on only a sample of the candidate voxels.
+    seed : int, default=42
+        (Optional) Random generator seed, is used if msk_dir isn't None
+
     
     Returns
     -------
@@ -92,17 +105,24 @@ def data_fingerprint(img_dir, msk_dir=None, num_samples=10000):
     sizes = []
     spacings = []
     samples = []
-        
+
+    assert len(path_imgs) > 0, f"[Error] Empty folder: {img_dir}"
+    num_dims = None
+
     for i in range(len(path_imgs)):
         img,metadata = adaptive_imread(path_imgs[i])
-        # Check if the image is 2D (has two dimensions)
-        if len(img.shape) == 2:
-            # Add a third dimension with size 1 to make it 3D
-            img = np.expand_dims(img, axis=0)
-        spacing = None if not 'spacing' in metadata.keys() else metadata['spacing']
+        spacing = None if 'spacing' not in metadata.keys() else metadata['spacing']
 
         # store the size
-        sizes += [list(img.shape)]
+        img_shape = img.shape 
+        # Check if the number of dimension is consistent across the dataset
+        if num_dims is None: num_dims = len(img_shape)
+        else: assert num_dims == len(img_shape), f"[Error] Inconsistency in the number of dimensions across the dataset: {num_dims} and {len(img_shape)}."
+        # Check if the image is 2D (has two dimensions)
+        if len(img_shape) == 2:
+            # Add a third dimension with size 1 to make it 3D
+            img_shape = (1,) + img_shape
+        sizes += [list(img_shape)]
 
         # store the spacing
         if spacing is not None or spacing!=[]: 
@@ -121,17 +141,25 @@ def data_fingerprint(img_dir, msk_dir=None, num_samples=10000):
     
             # to get a global sample of all the images, 
             # we use random sampling on the image voxels inside the mask
-            samples.append(np.random.choice(img, num_samples, replace=True) if len(img)>0 else [])
+            rng = np.random.default_rng(seed)
+            if len(img) > 0:
+                samples.append(rng.choice(img, num_samples, replace=True) if len(img)>0 else [])
 
     # median computation
-    median_size = np.median(np.array(sizes), axis=0).astype(int)
+    try:
+        median_size = np.median(np.array(sizes), axis=0).astype(int)
+    except ValueError:
+        raise ValueError( "Images don't have the same number of dimensions" )
     median_spacing = np.median(np.array(spacings), axis=0)
     
+    if not samples: 
+        return median_size, median_spacing, 0, 0, 0, 0
+
     # compute fingerprints
-    mean = float(np.mean(samples)) if samples!=[] else 0
-    std = float(np.std(samples)) if samples!=[] else 0
-    perc_005 = float(np.percentile(samples, 0.5)) if samples!=[] else 0
-    perc_995 = float(np.percentile(samples, 99.5)) if samples!=[] else 0
+    mean = float(np.mean(samples)) 
+    std = float(np.std(samples)) 
+    perc_005 = float(np.percentile(samples, 0.5)) 
+    perc_995 = float(np.percentile(samples, 99.5)) 
 
     return median_size, median_spacing, mean, std, perc_005, perc_995 
 
@@ -223,7 +251,6 @@ def find_patch_pool_batch(dims, max_dims=(128,128,128), max_pool=5, epsilon=1e-3
     
     # patch size is determined by the closest multiple of 2**pool from dims
     pool_pow = (2**pool).astype(int)
-    # patch = (dims//pool_pow + np.round((dims%pool_pow)/pool_pow))*pool_pow
     patch = (dims//pool_pow)*pool_pow
     patch = patch.astype(int)
     
@@ -234,7 +261,7 @@ def find_patch_pool_batch(dims, max_dims=(128,128,128), max_pool=5, epsilon=1e-3
     
     # generate all possible combination of unique values of elements of patch
     # to simplify the explanation: 
-    # first, all values in patch are attempted to be increase simultaneously, 
+    # first, all values in patch dimensions are attempted to be increase simultaneously, 
     # then only the biggest ones, and finally, only the smallest ones
     indices_unique_patch = list(itertools.product([True, False], repeat=len(unique_patch)))[:-1]
     
@@ -277,15 +304,13 @@ def get_aug_patch(patch_size):
 
     if np.any(dummy_2d>3): # then use dummy_2d
         axis = np.argmin(dummy_2d)
-        # aug_patch = np.round(1.17*ps).astype(int)
         diag = np.sqrt(np.array(list(s**2 if i!=axis else 0 for i,s in enumerate(ps))).sum())
         diag = np.round(diag).astype(int)
-        aug_patch = list(diag for _ in range(len(patch_size)))
-        aug_patch[axis] = patch_size[axis]
+        aug_patch = list(int(diag) for _ in range(len(patch_size)))
+        aug_patch[axis] = int(patch_size[axis])
     else:
-        # aug_patch = np.round(1.37*ps).astype(int)
         diag = np.round(np.sqrt((ps**2).sum())).astype(int)
-        aug_patch = list(diag for _ in range(len(patch_size)))
+        aug_patch = list(int(diag) for _ in range(len(patch_size)))
     return aug_patch
         
 
@@ -296,6 +321,16 @@ def parameters_return(patch, pool, batch, config_path):
     print(patch)
     aug_patch= get_aug_patch(patch)
     print(aug_patch)
+    print(pool)
+    print(config_path)
+
+def parameters_return(patch, pool, batch, config_path):
+    """
+    Displays the provided parameters.
+    """
+    print(batch)
+    print(patch)
+    print(get_aug_patch(patch))
     print(pool)
     print(config_path)
 
@@ -363,7 +398,7 @@ if __name__=='__main__':
     parser.add_argument("--base_config", type=str, default=None,
         help="(default=None) Optional. Path to an existing configuration file which will be updated with the preprocessed values.")
     parser.add_argument("--remote", default=False, dest='remote',
-        help="Use this arg when using remote autoconfing only")
+        help="Use this argument when using remote autoconfig only.")
     args = parser.parse_args()
 
     median = compute_median(path=args.img_dir, return_spacing=args.spacing)
@@ -371,46 +406,29 @@ if __name__=='__main__':
     if args.spacing: 
         median_spacing = median[1]
         median = median[0]
+    else:
+        median_spacing = None
 
     patch, pool, batch = find_patch_pool_batch(dims=median, max_dims=(args.max_dim, args.max_dim, args.max_dim))
     aug_patch = np.array(patch)+2**(np.array(pool)+1)
 
-  
+    if args.remote or args.save_config:
+        config_path = save_python_config(
+            config_dir=args.config_dir,
+            base_config=args.base_config,
+            
+            BATCH_SIZE=batch,
+            AUG_PATCH_SIZE=aug_patch,
+            PATCH_SIZE=patch,
+            NUM_POOLS=pool,
+            MEDIAN_SPACING=median_spacing,
+        )
     if args.remote:
-        try: 
-            from biom3d.utils import save_python_config
-            config_path = save_python_config(
-                config_dir=args.config_dir,
-                base_config=args.base_config,
-                BATCH_SIZE=batch,
-                AUG_PATCH_SIZE=aug_patch,
-                PATCH_SIZE=patch,
-                NUM_POOLS=pool,
-            )
-            parameters_return(patch, pool, batch, config_path)   
-        except:
-            print("[Error] Import error. Biom3d must be installed if you want to save your configuration. Another solution is to config the function function in biom3d.utils here...")
-            raise ImportError
-    else :
-       display_info(patch, pool, batch)
+        parameters_return(patch, pool, batch, config_path, median_spacing)   
+    else:
+        display_info(patch, pool, batch)
+
     if args.spacing:print("MEDIAN_SPACING =",list(median_spacing))
     if args.median:print("MEDIAN =", list(median))
-
-    if args.save_config:
-        try: 
-            from biom3d.utils import save_python_config
-            config_path = save_python_config(
-                config_dir=args.config_dir,
-                base_config=args.base_config,
-                
-                BATCH_SIZE=batch,
-                AUG_PATCH_SIZE=aug_patch,
-                PATCH_SIZE=patch,
-                NUM_POOLS=pool,
-                MEDIAN_SPACING=median_spacing,
-            )
-        except:
-            print("[Error] Import error. Biom3d must be installed if you want to save your configuration. Another solution is to config the function function in biom3d.utils here...")
-            raise ImportError
 
 # ----------------------------------------------------------------------------

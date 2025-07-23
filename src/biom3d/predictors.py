@@ -9,7 +9,6 @@ import torchio as tio
 import numpy as np
 from skimage.io import imread
 from tqdm import tqdm
-# from scipy.ndimage.filters import gaussian_filter
 
 from biom3d.utils import keep_biggest_volume_centered, adaptive_imread, resize_3d, keep_big_volumes
 
@@ -154,7 +153,7 @@ class LoadImgPatch:
         # prepare image
         # load the image
         img,metadata = adaptive_imread(self.fname)
-        self.spacing = None if not 'spacing' in metadata.keys() else metadata['spacing']
+        self.spacing = None if 'spacing' not in metadata.keys() else metadata['spacing']
 
         # store img shape (for post processing)
         self.img_shape = img.shape
@@ -488,7 +487,7 @@ def seg_predict_patch_2(
 
     with torch.no_grad():
         pred_aggr = tio.inference.GridAggregator(sampler, overlap_mode='hann')
-        patch_loader = torch.utils.data.DataLoader(
+        patch_loader = tio.SubjectsLoader(
             sampler, 
             batch_size=2, 
             drop_last=False, 

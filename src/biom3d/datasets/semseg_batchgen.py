@@ -89,11 +89,12 @@ def located_crop(img, msk, location, crop_shape, margin=np.zeros(3)):
         Shape of the crop.
     margin : array_like, optional
         Margin around the location.
-
     Returns
     -------
-    
-        Cropped image and mask.
+    crop_img : ndarray
+        Cropped image data, containing the specified location voxel within the crop.
+    crop_msk : ndarray
+        Cropped mask data, corresponding to the cropped image region.
     """
     img_shape = np.array(img.shape)[1:]
     location = np.array(location)
@@ -129,11 +130,13 @@ def foreground_crop(img, msk, final_size, fg_margin, fg=None, use_softmax=True):
         Foreground information.
     use_softmax : bool, optional
         If True, assumes softmax activation.
-
     Returns
     -------
-    
-        Cropped image and mask.
+    img : ndarray
+        Cropped image data, focused on the foreground region.
+    msk : ndarray
+        Cropped mask data, corresponding to the cropped image region.
+        
     """
     if fg is not None:
         locations = fg[random.choice(list(fg.keys()))]
@@ -166,12 +169,13 @@ def random_crop(img, msk, crop_shape):
         Mask data.
     crop_shape : array_like
         Shape of the crop.
-
     Returns
     -------
-    
-        Cropped image and mask.
-    """ 
+    crop_img : ndarray
+        Cropped image data.
+    crop_msk : ndarray
+        Cropped mask data.
+    """  
     img_shape = np.array(img.shape)[1:]
     assert len(img_shape)==len(crop_shape),"[Error] Not the same dimensions! Image shape {}, Crop shape {}".format(img_shape, crop_shape)
     start = np.random.randint(0, np.maximum(1,img_shape-crop_shape))
@@ -196,7 +200,6 @@ def centered_pad(img, final_size, msk=None):
         Final size after padding.
     msk : ndarray, optional
         Mask data.
-
     Returns
     -------
     tuple or ndarray
@@ -239,11 +242,12 @@ def random_crop_pad(img, msk, final_size, fg_rate=0.33, fg_margin=np.zeros(3), f
         Foreground information.
     use_softmax : bool, optional
         If True, assumes softmax activation; otherwise sigmoid is used.
-
     Returns
     -------
-    
-        Cropped and padded image and mask.
+    img : ndarray
+        Cropped and padded image data.
+    msk : ndarray
+        Cropped and padded mask data.
     """
     if type(img)==list: # then batch mode
         imgs, msks = [], []
@@ -269,7 +273,6 @@ def random_crop_pad(img, msk, final_size, fg_rate=0.33, fg_margin=np.zeros(3), f
 class RandomCropAndPadTransform(AbstractTransform):
     """
     BatchGenerator transform for random cropping and padding.
-
     Parameters
     ----------
     crop_size : array_like
@@ -939,7 +942,6 @@ def configure_rotation_dummyDA_mirroring_and_inital_patch_size(patch_size):
 class MTBatchGenDataLoader(MultiThreadedAugmenter):
     """
     Multi-threaded data loader for efficient data augmentation and loading.
-
     Parameters
     ----------
     img_dir : str
@@ -969,7 +971,6 @@ class MTBatchGenDataLoader(MultiThreadedAugmenter):
     num_threads_in_mt : int, optional
         Number of threads in multi-threaded augmentation.
     """
-
     def __init__(
         self,
         img_dir,

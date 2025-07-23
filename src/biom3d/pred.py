@@ -6,8 +6,6 @@ import os
 import argparse
 import pathlib
 import numpy as np
-# from telegram_send import send
-# from magicgui import magicgui
 
 from biom3d.builder import Builder
 from biom3d.utils import abs_listdir, versus_one, dice, adaptive_imread, adaptive_imsave
@@ -18,7 +16,7 @@ from biom3d.utils import abs_listdir, versus_one, dice, adaptive_imread, adaptiv
 def pred_single(log, img_path, out_path):
     """Prediction on a single image.
     """
-    if type(log)!=list: log=str(log)
+    if not isinstance(log,list): log=str(log)
     builder = Builder(config=None,path=log, training=False)
     img = builder.run_prediction_single(img_path, return_logit=False)
 
@@ -29,11 +27,11 @@ def pred_single(log, img_path, out_path):
 def pred(log, dir_in, dir_out):
     """Prediction on a folder of images.
     """
-    if type(log)!=list: log=str(log)
+    if not isinstance(log,list): log=str(log)
     dir_in=str(dir_in)
     dir_out=str(dir_out)
 
-    dir_out = os.path.join(dir_out,os.path.split(log[0] if type(log)==list else log)[-1]) # name the prediction folder with the model folder name
+    dir_out = os.path.join(dir_out,os.path.split(log[0] if isinstance(log,list) else log)[-1]) # name the prediction folder with the model folder name
     builder = Builder(config=None,path=log, training=False)
     builder.run_prediction_folder(dir_in=dir_in, dir_out=dir_out, return_logit=False)
     return dir_out
@@ -54,10 +52,6 @@ def pred_multiple(log, dir_in, dir_out):
 
 #---------------------------------------------------------------------------
 # main unet segmentation
-
-# import configs.config_unet as config_unet
-
-# @magicgui(call_button="predict")
 def pred_seg(log=pathlib.Path.home(), dir_in=pathlib.Path.home(), dir_out=pathlib.Path.home()):
     pred(log, dir_in, dir_out)
 
@@ -68,7 +62,7 @@ def pred_seg_eval(log=pathlib.Path.home(), dir_in=pathlib.Path.home(), dir_out=p
         path=log, 
         training=False)
 
-    dir_out = os.path.join(dir_out,os.path.split(log[0] if type(log)==list else log)[-1]) # name the prediction folder with the last model folder name
+    dir_out = os.path.join(dir_out,os.path.split(log[0] if isinstance(log,list) else log)[-1]) # name the prediction folder with the last model folder name
     if not eval_only:
         builder_pred.run_prediction_folder(dir_in=dir_in, dir_out=dir_out, return_logit=False) # run the predictions
     print("Inference done!")
@@ -84,7 +78,7 @@ def pred_seg_eval(log=pathlib.Path.home(), dir_in=pathlib.Path.home(), dir_out=p
         results = []
         for idx in range(len(list_abs[0])):
             print("Metric computation for:", list_abs[1][idx])
-            if type(builder_pred.config)==list:
+            if isinstance(builder_pred.config,list):
                 num_classes = builder_pred.config[0].NUM_CLASSES+1
             else:
                 num_classes = builder_pred.config.NUM_CLASSES+1
@@ -92,14 +86,11 @@ def pred_seg_eval(log=pathlib.Path.home(), dir_in=pathlib.Path.home(), dir_out=p
                 fct=dice, 
                 in_path=list_abs[1][idx], 
                 tg_path=list_abs[0][idx], 
-                # num_classes=2, 
-                # single_class=-1,
                 num_classes=num_classes, 
                 single_class=None,
                 )]
             print("Metric result:", results[-1])
         print("Evaluation done! Average result:", np.mean(results))
-        # send(messages=["Evaluation done of model {}! Average result: {}".format(dir_out, np.mean(results))])
 
 def pred_seg_eval_single(log, img_path, out_path, msk_path):
     print("Run prediction for:", img_path)
@@ -146,7 +137,7 @@ if __name__=='__main__':
         help="Do only the evaluation and skip the prediction (predictions must have been done already.)") 
     args = parser.parse_args()
 
-    if type(args.log)==list and len(args.log)==1:
+    if isinstance(args.log,list) and len(args.log)==1:
         args.log = args.log[0]
 
     # run the method

@@ -65,6 +65,9 @@ CHANNEL_AXIS = 0
 # Auto-config builder-parameters
 # PASTE AUTO-CONFIG RESULTS HERE
 
+# is the image 2d?
+IS_2D = False
+
 # batch size
 BATCH_SIZE = 2
 
@@ -193,7 +196,7 @@ VAL_DATALOADER_KWARGS = Dict(
     batch_size  = BATCH_SIZE, # TODO: change it in the final version
     drop_last   = False, 
     shuffle     = True, 
-    num_workers = NUM_WORKERS//2, # less worker needed for validation 
+    num_workers = max(NUM_WORKERS//2,0), # less worker needed for validation 
     pin_memory  = PIN_MEMORY,
 )
 
@@ -216,13 +219,11 @@ MODEL = Dict(
 
 TRAIN_LOSS = Dict(
     fct="DiceCEnnUNet",
-    # kwargs = Dict(name="train_loss", use_softmax=USE_SOFTMAX)
     kwargs = Dict(name="train_loss")
 )
 
 VAL_LOSS = Dict(
     fct="DiceCEnnUNet",
-    # kwargs = Dict(name="val_loss", use_softmax=USE_SOFTMAX)
     kwargs = Dict(name="val_loss")
 )
 

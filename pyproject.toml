@@ -1,10 +1,14 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=61.0",
+            "setuptools-scm>=8.0"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
 
 [project]
 name = "biom3d"
-version = "0.0.35"
+dynamic = ["version"]
+# version = "0.0.40"
 authors = [
   {name="Guillaume Mougeot", email="guillaume.mougeot@laposte.net"},
 ]
@@ -16,7 +20,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "torch>1.10.0",
+    "torch",
     "tqdm>=4.62.3",
     "scikit-image>=0.14",
     "scipy>=1.9.1",
@@ -26,7 +30,7 @@ dependencies = [
     "matplotlib>=3.5.3",
     "tensorboard>=2.8.0",
     "PyYAML>=5.4",
-    "torchio>=0.18.84",
+    "torchio>=0.18.84, <0.20.6",
     "protobuf>=3.19.3",
     "appdirs>=1.4.4",
     "numba>=0.56.4",

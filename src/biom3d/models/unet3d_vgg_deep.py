@@ -6,8 +6,6 @@ import numpy as np
 from biom3d.models.encoder_vgg import EncoderBlock, VGGEncoder
 from biom3d.models.decoder_vgg_deep import VGGDecoder
 
-from biom3d.utils import convert_num_pools
-
 #---------------------------------------------------------------------------
 # 3D UNet with the previous encoder and decoder
 
@@ -68,6 +66,7 @@ class UNet(nn.Module):
         use_deep=True,
         in_planes = 1,
         flip_strides = False,
+        roll_strides = True, #used for models trained before commit f2ac9ee (August 2023)
         ):
         super(UNet, self).__init__()
         self.encoder = VGGEncoder(
@@ -76,6 +75,7 @@ class UNet(nn.Module):
             factor=factor,
             in_planes=in_planes,
             flip_strides=flip_strides,
+            roll_strides=roll_strides,
             )
         self.decoder = VGGDecoder(
             EncoderBlock,
@@ -85,6 +85,7 @@ class UNet(nn.Module):
             factor_d=factor,
             use_deep=use_deep,
             flip_strides=flip_strides,
+            roll_strides=roll_strides,
             )
 
         # load encoder if needed
@@ -93,8 +94,6 @@ class UNet(nn.Module):
             if torch.cuda.is_available():
                 self.encoder.cuda()
             ckpt = torch.load(encoder_ckpt)
-            # if 'last_layer.weight' in ckpt['model'].keys():
-            #     del ckpt['model']['last_layer.weight']
             if 'model' in ckpt.keys():
                 # remove `module.` prefix
                 state_dict = {k.replace("module.", ""): v for k, v in ckpt['model'].items()} 
@@ -114,13 +113,6 @@ class UNet(nn.Module):
         
         if model_ckpt is not None:
             self.load(model_ckpt)
-            # print("Load model weights from", model_ckpt)
-            # if torch.cuda.is_available():
-            #     self.cuda()
-            # ckpt = torch.load(model_ckpt)
-            # if 'encoder.last_layer.weight' in ckpt['model'].keys():
-            #     del ckpt['model']['encoder.last_layer.weight']
-            # print(self.load_state_dict(ckpt['model'], strict=False))
 
     def freeze_encoder(self, freeze=True):
         """

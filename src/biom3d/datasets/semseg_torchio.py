@@ -26,7 +26,7 @@ from biom3d.utils import get_folds_train_test_df, adaptive_imread
 from torchio.transforms.augmentation import RandomTransform
 from torchio.transforms import SpatialTransform
 from torchio import Subject, LOCATION
-from torchio.typing import TypeTripletInt, TypeSpatialShape
+from torchio.types import TypeTripletInt, TypeSpatialShape
 from torchio.utils import to_tuple
 
 class RandomCropOrPad(RandomTransform, SpatialTransform):
@@ -177,6 +177,11 @@ class RandomCropOrPad(RandomTransform, SpatialTransform):
 class LabelToFloat:
     """
     Transform to convert label data to float type.
+        
+    Parameters
+    ----------
+    label_name : str
+        Name of the label to be transformed.
     """
     def __init__(self, label_name):
         """
@@ -195,6 +200,11 @@ class LabelToFloat:
 class LabelToLong:
     """
     Transform to convert label data to long (integer) type.
+    
+    Parameters
+    ----------
+    label_name : str
+        Name of the label to be transformed.
     """
     def __init__(self, label_name):
         """
@@ -213,6 +223,11 @@ class LabelToLong:
 class LabelToBool:
     """
     Transform to convert label data to boolean type.
+    
+    Parameters
+    ----------
+    label_name : str
+        Name of the label to be transformed.
     """
     def __init__(self, label_name):
         """
@@ -233,12 +248,10 @@ class LabelToBool:
 def reader(x):
     """
     Custom reader function for image data.
-
     Parameters
     ----------
     x : str
         Path to the image file.
-
     Returns
     -------
     Tuple

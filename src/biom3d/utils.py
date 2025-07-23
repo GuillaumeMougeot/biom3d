@@ -24,14 +24,14 @@ from skimage.transform import resize
 from skimage import measure
 import SimpleITK as sitk
 import torchio as tio
-from numba import njit
+from numba import njit, prange
 
 try: import napari
 except: pass
 
 # ----------------------------------------------------------------------------
 # read folds from a csv file
-
+#TODO use verbose
 def get_train_test_df(df, verbose=True):
     """
     Return the train set and the test set
@@ -145,7 +145,7 @@ def create_save_dirs(log_dir, desc, dir_names=['model', 'logs', 'images'], retur
 
 # ----------------------------------------------------------------------------
 # image readers and savers
-
+#TODO use optional arguments
 def sitk_imread(img_path, return_spacing=True, return_origin=False, return_direction=False):
     """
     image reader for nii.gz files
@@ -191,11 +191,11 @@ def sitk_imsave(img_path, img, metadata={}):
     """
     image saver for nii gz files
     """
-    if not 'spacing' in metadata.keys():
+    if 'spacing' not in metadata.keys():
         metadata['spacing']=(1,1,1)
-    if not 'origin' in metadata.keys():
+    if 'origin' not in metadata.keys():
         metadata['origin']=(0,0,0)
-    if not 'direction' in metadata.keys():
+    if 'direction' not in metadata.keys():
         metadata['direction']=(1., 0., 0., 0., 1., 0., 0., 0., 1.)
     img_out = sitk.GetImageFromArray(img)
     img_out.SetSpacing(metadata['spacing'])
@@ -217,24 +217,6 @@ def adaptive_imsave(img_path, img, img_meta={}):
     """
     extension = img_path[img_path.rfind('.'):].lower()
     if extension == ".tif" or extension == ".tiff":
-        # if not np.all(spacing==(1.,1.,1.)):
-        #     res = int(1e6) # default resolution is MICROMETERS
-        #     tiff.imwrite(
-        #         img_path,
-        #         img,
-        #         compression=('zlib', 1),
-
-        #         # the lines below might have to be commented in certain cases, depending on the unit of your images... 
-        #         resolution=((int(1/spacing[0]),res), (int(1/spacing[1]), res)), # TODO: unit is set to micrometer by default but this could be a problem... 
-        #         metadata={
-        #             'spacing':float(spacing[-1]*res),
-        #             'unit':'MICROMETER', # TODO: unit is set to micrometer by default but this could be a problem... 
-        #             'axes':'ZYX',
-        #             },
-        #         imagej=True,
-        #         )
-        # else:
-
         # Current solution for tif files 
         try:
             tif_write_imagej(
@@ -245,7 +227,8 @@ def adaptive_imsave(img_path, img, img_meta={}):
             tiff.imwrite(
                 img_path,
                 img,
-                compression=('zlib', 1))
+                compression=('zlib'),
+                compressionargs={'level': 1})
     elif extension == ".npy":
         np.save(img_path, img)
     else:
@@ -309,7 +292,8 @@ def tif_read_imagej(img_path, axes_order='CZYX'):
 
         img = tiff.tifffile.transpose_axes(img, series.axes, axes_order)
         
-        img_meta["axes"] = axes_order
+        # img_meta["axes"] = axes_order
+        img_meta["axes"] = series.axes
     
     return img, img_meta
 
@@ -325,7 +309,8 @@ def tif_write_imagej(img_path, img, img_meta):
             resolution=img_meta["resolution"],
             imagej=True, 
             metadata=img_meta["description"],
-            compression=('zlib', 1)
+            compression=('zlib'),
+            compressionargs={'level': 1}
             )
 
 def tif_read_meta(tif_path, display=False):
@@ -391,10 +376,6 @@ def tif_get_spacing(path, res=1e-6):
     xres = (img_meta["XResolution"][1]/img_meta["XResolution"][0])*res
     yres = (img_meta["YResolution"][1]/img_meta["YResolution"][0])*res
     zres = float(img_meta["ImageDescription"]["spacing"])*res
-    # max_dim = min([xres,yres,zres])
-    # xres = max_dim / xres
-    # yres = max_dim / yres
-    # zres = max_dim / zres
     return (xres, yres, zres)
 
 # ----------------------------------------------------------------------------
@@ -475,7 +456,7 @@ def one_hot(values, num_classes=None):
     return np.moveaxis(out, -1, 0).astype(np.int64)
 
 @njit
-def one_hot_fast(values, num_classes=None):
+def one_hot_fast_v1(values, num_classes=None):
     """
     transform the 'values' array into a one_hot encoded one
 
@@ -510,6 +491,92 @@ def one_hot_fast(values, num_classes=None):
     out = np.zeros((n_values, *values.shape), dtype=np.uint8)
     for i in range(n_values):
         out[i] = (values==uni[i]).astype(np.uint8)
+    return out
+
+@njit
+def one_hot_fast(values, num_classes=None, mapping_mode='strict'):
+    """
+    Transforms an integer array into a one-hot encoded array with robust mapping control.
+
+    This function is accelerated with Numba and designed to be a safe, standalone utility.
+
+    Args:
+        values (np.ndarray): The integer label array to be encoded.
+        num_classes (int, optional): The total number of classes. If None, this is
+            inferred from the unique values in the array, and `mapping_mode` is
+            forced to 'remap'.
+        mapping_mode (str, optional): Controls how input values are mapped to class channels.
+            - 'strict' (Default): Safest mode. Requires all values to be within the
+              range [0, num_classes-1]. Raises a ValueError if any value is outside
+              this range.
+            - 'remap': For arbitrarily numbered labels. Remaps the `N` unique values
+              in the input array to `[0, 1, ..., N-1]`. Requires that the number of
+              unique values equals `num_classes`.
+            - 'pad': For correctly-numbered labels where some classes may be missing.
+              Creates channels for all classes in `range(num_classes)` and populates
+              the ones present in `values`. Raises a ValueError if any value is
+              outside the `[0, num_classes-1]` range.
+
+    Returns:
+        np.ndarray: The one-hot encoded array of shape (num_classes, *values.shape)
+                    and dtype `np.uint8`.
+    Raises:
+        ValueError: If the input values are incompatible with the chosen mode.
+    """
+    uni = np.unique(values)
+
+    # --- 1. Handle `num_classes = None` (Inference Mode) ---
+    if num_classes is None:
+        num_classes = len(uni)
+        mapping_mode = 'remap' # Remapping is the only logical mode here
+
+    # --- 2. Validate input and prepare for encoding based on mode ---
+    if mapping_mode == 'strict':
+        if uni.min() < 0 or uni.max() >= num_classes:
+            raise ValueError(
+                f"In 'strict' mode, all values must be in [0, {num_classes-1}], "
+                f"but found values from {uni.min()} to {uni.max()}."
+            )
+        # In strict mode, the values are already correct. We just encode them.
+
+    elif mapping_mode == 'pad':
+        if uni.min() < 0 or uni.max() >= num_classes:
+            raise ValueError(
+                f"In 'pad' mode, all values must be in [0, {num_classes-1}], "
+                f"but found values from {uni.min()} to {uni.max()}."
+            )
+        # Similar to strict, the values are correct, and the encoding loop will handle padding.
+
+    elif mapping_mode == 'remap':
+        if len(uni) != num_classes:
+            raise ValueError(
+                f"In 'remap' mode, the number of unique values ({len(uni)}) must "
+                f"equal num_classes ({num_classes})."
+            )
+        # Create a lookup table for efficient remapping.
+        # This is much faster than searching for each value.
+        # Note: This part is not easily JIT-able in a simple way with a hash map.
+        # But we can pre-process the `values` array before the Numba loop.
+        # The following logic is for a pure-python version, we'll adapt for Numba.
+
+        # Numba-friendly remapping:
+        # We need to create a new `values` array where original values are replaced by their index.
+        remapped_values = np.empty_like(values)
+        for i in prange(len(uni)):
+            original_val = uni[i]
+            remapped_values[values == original_val] = i
+        values = remapped_values # The `values` array is now remapped to [0, 1, ...]
+    
+    else:
+        raise ValueError(f"Unknown mapping_mode: '{mapping_mode}'")
+
+    # --- 3. Perform the one-hot encoding ---
+    # This part is now simple and safe because the data has been validated/corrected.
+    out = np.zeros((num_classes, *values.shape), dtype=np.uint8)
+    # Using prange for potential parallelization on the outer loop
+    for i in prange(num_classes):
+        out[i] = (values == i).astype(np.uint8)
+
     return out
 
 def resize_segmentation(segmentation, new_shape, order=3):
@@ -621,7 +688,7 @@ def resize_3d(img, output_shape, order=3, is_msk=False, monitor_anisotropy=True,
 # ----------------------------------------------------------------------------
 # determine network dynamic architecture
 
-def convert_num_pools(num_pools):
+def convert_num_pools(num_pools,roll_strides=True):
     """
     Set adaptive number of pools
         for example: convert [3,5,5] into [[1 2 2],[2 2 2],[2 2 2],[2 2 2],[1 2 2]]
@@ -633,10 +700,9 @@ def convert_num_pools(num_pools):
         num_zeros = max_pool-num_pools[i]
         for j in range(num_zeros):
             st[j]=0
-        st=np.roll(st,-num_zeros//2)
+        if roll_strides : st=np.roll(st,-num_zeros//2)
         strides += [st]
     strides = np.array(strides).astype(int).T+1
-    # kernels = (strides*3//2).tolist()
     strides = strides.tolist()
     return strides
 
@@ -939,9 +1005,9 @@ def replace_line_single(line, key, value):
         
         # if value is string then we add brackets
         line += " = "
-        if type(value)==str: 
+        if isinstance(value,str): 
             line += "\'" + value + "\'"
-        elif type(value)==np.ndarray:
+        elif isinstance(value,np.ndarray):
             line += str(value.tolist())
         else:
             line += str(value)
@@ -1007,7 +1073,6 @@ def save_python_config(
             print("[Error] Please provide a base config file or install biom3d.")
             raise RuntimeError
     else: 
-        # config_path = shutil.copy(base_config, config_dir)
         config_path = base_config # WARNING: overwriting!
 
     # if DESC is in kwargs, then it will be used to rename the config file
@@ -1068,7 +1133,7 @@ def adaptive_load_config(config_path):
     if extension=='.py':
         return load_python_config(config_path=config_path)
     elif extension=='.yaml':
-        return load_yaml_config(config_path=config_path)
+        return load_yaml_config(config_path)
     else:
         print("[Error] Unknow format for config file.")
 
@@ -1152,7 +1217,6 @@ def volumes(labels):
     """
     returns the volumes of all the labels in the image
     """
-    # return [((labels==idx).astype(int)).sum() for idx in np.unique(labels)]
     return np.unique(labels, return_counts=True)[1]
 
 def keep_big_volumes(msk, thres_rate=0.3):
