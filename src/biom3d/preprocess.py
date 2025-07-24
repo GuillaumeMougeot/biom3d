@@ -260,7 +260,7 @@ def correct_mask(
     if is_2d: 
         # print("[INFO] Processing in 2D mode.")
         if processed_mask.ndim == 2: # (H,W) -> (1,H,W)
-            processed_mask = processed_mask[np.newaxis, ...]
+            processed_mask = processed_mask[np.newaxis, np.newaxis, ...]
         elif processed_mask.ndim == 3: # (C,H,W) -> (C,1,H,W)
             processed_mask = processed_mask[:, np.newaxis, ...]
         else:
@@ -378,7 +378,7 @@ def correct_mask(
         raise RuntimeError(f"Invalid encoding_type specified: {encoding_type}")
 
     # --- 3. Post-process to restore original dimensionality ---
-    if not standardize_dims and not use_one_hot:
+    if  standardize_dims and not use_one_hot:
         print("[INFO] Restoring original dimensions.")
         # Squeeze back down to original ndim
         while processed_mask.ndim > original_ndim:
@@ -934,7 +934,7 @@ def auto_config_preprocess(
         
 
         batch, aug_patch, patch, pool = auto_config(
-            median=p.median_size,
+            median=(1, *p.median_size) if is_2d else p.median_size,
             img_dir=img_dir if p.median_size is None else None,
             max_dims=(max_dim, max_dim, max_dim),
             max_batch = len(os.listdir(img_dir))//20, # we limit batch to avoid overfitting

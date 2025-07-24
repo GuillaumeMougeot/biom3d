@@ -131,10 +131,6 @@ def data_fingerprint(img_dir, msk_dir=None, num_samples=10000,seed=42):
         if msk_dir is not None:
             # read msk
             msk,_ = adaptive_imread(path_msks[i])
-            # Check if the image is 2D (has two dimensions)
-            if len(msk.shape) == 2:
-                # Add a third dimension with size 1 to make it 3D
-                msk = np.expand_dims(msk, axis=0)
             
             # extract only useful voxels
             img = img[msk > 0]
@@ -191,7 +187,7 @@ def find_patch_pool_batch(dims, max_dims=(128,128,128), max_pool=5, epsilon=1e-3
     batch: numpy.ndarray
         Batch size.
     """
-    # transform tuples into arrays      
+    # transform tuples into arrays
     assert len(dims)==3 or len(dims)==4, print("Dims has not the correct number of dimensions: len(dims)=", len(dims))
     if len(dims)==4:
         dims=dims[1:]
@@ -316,13 +312,6 @@ def get_aug_patch(patch_size):
 
 # ----------------------------------------------------------------------------
 # Display 
-def parameters_return(patch, pool, batch, config_path):
-    print(batch)
-    print(patch)
-    aug_patch= get_aug_patch(patch)
-    print(aug_patch)
-    print(pool)
-    print(config_path)
 
 def parameters_return(patch, pool, batch, config_path):
     """
@@ -337,7 +326,6 @@ def parameters_return(patch, pool, batch, config_path):
 def display_info(patch, pool, batch):
     """Print in terminal the patch size, the number of pooling and the batch size.
     """
-    
     print("*"*20,"YOU CAN COPY AND PASTE THE FOLLOWING LINES INSIDE THE CONFIG FILE", "*"*20)
     print("BATCH_SIZE =", batch)
     print("PATCH_SIZE =", list(patch))
@@ -431,4 +419,4 @@ if __name__=='__main__':
     if args.spacing:print("MEDIAN_SPACING =",list(median_spacing))
     if args.median:print("MEDIAN =", list(median))
 
-# ----------------------------------------------------------------------------
+#----------------------------------------------------------------------------
