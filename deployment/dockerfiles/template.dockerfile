@@ -40,8 +40,7 @@ COPY . /Biom3d
 WORKDIR /Biom3d
 
 # Copy entrypoint
-COPY entrypoint.sh /biom3d
-RUN chmod +x /biom3d \
+RUN chmod +x /Biom3d/deployment/dockerfiles/entrypoint.sh \
     #
     # Install biom3d
     && ${PYTHON_BIN} -m pip install . \
@@ -54,4 +53,4 @@ RUN chmod +x /biom3d \
         fi
 
 WORKDIR /workspace
-ENTRYPOINT ["/biom3d"]
+ENTRYPOINT ["/Biom3d/deployment/dockerfiles/entrypoint.sh"]
