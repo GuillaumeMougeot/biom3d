@@ -53,7 +53,7 @@ jobs:
             --build-arg OMERO_VERSION=${{ matrix.config.omero_version }} \
             --build-arg TESTED=${{ matrix.config.tested }} \
             -f deployment/dockerfiles/template.dockerfile \
-            -t ${{ env.DOCKER_USERNAME }}/biom3d:$TAG deployment/dockerfiles
+            -t ${{ env.DOCKER_USERNAME }}/biom3d:$TAG deployment/dockerfiles .
           docker push ${{ env.DOCKER_USERNAME }}/biom3d:$TAG
 
   build-macos:
