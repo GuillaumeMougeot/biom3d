@@ -21,6 +21,7 @@ import tkinter as tk
 from tkinter import LEFT, ttk, Tk, N, W, E, S, YES, IntVar, StringVar, PhotoImage
 from tkinter import filedialog
 import paramiko
+import threading
 from stat import S_ISDIR, S_ISREG # for recursive download
 import os 
 import yaml
@@ -313,14 +314,17 @@ def popupmsg(msg):
     msg : str
         Text to be printed.
     """
-    popup = tk.Tk()
-    popup.wm_title("!")
-    label = ttk.Label(popup, text=msg)
-    popup.minsize(300,100)
-    label.pack(pady=10, padx=10)
-    B1 = ttk.Button(popup, text="Okay", command = popup.destroy)
-    B1.pack(side="bottom",pady=10)
-    popup.mainloop()
+    def _show():
+        popup = tk.Tk()
+        popup.wm_title("!")
+        popup.minsize(300, 100)
+        label = ttk.Label(popup, text=msg)
+        label.pack(pady=10, padx=10)
+        B1 = ttk.Button(popup, text="Okay", command=popup.destroy)
+        B1.pack(side="bottom", pady=10)
+        popup.mainloop()
+
+    threading.Thread(target=_show, daemon=True).start()
       
 #----------------------------------------------------------------------------
 # File dialog
@@ -1164,6 +1168,7 @@ class TrainTab(ttk.Frame):
                 train(config=new_config_path,
                     path=self.FineTuning.log_folder.get())
             else :
+                print("AAAAAAAAAA",new_config_path)
                 # run the training           
                 train(config=new_config_path)
             popupmsg(" Training done ! ")

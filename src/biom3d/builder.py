@@ -689,7 +689,7 @@ class Builder:
             pred = self.run_prediction_single(img=img, img_meta=img_meta, return_logit=return_logit)
             print("Saving image...")
             fnames_out= handler.save(i,pred,"msk")
-            print("Saving images in", fnames_out)
+            print("Saved images in", fnames_out)
 
         return handler.msk_outdir
                 
