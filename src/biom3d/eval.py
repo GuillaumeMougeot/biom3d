@@ -38,8 +38,8 @@ def eval(dir_lab, dir_out, num_classes):
         print("Metric computation for:", img1,img2)
         res = versus_one(
             fct=dice, 
-            input_img=img1,
-            target_img=img2,
+            input_img=handler1.load(img1)[0],
+            target_img=handler2.load(img2)[0],
             num_classes=num_classes+1, 
             single_class=None)
 

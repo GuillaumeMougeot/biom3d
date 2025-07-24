@@ -53,7 +53,7 @@ class DataHandlerFactory:
     # Would need update if URL are added
     @staticmethod
     def _detect_handler_type(path: str) -> Type['DataHandler']:
-        if isdir(path):
+        if isdir(path) or DataHandlerFactory.is_nonexistent_folder(path):
             return DataHandlerFactory.EXTENSION_MAP["folder"]
         _, ext = splitext(path)
         ext = ext.lower()
@@ -108,7 +108,6 @@ class DataHandlerFactory:
         handler = INPUT()
         handler._input_parse(**kwargs)
         handler._preprocess=preprocess
-        print(output)
         if read_only:
             saver=None
         elif output == None:

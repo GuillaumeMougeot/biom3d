@@ -6,7 +6,7 @@ from skimage import io
 import tifffile as tiff
 from typing import Optional, Tuple
 from os.path import isdir, join, dirname,exists,splitext,basename
-from os import makedirs
+from os import makedirs, listdir
 import pickle
 from pathlib import Path
 from sys import platform
@@ -43,18 +43,33 @@ class FileHandler(DataHandler):
                 listdir.append(join(folder_path,i))
             return sorted(listdir)
 
-        self.images:list = abs_listdir(img_path) if img_inner_paths_list is None else create_path(img_path,img_inner_paths_list)
+        self.images:list = self._recursive_path_list(img_path) if img_inner_paths_list is None else create_path(img_path,img_inner_paths_list)
         self._size :int = len(self.images)
         if msk_path is not None:
-            self.masks:list = abs_listdir(msk_path) if msk_inner_paths_list is None else create_path(msk_path,msk_inner_paths_list)
+            self.masks:list = self._recursive_path_list(msk_path) if msk_inner_paths_list is None else create_path(msk_path,msk_inner_paths_list)
             if self._size != len(self.masks): raise ValueError(f"Don't have the same number of images ('{self._size}') and masks ('{len(self.masks)}')")
         if fg_path is not None:
-            self.fg:list = abs_listdir(fg_path) if fg_inner_paths_list is None else create_path(fg_path,fg_inner_paths_list)
+            self.fg:list = self._recursive_path_list(fg_path) if fg_inner_paths_list is None else create_path(fg_path,fg_inner_paths_list)
             if self._size != len(self.fg): raise ValueError(f"Don't have the same number of images ('{self._size}') and masks ('{len(self.fg)}')")
         self._fg_path_root = fg_path
         self._masks_path_root = msk_path
         self._images_path_root = img_path
         self._iterator :int = 0
+
+    @staticmethod
+    def _recursive_path_list(path):
+        li = []
+        def recursion(path):
+            nonlocal li
+            for e in listdir(path) :
+                fname=join(path,e)
+                if isdir(fname):
+                    recursion(fname)
+                elif e not in li :
+                    li.append(fname)
+        recursion(path)
+        print(li)
+        return sorted(li)
 
 
     def _output_parse_preprocess(self,img_path:str, msk_path:Optional[str]=None, img_outdir:Optional[str]=None,msk_outdir:Optional[str]=None,fg_outdir:Optional[str] = None,use_tif:bool=False,**kwargs):
@@ -143,21 +158,16 @@ class FileHandler(DataHandler):
         elif self._fg_path_root != None and fname.is_relative_to(Path(self._fg_path_root)):
             relative = fname.relative_to(Path(self._fg_path_root))
         else:
-            print(self.images,self._images_path_root)
             raise ValueError(f"{fname} is not an input path from the handler")
         
         if out_type==OutputType.IMG:
             if hasattr(self,'_use_tif'): #In preprocess
-                relative = relative.with_suffix(".tif")
-            else :
-                relative = relative.with_suffix(".npy")
+                relative = relative.with_suffix(".tif") if self._use_tif else relative.with_suffix(".npy")
             ImageManager.adaptive_imsave(str(self.img_outdir / relative),img)
 
         if out_type==OutputType.MSK:
             if hasattr(self,'_use_tif'): #In preprocess
-                relative = relative.with_suffix(".tif")
-            else :
-                relative = relative.with_suffix(".npy")
+                relative = relative.with_suffix(".tif") if self._use_tif else relative.with_suffix(".npy")
             ImageManager.adaptive_imsave(str(self.msk_outdir / relative),img)
 
         if out_type==OutputType.FG:
@@ -249,6 +259,7 @@ class ImageManager:
                 Optional spacing of the image. Only used with the SimpleITK library.
         """
         extension = img_path[img_path.rfind('.'):].lower()
+        makedirs(dirname(img_path), exist_ok=True)
         if extension == ".tif" or extension == ".tiff":
             # Current solution for tif files 
             try:

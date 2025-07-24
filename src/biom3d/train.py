@@ -7,6 +7,7 @@ import os
 import numpy as np
 from biom3d.builder import Builder
 from biom3d.utils import abs_listdir, versus_one, dice, load_python_config
+from biom3d.eval import eval
 
 
 #---------------------------------------------------------------------------
@@ -42,9 +43,9 @@ def main_seg_pred_eval(
         builder_train.model.freeze_encoder()
     builder_train.run_training()
 
-    train_base_dir=builder_train.base_dir
     del builder_train
-    print("Training done!")
+
+    print(dir_in, dir_out,dir_lab)
 
     # pred
     if dir_in is not None and dir_out is not None:
@@ -54,30 +55,13 @@ def main_seg_pred_eval(
             path=path,
             training=False)
 
-        dir_out = os.path.join(dir_out,os.path.split(train_base_dir)[-1]) # name the prediction folder with the model folder name
-        builder_pred.run_prediction_folder(dir_in=dir_in, dir_out=dir_out, return_logit=False)
+        out = builder_pred.run_prediction_folder(dir_in=dir_in, dir_out=dir_out, return_logit=False)
         print("Inference done!")
-
 
         if dir_lab is not None:
             # eval
             print("Start evaluation")
-            paths_lab = [dir_lab, dir_out]
-            list_abs = [sorted(abs_listdir(p)) for p in paths_lab]
-            assert sum([len(t) for t in list_abs])%len(list_abs)==0, "[Error] Not the same number of labels and predictions! {}".format([len(t) for t in list_abs])
-
-            results = []
-            for idx in range(len(list_abs[0])):
-                print("Metric computation for:", list_abs[1][idx])
-                results += [versus_one(
-                    fct=dice, 
-                    in_path=list_abs[1][idx], 
-                    tg_path=list_abs[0][idx], 
-                    num_classes=(builder_pred.config.NUM_CLASSES+1), 
-                    single_class=None)]
-                print("Metric result:", results[-1])
-            print("Evaluation done! Average result:", np.mean(results))
-        
+            eval(dir_lab,out,builder_pred.config.NUM_CLASSES+1)        
 
 
 #---------------------------------------------------------------------------
@@ -138,30 +122,14 @@ def main_pretrain_seg_pred_eval(
             path=train_base_dir, 
             training=False)
 
-        dir_out = os.path.join(dir_out,os.path.split(train_base_dir)[-1]) # name the prediction folder with the model folder name
-        builder_pred.run_prediction_folder(dir_in=dir_in, dir_out=dir_out, return_logit=False)
+        out = builder_pred.run_prediction_folder(dir_in=dir_in, dir_out=dir_out, return_logit=False)
         print("Inference done!")
 
 
         if dir_lab is not None:
             # eval
             print("Start evaluation")
-            paths_lab = [dir_lab, dir_out]
-            list_abs = [sorted(abs_listdir(p)) for p in paths_lab]
-            assert sum([len(t) for t in list_abs])%len(list_abs)==0, "[Error] Not the same number of labels and predictions! {}".format([len(t) for t in list_abs])
-
-            results = []
-            for idx in range(len(list_abs[0])):
-                print("Metric computation for:", list_abs[1][idx])
-                results += [versus_one(
-                    fct=dice, 
-                    in_path=list_abs[1][idx], 
-                    tg_path=list_abs[0][idx], 
-                    num_classes=cfg.NUM_CLASSES if cfg.USE_SOFTMAX else (cfg.NUM_CLASSES+1), 
-                    single_class=None)]
-                print("Metric result:", results[-1])
-            print("Evaluation done! Average result:", np.mean(results))
-            # send(messages=["Evaluation done of model {}! Average result: {}".format(dir_out, np.mean(results))])
+            eval(dir_lab,out,builder_pred.config.NUM_CLASSES+1) 
 
 #---------------------------------------------------------------------------
 
@@ -210,6 +178,8 @@ if __name__=='__main__':
         help="Path to the label image directory")  
     args = parser.parse_args()
 
+    print(args.dir_lab)
+    pass
     # run the method
     if args.name=="seg_pred_eval":
         valid_names[args.name](

@@ -8,7 +8,7 @@ import pathlib
 import numpy as np
 
 from biom3d.builder import Builder
-from biom3d.utils import versus_one, dice, DataHandlerFactory
+from biom3d.utils import deprecated, versus_one, dice, DataHandlerFactory
 from biom3d.eval import eval
 
 #---------------------------------------------------------------------------
@@ -23,13 +23,11 @@ def pred_single(log, img_path,out_path):
             img_path,
             output=out_path,
             img_path = img_path,
-            img_outdir = out_path,
+            msk_outdir = out_path,
         )
     img = builder.run_prediction_single(handler, return_logit=False)
-
-    _,metadata = handler.load(handler.images[0])
-    handler.save(handler.images[0], img, metadata,"msk")
-    return builder.config.NUM_CLASSES+1 # for pred_seg_eval_single
+    handler.save(handler.images[0], img,"msk")
+    return builder.config.NUM_CLASSES+1  # for pred_seg_eval_single
 
 def pred(log, dir_in, dir_out):
     """Prediction on a folder of images.
@@ -42,19 +40,11 @@ def pred(log, dir_in, dir_out):
     builder.run_prediction_folder(dir_in=dir_in, dir_out=dir_out, return_logit=False)
     return dir_out
 
+@deprecated("This method is no longer used as it is the default behaviour of DataHandlers.")
 def pred_multiple(log, dir_in, dir_out):
     """Prediction a folder of folders of images.
     """
-    list_dir_in = [os.path.join(dir_in, e) for e in os.listdir(dir_in)]
-    list_dir_out = [os.path.join(dir_out, e) for e in os.listdir(dir_in)]
-    LOG_PATH = log
-
-    for i in range(len(list_dir_in)):
-        dir_in = list_dir_in[i]
-        dir_out = list_dir_out[i]
-
-        builder = Builder(config=None,path=LOG_PATH, training=False)
-        builder.run_prediction_folder(dir_in=dir_in, dir_out=dir_out, return_logit=False)
+    pred(log,dir_in,dir_out)
 
 #---------------------------------------------------------------------------
 # main unet segmentation
@@ -67,10 +57,9 @@ def pred_seg_eval(log=pathlib.Path.home(), dir_in=pathlib.Path.home(), dir_out=p
         config=None,
         path=log, 
         training=False)
-
-    dir_out = os.path.join(dir_out,os.path.split(log[0] if isinstance(log,list) else log)[-1]) # name the prediction folder with the last model folder name
+    out = dir_out
     if not eval_only:
-        builder_pred.run_prediction_folder(dir_in=dir_in, dir_out=dir_out, return_logit=False) # run the predictions
+        out = builder_pred.run_prediction_folder(dir_in=dir_in, dir_out=dir_out, return_logit=False) # run the predictions
     print("Inference done!")
 
 
@@ -80,24 +69,24 @@ def pred_seg_eval(log=pathlib.Path.home(), dir_in=pathlib.Path.home(), dir_out=p
         else:
             num_classes = builder_pred.config.NUM_CLASSES+1
         # eval
-        eval(dir_lab,dir_out,num_classes=num_classes,single_class=None)
+        eval(dir_lab,out,num_classes=num_classes)
 
 def pred_seg_eval_single(log, img_path, out_path, msk_path):
     handler1 = DataHandlerFactory.get(
-        dir_lab,
+        out_path,
         read_only=True,
-        img_path = dir_lab,
+        img_path = out_path,
     )
     handler2 = DataHandlerFactory.get(
-        dir_out,
+        msk_path,
         read_only=True,
-        img_path = dir_out,
+        img_path = msk_path,
     )
     print("Run prediction for:", img_path)
     num_classes = pred_single(log, img_path, out_path)
     print("Done! Prediction saved in:", out_path)
     print("Metric computation with mask:", msk_path)
-    dice_score = versus_one(fct=dice, in_path=out_path, tg_path=msk_path, num_classes=num_classes)
+    dice_score = versus_one(fct=dice, input_img=handler1.load(handler1.images[0])[0], target_img=handler2.load(handler2.images[0])[0], num_classes=num_classes)
     print("Metric result:", dice_score)
 
 #---------------------------------------------------------------------------

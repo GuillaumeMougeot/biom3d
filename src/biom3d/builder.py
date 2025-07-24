@@ -680,7 +680,7 @@ class Builder:
             read_only=False,
             img_path = dir_in,
             msk_outdir = dir_out,
-            modele_name = self.config.DESC,
+            model_name = self.config[-1].DESC if isinstance(self.config,list) else self.config.DESC,
         )
 
         for i,_,_ in handler:
@@ -690,6 +690,8 @@ class Builder:
             print("Saving image...")
             fnames_out= handler.save(i,pred,"msk")
             print("Saving images in", fnames_out)
+
+        return handler.msk_outdir
                 
     def load_train(self, 
         path, 
