@@ -20,6 +20,25 @@ from biom3d.utils import centered_pad, get_folds_train_test_df, adaptive_imread
 
 def centered_crop(img, msk, center, crop_shape, margin=np.zeros(3)):
     """Do a crop, forcing the location voxel to be located in the center of the crop.
+    
+    Parameters
+    ----------
+    img : 
+        Image data.
+    msk : 
+        Mask data.
+    center : 
+        Center voxel location for cropping.
+    crop_shape : 
+        Shape of the crop.
+    margin : 
+        Margin around the center location.
+    Returns
+    -------
+    crop_img : ndarray
+        Cropped image data.
+    crop_msk : ndarray
+        Cropped mask data.
     """
     img_shape = np.array(img.shape)[1:]
     center = np.array(center)
@@ -49,6 +68,26 @@ def centered_crop(img, msk, center, crop_shape, margin=np.zeros(3)):
 
 def located_crop(img, msk, location, crop_shape, margin=np.zeros(3)):
     """Do a crop, forcing the location voxel to be located in the crop.
+    
+    Parameters
+    ----------
+    img : ndarray
+        Image data.
+    msk : ndarray
+        Mask data.
+    location : 
+        Specific voxel location to include in the crop.
+    crop_shape : 
+        Shape of the crop.
+    margin : 
+        Margin around the location.
+    Returns
+    -------
+    crop_img : ndarray
+        Cropped image data.
+    crop_msk : ndarray
+        Cropped mask data.
+     
     """
     img_shape = np.array(img.shape)[1:]
     location = np.array(location)
@@ -69,6 +108,27 @@ def located_crop(img, msk, location, crop_shape, margin=np.zeros(3)):
 
 def foreground_crop(img, msk, final_size, fg_margin, fg=None, use_softmax=True):
     """Do a foreground crop.
+    
+    Parameters
+    ----------
+    img : ndarray
+        Image data.
+    msk : ndarray
+        Mask data.
+    final_size : 
+        Final size of the cropped image and mask.
+    fg_margin : 
+        Margin around the foreground location.
+    fg : dict
+        Foreground information.
+    use_softmax : bool, optional
+        If True, assumes softmax activation.
+    Returns
+    -------
+    img : ndarray
+        Cropped image data, focused on the foreground region.
+    msk : ndarray
+        Cropped mask data, corresponding to the cropped image region.
     """
     if fg is not None and len(list(fg.keys()))>0:
         locations = fg[random.choice(list(fg.keys()))]
@@ -113,6 +173,23 @@ def centered_pad(img, final_size, msk=None):
 def random_crop(img, msk, crop_shape, force_in=True):
     """
     randomly crop a portion of size prop of the original image size.
+    
+    Parameters
+    ----------
+    img : ndarray
+        Image data.
+    msk : ndarray
+        Mask data.
+    crop_shape : 
+        Shape of the crop.
+    force_in : bool, optional
+        If True, ensures the crop is fully within the image boundaries.
+    Returns
+    -------
+    crop_img : ndarray
+        Cropped image data.
+    crop_msk : ndarray
+        Cropped mask data.
     """ 
     img_shape = np.array(img.shape)[1:]
     assert len(img_shape)==len(crop_shape),"[Error] Not the same dimensions! Image shape {}, Crop shape {}".format(img_shape, crop_shape)
@@ -139,6 +216,29 @@ def random_crop(img, msk, crop_shape, force_in=True):
 def random_crop_pad(img, msk, final_size, fg_rate=0.33, fg_margin=np.zeros(3), fg=None, use_softmax=True):
     """
     random crop and pad if needed.
+    
+    Parameters
+    ----------
+    img : ndarray
+        Image data.
+    msk : ndarray
+        Mask data.
+    final_size : 
+        Final size of the image and mask after cropping and padding.
+    fg_rate : float, optional
+        Probability of focusing the crop on the foreground.
+    fg_margin : 
+        Margin around the foreground location.
+    fg : dict, optional
+        Foreground information.
+    use_softmax : bool, optional
+        If True, assumes softmax activation;
+    Returns
+    -------
+    img : ndarray
+        Cropped and padded image data.
+    msk : ndarray
+        Cropped and padded mask data.
     """
     if type(img)==list: # then batch mode
         imgs, msks = [], []
@@ -164,8 +264,27 @@ def random_crop_pad(img, msk, final_size, fg_rate=0.33, fg_margin=np.zeros(3), f
 def random_crop_resize(img, msk, crop_scale, final_size, fg_rate=0.33, fg_margin=np.zeros(3)):
     """
     random crop and resize if needed.
-    Args:
-    crop_scale: >=1
+    
+    Parameters
+    ----------
+    img : ndarray
+        Image data.
+    msk : ndarray
+        Mask data.
+    crop_scale : >1
+        Scale factor for the crop size.
+    final_size : 
+        Final size of the image and mask after cropping and resizing.
+    fg_rate : float, optional
+        Probability of focusing the crop on the foreground.
+    fg_margin : 
+        Margin around the foreground location.
+    Returns
+    -------
+    img : ndarray
+        Cropped and resized image data.
+    msk : ndarray
+        Cropped and resized mask data.
     """
     final_size = np.array(final_size)
         
@@ -201,6 +320,19 @@ def random_crop_resize(img, msk, crop_scale, final_size, fg_rate=0.33, fg_margin
 #---------------------------------------------------------------------------
 
 class LabelToLong:
+    """
+    Transform to convert label data to long (integer) type.
+            
+    Parameters
+    ----------
+    label_name : str
+        Name of the label to be transformed.
+        
+    Returns
+    -------
+    subject : dict
+        Dictionary with the label data converted to long (integer) type.
+    """
     def __init__(self, label_name):
         self.label_name = label_name
         
@@ -213,7 +345,42 @@ class LabelToLong:
 
 class SemSeg3DPatchFast(Dataset):
     """
-    with DataLoader
+    Dataset class for semantic segmentation with 3D patches. Supports data augmentation and efficient loading.
+    
+    Parameters
+    ----------
+    img_dir : str
+        Directory containing the image files.
+    msk_dir : str
+        Directory containing the mask files.
+    batch_size : int
+        Batch size for dataset sampling.
+    patch_size : nd.array
+        Size of the patches to be used.
+    nbof_steps : int
+        Number of steps (batches) per epoch.
+    folds_csv : str, optional
+        CSV file containing fold information for dataset splitting.
+    fold : int, optional
+        The current fold number for training/validation splitting.
+    val_split : float, optional
+        Proportion of data to be used for validation.
+    train : bool, optional
+        If True, use the dataset for training; otherwise, use it for validation.
+    use_aug : bool, optional
+        If True, apply data augmentation.
+    aug_patch_size : nd.array, optional
+        Patch size to use for augmented patches.
+    fg_dir : str, optional
+        Directory containing foreground information.
+    fg_rate : float, optional
+        Foreground rate, used to force foreground inclusion in patches.
+    crop_scale : float, optional
+        Scale factor for crop size during augmentation.
+    load_data : bool, optional
+        If True, load the entire dataset into memory.
+    use_softmax : bool, optional
+        If True, use softmax activation.
     """
     def __init__(
         self,

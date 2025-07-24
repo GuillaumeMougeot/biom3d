@@ -195,6 +195,229 @@ def sanity_check(msk, num_classes=None):
             print("[Error] There is an error in the labels that could not be solved automatically.")
             raise RuntimeError
 
+def correct_mask(
+    mask,
+    num_classes, # if num_classes is defined, then softmax
+    is_2d=False,
+    standardize_dims=True,
+    output_dtype=np.uint16,
+    use_one_hot=False,
+    remove_bg=False,
+    encoding_type='auto',
+    auto_correct=True,
+    binary_correction_strategy='majority_is_bg'
+):
+    """
+    Performs a sanity check and automatic correction on a segmentation mask.
+
+    This function is designed to be highly automated to reduce user friction. It makes
+    assumptions about the data and prints warnings about any corrections it performs.
+    Expert users can override the automatic behavior.
+
+    Args:
+        mask (np.ndarray): The input mask. Assumed shape is (D,H,W) for a label mask
+                           or (C,D,H,W) for a one-hot or binary mask.
+        num_classes (int): The total number of expected classes.
+        is_2d (bool, optional): If True, treats the input as 2D data.
+            - Expects (H,W) for label masks.
+            - Expects (C,H,W) for binary/one-hot masks.
+            Defaults to False, expecting 3D data (D,H,W) or (C,D,H,W).
+        standardize_dims (bool, optional): If True (default), ensures the output is always 4D,
+            ready for a pipeline. If False, the output ndim will match
+            the input ndim.
+        output_dtype (dtype, optional): The desired numpy data type for the output mask.
+                                        Defaults to np.uint16.
+        use_one_hot (bool, optional): If encoding type is 'label', whether to encode the mask
+                                      to a one hot encoded mask instead.
+        remove_bg (bool, optional): If use_one_hot encoding and if True, 
+                                    then remove the first channel, i.e. the background.
+        encoding_type (str, optional): The type of mask encoding.
+            - 'auto': (Default) Automatically determine the type based on mask.ndim.
+                      3D is assumed 'label', 4D is assumed 'binary'.
+            - 'label': A single-channel mask where pixel values are class indices (0, 1, 2...).
+            - 'binary': A multi-channel mask where each channel is an independent
+                        binary (0/1) segmentation. Used with sigmoid activations.
+            - 'onehot': A multi-channel mask where channels are mutually exclusive.
+                        Used with softmax activations.
+        auto_correct (bool, optional): If True (default), attempts to automatically
+                                       fix issues found in the mask.
+        binary_correction_strategy (str, optional): Heuristic for binary correction.
+            - 'majority_is_bg': (Default) Assumes the most frequent pixel value is the
+                                background and sets it to 0; all others become 1.
+
+    Returns:
+        np.ndarray: The processed (and possibly corrected) mask.
+
+    Raises:
+        RuntimeError: If an unrecoverable error is found.
+    """
+    if not isinstance(num_classes, int) or num_classes < 2:
+        raise RuntimeError(f"num_classes must be an integer >= 2, but got {num_classes}.")
+
+    # --- 0. Pre-process for 2D data ---
+    original_ndim = mask.ndim 
+    processed_mask = mask.copy()
+    if is_2d: 
+        # print("[INFO] Processing in 2D mode.")
+        if processed_mask.ndim == 2: # (H,W) -> (1,H,W)
+            processed_mask = processed_mask[np.newaxis, ...]
+        elif processed_mask.ndim == 3: # (C,H,W) -> (C,1,H,W)
+            processed_mask = processed_mask[:, np.newaxis, ...]
+        else:
+            raise RuntimeError(f"For is_2d=True, expected mask.ndim to be 2 or 3, but got {mask.ndim}.")
+
+    # --- 1. Determine Encoding Type (if 'auto') ---
+    if encoding_type == 'auto':
+        if processed_mask.ndim == 3:
+            encoding_type = 'label'
+            # print(f"[INFO] Auto-detected 3D mask. Assuming 'label' encoding.")
+        elif processed_mask.ndim == 4:
+            # For most cases, multi-channel is usually independent binary masks
+            encoding_type = 'binary'
+            # print(f"[INFO] Auto-detected 4D mask. Assuming 'binary' encoding (for sigmoid).")
+        else:
+            raise RuntimeError(f"Unsupported mask dimension: {processed_mask.ndim}. Shape: {processed_mask.shape}")
+
+    # --- 2. Process based on Encoding Type ---
+    # --- Case A: Label Mask (e.g., [0, 1, 2, ...]) ---
+    if encoding_type == 'label':
+        if processed_mask.ndim != 3:
+            raise RuntimeError(f"A 'label' mask must be 3D, but got shape {processed_mask.shape}")
+        
+        uni = np.unique(processed_mask)
+        expected_labels = np.arange(num_classes)
+        
+        # Check if the labels are a subset of what's expected
+        is_valid = np.all(np.isin(uni, expected_labels))
+
+        if not is_valid:
+            # --- Correction Logic for Label Masks ---
+            print(f"[WARNING] Invalid labels found in mask. Expected subset of {expected_labels}, but found {uni}.")
+            if not auto_correct:
+                raise RuntimeError("Mask is invalid and auto_correct is False.")
+                
+            
+            
+            # Heuristic 1: Right number of classes, but wrong values (e.g., [10, 20, 30] for num_classes=3)
+            if len(uni) == num_classes:
+                print(f"[WARNING] Remapping labels: {uni} -> {expected_labels}")
+                mapper = np.zeros(uni.max() + 1, dtype=np.intp)
+                mapper[uni] = expected_labels
+                processed_mask = mapper[processed_mask]
+
+            # Heuristic 2: Binary case with wrong labels (e.g., [-1, 10, 255])
+            elif num_classes == 2:
+                print("[INFO] Attempting binary correction for label mask.")
+                if binary_correction_strategy == 'majority_is_bg':
+                    counts = np.bincount(processed_mask.ravel())
+                    thr = np.argmax(counts)
+                    print(f"[WARNING] Heuristic 'majority_is_bg': Setting most frequent value ({thr}) to 0, others to 1.")
+                    processed_mask = (processed_mask != thr)
+                # Add other strategies here if needed
+                else:
+                    raise RuntimeError(f"Unknown binary_correction_strategy: {binary_correction_strategy}")
+                
+            else:
+                print("[ERROR] Cannot solve ambiguity. The number of unique labels "
+                    f"({len(uni)}) does not match num_classes ({num_classes}).")
+                raise RuntimeError("Unrecoverable error in mask labels.")
+
+        # After processing, ensure the label mask has a channel dimension for standardization
+        if processed_mask.ndim == 3:
+            if use_one_hot:
+                processed_mask = one_hot_fast(processed_mask, num_classes, mapping_mode='remap')
+                if remove_bg: processed_mask = processed_mask[1:]
+            else:
+                processed_mask = processed_mask[np.newaxis, ...] # (D,H,W) -> (1,D,H,W) or (1,H,W) to (1,1,H,W)
+
+    # --- Case B: Binary Mask (for Sigmoid) ---
+    elif encoding_type == 'binary':
+        if processed_mask.ndim != 4:
+            raise RuntimeError(f"A 'binary' mask must be 4D (C,D,H,W), but got shape {processed_mask.shape}")
+        
+        # print(f"[INFO] Validating {processed_mask.shape[0]} channels of binary mask...")
+        is_perfect = True
+        for i, channel in enumerate(processed_mask):
+            uni = np.unique(channel)
+            # A channel is valid if it only contains 0 and/or 1.
+            if not np.all(np.isin(uni, [0, 1])):
+                is_perfect = False
+                print(f"[WARNING] Channel {i} is not binary. Found values: {uni}.")
+                if not auto_correct:
+                    raise RuntimeError(f"Channel {i} is invalid and auto_correct is False.")
+                
+                # Apply the same binary correction heuristic per-channel
+                print(f"[INFO] Applying correction to channel {i}.")
+                if binary_correction_strategy == 'majority_is_bg':
+                    counts = np.bincount(channel.ravel())
+                    thr = np.argmax(counts)
+                    print(f"[WARNING] Channel {i}: Setting most frequent value ({thr}) to 0, others to 1.")
+                    processed_mask[i] = (channel != thr)
+                else:
+                    raise RuntimeError(f"Unknown binary_correction_strategy: {binary_correction_strategy}")
+        
+        # if is_perfect: print("[INFO] All binary channels are valid.")
+
+    # --- Case C: One-Hot Mask (for Softmax) ---
+    elif encoding_type == 'onehot':
+        if processed_mask.ndim != 4:
+            raise RuntimeError(f"A 'onehot' mask must be 4D (C,D,H,W), but got shape {processed_mask.shape}")
+        if processed_mask.shape[0] != num_classes:
+            raise RuntimeError(f"One-hot mask has {processed_mask.shape[0]} channels, but num_classes is {num_classes}.")
+        
+        # A one-hot mask must sum to 1 along the channel axis and contain only 0s and 1s
+        is_binary = np.all((processed_mask == 0) | (processed_mask == 1))
+        sums_are_one = np.all(np.sum(processed_mask, axis=0) == 1)
+
+        if not (is_binary and sums_are_one):
+            # Correction for broken one-hot masks is extremely ambiguous. Best to fail.
+            print("[ERROR] Mask failed one-hot validation. is_binary:", is_binary, "sums_are_one:", sums_are_one)
+            raise RuntimeError("Invalid one-hot mask. Correction is not supported.")
+            
+    else:
+        raise RuntimeError(f"Invalid encoding_type specified: {encoding_type}")
+
+    # --- 3. Post-process to restore original dimensionality ---
+    if not standardize_dims and not use_one_hot:
+        print("[INFO] Restoring original dimensions.")
+        # Squeeze back down to original ndim
+        while processed_mask.ndim > original_ndim:
+            # Squeeze the first axis that has size 1
+            squeezable_axes = [i for i, s in enumerate(processed_mask.shape) if s == 1]
+            if not squeezable_axes: break
+            processed_mask = np.squeeze(processed_mask, axis=squeezable_axes[0])
+
+    return processed_mask.astype(output_dtype)
+
+def standardize_img_dims(img, num_channels, channel_axis, is_2d):
+    """
+    Standardizes an image to a 4D (C,D,H,W) or (C,1,H,W) format.
+    """
+    original_shape = img.shape
+    
+    if is_2d:
+        if img.ndim == 2: # (H,W) -> (1,1,H,W)
+            img = img[np.newaxis, np.newaxis, ...]
+        elif img.ndim == 3: # (C,H,W) -> (C,1,H,W)
+            img = img[:, np.newaxis, ...]
+        else:
+            raise ValueError(f"For 2D, expected 2 or 3 dims, but got {img.ndim}")
+    else: # 3D Data
+        if img.ndim == 3: # (D,H,W) -> (1,D,H,W)
+            img = img[np.newaxis, ...]
+        elif img.ndim == 4: # (C,D,H,W) or other order
+            # If channel axis is not first, move it.
+            if channel_axis != 0:
+                img = np.swapaxes(img, 0, channel_axis)
+        else:
+            raise ValueError(f"For 3D, expected 3 or 4 dims, but got {img.ndim}")
+    
+    # Final check
+    if img.shape[0] != num_channels:
+        raise ValueError(f"Image has {img.shape[0]} channels but expected {num_channels}.")
+        
+    return img, original_shape
+
 def seg_preprocessor(
     img, 
     img_meta,
@@ -208,72 +431,59 @@ def seg_preprocessor(
     channel_axis=0,
     num_channels=1,
     seed = 42,
+    is_2d=False,
     ):
-    """Segmentation pre-processing.
+    """
+    Performs a full preprocessing pipeline for segmentation images and masks.
+
+    This function orchestrates a series of steps:
+    1. Standardizes image and mask dimensions.
+    2. Validates and corrects the mask using robust heuristics.
+    3. Optionally one-hot encodes the mask.
+    4. Applies intensity transformations (clipping, normalization).
+    5. Resamples the data to a target spacing.
+    6. Computes foreground coordinates for patch sampling.
     """
     do_msk = msk is not None
+    spacing = img_meta.get('spacing', None) 
 
-    # read image and mask
-    spacing = None if 'spacing' not in img_meta.keys() else img_meta['spacing']
+    # Standardize Image and Mask Dimensions and Correct Mask
+    img, original_shape = standardize_img_dims(img, num_channels, channel_axis, is_2d)
 
-    if do_msk: 
-        # sanity check
-        msk = sanity_check(msk, num_classes)
+    if do_msk:
+        # msk = sanity_check(msk, num_classes)
+        msk = correct_mask(
+            msk,
+            num_classes,
+            is_2d=is_2d,
+            standardize_dims=False, 
+            use_one_hot=use_one_hot,
+            remove_bg=remove_bg,
+            output_dtype=np.uint16,
+            auto_correct=True,
+            )
 
-    # expand image dim
-    if len(img.shape)==3:
-        # keep the input shape, used for preprocessing before prediction
-        original_shape = img.shape
-        img = np.expand_dims(img, 0)
-    elif len(img.shape)==4:
-        # we consider as the channel dimension, the smallest dimension
-        # if it is the last dim, then we move it to the first
-        # the size of other dimensions of the image should be bigger than the channel dim.
-        if np.argmin(img.shape)==channel_axis and img.shape[channel_axis]==num_channels:
-            img = np.swapaxes(img, 0, channel_axis)
-        else:
-            print("[Error] Invalid image shape:", img.shape)
-        
-        # keep the input shape, used for preprocessing before prediction
-        original_shape = img.shape
-    else:
-        raise ValueError("[Error] Invalid image shape for 3D image {}. Skipping image...".format(img.shape))
+    # At this point, both img and msk are guaranteed to be 4D tensors
+    assert img.ndim == 4
+    if do_msk: assert msk.ndim == 4
 
-    assert img.shape[0]==num_channels, "[Error] Invalid image shape {}. Expected to have {} numbers of channel at {} channel axis.".format(img.shape, num_channels, channel_axis)
-
-    # one hot encoding for the mask if needed
-    if do_msk and len(msk.shape)!=4: 
-        if use_one_hot:
-            msk = one_hot_fast(msk, num_classes)
-            if remove_bg:
-                msk = msk[1:]
-        else:
-            msk = np.expand_dims(msk, 0)
-    elif do_msk and len(msk.shape)==4:
-        # normalize each channel
-        msk = (msk > msk.min()).astype(np.uint8)
-
-    assert len(img.shape)==4
-    if do_msk: assert len(msk.shape)==4
-
-    # clip img
-    if len(clipping_bounds)>0:
+    # Intensity Transformations
+    if clipping_bounds:
         img = np.clip(img, clipping_bounds[0], clipping_bounds[1])
-
-    # normalize the image and msk
-    # z-score normalization for the image
-    if len(intensity_moments)>0:
-        img = (img-intensity_moments[0])/intensity_moments[1]
-    else:
-        img = (img-img.mean())/img.std()
     
-    # enhance contrast
-    # img = exposure.equalize_hist(img)
+    if intensity_moments:
+        mean, std = intensity_moments
+        img = (img - mean) / (std + 1e-8) # Add epsilon for safety
+    else:
+        img = (img - img.mean()) / (img.std() + 1e-8)
+    
+        # enhance contrast
+        # img = exposure.equalize_hist(img)
 
-    # range image in [-1, 1]
-    # img = (img - img.min())/(img.max()-img.min()) * 2 - 1
+        # range image in [-1, 1]
+        # img = (img - img.min())/(img.max()-img.min()) * 2 - 1
 
-    # resample the image and mask if needed
+    # Resample the image and mask if needed
     if len(median_spacing)>0 and spacing is not None and len(spacing)>0:
         output_shape = get_resample_shape(img.shape, spacing, median_spacing)
         if do_msk:
@@ -281,32 +491,49 @@ def seg_preprocessor(
         else:
             img = resize_3d(img, output_shape)
 
-    # set image type
+    # Cast image type
     img = img.astype(np.float32)
-    if do_msk: msk = msk.astype(np.uint16)
     
-    # foreground computation
+    # Foreground Computation
     if do_msk:
+        fg = {}
         rng = np.random.default_rng(seed)
-        fg={}
-        if use_one_hot: start = 0 if remove_bg else 1
-        else: start = 1
-        for i in range(start,len(msk) if use_one_hot else msk.max()+1):
-            fgi = np.argwhere(msk[i] == 1) if use_one_hot else np.argwhere(msk[0] == i)
-            if len(fgi)>0:
-                num_samples = min(len(fgi), 10000)
-                fgi_idx = rng.choice(np.arange(len(fgi)), size=num_samples, replace=False)
-                fgi = fgi[fgi_idx,:]
+        
+        # Determine the class indices to iterate over
+        if use_one_hot:
+            # After `remove_bg`, channels correspond to classes [1, 2, ...]
+            # or [0, 1, ...] if bg was kept.
+            start_class_idx = 1 if remove_bg else 0
+            num_fg_channels = msk.shape[0]
+            class_indices = range(start_class_idx, start_class_idx + num_fg_channels)
+            channel_indices = range(num_fg_channels)
+        else:
+            # For label masks, we sample foreground classes (typically 1 and up)
+            start_class_idx = 1
+            class_indices = range(start_class_idx, num_classes)
+            channel_indices = [0] * len(class_indices) # Always use the first channel
+
+        for class_idx, channel_idx in zip(class_indices, channel_indices):
+            if use_one_hot:
+                # `channel_idx` directly corresponds to the channel to search in
+                coords = np.argwhere(msk[channel_idx] == 1)
             else:
-                fgi = []
-            fg[i] = fgi
+                # For label mask, search for `class_idx` in the single channel `msk[0]`
+                coords = np.argwhere(msk[0] == class_idx)
 
-        if len(fg)==0:
-            print("[Warning] Empty foreground!")
+            if len(coords) > 0:
+                num_samples = min(len(coords), 10000)
+                sampled_indices = rng.choice(len(coords), size=num_samples, replace=False)
+                fg[class_idx] = coords[sampled_indices, :]
+            else:
+                fg[class_idx] = []
 
-    # return
+        if not fg or all(len(v) == 0 for v in fg.values()):
+            print("[Warning] Empty foreground found for all classes!")
+
+    # 7. Return
     if do_msk:
-        return img, msk, fg 
+        return img, msk, fg
     else:
         img_meta["original_shape"] = original_shape
         return img, img_meta
@@ -352,6 +579,8 @@ class Preprocessing:
         If a single image is present in image/mask folders, then the image/mask are split in 2 portions of size split_rate_for_single_img*largest_dimension for validation and split_rate_for_single_img*(1-largest_dimension) for training.
     num_kfolds : int, default=5
         Number of K-fold for cross validation.
+    is_2d : bool, default=False,
+        Whether the image is 2D or 3D.
     """
     def __init__(
         self,
@@ -370,8 +599,10 @@ class Preprocessing:
         use_tif=False, # use tif instead of npy 
         split_rate_for_single_img=0.25,
         num_kfolds=5,
+        is_2d=False,
         ):
         assert img_dir!='', "[Error] img_dir must not be empty."
+        assert len(median_size)>0, "[Error] Median size must be provided."
 
         # fix bug path/folder/ to path/folder
         if os.path.basename(img_dir)=='':
@@ -421,7 +652,7 @@ class Preprocessing:
         self.channel_axis = 0
 
         # if the 3D image has 4 dimensions then there is a channel dimension.
-        if len(self.median_size)==4:
+        if len(self.median_size)==4 or (is_2d and len(self.median_size)==3):
             # the channel dimension is consider to be the smallest dimension
             # this could cause problem in case where there are more z than c for instance...
             self.num_channels = np.min(median_size)
@@ -445,6 +676,9 @@ class Preprocessing:
             self.num_kfolds = max(len(self.img_fnames) // 2, 2)
             print("[Warning] The number of images {} is smaller than twice the number of folds {}. The number of folds will be reduced to {}.".format(len(self.img_fnames), num_kfolds * 2, self.num_kfolds))
         
+        # If the image is 2d:
+        self.is_2d = is_2d
+
     def _split_single(self):
         """
         if there is only a single image/mask in each folder, then split them both in two portions with self.split_rate_for_single_img
@@ -570,6 +804,7 @@ class Preprocessing:
                     intensity_moments   =self.intensity_moments,
                     channel_axis        =self.channel_axis,
                     num_channels        =self.num_channels,
+                    is_2d               =self.is_2d
                     )
             else:
                 img, _ = seg_preprocessor(
@@ -580,6 +815,7 @@ class Preprocessing:
                     intensity_moments   =self.intensity_moments,
                     channel_axis        =self.channel_axis,
                     num_channels        =self.num_channels,
+                    is_2d               =self.is_2d,
                     )
 
             # sanity check to be sure that all images have the save number of channel
@@ -649,6 +885,7 @@ def auto_config_preprocess(
         logs_dir='logs/',
         print_param=False,
         debug=False,
+        is_2d=False,
         ):
     """Helper function to do auto-config and preprocessing.
     """
@@ -686,6 +923,7 @@ def auto_config_preprocess(
         median_size=median_size,
         clipping_bounds=clipping_bounds,
         intensity_moments=intensity_moments,
+        is_2d=is_2d,
     )
 
     if not skip_preprocessing:
@@ -732,6 +970,7 @@ def auto_config_preprocess(
             NB_EPOCHS=num_epochs,
             NUM_WORKERS=num_workers,
             LOG_DIR=logs_dir,
+            IS_2D=is_2d,
         )
 
         if not print_param: print("Auto-config done! Configuration saved in: ", config_path)
@@ -787,6 +1026,8 @@ if __name__=='__main__':
         help="(default=False) Whether to print auto-config parameters. Used for remote preprocessing using the GUI.") 
     parser.add_argument("--debug", default=False,  action='store_true', dest='debug',
         help="(default=False) Debug mode. Whether to print all image filenames while preprocessing.") 
+    parser.add_argument("--is_2d", default=False,  
+        help="(default=False) Whether the image is 2d.")
     args = parser.parse_args()
 
     auto_config_preprocess(
@@ -810,6 +1051,7 @@ if __name__=='__main__':
         logs_dir=args.logs_dir,
         print_param=args.remote,
         debug=args.debug,
+        is_2d=args.is_2d,
         )
 
 #---------------------------------------------------------------------------
