@@ -218,8 +218,8 @@ if __name__ == '__main__':
     parser.add_argument('--hostname',
         help="Host name")
     args = parser.parse_args()
-
     
+
     run(args.username, args.password, args.hostname,
         project=args.project,
         dataset_name=args.dataset_name,

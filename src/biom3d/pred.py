@@ -37,14 +37,14 @@ def pred(log, dir_in, dir_out):
     dir_out=str(dir_out)
 
     builder = Builder(config=None,path=log, training=False)
-    builder.run_prediction_folder(dir_in=dir_in, dir_out=dir_out, return_logit=False)
+    dir_out = builder.run_prediction_folder(dir_in=dir_in, dir_out=dir_out, return_logit=False)
     return dir_out
 
 @deprecated("This method is no longer used as it is the default behaviour of DataHandlers.")
 def pred_multiple(log, dir_in, dir_out):
     """Prediction a folder of folders of images.
     """
-    pred(log,dir_in,dir_out)
+    return pred(log,dir_in,dir_out)
 
 #---------------------------------------------------------------------------
 # main unet segmentation
