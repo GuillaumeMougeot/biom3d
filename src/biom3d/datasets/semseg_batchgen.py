@@ -199,9 +199,11 @@ class RandomCropAndPadTransform(AbstractTransform):
 #---------------------------------------------------------------------------
 # image reader
 
-def imread(handler,img, msk, threeD=True):
+def imread(handler,img, msk, loc=None,threeD=True):
+    print(handler.images, handler.masks)
     img,_ = handler.load(img)
     msk,_ = handler.load(msk)
+    if loc is not None : fg,_ = handler.load(loc)
 
     if (threeD and len(img.shape)==3) or (not threeD and len(img.shape)==2):
         img = np.expand_dims(img,0)
@@ -209,30 +211,34 @@ def imread(handler,img, msk, threeD=True):
         msk = np.expand_dims(msk,0)
 
     assert (threeD and len(msk.shape)==4 and len(img.shape)==4) or (not threeD and len(msk.shape)==3 and len(img.shape)==3), "[Error] Your data has the wrong dimension."
-    return img, msk
+    return img, msk, fg if loc is not None else None
 
 class DataReader(AbstractTransform):
     """Return a data and seg instead of a dictionary.
     """
-    def __init__(self, handler,threeD=True, data_key="data", label_key="seg"):
+    def __init__(self, handler,threeD=True, data_key="data", label_key="seg",loc_key='loc'):
         self.threeD = threeD
         self.data_key = data_key
         self.label_key = label_key
+        self.loc_key= loc_key
         self.handler=handler
     
     def __call__(self, **data_dict):
         data = data_dict.get(self.data_key)
         seg = data_dict.get(self.label_key)
-        
+        loc = data_dict.get(self.loc_key)
+        print("DATA",data,seg)
         if isinstance(data,list):
             for i in range(len(data)):
-                data[i], seg[i] = imread(self.handler,data[i], seg[i])
+                data[i], seg[i],loc[i] = imread(self.handler,data[i], seg[i],loc[i])
         else:
-            data, seg = imread(self.handler,data, seg)
+            data, seg,loc = imread(self.handler,data, seg,loc)
 
         data_dict[self.data_key] = data
         if seg is not None:
             data_dict[self.label_key] = seg
+        if loc is not None:
+            data_dict[self.loc_key] = loc
             
         return data_dict
     
@@ -334,7 +340,6 @@ class nnUNetRandomCropAndPadTransform(AbstractTransform):
         data = data_dict.get(self.data_key)
         seg = data_dict.get(self.label_key)
         loc = data_dict.get(self.class_loc_key)
-        
         dim=len(data[0].shape[1:])
         
         data_channel = data[0].shape[0]
@@ -687,16 +692,20 @@ class BatchGenDataLoader(SlimDataLoaderBase):
         print("{} images: {}".format("Training" if self.train else "Validation", self.fnames))
         
         def generate_data(handler):
-            print(handler.images,handler.masks)
             data=[]
-            for i,m,f in handler:
-                fg=None
-                # file names
-                img = handler.load(i)
-                msk = handler.load(m)
-                if self.fg_dir is not None:
-                    fg  = handler.load(f)
-                data += [{'data': img, 'seg': msk, 'loc': fg}]
+            nonlocal load_data
+            if load_data:
+                for i,m,f in handler:
+                    fg=None
+                    # file names
+                    img = handler.load(i)[0]
+                    msk = handler.load(m)[0]
+                    if self.fg_dir is not None:
+                        fg  = handler.load(f)[0]
+                    data += [{'data': img, 'seg': msk, 'loc': fg}]
+            else:
+                for i,m,f in handler:
+                    data += [{'data': i, 'seg': m, 'loc': f}]
             return data
 
         data = generate_data(handler)
@@ -840,7 +849,7 @@ class MTBatchGenDataLoader(MultiThreadedAugmenter):
         num_threads_in_mt=12, 
         **kwargs,
     ):
-        
+        if fg_dir is None : raise ValueError("Batchgen module need foregrounds, ensure the preprocessing does it and that the path is included in the config file.")
         gen = BatchGenDataLoader(
             img_dir,
             msk_dir,
@@ -864,6 +873,7 @@ class MTBatchGenDataLoader(MultiThreadedAugmenter):
             read_only=True,
             img_path = img_dir,
             msk_path = msk_dir,
+            fg_path = fg_dir,
         )
         
         if train:
