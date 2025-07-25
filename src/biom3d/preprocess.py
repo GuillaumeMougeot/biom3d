@@ -456,7 +456,7 @@ def seg_preprocessor(
             msk,
             num_classes,
             is_2d=is_2d,
-            standardize_dims=False, 
+            standardize_dims=True, 
             use_one_hot=use_one_hot,
             remove_bg=remove_bg,
             output_dtype=np.uint16,
