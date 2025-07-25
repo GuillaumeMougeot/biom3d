@@ -4,6 +4,49 @@
 
 Usually appears when image files in image folder and mask files in mask folder do not have the **exact** same name and extension. Please make sur that both your images and masks have all the same names and extensions.
 
+## OMERO
+When using OMERO prediction, you can ecounter two issues :
+### recv() returned zero
+You may encounter this :
+```
+Traceback (most recent call last):
+  File "/usr/lib/python3.11/tkinter/__init__.py", line 1948, in __call__
+    return self.func(*args)
+           ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/biom3d/gui.py", line 1747, in predict
+    biom3d.omero_uploader.run(username=self.send_to_omero_connection.username.get(),
+  File "/usr/local/lib/python3.11/dist-packages/biom3d/omero_uploader.py", line 179, in run
+    if project and not conn.getObject('Project', project):
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/omero/gateway/__init__.py", line 3300, in getObject
+    result = self.getQueryService().findByQuery(
+             ^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/omero/gateway/__init__.py", line 2596, in getQueryService
+    return self._proxies['query']
+           ~~~~~~~~~~~~~^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/omero/gateway/__init__.py", line 1489, in __getitem__
+    raise Ice.ConnectionLostException
+Ice.ConnectionLostException: Ice.ConnectionLostException:
+recv() returned zero
+```
+It means OMERO connection fail, it can be caused by :
+* Wrong username/password
+* Just a simple connection error
+
+The simpliest way to solve it is by reentering your credentials and try again. If it persist it may be a connection with the server error, if you can't acces your OMERO server with other means (Webclient, insight,...), contact your IT support.
+
+### Uploading
+OMERO uploading can be quite long. For the moment, there isn't much feedbacks to indicate that upload is finished (we are working on it). On GUI, the `Start` button is white while it is running and become red when it is finished. Also, in the terminal, you see something like this :
+```
+Importing: Test_dataset_predictions/Unit/2.tif
+Uploading: Test_dataset_predictions/Unit/2.tif
+Hashes:
+  80d2a040ed8058338ea0c162033b57d8703ba4fd
+
+Imported Image ID: 301018
+```
+each time an image is uploaded, you can keep track of uploading with that. However there are cases where nothing is shown in terminal and it is still uploaded. If you are not using the GUI (and can't see the button feedback), we recommand checking in real time the destination folder in OMERO.
+
 ## NaN loss
 
 Can be caused by:

@@ -17,50 +17,9 @@
 #  * Tkinter mainloop
 #---------------------------------------------------------------------------
 
-import tkinter as tk
-from tkinter import LEFT, ttk, Tk, N, W, E, S, YES, IntVar, StringVar, PhotoImage
-from tkinter import filedialog
-import paramiko
-from stat import S_ISDIR, S_ISREG # for recursive download
-import os 
-import yaml
-from sys import platform 
-import sys
-# if platform=='linux': # only import if linux because windows omero plugin requires Visual Studio Install which is too big
-
-try:
-    from biom3d.config_default import CONFIG
-
-    from biom3d.preprocess import auto_config_preprocess
-    from biom3d.utils import save_python_config # might remove this
-    from biom3d.utils import adaptive_load_config # might remove this
-    # the packages below are only needed for the local version of the GUI
-    # WARNING! the lines below must be commented when deploying the remote version,
-    # and uncommented when installing the local version.
-    from biom3d.pred import pred
-    from biom3d.utils import load_python_config 
-    from biom3d.train import train
-    from biom3d.eval import eval
-    
-    import torch
-except ImportError as e:
-    print("Couldn't import Biom3d modules," ,e)
-    
-
-try:
-    import biom3d.omero_pred
-    from biom3d.omero_downloader import download_object
-except  ImportError as e:
-    print("Couldn't import Omero modules", e)
-    pass
-        
-
-
-
 #----------------------------------------------------------------------------
-# Constants 
+# Constants, we put them before because it allow pyinstaller to do a static analysis
 # remote or local
-
 REMOTE = False
 
 VENV = "" # virtual environment path
@@ -68,7 +27,7 @@ VENV = "" # virtual environment path
 # The option below is made to remove the 'start locally' button in the gui. This is
 # useful for the deployment only in order to reduce the size of the 
 # distribution we only allow remote access. 
-LOCAL = False 
+LOCAL = False # Not used
 
 MAIN_DIR = "/home/biome/biom3d" # folder containing biom3d repository on server computer
 TRANSPORT = False
@@ -85,6 +44,58 @@ NOTEBOOK_STYLE = 'red_style.TNotebook'
 NOTEBOOK_TAB_STYLE = 'red_style.TNotebook.Tab'
 
 #----------------------------------------------------------------------------
+#Imports
+
+import tkinter as tk
+from tkinter import LEFT, ttk, Tk, N, W, E, S, YES, IntVar, StringVar, PhotoImage
+from tkinter import filedialog
+import paramiko
+from stat import S_ISDIR, S_ISREG # for recursive download
+import os 
+import yaml
+import threading
+from sys import platform 
+import sys
+# if platform=='linux': # only import if linux because windows omero plugin requires Visual Studio Install which is too big
+
+try:
+    from biom3d.config_default import CONFIG
+
+    from biom3d.preprocess import auto_config_preprocess
+    from biom3d.utils import save_python_config # might remove this
+    from biom3d.utils import adaptive_load_config # might remove this
+except ImportError as e:
+    print("Couldn't import Biom3d modules," ,e)
+
+
+# Will not be considered by pyinstaller if REMOTE=True has been set earlier (can be automatized by a sed -i 's/^REMOTE = False/REMOTE = True/' gui.py)
+# PyInstaller use it anyway
+if REMOTE==False:
+    try:
+        # the packages below are only needed for the local version of the GUI
+        # WARNING! the lines below must be commented when deploying the remote version,
+        # and uncommented when installing the local version.
+        from biom3d.pred import pred
+        from biom3d.utils import load_python_config 
+        from biom3d.train import train
+        from biom3d.eval import eval
+        
+        import torch
+    except ImportError as e:
+        print("Couldn't import Biom3d modules," ,e)
+        
+
+    try:
+        import biom3d.omero_pred
+        from biom3d.omero_downloader import download_object
+    except  ImportError as e:
+        print("Couldn't import Omero modules", e)
+        pass
+
+        
+
+
+
 # Styles 
 
 def init_styles():
@@ -314,14 +325,17 @@ def popupmsg(msg):
     msg : str
         Text to be printed.
     """
-    popup = tk.Tk()
-    popup.wm_title("!")
-    label = ttk.Label(popup, text=msg)
-    popup.minsize(300,100)
-    label.pack(pady=10, padx=10)
-    B1 = ttk.Button(popup, text="Okay", command = popup.destroy)
-    B1.pack(side="bottom",pady=10)
-    popup.mainloop()
+    def _show():
+        popup = tk.Tk()
+        popup.wm_title("!")
+        popup.minsize(300, 100)
+        label = ttk.Label(popup, text=msg)
+        label.pack(pady=10, padx=10)
+        B1 = ttk.Button(popup, text="Okay", command=popup.destroy)
+        B1.pack(side="bottom", pady=10)
+        popup.mainloop()
+
+    threading.Thread(target=_show, daemon=True).start()
       
 #----------------------------------------------------------------------------
 # File dialog
@@ -2206,7 +2220,7 @@ class Root(Tk):
         self.welcome_message.grid(column=0, row=1, sticky=(W,E), pady=12)
         
         modulename='biom3d'
-        if modulename in sys.modules :
+        if not REMOTE and modulename in sys.modules :
             self.start_locally.grid(column=0, row=4, ipady=4, pady=12)
             self.local_path_label.grid(column=0, row=2, sticky=(W), pady=12)
             self.local_path_browse_button.grid(column=0, row=3, sticky=(W,E),ipadx=25,padx=20, pady=12) 

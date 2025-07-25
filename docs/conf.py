@@ -96,6 +96,7 @@ html_css_files = ["css/readthedocs.css"]
 
 
 html_theme_options = {
+    "navigation_with_keys": True,
     'menu': [
         {
             'name': 'GitHub',

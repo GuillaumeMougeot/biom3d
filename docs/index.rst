@@ -23,8 +23,11 @@ This tool is addressed to three different profiles:
    :maxdepth: 2
    :caption: Tutorials
 
-   quick_run_gui.md
-   tuto_cli.md
+   tuto/gui.md
+   tuto/cli.md
+   tuto/docker.md
+   tuto/config.md
+   tuto/server.md
 
 .. toctree::
    :maxdepth: 2
@@ -34,12 +37,10 @@ This tool is addressed to three different profiles:
 
 .. toctree::
    :maxdepth: 2
-   :caption: API 
+   :caption: Developper 
+   
+   api/api.rst
+   dep/dep.rst
+   
 
-   preprocess.rst
-   auto_config.rst
-   builder.rst
-   metrics.rst
-   callbacks.rst
-   trainers.rst
-   predictors.rst
+

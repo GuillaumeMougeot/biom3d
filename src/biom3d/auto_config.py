@@ -146,6 +146,11 @@ def data_fingerprint(img_dir, msk_dir=None, num_samples=10000,seed=42):
         median_size = np.median(np.array(sizes), axis=0).astype(int)
     except ValueError:
         raise ValueError( "Images don't have the same number of dimensions" )
+    
+    # Prevent the crash of np.median in case of empty array
+    for i in range(len(spacings)):
+        if spacings[i] is None : spacings[i] = []
+    print(spacings)
     median_spacing = np.median(np.array(spacings), axis=0)
     
     if not samples: 
