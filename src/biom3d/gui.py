@@ -37,7 +37,7 @@ try:
     # the packages below are only needed for the local version of the GUI
     # WARNING! the lines below must be commented when deploying the remote version,
     # and uncommented when installing the local version.
-    from biom3d.pred import pred
+    from biom3d.pred import pred, predict_2d
     from biom3d.utils import load_python_config 
     from biom3d.train import train
     from biom3d.eval import eval
@@ -1737,16 +1737,21 @@ class PredictTab(ttk.Frame):
         self.keep_big_only_state = IntVar(value=0)
         self.keep_biggest_only_button = ttk.Checkbutton(self, text="Keep the biggest object only ? ", variable=self.keep_biggest_only_state)        
         self.keep_big_only_button = ttk.Checkbutton(self, text="Keep big objects only ? ", variable=self.keep_big_only_state)        
-        
+        # 2d image ?
+        self.is_2d = IntVar(value=0) 
+        self.is_2d_check_button = ttk.Checkbutton(self, text="Process 2D images ? ",  variable=self.is_2d)
+        global is_2d_pred 
+        is_2d_pred = self.is_2d
+
         if not REMOTE: self.output_dir = OutputDirectory(self, text="Output directory", padding=[10,10,10,10])
         self.button = ttk.Button(self, width=29,style="train_button.TLabel", text="Start", command=self.predict)
         if REMOTE: self.download_prediction = DownloadPrediction(self, text="Download predictions to local", padding=[10,10,10,10])
 
 
-        self.use_omero.grid(column=0,row=0,sticky=(W,E), pady=6)
+        self.use_omero.grid(column=0,row=0,sticky=(W), pady=6)
+        self.is_2d_check_button.grid(column=0,row=0,sticky=(E), pady=6)
         self.input_dir.grid(column=0,row=1,sticky=(W,E), pady=6)
         self.model_selection.grid(column=0,row=3,sticky=(W,E), pady=6)
-        
         if not REMOTE: 
             self.output_dir.grid(column=0,row=5,sticky=(W,E), pady=6)
             self.send_to_omero.grid(column=0,row=4,sticky=(W,E), pady=6)
@@ -1833,7 +1838,7 @@ class PredictTab(ttk.Frame):
                 
                 # TODO: below, still OS dependant 
                 # Run OMERO prediction
-                _, stdout, stderr = REMOTE.exec_command("source {}/bin/activate; cd {}; python -m biom3d.omero_pred --obj {} --log {} --username {} --password {} --hostname {} --upload_id {} --attachment {} ".format(VENV,
+                _, stdout, stderr = REMOTE.exec_command("source {}/bin/activate; cd {}; python -m biom3d.omero_pred --obj {} --log {} --username {} --password {} --hostname {} --upload_id {} --attachment {} --is_2d {} ".format(VENV,
                     MAIN_DIR,
                     obj,
                     MAIN_DIR+'logs/' + self.model_selection.logs_dir.get(), 
@@ -1842,6 +1847,7 @@ class PredictTab(ttk.Frame):
                     self.omero_connection.hostname.get(),
                     self.omero_dataset.project_id.get(),
                     MAIN_DIR+'logs/' + attachment_file,
+                    is_2d_pred.get()
                     ))
                 while True: 
                     line = stdout.readline()
@@ -1874,15 +1880,17 @@ class PredictTab(ttk.Frame):
                     host=self.omero_connection.hostname.get(),
                     upload_id=int(self.omero_dataset.project_id.get()),
                     attachment=attachment_file,
+                    is_2d=is_2d_pred.get()
                 )
         
         else: # if not use Omero
             if REMOTE:
-                _, stdout, stderr = REMOTE.exec_command("source {}/bin/activate; cd {}; python -m biom3d.pred --log {} --dir_in {} --dir_out {}".format(VENV,
-                    MAIN_DIR,
+                _, stdout, stderr = REMOTE.exec_command("cd {}; source {}/bin/activate;  python -m biom3d.pred --log {} --dir_in {} --dir_out {} --is_2d {} ".format(MAIN_DIR,
+                    VENV,
                     'logs/'+self.model_selection.logs_dir.get(), 
                     'data/to_pred/'+self.input_dir.data_dir.get(),
-                    'data/pred/'+self.input_dir.data_dir.get(), # the default prediction output folder
+                    'data/pred/'+self.input_dir.data_dir.get(),
+                     is_2d_pred.get() # the default prediction output folder
                     ))
                 while True: 
                     line = stdout.readline()
@@ -1906,10 +1914,16 @@ class PredictTab(ttk.Frame):
                 self.prediction_messages.grid(column=0, row=6, columnspan=2, sticky=(W,E))
                 self.prediction_messages.config(text="Prediction is running ...!")
                 # Run prediction
-                p = pred(
-                    log=self.model_selection.logs_dir.get(),
-                    dir_in=self.input_dir.data_dir.get(),
-                    dir_out=target)
+                if is_2d_pred:
+                    p = predict_2d(
+                        log=self.model_selection.logs_dir.get(),
+                        dir_in=self.input_dir.data_dir.get(),
+                        dir_out=target)
+                else :
+                    p = pred(
+                        log=self.model_selection.logs_dir.get(),
+                        dir_in=self.input_dir.data_dir.get(),
+                        dir_out=target)
                 self.prediction_messages.config(text="Prediction is done !")
                 if self.send_to_omero_state.get():
                     # Upload results to OMERO
