@@ -157,6 +157,19 @@ class UNet(nn.Module):
         print(self.load_state_dict(ckpt['model'], strict=False))
 
     def forward(self, x): 
+        """
+        Defines the forward pass of the UNet model.
+        
+        Parameters
+        ----------
+        x : torch.Tensor
+            The input tensor representing the image to be segmented.
+        
+        Returns
+        -------
+        torch.Tensor
+            The output segmentation map tensor.
+        """
         # x is an image
         out = self.encoder(x)
         out = self.decoder(out)

@@ -6,7 +6,7 @@ import os
 import argparse
 import pathlib
 import numpy as np
-
+import tempfile, shutil
 from biom3d.builder import Builder
 from biom3d.utils import abs_listdir, versus_one, dice, adaptive_imread, adaptive_imsave
 
@@ -100,6 +100,33 @@ def pred_seg_eval_single(log, img_path, out_path, msk_path):
     dice_score = versus_one(fct=dice, in_path=out_path, tg_path=msk_path, num_classes=num_classes)
     print("Metric result:", dice_score)
 
+def predict_2d(log, dir_in, dir_out):
+
+    dir_out=str(dir_out)
+
+    dir_out = os.path.join(dir_out,os.path.split(log[0] if isinstance(log,list) else log)[-1]) # name the prediction folder with the model folder name
+    temp_dir = tempfile.mkdtemp()
+    try:
+        img_paths = sorted(abs_listdir(dir_in))
+        for path in img_paths:
+            img, meta = adaptive_imread(path)
+            if img.ndim == 2:
+                img = img[np.newaxis, np.newaxis, ...]
+            elif img.ndim == 3:
+                img = img[:, np.newaxis, ...]
+            fname = os.path.basename(path)
+            adaptive_imsave(os.path.join(temp_dir, fname), img, meta)
+
+        # Now give the persistent output folder
+        builder = Builder(config=None, path=log, training=False)
+        builder.run_prediction_folder(temp_dir, dir_out, return_logit=False)
+
+        print(f"Predictions saved to {dir_out}")
+        return dir_out
+
+    finally:
+        shutil.rmtree(temp_dir)
+
 #---------------------------------------------------------------------------
 
 if __name__=='__main__':
@@ -111,6 +138,7 @@ if __name__=='__main__':
         "seg_multiple": pred_multiple,
         "seg_single": pred_single,
         "seg_eval_single": pred_seg_eval_single,
+        "seg_2d": predict_2d,
         # "seg_patch": pred_seg_patch,
         # "seg_patch_multi": pred_seg_patch_multi,
         # "single": pred_single,
@@ -135,6 +163,8 @@ if __name__=='__main__':
         help="Path to the input image directory") 
     parser.add_argument("-e", "--eval_only", default=False,  action='store_true', dest='eval_only',
         help="Do only the evaluation and skip the prediction (predictions must have been done already.)") 
+    parser.add_argument("--is_2d", default=False,  
+        help="(default=False) Whether the image is 2d.")
     args = parser.parse_args()
 
     if isinstance(args.log,list) and len(args.log)==1:

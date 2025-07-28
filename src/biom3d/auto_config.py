@@ -330,7 +330,7 @@ def display_info(patch, pool, batch):
     print("BATCH_SIZE =", batch)
     print("PATCH_SIZE =", list(patch))
     aug_patch = get_aug_patch(patch)
-    print("AUG_PATCH_SIZE =",list(aug_patch))
+    print("AUG_PATCH_SIZE =",list(aug_patch))  
     print("NUM_POOLS =", list(pool))
 
 def auto_config(img_dir=None, median=None, max_dims=(128,128,128), max_batch=16, min_batch=2):
@@ -419,4 +419,4 @@ if __name__=='__main__':
     if args.spacing:print("MEDIAN_SPACING =",list(median_spacing))
     if args.median:print("MEDIAN =", list(median))
 
-# ----------------------------------------------------------------------------
+#----------------------------------------------------------------------------

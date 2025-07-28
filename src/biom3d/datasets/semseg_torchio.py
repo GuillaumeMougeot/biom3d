@@ -52,6 +52,8 @@ class RandomCropOrPad(RandomTransform, SpatialTransform):
             Used with the foreground rate. Name of the label image in the tio.Subject.
         use_softmax: boolean, default=True
             Used with the foreground rate to know if the background should be removed.
+        **kwargs : dict
+            Additional keyword arguments.
         """
         super().__init__(**kwargs)
         patch_size_array = np.array(to_tuple(patch_shape, length=3))
@@ -182,6 +184,12 @@ class LabelToFloat:
         Name of the label to be transformed.
     """
     def __init__(self, label_name):
+        """
+        Parameters
+        ----------
+        label_name : str
+            Name of the label to be transformed.
+        """
         self.label_name = label_name
         
     def __call__(self, subject):
@@ -199,6 +207,12 @@ class LabelToLong:
         Name of the label to be transformed.
     """
     def __init__(self, label_name):
+        """
+        Parameters
+        ----------
+        label_name : str
+            Name of the label to be transformed.
+        """
         self.label_name = label_name
         
     def __call__(self, subject):
@@ -216,6 +230,12 @@ class LabelToBool:
         Name of the label to be transformed.
     """
     def __init__(self, label_name):
+        """
+        Parameters
+        ----------
+        label_name : str
+            Name of the label to be transformed.
+        """
         self.label_name = label_name
         
     def __call__(self, subject):
@@ -300,6 +320,7 @@ class TorchioDataset(SubjectsDataset):
         use_softmax : bool, default=True
             If True, use softmax activation; otherwise, sigmoid is used.
         """
+      
         self.img_dir = img_dir
         self.msk_dir = msk_dir
         self.fg_dir = fg_dir

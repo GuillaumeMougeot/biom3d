@@ -142,6 +142,8 @@ class LoadImgPatch:
         intensity_moments=[],
         ):
         
+        
+        
         self.fname = fname
         self.patch_size = np.array(patch_size)
         self.median_spacing = np.array(median_spacing)

@@ -334,6 +334,13 @@ class LabelToLong:
         Dictionary with the label data converted to long (integer) type.
     """
     def __init__(self, label_name):
+        """
+        Parameters
+        ----------
+        label_name : str
+            Name of the label to be transformed.
+        """
+
         self.label_name = label_name
         
     def __call__(self, subject):

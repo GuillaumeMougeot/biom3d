@@ -189,7 +189,10 @@ def run(username, password, hostname, project, attachment=None, dataset_name=Non
         dataset = conn.getObject("Dataset", project)
         dataset_name = dataset.getName()+"_trained"
         parent_project = dataset.listParents()
-        project = parent_project[0].getId()
+        if parent_project:
+            project = parent_project[0].getId()
+        else:
+            project = None
 
     if path is not None :
         # create a new Omero Dataset
