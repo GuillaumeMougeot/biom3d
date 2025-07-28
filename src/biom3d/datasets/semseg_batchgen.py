@@ -3,13 +3,10 @@
 # Follow the nnUNet augmentation pipeline.
 #---------------------------------------------------------------------------
 
-import os
 import random
-import pickle
 import numpy as np
 import pandas as pd
 
-from batchgenerators.dataloading.single_threaded_augmenter import SingleThreadedAugmenter
 from batchgenerators.transforms.abstract_transforms import AbstractTransform, Compose
 from batchgenerators.transforms.color_transforms import BrightnessMultiplicativeTransform, \
     ContrastAugmentationTransform, GammaTransform
@@ -18,8 +15,7 @@ from batchgenerators.transforms.resample_transforms import SimulateLowResolution
 from batchgenerators.transforms.spatial_transforms import SpatialTransform, MirrorTransform
 from batchgenerators.transforms.utility_transforms import RemoveLabelTransform, RenameTransform, NumpyToTensor
 from batchgenerators.transforms.crop_and_pad_transforms import CenterCropTransform
-from batchgenerators.utilities.file_and_folder_operations import join, load_json, isfile, save_json, maybe_mkdir_p
-from torch._dynamo import OptimizedModule
+
 from batchgenerators.augmentations.utils import resize_segmentation
 from batchgenerators.augmentations.utils import rotate_coords_3d, rotate_coords_2d
 from batchgenerators.dataloading.data_loader import SlimDataLoaderBase
@@ -200,7 +196,6 @@ class RandomCropAndPadTransform(AbstractTransform):
 # image reader
 
 def imread(handler,img, msk, loc=None,threeD=True):
-    print(handler.images, handler.masks)
     img,_ = handler.load(img)
     msk,_ = handler.load(msk)
     if loc is not None : fg,_ = handler.load(loc)
@@ -227,7 +222,6 @@ class DataReader(AbstractTransform):
         data = data_dict.get(self.data_key)
         seg = data_dict.get(self.label_key)
         loc = data_dict.get(self.loc_key)
-        print("DATA",data,seg)
         if isinstance(data,list):
             for i in range(len(data)):
                 data[i], seg[i],loc[i] = imread(self.handler,data[i], seg[i],loc[i])
@@ -613,11 +607,11 @@ class BatchGenDataLoader(SlimDataLoaderBase):
     
     def __init__(
         self,
-        img_dir,
-        msk_dir,
+        img_path,
+        msk_path,
         batch_size, 
         nbof_steps,
-        fg_dir     = None,
+        fg_path     = None,
         folds_csv  = None, 
         fold       = 0, 
         val_split  = 0.25,
@@ -633,9 +627,9 @@ class BatchGenDataLoader(SlimDataLoaderBase):
         load_data : boolean, default=False
             if True, loads the all dataset into computer memory (faster but more memory expensive). ONLY COMPATIBLE WITH .npy PREPROCESSED IMAGES
         """
-        self.img_dir = img_dir
-        self.msk_dir = msk_dir
-        self.fg_dir = fg_dir
+        self.img_path = img_path
+        self.msk_path = msk_path
+        self.fg_path = fg_path
 
         self.batch_size = batch_size
 
@@ -644,11 +638,11 @@ class BatchGenDataLoader(SlimDataLoaderBase):
         self.load_data = load_data
 
         handler = DataHandlerFactory.get(
-            self.img_dir,
+            self.img_path,
             read_only=True,
-            img_path = img_dir,
-            msk_path = msk_dir,
-            fg_path = fg_dir,
+            img_path = img_path,
+            msk_path = msk_path,
+            fg_path = fg_path,
         )
         
         # get the training and validation names 
@@ -680,9 +674,9 @@ class BatchGenDataLoader(SlimDataLoaderBase):
 
         self.fnames = self.train_imgs if self.train else self.val_imgs
         handler.open(
-            img_path = img_dir,
-            msk_path = msk_dir,
-            fg_dir = fg_dir,
+            img_path = img_path,
+            msk_path = msk_path,
+            fg_path = fg_path,
             img_inner_path_list = self.fnames,
             msk_inner_path_list = self.fnames,
             fg_inner_path_list = self.fnames,
@@ -700,7 +694,7 @@ class BatchGenDataLoader(SlimDataLoaderBase):
                     # file names
                     img = handler.load(i)[0]
                     msk = handler.load(m)[0]
-                    if self.fg_dir is not None:
+                    if self.fg_path is not None:
                         fg  = handler.load(f)[0]
                     data += [{'data': img, 'seg': msk, 'loc': fg}]
             else:
@@ -834,12 +828,12 @@ def configure_rotation_dummyDA_mirroring_and_inital_patch_size(patch_size):
 class MTBatchGenDataLoader(MultiThreadedAugmenter):
     def __init__(
         self,
-        img_dir,
-        msk_dir,
+        img_path,
+        msk_path,
         patch_size,
         batch_size, 
         nbof_steps,
-        fg_dir     = None,
+        fg_path     = None,
         folds_csv  = None, 
         fold       = 0, 
         val_split  = 0.25,
@@ -849,13 +843,13 @@ class MTBatchGenDataLoader(MultiThreadedAugmenter):
         num_threads_in_mt=12, 
         **kwargs,
     ):
-        if fg_dir is None : raise ValueError("Batchgen module need foregrounds, ensure the preprocessing does it and that the path is included in the config file.")
+        if fg_path is None : raise ValueError("Batchgen module need foregrounds, ensure the preprocessing does it and that the path is included in the config file.")
         gen = BatchGenDataLoader(
-            img_dir,
-            msk_dir,
+            img_path,
+            msk_path,
             batch_size,
             nbof_steps,
-            fg_dir,
+            fg_path,
             folds_csv, 
             fold,
             val_split,  
@@ -869,11 +863,11 @@ class MTBatchGenDataLoader(MultiThreadedAugmenter):
         self.length = nbof_steps
 
         handler = DataHandlerFactory.get(
-            img_dir,
+            img_path,
             read_only=True,
-            img_path = img_dir,
-            msk_path = msk_dir,
-            fg_path = fg_dir,
+            img_path = img_path,
+            msk_path = msk_path,
+            fg_path = fg_path,
         )
         
         if train:

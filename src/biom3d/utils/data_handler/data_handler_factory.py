@@ -3,6 +3,7 @@ from os import lstat,getcwd,access,W_OK
 from typing import Optional, Type
 from urllib.parse import urlparse
 
+from .data_handler_abstract import DataHandler
 from .file_handler import FileHandler
 from .hdf5_handler import HDF5Handler
 
@@ -90,11 +91,11 @@ class DataHandlerFactory:
                     Generic : mask output path
                 fg_path:str, default = None
                     Generic : foreground output path
-                img_outdir:str, default = None,
+                img_outpath:str, default = None,
                     Generic : images output path
-                msk_outdir:str, default = None
+                msk_outpath:str, default = None
                     Generic : mask output path
-                fg_outdir:str, default = None
+                fg_outpath:str, default = None
                     Generic : foreground output path
                 use_tif:bool, default = False
                     FileHandler, if should be saved as tif instead of npy

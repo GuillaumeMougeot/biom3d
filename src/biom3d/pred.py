@@ -23,53 +23,53 @@ def pred_single(log, img_path,out_path):
             img_path,
             output=out_path,
             img_path = img_path,
-            msk_outdir = out_path,
+            msk_outpath = out_path,
         )
     img = builder.run_prediction_single(handler, return_logit=False)
     handler.save(handler.images[0], img,"msk")
     return builder.config.NUM_CLASSES+1  # for pred_seg_eval_single
 
-def pred(log, dir_in, dir_out):
+def pred(log, path_in, path_out):
     """Prediction on a folder of images.
     """
     if not isinstance(log,list): log=str(log)
-    dir_in=str(dir_in)
-    dir_out=str(dir_out)
+    path_in=str(path_in)
+    path_out=str(path_out)
 
     builder = Builder(config=None,path=log, training=False)
-    dir_out = builder.run_prediction_folder(dir_in=dir_in, dir_out=dir_out, return_logit=False)
-    return dir_out
+    path_out = builder.run_prediction_folder(path_in=path_in, path_out=path_out, return_logit=False)
+    return path_out
 
 @deprecated("This method is no longer used as it is the default behaviour of DataHandlers.")
-def pred_multiple(log, dir_in, dir_out):
+def pred_multiple(log, path_in, path_out):
     """Prediction a folder of folders of images.
     """
-    return pred(log,dir_in,dir_out)
+    return pred(log,path_in,path_out)
 
 #---------------------------------------------------------------------------
 # main unet segmentation
-def pred_seg(log=pathlib.Path.home(), dir_in=pathlib.Path.home(), dir_out=pathlib.Path.home()):
-    pred(log, dir_in, dir_out)
+def pred_seg(log=pathlib.Path.home(), path_in=pathlib.Path.home(), path_out=pathlib.Path.home()):
+    pred(log, path_in, path_out)
 
-def pred_seg_eval(log=pathlib.Path.home(), dir_in=pathlib.Path.home(), dir_out=pathlib.Path.home(), dir_lab=None, eval_only=False):
+def pred_seg_eval(log=pathlib.Path.home(), path_in=pathlib.Path.home(), path_out=pathlib.Path.home(), path_lab=None, eval_only=False):
     print("Start inference")
     builder_pred = Builder(
         config=None,
         path=log, 
         training=False)
-    out = dir_out
+    out = path_out
     if not eval_only:
-        out = builder_pred.run_prediction_folder(dir_in=dir_in, dir_out=dir_out, return_logit=False) # run the predictions
+        out = builder_pred.run_prediction_folder(path_in=path_in, path_out=path_out, return_logit=False) # run the predictions
     print("Inference done!")
 
 
-    if dir_lab is not None:
+    if path_lab is not None:
         if isinstance(builder_pred.config,list):
             num_classes = builder_pred.config[0].NUM_CLASSES+1
         else:
             num_classes = builder_pred.config.NUM_CLASSES+1
         # eval
-        eval(dir_lab,out,num_classes=num_classes)
+        eval(path_lab,out,num_classes=num_classes)
 
 def pred_seg_eval_single(log, img_path, out_path, msk_path):
     handler1 = DataHandlerFactory.get(
@@ -114,14 +114,14 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser(description="Main training file.")
     parser.add_argument("-n", "--name", type=str, default="seg",
         help="Name of the tested method. Valid names: {}".format(valid_names.keys()))
-    parser.add_argument("-l", "--log", type=str, nargs='+',
+    parser.add_argument("-l", "--log", type=str, nargs='+',required=True,
         help="Path of the builder directory/directiories. You can pass several paths to make a prediction using several models.")
-    parser.add_argument("-i", "--dir_in", type=str,
-        help="Path to the input image directory")
-    parser.add_argument("-o", "--dir_out", type=str,
-        help="Path to the output prediction directory")
-    parser.add_argument("-a", "--dir_lab", type=str, default=None,
-        help="Path to the input image directory") 
+    parser.add_argument("-i", "--path_in","--dir_in",dest="path_in",type=str,required=True,
+        help="Path to the input image collection")
+    parser.add_argument("-o", "--path_out","--dir_out",dest="path_out", type=str,required=True,
+        help="Path to the output prediction collection")
+    parser.add_argument("-a", "--path_lab","--dir_lab",dest="path_lab", type=str, default=None,
+        help="Path to the input label collection") 
     parser.add_argument("-e", "--eval_only", default=False,  action='store_true', dest='eval_only',
         help="Do only the evaluation and skip the prediction (predictions must have been done already.)") 
     args = parser.parse_args()
@@ -135,10 +135,10 @@ if __name__=='__main__':
         valid_names[args.name].show(run=True)
     else:
         if args.name=="seg_eval":
-            valid_names[args.name](args.log, args.dir_in, args.dir_out, args.dir_lab, args.eval_only)
+            valid_names[args.name](args.log, args.path_in, args.path_out, args.path_lab, args.eval_only)
         elif args.name=="seg_eval_single":
-            valid_names[args.name](args.log, args.dir_in, args.dir_out, args.dir_lab)
+            valid_names[args.name](args.log, args.path_in, args.path_out, args.path_lab)
         else:
-            valid_names[args.name](args.log, args.dir_in, args.dir_out)
+            valid_names[args.name](args.log, args.path_in, args.path_out)
 
 #---------------------------------------------------------------------------

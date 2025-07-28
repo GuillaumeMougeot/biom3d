@@ -25,16 +25,16 @@ class Dict(dict):
 # EDIT THE FOLLOWING PARAMATERS WITH YOUR OWN DATASETS PARAMETERS
 
 # Folder where pre-processed images are stored
-IMG_DIR = None
+IMG_PATH = None
 
 # Folder where pre-processed masks are stored
-MSK_DIR = None
+MSK_PATH = None
 
 # (Optional) Folder with the foreground locations
 # It is automatically set during preprocessing,
 # but can be left None. If so, foreground locations will be 
 # dynamically computed during training.
-FG_DIR = None
+FG_PATH = None
 
 # (Optional) path to the .csv file storing "filename,hold_out,fold", where:
 # "filename" is the image name,
@@ -144,9 +144,9 @@ FOLD = 0
 TRAIN_DATASET = Dict(
     fct="SegPatchFast",
     kwargs=Dict(
-        img_dir    = IMG_DIR,
-        msk_dir    = MSK_DIR, 
-        fg_dir     = FG_DIR,
+        img_path    = IMG_PATH,
+        msk_path    = MSK_PATH, 
+        fg_path     = FG_PATH,
         batch_size = BATCH_SIZE, 
         patch_size = PATCH_SIZE,
         nbof_steps = 250,
@@ -172,9 +172,9 @@ TRAIN_DATALOADER_KWARGS = Dict(
 VAL_DATASET = Dict(
     fct="SegPatchFast",
     kwargs = Dict(
-        img_dir    = IMG_DIR,
-        msk_dir    = MSK_DIR, 
-        fg_dir     = FG_DIR,
+        img_path    = IMG_PATH,
+        msk_path    = MSK_PATH, 
+        fg_path     = FG_PATH,
         batch_size = BATCH_SIZE, 
         patch_size = PATCH_SIZE,
         nbof_steps = 50,

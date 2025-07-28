@@ -62,19 +62,19 @@ def compute_median(path, return_spacing=False):
 
     return median 
 
-def data_fingerprint(img_dir, msk_dir=None, num_samples=10000,seed=42):
+def data_fingerprint(img_path, msk_path=None, num_samples=10000,seed=42):
     """Compute the data fingerprint. 
 
     Parameters 
     ----------
-    img_dir : str
-        Path to the directory of images.
-    msk_dir : str, default=None
-        (Optional) Path to the corresponding directory of masks. If provided the function will compute the mean, the standard deviation, the 0.5% percentile and the 99.5% percentile of the intensity values of the images located inside the masks. If not provide, the function returns zeros for each of these values.
+    img_path : str
+        Path to the images collection.
+    msk_path : str, default=None
+        (Optional) Path to the corresponding collection of masks. If provided the function will compute the mean, the standard deviation, the 0.5% percentile and the 99.5% percentile of the intensity values of the images located inside the masks. If not provide, the function returns zeros for each of these values.
     num_samples : int, default=10000
         We compute the intensity characteristic on only a sample of the candidate voxels.
     seed : int, default=42
-        (Optional) Random generator seed, is used if msk_dir isn't None
+        (Optional) Random generator seed, is used if msk_path isn't None
 
     
     Returns
@@ -93,11 +93,11 @@ def data_fingerprint(img_dir, msk_dir=None, num_samples=10000,seed=42):
         99.5% percentile of the intensities.
     """ 
     handler = DataHandlerFactory.get(
-        img_dir,
+        img_path,
         read_only=True,
         output=None,
-        img_path = img_dir,
-        msk_path = msk_dir,
+        img_path = img_path,
+        msk_path = msk_path,
     )
     
     sizes = []
@@ -115,7 +115,7 @@ def data_fingerprint(img_dir, msk_dir=None, num_samples=10000,seed=42):
         if spacing is not None and spacing!=[]: 
             spacings+=[spacing]
 
-        if msk_dir is not None:
+        if msk_path is not None:
             # read msk
             msk,_ = handler.load(msk_path)
             
@@ -312,16 +312,16 @@ def display_info(patch, pool, batch):
     print("AUG_PATCH_SIZE =",list(aug_patch))
     print("NUM_POOLS =", list(pool))
 
-def auto_config(img_dir=None, median=None, max_dims=(128,128,128), max_batch=16, min_batch=2):
-    """Given an image folder, return the batch size, the patch size and the number of pooling.
-    Provide either an image directory or a median shape. If a median shape is provided it will not be recomputed and the auto-configuration will be much faster.
+def auto_config(img_path=None, median=None, max_dims=(128,128,128), max_batch=16, min_batch=2):
+    """Given an image collection, return the batch size, the patch size and the number of pooling.
+    Provide either an image collection path or a median shape. If a median shape is provided it will not be recomputed and the auto-configuration will be much faster.
 
     Parameters
     ----------
-    img_dir : str
-        Image folder path.
+    img_path : str
+        Image collection path.
     median : list or tuple
-        Median size of the images in the image directory.
+        Median size of the images in the image collection.
     max_dims: tuple, default=(128,128,128)
         Maximum patch size. The product of `max_dims` is used to determine the maximum patch size
 
@@ -336,8 +336,8 @@ def auto_config(img_dir=None, median=None, max_dims=(128,128,128), max_batch=16,
     pool: numpy.ndarray
         Number of pooling.
     """
-    assert not(img_dir is None and median is None), "[Error] Please provide either an image directory or a median shape."
-    if median is None: median = compute_median(path=img_dir) 
+    assert not(img_path is None and median is None), "[Error] Please provide either an image collection path or a median shape."
+    if median is None: median = compute_median(path=img_path) 
     patch, pool, batch = find_patch_pool_batch(dims=median, max_dims=max_dims) 
     aug_patch = get_aug_patch(patch)
     if batch > max_batch: batch = max_batch
@@ -350,8 +350,8 @@ def auto_config(img_dir=None, median=None, max_dims=(128,128,128), max_batch=16,
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description="Auto-configuration of the hyper-parameter for training.")
-    parser.add_argument("--img_dir", type=str,
-        help="Path of the images directory")
+    parser.add_argument("--img_path", type=str,
+        help="Path of the images collection")
     parser.add_argument("--max_dim", type=int, default=128,
         help="Maximum size of one dimension of the patch (default: 128)")  
     parser.add_argument("--spacing", default=False,  action='store_true', dest='spacing',
@@ -366,7 +366,7 @@ if __name__=='__main__':
         help="(default=None) Optional. Path to an existing configuration file which will be updated with the preprocessed values.")
     args = parser.parse_args()
 
-    median = compute_median(path=args.img_dir, return_spacing=args.spacing)
+    median = compute_median(path=args.img_path, return_spacing=args.spacing)
     
     if args.spacing: 
         median_spacing = median[1]

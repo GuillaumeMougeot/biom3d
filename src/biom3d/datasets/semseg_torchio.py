@@ -214,12 +214,12 @@ class TorchioDataset(SubjectsDataset):
     
     def __init__(
         self,
-        img_dir,
-        msk_dir,
+        img_path,
+        msk_path,
         batch_size, 
         patch_size,
         nbof_steps,
-        fg_dir     = None,
+        fg_path     = None,
         folds_csv  = None, 
         fold       = 0, 
         val_split  = 0.25,
@@ -237,9 +237,9 @@ class TorchioDataset(SubjectsDataset):
         load_data : boolean, default=False
             if True, loads the all dataset into computer memory (faster but more memory expensive). ONLY COMPATIBLE WITH .npy PREPROCESSED IMAGES
         """
-        self.img_dir = img_dir
-        self.msk_dir = msk_dir
-        self.fg_dir = fg_dir
+        self.img_path = img_path
+        self.msk_path = msk_path
+        self.fg_path = fg_path
 
         self.batch_size = batch_size
         self.patch_size = patch_size
@@ -250,11 +250,11 @@ class TorchioDataset(SubjectsDataset):
         self.load_data = load_data
 
         self.handler = DataHandlerFactory.get(
-            self.img_dir,
+            self.img_path,
             read_only=True,
-            img_path = img_dir,
-            msk_path = msk_dir,
-            fg_path = fg_dir,
+            img_path = img_path,
+            msk_path = msk_path,
+            fg_path = fg_path,
         )
         
         # get the training and validation names 
@@ -289,9 +289,9 @@ class TorchioDataset(SubjectsDataset):
         self.fnames = self.train_imgs if self.train else self.val_imgs
 
         self.handler.open(
-            img_path = img_dir,
-            msk_path = msk_dir,
-            fg_dir = fg_dir,
+            img_path = img_path,
+            msk_path = msk_path,
+            fg_path = fg_path,
             img_inner_path_list = self.fnames,
             msk_inner_path_list = self.fnames,
             fg_inner_path_list = self.fnames,
@@ -308,7 +308,7 @@ class TorchioDataset(SubjectsDataset):
         def load_subjects():
             subjects_list = []
             for i,m,f in self.handler:
-                if self.fg_dir is not None:
+                if self.fg_path is not None:
                     fg = self.handler.load(f)
                 else: 
                     fg = None

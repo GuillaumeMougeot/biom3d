@@ -212,8 +212,8 @@ class SemSeg3DPatchFast(Dataset):
     """
     def __init__(
         self,
-        img_dir,
-        msk_dir,
+        img_path,
+        msk_path,
         batch_size, 
         patch_size,
         nbof_steps,
@@ -223,16 +223,16 @@ class SemSeg3DPatchFast(Dataset):
         train      = True,
         use_aug    = True,
         aug_patch_size = None,
-        fg_dir  = None,
+        fg_path  = None,
         fg_rate = 0.33, # if > 0, force the use of foreground, needs to run some pre-computations (note: better use the foreground scheduler)
         crop_scale = 1.0, # if > 1, then use random_crop_resize instead of random_crop_pad
         load_data = False, # if True, loads the all dataset into computer memory (faster but more memory expensive)
         use_softmax = True,
         ):
 
-        self.img_dir = img_dir
-        self.msk_dir = msk_dir
-        self.fg_dir = fg_dir
+        self.img_path = img_path
+        self.msk_path = msk_path
+        self.fg_path = fg_path
 
         self.batch_size = batch_size
         self.patch_size = patch_size
@@ -243,11 +243,11 @@ class SemSeg3DPatchFast(Dataset):
         self.load_data = load_data
 
         self.handler = DataHandlerFactory.get(
-            self.img_dir,
+            self.img_path,
             read_only=True,
-            img_path = img_dir,
-            msk_path = msk_dir,
-            fg_path = fg_dir,
+            img_path = img_path,
+            msk_path = msk_path,
+            fg_path = fg_path,
         )
         
         # get the training and validation names 
@@ -282,9 +282,9 @@ class SemSeg3DPatchFast(Dataset):
         self.fnames = self.train_imgs if self.train else self.val_imgs
 
         self.handler.open(
-            img_path = img_dir,
-            msk_path = msk_dir,
-            fg_dir = fg_dir,
+            img_path = img_path,
+            msk_path = msk_path,
+            fg_path = fg_path,
             img_inner_path_list = self.fnames,
             msk_inner_path_list = self.fnames,
             fg_inner_path_list = self.fnames,
@@ -296,7 +296,7 @@ class SemSeg3DPatchFast(Dataset):
         if self.load_data:
             print("Loading the whole dataset into computer memory...")
             def load_data():
-                nonlocal fg_dir
+                nonlocal fg_path
                 imgs_data = []
                 msks_data = []
                 fg_data   = []
@@ -306,7 +306,7 @@ class SemSeg3DPatchFast(Dataset):
                     msks_data += [self.handler.load(m)[0]]
 
                     # load foreground 
-                    if fg_dir is not None:
+                    if fg_path is not None:
                         fg_data += [self.handler.load(m)[0]]
                 return imgs_data, msks_data, fg_data
 
@@ -402,14 +402,13 @@ class SemSeg3DPatchFast(Dataset):
         else:
             img_fname = self.fnames[idx%len(self.fnames)]
             idx=idx%len(self.fnames)
-            print(idx, self.fnames,self.handler.images)
 
             # read the images
             img = self.handler.load(self.handler.images[idx])[0]
             msk = self.handler.load(self.handler.masks[idx])[0]
 
             # read foreground data
-            if self.fg_dir is not None:
+            if self.fg_path is not None:
                 fg = self.handler.load(self.handler.fg[idx])[0]
             else:
                 fg = None

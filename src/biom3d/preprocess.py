@@ -322,15 +322,15 @@ class Preprocessing:
 
     Parameters
     ----------
-    img_dir : str
-        Path to the input image folder
-    img_outdir : str
-        Path to the output image folder
-    msk_dir : str, optional
-        Path to the input mask folder
-    msk_outdir : str, optional
-        Path to the output mask folder
-    fg_outdir : str, optional
+    img_path : str
+        Path to the input image collection
+    img_outpath : str
+        Path to the output image collection
+    msk_path : str, optional
+        Path to the input mask collection
+    msk_outpath : str, optional
+        Path to the output mask collection
+    fg_outpath : str, optional
         Foreground location, eventually later used by the dataloader.
     num_classes : int, optional
         Number of classes (channel) in the masks. Required by the 
@@ -353,11 +353,11 @@ class Preprocessing:
     """
     def __init__(
         self,
-        img_dir,
-        img_outdir = None,
-        msk_dir = None, # if None, only images are preprocesses not the masks
-        msk_outdir = None,
-        fg_outdir = None, # foreground location, eventually used by the dataloader
+        img_path,
+        img_outpath = None,
+        msk_path = None, # if None, only images are preprocesses not the masks
+        msk_outpath = None,
+        fg_outpath = None, # foreground location, eventually used by the dataloader
         num_classes = None, # just for debug when empty masks are provided
         use_one_hot = False,
         remove_bg = False, # keep the background in labels 
@@ -371,23 +371,23 @@ class Preprocessing:
         ):
                
 
-        self.img_dir=img_dir
-        self.msk_dir=msk_dir
+        self.img_path=img_path
+        self.msk_path=msk_path
         self.handler = DataHandlerFactory.get(
-            self.img_dir,
+            self.img_path,
             preprocess=True,
-            output=img_outdir,
-            img_path = self.img_dir,
-            msk_path = self.msk_dir,
-            img_outdir = img_outdir,
-            msk_outdir = msk_outdir,
-            fg_outdir = fg_outdir,
+            output=img_outpath,
+            img_path = self.img_path,
+            msk_path = self.msk_path,
+            img_outpath = img_outpath,
+            msk_outpath = msk_outpath,
+            fg_outpath = fg_outpath,
             use_tif=use_tif,
         )
 
 
         # create csv along with the img folder
-        self.csv_path = os.path.join(os.path.dirname(img_dir), 'folds.csv')
+        self.csv_path = os.path.join(os.path.dirname(img_path), 'folds.csv')
 
         self.num_classes = num_classes
 
@@ -399,7 +399,7 @@ class Preprocessing:
 
         self.num_channels = 1
         self.channel_axis = 0
-        self.img_outdir, self.msk_outdir, self.fg_outdir = self.handler.get_output()
+        self.img_outpath, self.msk_outpath, self.fg_outpath = self.handler.get_output()
 
         # if the 3D image has 4 dimensions then there is a channel dimension.
         if len(self.median_size)==4:
@@ -460,12 +460,12 @@ class Preprocessing:
         # validation names start with a 0
         # training names start with a 1
         handler_tmp = DataHandlerFactory.get(
-            self.img_dir,
-            output=self.msk_dir,
+            self.img_path,
+            output=self.msk_path,
             preprocess=True,
             read_only=False,
-            img_path= self.img_dir,
-            msk_path=self.msk_dir,
+            img_path= self.img_path,
+            msk_path=self.msk_path,
             use_tif=self.use_tif,
             )
 
@@ -480,10 +480,9 @@ class Preprocessing:
         train_msk_path = self.handler.insert_prefix_to_name(self.handler.masks[0],'1')
         handler_tmp.save(train_msk_path,train_msk,"msk")
 
-        # replace self.img_fnames and self.img_dir/self.msk_dir
         
         images,masks,_ = handler_tmp.get_output()
-        self.handler.open(images,masks) # Not good but it work
+        self.handler.open(images,masks)
         handler_tmp.close()
 
         # generate the csv file
@@ -504,7 +503,7 @@ class Preprocessing:
         print("Preprocessing...")
         # if there is only a single image/mask, then split them both in two portions
         image_was_split = False
-        if self.img_len==1 and self.msk_dir is not None:
+        if self.img_len==1 and self.msk_path is not None:
             print("Single image found per folder. Split the images...")
             split_meta = self._split_single()
             image_was_split = True
@@ -517,7 +516,7 @@ class Preprocessing:
                 print("[{}/{}] Preprocessing:{}".format(self.handler._image_index,len(self.handler),i))
 
             img,img_meta = self.handler.load(i)
-            if self.msk_dir is not None:
+            if self.msk_path is not None:
                 msk, _ = self.handler.load(m)
                 img, msk, fg = seg_preprocessor(
                     img                 =img, 
@@ -553,7 +552,7 @@ class Preprocessing:
             self.handler.save(i,img,"img")
 
             # save mask
-            if self.msk_outdir is not None: 
+            if self.msk_outpath is not None: 
                 self.handler.save(m,msk,"msk")
                 self.handler.save(m,fg,"fg")
 
@@ -567,13 +566,13 @@ class Preprocessing:
 #---------------------------------------------------------------------------
 
 def auto_config_preprocess(
-        img_dir, 
-        msk_dir, 
+        img_path, 
+        msk_path, 
         num_classes, 
         config_dir, 
         base_config, 
-        img_outdir=None,
-        msk_outdir=None,
+        img_outpath=None,
+        msk_outpath=None,
         use_one_hot=False,
         ct_norm=False,
         remove_bg=False, 
@@ -591,7 +590,7 @@ def auto_config_preprocess(
     """Helper function to do auto-config and preprocessing.
     """
     
-    median_size, median_spacing, mean, std, perc_005, perc_995 = data_fingerprint(img_dir, msk_dir if ct_norm else None)
+    median_size, median_spacing, mean, std, perc_005, perc_995 = data_fingerprint(img_path, msk_path if ct_norm else None)
     if not print_param:
         print("Data fingerprint:")
         print("Median size:", median_size)
@@ -612,10 +611,10 @@ def auto_config_preprocess(
         intensity_moments = []
 
     p=Preprocessing(
-        img_dir=img_dir,
-        msk_dir=msk_dir,
-        img_outdir=img_outdir,
-        msk_outdir=msk_outdir,
+        img_path=img_path,
+        msk_path=msk_path,
+        img_outpath=img_outpath,
+        msk_outpath=msk_outpath,
         num_classes=num_classes+1,
         use_one_hot=use_one_hot,
         remove_bg=remove_bg,
@@ -634,17 +633,17 @@ def auto_config_preprocess(
     if not no_auto_config:
         if not print_param: print("Start auto-configuration")
         handler = DataHandlerFactory.get(
-            img_dir,
+            img_path,
             read_only=True,
             output=None,
-            img_path = img_dir,
+            img_path = img_path,
         )
 
         
 
         batch, aug_patch, patch, pool = auto_config(
             median=p.median_size,
-            img_dir=img_dir if p.median_size is None else None,
+            img_path=img_path if p.median_size is None else None,
             max_dims=(max_dim, max_dim, max_dim),
             max_batch = len(handler)//20, # we limit batch to avoid overfitting
             )
@@ -658,9 +657,9 @@ def auto_config_preprocess(
             base_config=base_config,
 
             # store hyper-parameters in the config file:
-            IMG_DIR=p.img_outdir,
-            MSK_DIR=p.msk_outdir,
-            FG_DIR=p.fg_outdir,
+            IMG_PATH=p.img_outpath,
+            MSK_PATH=p.msk_outpath,
+            FG_PATH=p.fg_outpath,
             CSV_DIR=p.csv_path,
             NUM_CLASSES=num_classes,
             NUM_CHANNELS=p.num_channels,
@@ -691,14 +690,14 @@ def auto_config_preprocess(
 if __name__=='__main__':
 
     parser = argparse.ArgumentParser(description="Dataset preprocessing for training purpose.")
-    parser.add_argument("--img_dir", type=str,
-        help="Path of the images directory")
-    parser.add_argument("--msk_dir", type=str, default=None,
-        help="(default=None) Path to the masks/labels directory")
-    parser.add_argument("--img_outdir", type=str, default=None,
-        help="(default=None) Path to the directory of the preprocessed images")
-    parser.add_argument("--msk_outdir", type=str, default=None,
-        help="(default=None) Path to the directory of the preprocessed masks/labels")
+    parser.add_argument("--img_path","--img_dir",dest="img_path", type=str,required=True,
+        help="Path of the images collection")
+    parser.add_argument("--msk_path","--msk_dir",dest="msk_path", type=str, default=None,
+        help="(default=None) Path to the masks/labels collection")
+    parser.add_argument("--img_outpath","--img_outdir",dest="img_outpath", type=str, default=None,
+        help="(default=None : Current directory) Path to the ouput of the preprocessed images")
+    parser.add_argument("--msk_outpath","--msk_outdir",dest="msk_outpath", type=str, default=None,
+        help="(default=None : Current directory) Path to the output of the preprocessed masks/labels")
     parser.add_argument("--num_classes", type=int, default=1,
         help="(default=1) Number of classes (types of objects) in the dataset. The background is not included.")
     parser.add_argument("--max_dim", type=int, default=128,
@@ -734,13 +733,13 @@ if __name__=='__main__':
     args = parser.parse_args()
 
     auto_config_preprocess(
-        img_dir=args.img_dir, 
-        msk_dir=args.msk_dir, 
+        img_path=args.img_path, 
+        msk_path=args.msk_path, 
         num_classes=args.num_classes, 
         config_dir=args.config_dir, 
         base_config=args.base_config, 
-        img_outdir=args.img_outdir,
-        msk_outdir=args.msk_outdir,
+        img_outpath=args.img_outpath,
+        msk_outpath=args.msk_outpath,
         use_one_hot=args.use_one_hot,
         ct_norm=args.ct_norm,
         remove_bg=args.remove_bg, 

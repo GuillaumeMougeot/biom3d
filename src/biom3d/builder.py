@@ -44,7 +44,7 @@ def read_config(config_fct, register_cat, **kwargs):
 
     # get the register function kwargs and merge them with config function kwargs 
     register_kwargs = {**register_fct_.kwargs, **config_fct.kwargs, **kwargs} 
-
+     
     # run the function with its kwargs
     return register_fct(**register_kwargs) 
 
@@ -159,7 +159,7 @@ class Builder:
     
     >>> path = "path/to/log/folder"
     >>> builder = Builder(path=path, training=False)
-    >>> builder.run_prediction_folder(dir_in="input/folder", dir_out="output/folder")
+    >>> builder.run_prediction_folder(path_in="input/folder", path_out="output/folder")
     """
     def __init__(self, 
         config=None,         # inherit from Config class, stores the global variables
@@ -662,24 +662,24 @@ class Builder:
                 return_logit = return_logit,
                 **img_meta)
 
-    def run_prediction_folder(self, dir_in, dir_out, return_logit=False):
+    def run_prediction_folder(self, path_in, path_out, return_logit=False):
         """Compute predictions for a folder of images.
 
         Parameters
         ----------
-        dir_in : str
+        path_in : str
             Path to the input folder of images.
-        dir_out : str
+        path_out : str
             Path to the output folder where the predictions will be stored.
         return_logit : bool, default=False
             Whether to save the logit, i.e. the model output before the final activation.
         """
         handler = utils.DataHandlerFactory.get(
-            dir_in,
-            output=dir_out,
+            path_in,
+            output=path_out,
             read_only=False,
-            img_path = dir_in,
-            msk_outdir = dir_out,
+            img_path = path_in,
+            msk_outpath = path_out,
             model_name = self.config[-1].DESC if isinstance(self.config,list) else self.config.DESC,
         )
 
@@ -691,7 +691,7 @@ class Builder:
             fnames_out= handler.save(i,pred,"msk")
             print("Saved images in", fnames_out)
 
-        return handler.msk_outdir
+        return handler.msk_outpath
                 
     def load_train(self, 
         path, 

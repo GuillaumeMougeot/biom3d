@@ -6,7 +6,7 @@ import argparse
 import os
 import numpy as np
 from biom3d.builder import Builder
-from biom3d.utils import abs_listdir, versus_one, dice, load_python_config
+from biom3d.utils import load_python_config
 from biom3d.eval import eval
 
 
@@ -25,16 +25,16 @@ def train(config=None, path=None):
 def main_seg_pred_eval(
     config_path=None,
     path=None,
-    dir_in=None,
-    dir_out=None,
-    dir_lab=None,
+    path_in=None,
+    path_out=None,
+    path_lab=None,
     freeze_encoder=False,
     ):
     """
     do 3 tasks:
     - train the model
-    - compute predictions on the test set (dir_in) and store the results in dir_out
-    - evaluate the prediction stored in dir_out and print the result
+    - compute predictions on the test set (path_in) and store the results in path_out
+    - evaluate the prediction stored in path_out and print the result
     """
     # train
     print("Start training")
@@ -45,23 +45,21 @@ def main_seg_pred_eval(
 
     del builder_train
 
-    print(dir_in, dir_out,dir_lab)
-
     # pred
-    if dir_in is not None and dir_out is not None:
+    if path_in is not None and path_out is not None:
         print("Start inference")
         builder_pred = Builder(
             config=config_path,
             path=path,
             training=False)
 
-        out = builder_pred.run_prediction_folder(dir_in=dir_in, dir_out=dir_out, return_logit=False)
+        out = builder_pred.run_prediction_folder(path_in=path_in, path_out=path_out, return_logit=False)
         print("Inference done!")
 
-        if dir_lab is not None:
+        if path_lab is not None:
             # eval
             print("Start evaluation")
-            eval(dir_lab,out,builder_pred.config.NUM_CLASSES+1)        
+            eval(path_lab,out,builder_pred.config.NUM_CLASSES+1)        
 
 
 #---------------------------------------------------------------------------
@@ -75,16 +73,16 @@ def main_pretrain_seg_pred_eval(
     path_encoder=None,
     freeze_encoder=False,
     model_encoder=False, # if it is a model encoder (UNet) or just an encoder
-    dir_in=None,
-    dir_out=None,
-    dir_lab=None,
+    path_in=None,
+    path_out=None,
+    path_lab=None,
     ):
     """
     do 4 tasks:
     - pretrain the model/encoder
     - train the model
-    - compute predictions on the test set (dir_in) and store the results in dir_out
-    - evaluate the prediction stored in dir_out and print the result
+    - compute predictions on the test set (path_in) and store the results in path_out
+    - evaluate the prediction stored in path_out and print the result
     """
     # pretraining
     print("Start pretraining")
@@ -115,21 +113,21 @@ def main_pretrain_seg_pred_eval(
     print("Training done!")
 
     # pred
-    if dir_in is not None and dir_out is not None:
+    if path_in is not None and path_out is not None:
         print("Start inference")
         builder_pred = Builder(
             config=cfg,
             path=train_base_dir, 
             training=False)
 
-        out = builder_pred.run_prediction_folder(dir_in=dir_in, dir_out=dir_out, return_logit=False)
+        out = builder_pred.run_prediction_folder(path_in=path_in, path_out=path_out, return_logit=False)
         print("Inference done!")
 
 
-        if dir_lab is not None:
+        if path_lab is not None:
             # eval
             print("Start evaluation")
-            eval(dir_lab,out,builder_pred.config.NUM_CLASSES+1) 
+            eval(path_lab,out,builder_pred.config.NUM_CLASSES+1) 
 
 #---------------------------------------------------------------------------
 
@@ -170,24 +168,22 @@ if __name__=='__main__':
         help="Whether the encoder is a model encoder or a simple encoder.") 
     parser.add_argument("-fr", "--freeze_encoder", default=False,  action='store_true', dest='freeze_encoder',
         help="Whether to freeze or not the encoder.") 
-    parser.add_argument("-i", "--dir_in", type=str, default=None,
-        help="Path to the input image directory")
-    parser.add_argument("-o", "--dir_out", type=str, default=None,
-        help="Path to the output prediction directory")  
-    parser.add_argument("-a", "--dir_lab", type=str, default=None,
-        help="Path to the label image directory")  
+    parser.add_argument("-i", "--path_in","--dir_in",dest="path_in", type=str, default=None,
+        help="Path to the input image collection")
+    parser.add_argument("-o", "--path_out","--dir_out",dest="path_out", type=str, default=None,
+        help="Path to the output prediction collection")  
+    parser.add_argument("-a", "--path_lab","--dir_lab",dest="path_lab", type=str, default=None,
+        help="Path to the label image collection")  
     args = parser.parse_args()
 
-    print(args.dir_lab)
-    pass
     # run the method
     if args.name=="seg_pred_eval":
         valid_names[args.name](
             config_path=args.config,
             path=args.log,
-            dir_in=args.dir_in,
-            dir_out=args.dir_out,
-            dir_lab=args.dir_lab,
+            path_in=args.path_in,
+            path_out=args.path_out,
+            path_lab=args.path_lab,
             freeze_encoder=args.freeze_encoder,
             )
     elif args.name=='pretrain_seg_pred_eval':
@@ -195,12 +191,12 @@ if __name__=='__main__':
             pretrain_config=args.pretrain_config,
             train_config=args.config,
             log=args.log,
-            dir_in=args.dir_in,
+            path_in=args.path_in,
             path_encoder=args.path_encoder,
             model_encoder=args.model_encoder,
             freeze_encoder=args.freeze_encoder,
-            dir_out=args.dir_out,
-            dir_lab=args.dir_lab,
+            path_out=args.path_out,
+            path_lab=args.path_lab,
             )
     else:
         train(config=args.config, path=args.log)

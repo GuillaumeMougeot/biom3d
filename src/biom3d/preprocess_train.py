@@ -12,8 +12,8 @@ from biom3d.utils import load_python_config, save_python_config
 from biom3d.builder import Builder
 
 def preprocess_train(
-        img_dir,
-        msk_dir,
+        img_path,
+        msk_path,
         num_classes,
         config_dir="configs/",
         base_config=None,
@@ -24,8 +24,8 @@ def preprocess_train(
         ):
     # preprocessing
     config_path = auto_config_preprocess(
-        img_dir=img_dir, 
-        msk_dir=msk_dir, 
+        img_path=img_path, 
+        msk_path=msk_path, 
         num_classes=num_classes, 
         config_dir=config_dir, 
         base_config=base_config, 
@@ -43,10 +43,10 @@ def preprocess_train(
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description="Let's do it all-at-once! Subsequent preprocessing and training.")
-    parser.add_argument("--img_dir", type=str,
-        help="Path of the images directory")
-    parser.add_argument("--msk_dir", type=str, default=None,
-        help="(default=None) Path to the masks/labels directory")
+    parser.add_argument("--img_path","--img_dir",dest="img_path", type=str,required=True,
+        help="Path of the images collection")
+    parser.add_argument("--msk_path","--msk_dir",dest="msk_path", type=str, default=None,
+        help="(default=None) Path to the masks/labels collection")
     parser.add_argument("--num_classes", type=int, default=1,
         help="(default=1) Number of classes (types of objects) in the dataset. The background is not included.")
     parser.add_argument("--max_dim", type=int, default=128,
@@ -65,8 +65,8 @@ if __name__=='__main__':
     args = parser.parse_args()
 
     preprocess_train(
-        img_dir=args.img_dir,
-        msk_dir=args.msk_dir,
+        img_path=args.img_path,
+        msk_path=args.msk_path,
         num_classes=args.num_classes,
         config_dir=args.config_dir,
         base_config=args.base_config,

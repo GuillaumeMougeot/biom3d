@@ -43,7 +43,7 @@ def load_yaml_config(path):
     """
     load a yaml stored with the self.save method.
     """
-    return config_to_type(yaml.load(open(path),Loader=yaml.FullLoader), Dict)
+    return config_to_type(compat_old_config(yaml.load(open(path),Loader=yaml.FullLoader)), Dict)
 
 def nested_dict_pairs_iterator(dic):
     ''' This function accepts a nested dictionary as argument
@@ -94,11 +94,11 @@ def replace_line_single(line, key, value):
     
     Examples
     --------
-    >>> line = "IMG_DIR = None"
-    >>> key = "IMG_DIR"
+    >>> line = "IMG_PATH = None"
+    >>> key = "IMG_PATH"
     >>> value = "path/img"
     >>> replace_line_single(line, key, value)
-    IMG_DIR = 'path/img'
+    IMG_PATH = 'path/img'
     """
     if key==line[:len(key)]:
         assert line[len(key):len(key)+3]==" = ", "[Error] Invalid line. A valid line must contains \' = \'. Line:"+line
@@ -149,8 +149,8 @@ def save_python_config(
     >>> config_path = save_config_python(\\
         config_dir="configs/",\\
         base_config="configs/pancreas_unet.py",\\
-        IMG_DIR="/pancreas/imagesTs_tiny_out",\\
-        MSK_DIR="pancreas/labelsTs_tiny_out",\\
+        IMG_PATH="/pancreas/imagesTs_tiny_out",\\
+        MSK_PATH="pancreas/labelsTs_tiny_out",\\
         NUM_CLASSES=2,\\
         BATCH_SIZE=2,\\
         AUG_PATCH_SIZE=[56, 288, 288],\\
@@ -214,7 +214,32 @@ def load_python_config(config_path):
     config = importlib.util.module_from_spec(spec)
     sys.modules["config"] = config
     spec.loader.exec_module(config)
+    config.CONFIG=compat_old_config(config.CONFIG)
     return config_to_type(config.CONFIG, Dict) # change type from config.Dict to Dict
+
+def recursive_rename_key(d, old_key, new_key):
+    if isinstance(d, dict):
+        new_dict = {}
+        for k, v in d.items():
+            k = new_key if k == old_key else k
+            new_dict[k] = recursive_rename_key(v, old_key, new_key)
+        return new_dict
+    elif isinstance(d, list):
+        return [recursive_rename_key(i, old_key, new_key) for i in d]
+    else:
+        return d
+    
+def compat_old_config(config):
+    # Retrocompatibility with old configs
+    for k,v in {"IMG_DIR":"IMG_PATH", 
+              "MSK_DIR":"MSK_PATH",
+              "FG_DIR":"FG_PATH",
+              "img_dir":"img_path",
+              "msk_dir":"msk_path",
+              "fg_dir":'fg_path',
+              }.items() :
+        config = recursive_rename_key(config,k,v)
+    return config
 
 def adaptive_load_config(config_path):
     """Return the configuration dictionary given the path of the configuration file.
@@ -232,8 +257,9 @@ def adaptive_load_config(config_path):
     """
     extension = config_path[config_path.rfind('.'):]
     if extension=='.py':
-        return load_python_config(config_path=config_path)
+        config = load_python_config(config_path=config_path)
     elif extension=='.yaml':
-        return load_yaml_config(config_path)
+        config =  load_yaml_config(config_path)
     else:
         print("[Error] Unknow format for config file.")
+    return config

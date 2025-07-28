@@ -1,11 +1,10 @@
 from .data_handler_abstract import DataHandler, OutputType
-from biom3d.utils import abs_listdir
 import SimpleITK as sitk
 import numpy as np
 from skimage import io
 import tifffile as tiff
 from typing import Optional, Tuple
-from os.path import isdir, join, dirname,exists,splitext,basename
+from os.path import isdir, join, dirname,exists,basename,normpath
 from os import makedirs, listdir
 import pickle
 from pathlib import Path
@@ -28,11 +27,10 @@ class FileHandler(DataHandler):
 
     ):      
         # fix bug path/folder/ to path/folder
-        if basename(img_path)=='':
-            img_path = dirname(img_path)
-        if msk_path is not None and basename(msk_path)=='':
-            msk_path = dirname(msk_path)
-        if img_path=='': raise ValueError("[Error] img_dir must not be empty.")
+        img_path = normpath(img_path)
+        if msk_path is not None :
+            msk_path = normpath(msk_path)
+        if img_path=='': raise ValueError("[Error] img_path must not be empty.")
         if not isdir(img_path) : raise ValueError("[Error] '{img_path}' is not a existing directory.")
         if msk_path != None and not isdir(msk_path) : raise ValueError(f"[Error] '{msk_path}' is not a existing directory.")
         if fg_path != None and not isdir(msk_path) : raise ValueError(f"[Error] '{fg_path}' is not a existing directory.")
@@ -68,55 +66,57 @@ class FileHandler(DataHandler):
                 elif e not in li :
                     li.append(fname)
         recursion(path)
-        print(li)
         return sorted(li)
 
 
-    def _output_parse_preprocess(self,img_path:str, msk_path:Optional[str]=None, img_outdir:Optional[str]=None,msk_outdir:Optional[str]=None,fg_outdir:Optional[str] = None,use_tif:bool=False,**kwargs):
+    def _output_parse_preprocess(self,img_path:str, msk_path:Optional[str]=None, img_outpath:Optional[str]=None,msk_outpath:Optional[str]=None,fg_outpath:Optional[str] = None,use_tif:bool=False,**kwargs):
         self._use_tif = use_tif
-        if img_outdir is None: # name the out dir the same way as the input and add the _out suffix
-            img_outdir = img_path+'_out' 
-            print("Image output path:", img_outdir)
-        if msk_path is not None and msk_outdir is None:
-            msk_outdir = msk_path+'_out' 
-            print("Mask output path:", msk_outdir)
-            if fg_outdir is None:
+        img_path = normpath(img_path)
+        if msk_path is not None :
+            msk_path = normpath(msk_path)
+        if img_outpath is None: # name the out dir the same way as the input and add the _out suffix
+            img_outpath = img_path+'_out' 
+            print("Image output path:", img_outpath)
+        if msk_path is not None and msk_outpath is None:
+            msk_outpath = msk_path+'_out' 
+            print("Mask output path:", msk_outpath)
+            if fg_outpath is None:
                 # get parent directory of mask dir
-                fg_outdir = join(dirname(msk_path), 'fg_out')
-                print("Foreground output path:", fg_outdir)
-        self.img_outdir=img_outdir 
-        self.msk_outdir=msk_outdir
-        self.fg_outdir =fg_outdir
+                fg_outpath = join(dirname(msk_path), 'fg_out')
+                print("Foreground output path:", fg_outpath)
+        self.img_outpath=img_outpath 
+        self.msk_outpath=msk_outpath
+        self.fg_outpath =fg_outpath
         # create output directory if needed
-        if not exists(self.img_outdir):
-            makedirs(self.img_outdir, exist_ok=True)
-        if msk_path is not None and not exists(self.msk_outdir):
-            makedirs(self.msk_outdir, exist_ok=True)
-            if msk_path is not None and not exists(self.fg_outdir):
-                makedirs(self.fg_outdir, exist_ok=True)
+        if not exists(self.img_outpath):
+            makedirs(self.img_outpath, exist_ok=True)
+        if msk_path is not None and not exists(self.msk_outpath):
+            makedirs(self.msk_outpath, exist_ok=True)
+            if msk_path is not None and not exists(self.fg_outpath):
+                makedirs(self.fg_outpath, exist_ok=True)
 
         if platform=='win32':
-            if self.img_outdir is not None: self.img_outdir = self.img_outdir.replace('\\','\\\\')
-            if self.msk_outdir is not None: self.msk_outdir = self.msk_outdir.replace('\\','\\\\')
-            if self.fg_outdir is not None: self.fg_outdir = self.fg_outdir.replace('\\','\\\\')
+            if self.img_outpath is not None: self.img_outpath = self.img_outpath.replace('\\','\\\\')
+            if self.msk_outpath is not None: self.msk_outpath = self.msk_outpath.replace('\\','\\\\')
+            if self.fg_outpath is not None: self.fg_outpath = self.fg_outpath.replace('\\','\\\\')
 
-    def _output_parse(self,msk_outdir:str,model_name:Optional[str]=None,**kwargs):
-        self.msk_outdir=msk_outdir
+    def _output_parse(self,msk_outpath:str,model_name:Optional[str]=None,**kwargs):
+        self.msk_outpath=msk_outpath
         # create output directory if needed
-        if not exists(self.msk_outdir):
-            makedirs(self.msk_outdir, exist_ok=True)
+        if not exists(self.msk_outpath):
+            makedirs(self.msk_outpath, exist_ok=True)
 
         # Used for prediction
         if model_name != None :
-            self.msk_outdir = join(self.msk_outdir,model_name)
-            makedirs(self.msk_outdir, exist_ok=True)
+            self.msk_outpath = join(self.msk_outpath,model_name)
+            makedirs(self.msk_outpath, exist_ok=True)
 
-        if platform=='win32' and self.msk_outdir is not None: self.msk_outdir = self.msk_outdir.replace('\\','\\\\')
+        if platform=='win32' and self.msk_outpath is not None: self.msk_outpath = self.msk_outpath.replace('\\','\\\\')
 
     def get_output(self):
-        img = self._saver.img_outdir
-        msk =self._saver.msk_outdir if hasattr(self._saver,'msk_outdir') else None
-        fg = self._saver.fg_outdir if hasattr(self._saver,'fg_outdir') else None
+        img = self._saver.img_outpath
+        msk =self._saver.msk_outpath if hasattr(self._saver,'msk_outpath') else None
+        fg = self._saver.fg_outpath if hasattr(self._saver,'fg_outpath') else None
         return img,msk,fg
     
     def insert_prefix_to_name(self,fname:str,prefix:str):
@@ -163,19 +163,19 @@ class FileHandler(DataHandler):
         if out_type==OutputType.IMG:
             if hasattr(self,'_use_tif'): #In preprocess
                 relative = relative.with_suffix(".tif") if self._use_tif else relative.with_suffix(".npy")
-            ImageManager.adaptive_imsave(str(self.img_outdir / relative),img)
-
-        if out_type==OutputType.MSK:
+            ImageManager.adaptive_imsave(str(self.img_outpath / relative),img)
+        elif out_type==OutputType.MSK:
             if hasattr(self,'_use_tif'): #In preprocess
                 relative = relative.with_suffix(".tif") if self._use_tif else relative.with_suffix(".npy")
-            ImageManager.adaptive_imsave(str(self.msk_outdir / relative),img)
-
-        if out_type==OutputType.FG:
+            ImageManager.adaptive_imsave(str(self.msk_outpath / relative),img)
+        elif out_type==OutputType.FG:
             relative = relative.with_suffix(".pkl")
-            with open(self.fg_outdir / relative, 'wb') as handle:
+            with open(self.fg_outpath / relative, 'wb') as handle:
                 pickle.dump(img, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        else :
+            raise ValueError("Save only save an 'img', 'mask' or 'fg'")
 
-        return str(self.msk_outdir / relative)
+        return str(self.msk_outpath / relative)
 
     def extract_inner_path(self,list):
         path = []
