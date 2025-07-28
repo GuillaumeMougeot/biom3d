@@ -16,10 +16,36 @@ class DataHandlerFactory:
 
     @staticmethod
     def _is_url(path: str) -> bool:
+        """
+        Check if given path is an URL.
+
+        Parameters
+        ----------
+        path: str
+            The path to test.
+
+        Returns
+        -------
+        boolean:
+            Whether path is an URL or not.
+        """
         return urlparse(path).scheme in ("http", "https", "ftp", "s3")
     
     @staticmethod
-    def is_nonexistent_folder(path: str) -> bool:
+    def _is_nonexistent_folder(path: str) -> bool:
+        """
+        Check if given path refer to a folder that doesn't exist yet.
+
+        Parameters
+        ----------
+        path: str
+            The path to test.
+
+        Returns
+        -------
+        boolean:
+            Wether the path refer to a non existing folder or not.
+        """
         def is_path_valid(pathname: str) -> bool:
             # Assume path is valid unless proven otherwise
             try:
@@ -50,11 +76,27 @@ class DataHandlerFactory:
         except OSError:
             return False
 
-
-    # Would need update if URL are added
     @staticmethod
     def _detect_handler_type(path: str) -> Type['DataHandler']:
-        if isdir(path) or DataHandlerFactory.is_nonexistent_folder(path):
+        """
+        Extract the data format from path and return `DataHandler` subclass fit to treat it if existing, raise `NotImplementedError` else.
+
+        Parameters
+        ----------
+        path: str
+            The path to test
+
+        Raises
+        ------
+        NotImplementedError:
+            If handler or input data not found.
+
+        Returns
+        -------
+        Datahandler:
+            A DataHandler that can treat the data format given by path.
+        """
+        if isdir(path) or DataHandlerFactory._is_nonexistent_folder(path):
             return DataHandlerFactory.EXTENSION_MAP["folder"]
         _, ext = splitext(path)
         ext = ext.lower()
@@ -63,24 +105,23 @@ class DataHandlerFactory:
         raise NotImplementedError(f"No handler found for extension: '{ext}'")
     
     @staticmethod
-    def get(input:str,read_only:bool=False,preprocess:bool=False,output:Optional[str]=None,**kwargs):
+    def get(input:str,read_only:bool=False,preprocess:bool=False,output:Optional[str]=None,**kwargs)->DataHandler:
         """
         Create a handler which type depend on the input extension.
 
         Parameters
-
         ----------
         input: str
             Path to input (Folder path, archive path, url,...).
 
         read_only: bool, default = False
-            (Optional) Whether handler is in read only
+            (Optional) Whether handler is in read only.
 
         output: str, default = None
-            (Optional) Path to output, is used if the output type is different from input
+            (Optional) Path to output, is used if the output type is different from input.
 
         preprocess: bool, default = False
-            (Optional) If it is a preprocessing handler (will create more output)
+            (Optional) If it is a preprocessing handler (will create more output).
 
         **kwargs:
 
@@ -91,14 +132,28 @@ class DataHandlerFactory:
                     Generic : mask output path
                 fg_path:str, default = None
                     Generic : foreground output path
+                img_inner_paths_list, default=None
+                    Generic : A list of path comming from a specific root (eg: The paths inside a .h5 file), used in data/batch loaders.     
+                msk_inner_paths_list, default=None
+                    Generic : A list of path comming from a specific root (eg: The paths inside a .h5 file), used in data/batch loaders    
+                fg_inner_paths_list, default=None
+                    Generic : A list of path comming from a specific root (eg: The paths inside a .h5 file), used in data/batch loaders          
                 img_outpath:str, default = None,
                     Generic : images output path
                 msk_outpath:str, default = None
                     Generic : mask output path
                 fg_outpath:str, default = None
                     Generic : foreground output path
+                model_name:str, default = None
+                    Generic : Used for prediction, if different than `None`, it will be added at the end of path (eg: predictions/MyModelName, predictions.h5["MyModelName"])
                 use_tif:bool, default = False
-                    FileHandler, if should be saved as tif instead of npy
+                    FileHandler : If should be saved as tif instead of npy.
+
+        Raises
+        ------
+        ValueError:
+            If parameters `read_only` and `preprocess` are both `True`.
+
         Returns
         -------
         DataHandler

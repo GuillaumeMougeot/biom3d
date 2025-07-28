@@ -113,12 +113,7 @@ class FileHandler(DataHandler):
 
         if platform=='win32' and self.msk_outpath is not None: self.msk_outpath = self.msk_outpath.replace('\\','\\\\')
 
-    def get_output(self):
-        img = self._saver.img_outpath
-        msk =self._saver.msk_outpath if hasattr(self._saver,'msk_outpath') else None
-        fg = self._saver.fg_outpath if hasattr(self._saver,'fg_outpath') else None
-        return img,msk,fg
-    
+
     def insert_prefix_to_name(self,fname:str,prefix:str):
         name = basename(fname)[0]
         name = join(dirname(fname),prefix+'_'+name)
@@ -145,11 +140,7 @@ class FileHandler(DataHandler):
             try : return ImageManager.adaptive_imread(fname)
             except : raise ValueError(f"Couldn't read image '{fname}', is it a valid tiff, nifty or numpy ?")
 
-    def _save(self,fname:str,img:np.ndarray,out_type:OutputType):
-        if isinstance(out_type, str):
-            out_type = OutputType(out_type)
-        if not self._preprocess and (out_type==OutputType.IMG or out_type==OutputType.FG):
-            raise ValueError("Type IMG or FG can't be used if handler isn't in preprocessor")
+    def _save(self,fname:str,img:np.ndarray,out_type:OutputType)->str:
         fname = Path(fname)
         if fname.is_relative_to(Path(self._images_path_root)):
             relative = fname.relative_to(Path(self._images_path_root))
