@@ -24,13 +24,13 @@ class Dict(dict):
 # Dataset builder-parameters
 # EDIT THE FOLLOWING PARAMATERS WITH YOUR OWN DATASETS PARAMETERS
 
-# Folder where pre-processed images are stored
+# Path to collection where pre-processed images are stored
 IMG_PATH = None
 
-# Folder where pre-processed masks are stored
+# Path to collection where pre-processed masks are stored
 MSK_PATH = None
 
-# (Optional) Folder with the foreground locations
+# (Optional) Path to collection with the foreground locations
 # It is automatically set during preprocessing,
 # but can be left None. If so, foreground locations will be 
 # dynamically computed during training.

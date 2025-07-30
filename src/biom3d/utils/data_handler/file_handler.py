@@ -153,7 +153,7 @@ class FileHandler(DataHandler):
             if fname.is_absolute(): relative=fname
             elif name_str.startswith('\\'): relative = Path(name_str.lstrip("\\"))
             elif name_str.startswith('/') : relative = Path(name_str.lstrip("/"))
-        print(self.msk_outpath, relative,str(self.msk_outpath/relative))
+
         # If the image has no extension (comming from another handler), default it to tif
         if not relative.is_file():
             relative = relative.with_suffix(".tif")

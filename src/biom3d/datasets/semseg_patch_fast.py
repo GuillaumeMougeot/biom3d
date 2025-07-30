@@ -3,15 +3,11 @@
 # solution: patch approach with the whole dataset into memory 
 #---------------------------------------------------------------------------
 
-import os
-import pickle
 import numpy as np 
 import torchio as tio
 import random 
 from torch.utils.data import Dataset
-# from monai.data import CacheDataset
 import pandas as pd 
-# from tifffile import imrea
 from biom3d.utils import centered_pad, get_folds_train_test_df, DataHandlerFactory
 
 #---------------------------------------------------------------------------
@@ -35,7 +31,7 @@ def centered_crop(img, msk, center, crop_shape, margin=np.zeros(3)):
     # we make sure that we are not out of the image shape
     start = np.maximum(0,start)
     
-    idx = [slice(0,img.shape[0])]+list(slice(s[0], s[1]) for s in zip(start, end))
+    idx = [slice(0,img.shape[0])]+[slice(s[0], s[1]) for s in zip(start, end)]
     idx = tuple(idx)
     
     crop_img = img[idx]
@@ -55,7 +51,7 @@ def located_crop(img, msk, location, crop_shape, margin=np.zeros(3)):
     start = np.random.randint(low=lower_bound, high=np.maximum(lower_bound+1,higher_bound))
     end = start+crop_shape
     
-    idx = [slice(0,img.shape[0])]+list(slice(s[0], s[1]) for s in zip(start, end))
+    idx = [slice(0,img.shape[0])]+[slice(s[0], s[1]) for s in zip(start, end)]
     idx = tuple(idx)
     
     crop_img = img[idx]
@@ -116,7 +112,7 @@ def random_crop(img, msk, crop_shape, force_in=True):
         start = np.random.randint(0, np.maximum(1,img_shape-crop_shape))
         end = start+crop_shape
         
-        idx = [slice(0,img.shape[0])]+list(slice(s[0], s[1]) for s in zip(start, end))
+        idx = [slice(0,img.shape[0])]+[slice(s[0], s[1]) for s in zip(start, end)]
         idx = tuple(idx)
         
         crop_img = img[idx]
@@ -135,7 +131,7 @@ def random_crop_pad(img, msk, final_size, fg_rate=0.33, fg_margin=np.zeros(3), f
     """
     random crop and pad if needed.
     """
-    if type(img)==list: # then batch mode
+    if isinstance(img,list): # then batch mode
         imgs, msks = [], []
         for i in range(len(img)):
             img_, msk_ = random_crop_pad(img[i], msk[i], final_size)
@@ -382,7 +378,7 @@ class SemSeg3DPatchFast(Dataset):
         """
         determines whether to force the foreground depending on the batch idx
         """
-        return not self.batch_idx < round(self.batch_size * (1 - self.fg_rate))
+        return self.batch_idx >= round(self.batch_size * (1 - self.fg_rate))
     
     def _update_batch_idx(self):
         self.batch_idx += 1
@@ -400,7 +396,6 @@ class SemSeg3DPatchFast(Dataset):
             if len(self.fg_data)>0: fg = self.fg_data[idx%len(self.fg_data)]
             else: fg = None
         else:
-            img_fname = self.fnames[idx%len(self.fnames)]
             idx=idx%len(self.fnames)
 
             # read the images

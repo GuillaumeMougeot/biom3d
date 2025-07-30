@@ -7,7 +7,7 @@ def robust_sort(str_list):
     """Robust sorting of string. Useful for list of paths sorting.
     """
     # max string lenght
-    max_len = max(list(len(s) for s in str_list))
+    max_len = max([len(s) for s in str_list])
 
     # add zeros in the beginning so that all strings have the same length
     # associate with the original length to the elongated string

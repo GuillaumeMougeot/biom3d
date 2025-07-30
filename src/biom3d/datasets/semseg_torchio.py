@@ -7,7 +7,6 @@
 import numpy as np 
 import torchio as tio
 import random 
-# from monai.data import CacheDataset
 import pandas as pd 
 import torch
 
@@ -145,7 +144,6 @@ class RandomCropOrPad(RandomTransform, SpatialTransform):
                 # the margin argument adds a margin to force the foreground voxel to be located nearer the middle of the patch 
                 # center=random.choice(locations.numpy()) # choose a random voxel of this label
                 center=locations[torch.randint(locations.size(0), (1,)).item()]
-                # margin=np.zeros(3) # TODO: make this a parameter
                 index_ini = tuple(int(np.maximum(x,0)) for x in (center.numpy()-self.patch_size//2))
         else:
             index_ini = tuple(int(torch.randint(np.maximum(x,0) + 1, (1,)).item()) for x in valid_range)
@@ -308,7 +306,6 @@ class TorchioDataset(SubjectsDataset):
             subjects_list = []
             for i,m,f in self.handler:
                 if self.fg_path is not None:
-                    print(f)
                     fg = self.handler.load(f)[0]
                 else: 
                     fg = None
@@ -340,7 +337,7 @@ class TorchioDataset(SubjectsDataset):
 
             anisotropy_axes=tuple(np.arange(3)[ps/ps.min()>3].tolist())
             # if anisotropy is empty, it means that all axes could be use for anisotropy augmentation
-            if len(anisotropy_axes)==0: anisotropy_axes=tuple(i for i in range(len(ps)))
+            if len(anisotropy_axes)==0: anisotropy_axes=tuple(range(len(ps)))
 
             # [aug] 'degrees' for tio.RandomAffine
             if np.any(ps/ps.min()>3): # then use dummy_2d
@@ -391,7 +388,7 @@ class TorchioDataset(SubjectsDataset):
         """
         determines whether to force the foreground depending on the batch idx
         """
-        return not self.batch_idx < round(self.batch_size * (1 - self.fg_rate))
+        return self.batch_idx >= round(self.batch_size * (1 - self.fg_rate))
     
     def _update_batch_idx(self):
         self.batch_idx += 1
