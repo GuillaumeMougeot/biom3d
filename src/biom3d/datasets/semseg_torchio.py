@@ -4,14 +4,11 @@
 #           based on Torchio, fastest dataloading method so far.
 #---------------------------------------------------------------------------
 
-import os
 import numpy as np 
 import torchio as tio
 import random 
-import pickle
 # from monai.data import CacheDataset
 import pandas as pd 
-from tifffile import imread
 import torch
 
 from torchio import SubjectsDataset
@@ -139,6 +136,8 @@ class RandomCropOrPad(RandomTransform, SpatialTransform):
                     rnd_label = random.randint(self.start_fg_idx,tuple(label.shape)[0]-1)
                     locations = torch.argwhere(label[rnd_label] == 1)
             
+            # safeguard
+            if isinstance(locations,np.ndarray):locations = torch.from_numpy(locations)
             if len(locations)==0: # bug fix when having empty arrays 
                 index_ini = tuple(int(torch.randint(np.maximum(x,0) + 1, (1,)).item()) for x in valid_range)
             else:
@@ -309,7 +308,8 @@ class TorchioDataset(SubjectsDataset):
             subjects_list = []
             for i,m,f in self.handler:
                 if self.fg_path is not None:
-                    fg = self.handler.load(f)
+                    print(f)
+                    fg = self.handler.load(f)[0]
                 else: 
                     fg = None
 

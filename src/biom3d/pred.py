@@ -24,10 +24,11 @@ def pred_single(log, img_path,out_path):
             output=out_path,
             img_path = img_path,
             msk_outpath = out_path,
+            model_name = builder.config[-1].DESC if isinstance(builder.config,list) else builder.config.DESC,
         )
     img = builder.run_prediction_single(handler, return_logit=False)
-    handler.save(handler.images[0], img,"msk")
-    return builder.config.NUM_CLASSES+1  # for pred_seg_eval_single
+    handler.save(handler.images[0], img,"pred")
+    return builder.config.NUM_CLASSES+1,handler.msk_outpath  # for pred_seg_eval_single
 
 def pred(log, path_in, path_out):
     """Prediction on a folder of images.
@@ -72,19 +73,21 @@ def pred_seg_eval(log=pathlib.Path.home(), path_in=pathlib.Path.home(), path_out
         eval(path_lab,out,num_classes=num_classes)
 
 def pred_seg_eval_single(log, img_path, out_path, msk_path):
+    print("Run prediction for:", img_path)
+    num_classes,out = pred_single(log, img_path, out_path)
+    print("Done! Prediction saved in:", out_path)
     handler1 = DataHandlerFactory.get(
         out_path,
         read_only=True,
-        img_path = out_path,
+        img_path = out,
+        eval="pred",
     )
     handler2 = DataHandlerFactory.get(
         msk_path,
         read_only=True,
         img_path = msk_path,
+        eval="label",
     )
-    print("Run prediction for:", img_path)
-    num_classes = pred_single(log, img_path, out_path)
-    print("Done! Prediction saved in:", out_path)
     print("Metric computation with mask:", msk_path)
     dice_score = versus_one(fct=dice, input_img=handler1.load(handler1.images[0])[0], target_img=handler2.load(handler2.images[0])[0], num_classes=num_classes)
     print("Metric result:", dice_score)

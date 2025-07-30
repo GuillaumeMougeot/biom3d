@@ -459,15 +459,7 @@ class Preprocessing:
         # save the images and masks 
         # validation names start with a 0
         # training names start with a 1
-        handler_tmp = DataHandlerFactory.get(
-            self.img_path,
-            output=self.msk_path,
-            preprocess=True,
-            read_only=False,
-            img_path= self.img_path,
-            msk_path=self.msk_path,
-            use_tif=self.use_tif,
-            )
+        handler_tmp = self.handler
 
         # validation
         val_img_path = self.handler.insert_prefix_to_name(self.handler.images[0],'0')
@@ -481,9 +473,20 @@ class Preprocessing:
         handler_tmp.save(train_msk_path,train_msk,"msk")
 
         
-        images,masks,_ = handler_tmp.get_output()
-        self.handler.open(images,masks)
-        handler_tmp.close()
+        images,masks,fg = handler_tmp.get_output()
+        self.handler = DataHandlerFactory.get(
+            images,
+            preprocess=True,
+            output=images,
+            img_path = images,
+            msk_path = masks,
+            img_outpath = images,
+            msk_outpath = masks,
+            fg_outpath = fg,
+            use_tif=self.use_tif,
+        )
+        
+
 
         # generate the csv file
         df = pd.DataFrame([train_img_path, val_img_path], columns=['filename'])
@@ -549,15 +552,16 @@ class Preprocessing:
                 else: assert len(s)==4 and self.num_channels==s[0], "[Error] Not all images have {} channels. Problematic image: {}".format(self.num_channels, i)
 
             # save image
-            self.handler.save(i,img,"img")
+            # If image was split, it means we already have the original image in the output and we need to overwrite them with their preprocessed version
+            self.handler.save(i,img,"img",overwrite=image_was_split)
 
             # save mask
             if self.msk_outpath is not None: 
-                self.handler.save(m,msk,"msk")
+                self.handler.save(m,msk,"msk",overwrite=image_was_split)
                 self.handler.save(m,fg,"fg")
 
         # create csv file
-        filenames = sorted(self.handler.get_output()[0])
+        filenames = self.handler.images
         if not image_was_split:
             generate_kfold_csv(filenames, self.csv_path, kfold=self.num_kfolds)
 

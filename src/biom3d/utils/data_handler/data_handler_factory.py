@@ -132,6 +132,8 @@ class DataHandlerFactory:
                     Generic : mask output path
                 fg_path:str, default = None
                     Generic : foreground output path
+                eval: "label" | "pred" | None, default=None
+                    HDF5Hanlder (and all others that use keys) : Tell your handler that it is to eval and that it should search for the label or prediction key in your dataset key.
                 img_inner_paths_list, default=None
                     Generic : A list of path comming from a specific root (eg: The paths inside a .h5 file), used in data/batch loaders.     
                 msk_inner_paths_list, default=None

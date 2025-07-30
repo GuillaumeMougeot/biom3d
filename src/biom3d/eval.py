@@ -25,11 +25,14 @@ def eval(path_lab, path_out, num_classes,fct=dice):
         path_lab,
         read_only=True,
         img_path = path_lab,
+        eval='label',
     )
+
     handler2 = DataHandlerFactory.get(
         path_out,
         read_only=True,
         img_path = path_out,
+        eval='pred',
     )
     assert len(handler1) == len(handler2), f"[Error] Not the same number of labels and predictions! '{len(handler1)}' for '{len(handler2)}'"
 
@@ -61,7 +64,7 @@ if __name__=='__main__':
         help="Path to the prediction collection")  
     parser.add_argument("-l", "--path_lab","--dir_lab",dest="path_lab", type=str, default=None,
         help="Path to the label collection")  
-    parser.add_argument("-f", "--function",dest="function", type=str, default=dice,
+    parser.add_argument("-f", "--function",dest="function", type=str, default='dice',
         help=f"(default=dice) Function used for evaluation. Supported : {', '.join(supported_function.keys())}")  
     parser.add_argument("--num_classes", type=int, default=1,
         help="(default=1) Number of classes (types of objects) in the dataset. The background is not included.")
@@ -69,4 +72,4 @@ if __name__=='__main__':
     if args.function not in supported_function:
         print("Function '{}' not supported. Supported functions :'{}'".format(args.function,supported_function.keys()))
         exit(1)
-    eval(args.path_pred, args.path_lab, args.num_classes,supported_function[args.function])
+    eval(args.path_lab, args.path_pred, args.num_classes,supported_function[args.function])

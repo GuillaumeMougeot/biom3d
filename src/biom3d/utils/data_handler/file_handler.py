@@ -3,7 +3,7 @@ import SimpleITK as sitk
 import numpy as np
 from skimage import io
 import tifffile as tiff
-from typing import Optional, Tuple
+from typing import Literal, Optional, Tuple
 from os.path import isdir, join, dirname,exists,basename,normpath
 from os import makedirs, listdir
 import pickle
@@ -13,13 +13,11 @@ from sys import platform
 class FileHandler(DataHandler):       
     def __init__(self):
         super().__init__()    
-        self.fg = None
-        self.masks = None
-        self._saver = None
-
+        
     def _input_parse(self,img_path:str, 
                      msk_path:Optional[str]=None,
                      fg_path:Optional[str]=None,
+                     eval:Optional[Literal['label','pred']]=None,
                      img_inner_paths_list:Optional[list]=None,      
                      msk_inner_paths_list:Optional[list]=None,      
                      fg_inner_paths_list:Optional[list]=None,      
@@ -31,7 +29,7 @@ class FileHandler(DataHandler):
         if msk_path is not None :
             msk_path = normpath(msk_path)
         if img_path=='': raise ValueError("[Error] img_path must not be empty.")
-        if not isdir(img_path) : raise ValueError("[Error] '{img_path}' is not a existing directory.")
+        if not isdir(img_path) : raise ValueError(f"[Error] '{img_path}' is not a existing directory.")
         if msk_path != None and not isdir(msk_path) : raise ValueError(f"[Error] '{msk_path}' is not a existing directory.")
         if fg_path != None and not isdir(msk_path) : raise ValueError(f"[Error] '{fg_path}' is not a existing directory.")
 
@@ -40,6 +38,7 @@ class FileHandler(DataHandler):
             for i in fname:
                 listdir.append(join(folder_path,i))
             return sorted(listdir)
+        self._eval = eval
 
         self.images:list = self._recursive_path_list(img_path) if img_inner_paths_list is None else create_path(img_path,img_inner_paths_list)
         self._size :int = len(self.images)
@@ -48,7 +47,7 @@ class FileHandler(DataHandler):
             if self._size != len(self.masks): raise ValueError(f"Don't have the same number of images ('{self._size}') and masks ('{len(self.masks)}')")
         if fg_path is not None:
             self.fg:list = self._recursive_path_list(fg_path) if fg_inner_paths_list is None else create_path(fg_path,fg_inner_paths_list)
-            if self._size != len(self.fg): raise ValueError(f"Don't have the same number of images ('{self._size}') and masks ('{len(self.fg)}')")
+            if self._size != len(self.fg): raise ValueError(f"Don't have the same number of images ('{self._size}') and foreground ('{len(self.fg)}')")
         self._fg_path_root = fg_path
         self._masks_path_root = msk_path
         self._images_path_root = img_path
@@ -140,22 +139,30 @@ class FileHandler(DataHandler):
             try : return ImageManager.adaptive_imread(fname)
             except : raise ValueError(f"Couldn't read image '{fname}', is it a valid tiff, nifty or numpy ?")
 
-    def _save(self,fname:str,img:np.ndarray,out_type:OutputType)->str:
+    def _save(self,fname:str,img:np.ndarray,out_type:OutputType,**kwargs)->str:
+        name_str = fname
         fname = Path(fname)
-        if fname.is_relative_to(Path(self._images_path_root)):
-            relative = fname.relative_to(Path(self._images_path_root))
-        elif self._masks_path_root != None and fname.is_relative_to(Path(self._masks_path_root)):
-            relative = fname.relative_to(Path(self._masks_path_root))
-        elif self._fg_path_root != None and fname.is_relative_to(Path(self._fg_path_root)):
-            relative = fname.relative_to(Path(self._fg_path_root))
-        else:
-            raise ValueError(f"{fname} is not an input path from the handler")
+        try :
+            if fname.is_relative_to(Path(self._images_path_root)):
+                relative = fname.relative_to(Path(self._images_path_root))
+            elif self._masks_path_root != None and fname.is_relative_to(Path(self._masks_path_root)):
+                relative = fname.relative_to(Path(self._masks_path_root))
+            elif self._fg_path_root != None and fname.is_relative_to(Path(self._fg_path_root)):
+                relative = fname.relative_to(Path(self._fg_path_root))
+        except TypeError :
+            if fname.is_absolute(): relative=fname
+            elif name_str.startswith('\\'): relative = Path(name_str.lstrip("\\"))
+            elif name_str.startswith('/') : relative = Path(name_str.lstrip("/"))
+        print(self.msk_outpath, relative,str(self.msk_outpath/relative))
+        # If the image has no extension (comming from another handler), default it to tif
+        if not relative.is_file():
+            relative = relative.with_suffix(".tif")
         
         if out_type==OutputType.IMG:
             if hasattr(self,'_use_tif'): #In preprocess
                 relative = relative.with_suffix(".tif") if self._use_tif else relative.with_suffix(".npy")
             ImageManager.adaptive_imsave(str(self.img_outpath / relative),img)
-        elif out_type==OutputType.MSK:
+        elif out_type==OutputType.MSK or out_type==OutputType.PRED:
             if hasattr(self,'_use_tif'): #In preprocess
                 relative = relative.with_suffix(".tif") if self._use_tif else relative.with_suffix(".npy")
             ImageManager.adaptive_imsave(str(self.msk_outpath / relative),img)
@@ -167,12 +174,6 @@ class FileHandler(DataHandler):
             raise ValueError("Save only save an 'img', 'mask' or 'fg'")
 
         return str(self.msk_outpath / relative)
-
-    def extract_inner_path(self,list):
-        path = []
-        for i in list:
-            path.append(basename(i))
-        return sorted(path)
     
 class ImageManager:
     @staticmethod

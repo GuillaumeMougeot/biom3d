@@ -1,6 +1,6 @@
 from __future__ import annotations
 from abc import abstractmethod
-from typing import Any, Callable, Optional, Tuple, Type
+from typing import Any, Callable, Literal, Optional, Tuple, Type
 from numpy import ndarray
 
 from enum import Enum
@@ -12,6 +12,7 @@ class OutputType(Enum):
     IMG = "img" ; """Saving an image."""
     MSK = "msk" ; """Saving a mask."""
     FG = "fg" ; """ Saving a foreground."""
+    PRED = "pred"; """Saving a prediction"""
 
 class DataHandler :
     """
@@ -23,15 +24,16 @@ class DataHandler :
     fg: Optional[list];"""A list of foreground paths."""
     msk_outpath:Optional[str]; """A path to the masks output (preprocessed masks or predictions)."""
     _images_path_root:str; """The root of images path (eg: The path to .h5 file, the folder where all images are,...)."""
-    _masks_path_root:Optional[str]; """The root of masks path (eg: The path to .h5 file, the folder where all images are,...)."""
-    _fg_path_root:Optional[str];"""The root of foregrounds path (eg: The path to .h5 file, the folder where all images are,...)."""
+    _masks_path_root:Optional[str]; """The root of masks path (eg: The path to .h5 file, the folder where all masks are,...)."""
+    _fg_path_root:Optional[str];"""The root of foregrounds path (eg: The path to .h5 file, the folder where all labels are,...)."""
     _image_index:int;"""The current index in images, masks and fg (at the same time). Is _iterator -1."""
     _iterator: int;"""Used to implement iterator. """
     _size: int;"""Used to implement len, is defined by len(images)."""
+    _eval:Optional[Literal["label","pred"]]; """Define if handler is used to evaluation. It allow key based format handlers to override some key restriction to load label and prediction as images."""
     _saver:Optional[Type[DataHandler]];"""DataHandler used to save, can be another DataHandler for different output format, self or None (read_only)."""
 
     def __init__(self):
-        """ Set default value to attributes, never call it outside a child class."""
+        """ Set default value to attributes, never call it outside a child class. All implementation shall call this one AND set default value to their specific attributes."""
         self._image_index = -1
         self._iterator = 0
         self.fg = None
@@ -39,18 +41,21 @@ class DataHandler :
         self._saver  = None
         self._fg_path_root = None
         self._masks_path_root = None
+        self._images_path_root = None
+        self._fg_path_root = None
         self.msk_outpath = None
 
     @abstractmethod
     def _input_parse(img_path:str, 
                      msk_path:Optional[str]=None,
                      fg_path:Optional[str]=None,
+                     eval:Optional[Literal['label','pred']]=None,
                      img_inner_paths_list:Optional[list]=None,      
                      msk_inner_paths_list:Optional[list]=None,      
                      fg_inner_paths_list:Optional[list]=None,      
                      **kwargs):
         """
-        Parse and initialize the inputs.
+        Parse and initialize the inputs. If you want to open files, established connection,etc, check wether it is compatible with multiprocessing and picklable or the data/batchloader will not work.
 
         Parameters
         ----------
@@ -65,6 +70,12 @@ class DataHandler :
 
         fg_path: str, default=None
             Path to input foregrounds collection (folder, archive,...).
+
+        eval: "label" | "pred" | None, default=None
+            Tell your handler that it is to eval and that it should search for the mask or prediction key in your dataset.
+
+            .. note::
+                It is not used in FileHandler as it doesn't use keys, however in .h5, it will make it load images from label or prediction key instead of image key.
 
         img_inner_path: str
             Path to input images relative to image collection (path in .h5 file, subfolders,...).
@@ -190,7 +201,7 @@ class DataHandler :
         fg_outpath : str | None
             Path to foregrounds output collection.
         """
-        if self._saver != None : raise NotImplementedError("Cannot get output of read only DataHandler")
+        if self._saver == None : raise NotImplementedError("Cannot get output of read only DataHandler")
         img = self._saver.img_outpath if hasattr(self._saver,'img_outpath') else None
         msk =self._saver.msk_outpath 
         fg = self._saver.fg_outpath if hasattr(self._saver,'fg_outpath') else None
@@ -216,6 +227,11 @@ class DataHandler :
         .. note:: 
             It is assumed that all the inputs are in the same format (treatable with same handler). It is also assume that foreground are a blob.
         
+        Parameters
+        ----------
+        path:str
+            The path to the ressource to load, generally given by the iterator (or self.image[i])
+        
         Example
         -------
         >>> for img_path,msk_path,fg_path in handler :
@@ -238,7 +254,7 @@ class DataHandler :
         pass
 
     @abstractmethod
-    def _save(self,fname,img,out_type:OutputType|str)->str:
+    def _save(self,fname:str,img:ndarray,out_type:OutputType|str,**kwargs)->str:
         """
         Save an image, mask or foreground. To differentiate between the three, we use :class:`OutputType`.
     
@@ -247,6 +263,20 @@ class DataHandler :
         Example
         -------
         >>> 'Raw/Dataset1/1.tif' will be saved in 'Raw_out/Dataset1/1.tif' if called with out_type = 'img'.
+
+        Parameters
+        ----------
+        fname:str
+            The path of loaded ressource, generally given by the iterator (or self.image[i]), it will be used to determine the path to save.
+        img:numpy.ndarray
+            The image to save.
+        out_type: OutputType | "msk" | "pred" | "raw" | "fg"
+            Determine the output type and so the saved path is determine by this (output root) + fname
+        **kwargs
+            All existing parameters to existing handlers, currently
+
+                overwrite: boolean, default=False
+                    HDF5Handler: Will force to overwrite date. Is used only in preprocessing._split_single()
 
         Raises
         ------
@@ -277,9 +307,23 @@ class DataHandler :
         """
         pass
 
-    def save(self,fname,img,out_type:OutputType|str):
+    def save(self,fname,img,out_type:OutputType|str,**kwargs)->str:
         """
         Public interface of _save. It do basic checks then delegate to self._saver._save().
+
+        Parameters
+        ----------
+        fname:str
+            The path of loaded ressource, generally given by the iterator (or self.image[i]), it will be used to determine the path to save.
+        img:numpy.ndarray
+            The image to save.
+        out_type: OutputType | "msk" | "pred" | "raw" | "fg"
+            Determine the output type and so the saved path is determine by this (output root) + fname
+        **kwargs
+            All existing parameters to existing handlers, currently
+
+                overwrite: boolean, default=False
+                    HDF5Handler: Will force to overwrite date. Is used only in preprocessing._split_single()
     
         Raises
         ------
@@ -302,7 +346,7 @@ class DataHandler :
         if not self._preprocess and (out_type==OutputType.IMG or out_type==OutputType.FG):
             raise ValueError("Type IMG or FG can't be used if handler isn't in preprocessor mode")
         if self._saver == None : raise NotImplementedError("This handler is in read only")
-        return self._saver._save(fname,img,out_type)
+        return self._saver._save(fname,img,out_type,**kwargs)
 
     def reset_iterator(self):
         """
