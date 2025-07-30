@@ -28,6 +28,7 @@ This tool is addressed to three different profiles:
    tuto/docker.md
    tuto/config.md
    tuto/server.md
+   tuto/dataset.md
 
 .. toctree::
    :maxdepth: 2
