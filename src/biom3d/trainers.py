@@ -58,6 +58,8 @@ def seg_train(
     
     if torch.cuda.is_available():
         torch.cuda.synchronize()
+    elif torch.mps.is_available():
+        torch.mps.synchronize()
     t_start_epoch = time()
     print("[time] start epoch")
 
@@ -66,31 +68,18 @@ def seg_train(
         callbacks.on_batch_begin(batch)
         if torch.cuda.is_available():
             X, y = X.cuda(), y.cuda()
-
-            # print("batch:",batch, "memory reserved:", torch.cuda.memory_reserved(0), "allocated memory", torch.cuda.memory_allocated(0), "free memory:", torch.cuda.memory_reserved(0)-torch.cuda.memory_allocated(0), "percentage of free memory:", torch.cuda.memory_allocated(0)/torch.cuda.max_memory_allocated(0))
-
             torch.cuda.synchronize()
+        if torch.mps.is_available():
+            X, y = X.to('mps'), y.to('mps')
+            torch.mps.synchronize()
         t_data_loading = time()
 
         batch_duration = t_data_loading - t_start_epoch
         if batch_duration > 1:
             print(f"[Warning] Batch {batch} took {batch_duration:.2f}s — possible slowdown.")
 
-        # Compute prediction error
-
-        # with CUDA
-        if torch.cuda.is_available():
-            with torch.amp.autocast("cuda") if scaler is not None else nullcontext():
-                pred = model(X); del X
-                loss = loss_fn(pred, y)
-                with torch.no_grad():
-                    if use_deep_supervision:
-                        for m in metrics: m(pred[-1],y)
-                    else: 
-                        for m in metrics: m(pred,y)
-        
-        # with CPU
-        else:
+        # Compute prediction error        
+        with torch.amp.autocast("cuda") if scaler is not None and torch.cuda.is_available() else nullcontext():
             pred = model(X); del X
             loss = loss_fn(pred, y)
             with torch.no_grad():
@@ -121,10 +110,14 @@ def seg_train(
 
         if torch.cuda.is_available():
             torch.cuda.synchronize()
+        elif torch.mps.is_available():
+            torch.mps.synchronize()
         t_start_epoch = time()
     
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
+    elif torch.mps.is_available():
+        torch.mps.empty_cache()
 
 def seg_validate(
     dataloader,
@@ -165,21 +158,10 @@ def seg_validate(
             # with CUDA
             if torch.cuda.is_available():
                 X, y = X.cuda(), y.cuda()
-                with torch.amp.autocast("cuda") if use_fp16 else nullcontext():
-                    pred=model(X)
-                    del X
-                    loss_fn(pred, y)
-                    loss_fn.update()
-                    for m in metrics:
-                        if use_deep_supervision:
-                            m(pred[-1],y)
-                        else:
-                            m(pred, y)
-                        m.update()
-                del pred, y
+            elif torch.mps.is_available():
+                X,y = X.to('mps'), y.to('mps')
             
-            # with CPU
-            else:
+            with torch.amp.autocast("cuda") if use_fp16 and torch.cuda.is_available else nullcontext():
                 pred=model(X)
                 del X
                 loss_fn(pred, y)
@@ -190,10 +172,13 @@ def seg_validate(
                     else:
                         m(pred, y)
                     m.update()
-                del pred, y
+            del pred, y
+            
                 
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
+    elif torch.mps.is_available():
+        torch.mps.empty_cache()
     template = "val error: avg loss {:.3f}".format(loss_fn.avg.item())
     for m in metrics: template += ", " + str(m)
     print(template)
@@ -227,6 +212,8 @@ def seg_patch_validate(dataloader, model, loss_fn, metrics,**kwargs):
                 #y = patch['msk'][tio.DATA]
                 if torch.cuda.is_available():
                     X, y = X.cuda(), y.cuda()
+                elif torch.mps.is_available():
+                    X,y = X.to('mps'), y.to('mps')
                 pred=model(X).detach()
 
                 loss_fn(pred, y)
@@ -285,6 +272,8 @@ def seg_patch_train(
 
             if torch.cuda.is_available():
                 X, y = X.cuda(), y.cuda()
+            elif torch.mps.is_available():
+                X, y = X.to('mps'), y.to('mps')
 
             # Compute prediction error
             pred = model(X)

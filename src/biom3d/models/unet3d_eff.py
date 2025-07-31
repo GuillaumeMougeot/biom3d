@@ -5,6 +5,7 @@
 # usage:
 # model = EfficientNet3D.from_name("efficientnet-b1", override_params={'include_top': False}, in_channels=1)
 # model.cuda()
+# model.to('mps') on apple silicon
 #---------------------------------------------------------------------------
 
 from biom3d.models.encoder_vgg import EncoderBlock
@@ -99,6 +100,8 @@ class EffUNet(nn.Module):
             print("Load encoder weights from", encoder_ckpt)
             if torch.cuda.is_available():
                 self.encoder.cuda()
+            elif torch.mps.is_available():
+                self.encoder.to('mps')
             ckpt = torch.load(encoder_ckpt)
             if 'model' in ckpt.keys():
                 # remove `module.` prefix
@@ -137,6 +140,8 @@ class EffUNet(nn.Module):
             print("Load model weights from", model_ckpt)
             if torch.cuda.is_available():
                 self.cuda()
+            elif torch.mps.is_available():
+                self.to('mps')
             ckpt = torch.load(model_ckpt)
             if 'encoder.last_layer.weight' in ckpt['model'].keys():
                 del ckpt['model']['encoder.last_layer.weight']

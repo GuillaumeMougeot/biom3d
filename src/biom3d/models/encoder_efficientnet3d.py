@@ -5,6 +5,7 @@
 # usage:
 # model = EfficientNet3D.from_name("efficientnet-b1", override_params={'include_top': False}, in_channels=1)
 # model.cuda()
+# model.to('mps') on apple silicon
 
 # lists of pyramid layers:
 # {

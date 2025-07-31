@@ -1287,7 +1287,7 @@ class TrainTab(ttk.Frame):
             if platform=="win32" and "\\\\" not in new_config_path:
                 new_config_path = new_config_path.replace("\\", "\\\\")
         
-            if not torch.cuda.is_available():
+            if not torch.cuda.is_available() and not torch.mps.is_available():
                popupmsg("  No GPU detected, the training might take a longer time ")
             if self.fine_tune_state.get():
                 # run the fine tuning    

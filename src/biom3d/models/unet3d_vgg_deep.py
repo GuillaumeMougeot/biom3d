@@ -93,6 +93,8 @@ class UNet(nn.Module):
             print("Load encoder weights from", encoder_ckpt)
             if torch.cuda.is_available():
                 self.encoder.cuda()
+            elif torch.mps.is_available():
+                self.encoder.to('mps')
             ckpt = torch.load(encoder_ckpt)
             if 'model' in ckpt.keys():
                 # remove `module.` prefix
@@ -148,6 +150,9 @@ class UNet(nn.Module):
         if torch.cuda.is_available():
             self.cuda()
             device = torch.device('cuda')
+        elif torch.mps.is_available():
+            self.to('mps')
+            device = torch.device('mps')
         else:
             self.cpu()
             device = torch.device('cpu')
