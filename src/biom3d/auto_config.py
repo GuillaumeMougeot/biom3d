@@ -148,7 +148,7 @@ def data_fingerprint(img_path, msk_path=None, num_samples=10000,seed=42):
         # to get a global sample of all the images, 
         # we use random sampling on the image voxels inside the mask
         rng = np.random.default_rng(seed)
-        
+
         if len(img) > 0:
             samples.append(rng.choice(img, num_samples, replace=True) if len(img)>0 else [])
     handler.close()
