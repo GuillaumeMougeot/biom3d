@@ -42,6 +42,7 @@ def main_seg_pred_eval(
         builder_train.model.freeze_encoder()
     builder_train.run_training()
 
+    train_base_dir = builder_train.base_dir
     del builder_train
 
     # pred

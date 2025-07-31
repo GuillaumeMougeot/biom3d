@@ -10,27 +10,19 @@ Starting the Graphical User Interface of biom3d depends on the type of installat
 
 ## Splash screen
 
-<p align="center">
-  <img src="_static/image/gui_splash.PNG" />
-</p>
+![Screenshot of local/remote selection menu.](../_static/image/gui_splash.png)
 
 Biom3d comes with 2 modes: local or remote. 'Local' means that the computation will be executed on your computer. 'Remote' means that the computations will be executed on a distant computer where the API of biom3d has been installed. The aspect of the GUI will slightly change depending on the chosen mode.
 
 If you have installed biom3d with the local version simply click on the 'Start locally' button to start, you can choose a path to store your files in the field over the button, by default, the files are stored in the directory where biom3d have been launched.
 
-<<<<<<< HEAD
 If you have installed biom3d with the remote version, you must then complete the required fields. The first one is the IP address of your remote computer (where the API of biom3d is installed). The second and third one is your user name and password to connect to the remote computer, the forth one is the path to your virtual environment (if you don't have a virtual environment leave it empty ).
-=======
-If you have installed biom3d with the remote version, you must then complete the required fields. The first one is the IP address of your remote computer (where the API of biom3d is installed). The second and third one is your user name and password to connect to the remote computer, the forth one is the path to your virtual environment (if you don't have a virtual environment leave it empty).
->>>>>>> f562750641a74b960ed698e427ed811313552d0e
 
 
 ## Preprocess & Train
 
 ### Local
-<p align="center">
-  <img src="_static/image/gui_local_preprocess&train.PNG" />
-</p>
+![Screenshot of training tab in local mode.](../_static/image/gui_local_preprocess&train.png)
 
 
 The preprocessing is executed locally. The current images and masks format that are accepted by the GUI are TIFF files ('.tif' extension) and NIFTI ('.nii.gz' extension).
@@ -59,9 +51,7 @@ Once the preprocessing data fields completed, configure the training hyper-param
 > Note: The rest of the hyper-parameters is automatically set depending on the median size of the 3D images of the dataset. 3D images are often too big to fit into memory when training a deep learning model, so their number and size must be regulated. The default values have be setup for a computer having a GPU of 12B of VRAM. In the case where you have access to a larger GPU it could be interesting to increase the values of the training configuration. The batch size is a positive integer defining the number of images that will be used passed to the model simultaneously. A batch size of 2 is a good default to allow the model to see simultaneously several images and not too big to prevent any memory problem. The patch size is a triplet of positive integers defining the size of the crop applied to a 3D image. Each patch will be randomly rotated to give to the model different point of view. Unfortunately, the rotation creates black regions in the corner of the image. To avoid this artefact, the augmented patch size defines the size of a slightly bigger patch on which the rotation will be applied before the real patching. The number of pooling in the UNet is the number of time an image patch will be divided by 2. Hence, if one of the pooling dimension is set to 3 then the patch size will be divided by 8 and so the patch size should be dividable by 8! And this is true for all 3 dimensions.
 #### OPTION 2 : 
 #### Loading a configuration file
-<p align="center">
-  <img src="_static/image/gui_local_preprocess&train_loadconfig.PNG" />
-</p>
+![Screenshot of training tab in local mode, with config selection.](../_static/image/gui_local_preprocess&train_loadconfig.png)
 
 
 If you have already preprocessed your dataset and configured your training parameters you can load the configuration file by clicking on 'Datset is already preprocessed ?' check box, and then select your configuration file.
@@ -73,10 +63,7 @@ To load the configuration file click on 'Load config' button.
 Start the training by pressing the "Start" button and follow the training process in the terminal. Once the training is finished ("Training done!" will appear below the "Start" button).
 
 ### Remote
-
-<p align="center">
-  <img src="_static/image/gui_remote_preprocess&train.PNG" />
-</p>
+![Screenshot of training tab in remote mode.](../_static/image/gui_remote_preprocess&train.png)
 
 For the Remote version of the GUI you can either send a preprocessed folders to your remote computer by choosing a nice and unique name for your new dataset, then send your dataset by pressing the 'Send Dataset' button.
 
@@ -98,9 +85,8 @@ The general idea behind prediction is: 1. choose a new unannotated dataset 2. ch
 
 ### Local (without Omero)
 
-<p align="center">
-  <img src="_static/image/gui_local_predict.PNG" />
-</p>
+![Screenshot of prediction tab in local mode.](../_static/image/gui_local_predict_omero.png)
+
 
 First, select your image data folder with the first "Browse" button. 
 
@@ -114,9 +100,7 @@ Finally, press the "Start" button to start your prediction.
 
 ### Remote (without Omero)
 
-<p align="center">
-  <img src="_static/image/gui_remote_predict.PNG" />
-</p>
+![Screenshot of prediction tab in remote mode.](../_static/image/gui_local_predict_omero.png)
 
 First, select your image directory from the drop-down menu or send a new image directory by pressing first the "Browse" button, finding your image directory on your local computer and then pressing the "Send data" button to send your image directory to the remote server.
 
@@ -130,23 +114,19 @@ Fifth, once prediction are finished you can download them from the drop-down men
 
 ### Local (with Omero)
 
-<p align="center">
-  <img src="_static/image/gui_local_predict_omero.PNG" />
-</p>
+![Screenshot of prediction tab with OMERO in local mode.](../_static/image/gui_local_predict_omero.png)
+
 
 When clicking on the "Use omero" tick box, two new frames should appear and replace the previous "Input directory" frame. In the first frame called "Connection to Omero", set your Omero server, user name and password. In the second frame called "Selection of Omero dataset", you can run the prediction over an Omero Dataset (a folder containing images). In the same frame, then set the identifier (ID) of your dataset. 
 
-<p align="center">
-  <img src="_static/image/omero_dataset_id.PNG" />
-</p>
+![Screenshot of where to find dataset ID in OMERO webclient](../_static/image/omero_dataset_id.png)
+
 
 The next frames are similar to the one without Omero, please follow the steps starting from the second one in the "Local (without Omero)" sub-section for more details. 
 
 ### Remote (with Omero)
 
-<p align="center">
-  <img src="_static/image/gui_remote_predict_omero.PNG" />
-</p>
+![Screenshot of omero prediction in remote of the GUI](../_static/image/gui_remote_predict_omero.png)
 
 Please follow the first step of the "Local (with Omero)" sub-section and then the steps of the "Remote (without Omero)" sub-section starting from the second step to get all the details.
 
@@ -155,21 +135,12 @@ Please follow the first step of the "Local (with Omero)" sub-section and then th
 When clicking on the "Send predictions to omero" tick box, a new frame should appear and replace the previous "Output directory" frame. The frame is called "Connection to Omero server", to set your Omero server, user name and password. In the same frame, you have to choose the output Project ID (where a new dataset will be created) then set a name to that dataset. 
 
 ### Local 
-
-<p align="center">
-  <img src="_static/image/gui_local_send_to_omero.PNG" />
-</p>
-
+![Screenshot of send to omero part in local of the GUI](../_static/image/gui_local_send_to_omero.png)
 
 For Local Gui click on 'Browse' and select the dataset to send. After that click on 'Start' button.
 
 ### Remote
-
-<p align="center">
-  <img src="_static/image/gui_remote_send_to_omero.PNG" />
-</p>
-
-
+![Screenshot of send to omero part in remote of the GUI](../_static/image/gui_remote_send_to_omero.png)
 
 
 Finally, for Remote Gui in the drop-down menu choose the dataset to send and click on 'Send to Omero' button, 

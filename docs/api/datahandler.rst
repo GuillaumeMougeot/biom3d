@@ -70,6 +70,7 @@ Specials methods
 .. autoattribute:: OutputType.IMG
 .. autoattribute:: OutputType.MSK
 .. autoattribute:: OutputType.FG
+.. autoattribute:: OutputType.PRED
 
 Adding a new format
 ~~~~~~~~~~~~~~~~~~~
@@ -83,3 +84,7 @@ To add a new format, only two thing are required :
       You can use existing implementations as base.
 
 - Add some code to the :class:`DataHandlerFactory` to allow it to recognize your new implementation. 
+
+.. note::
+
+    When testing, be sure to also test with dataset of only 1 image to test if preprocessing._split_image work well.

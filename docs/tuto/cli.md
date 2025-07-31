@@ -218,10 +218,7 @@ python -m biom3d.omero_pred\
 ```
 
 Please complete each of the field above. The Omero dataset ID can be found in your Omero browser here:
-
-<p align="center">
-  <img src="_static/image/omero_dataset_id.PNG" />
-</p>
+![Screenshot of where to find dataset ID in OMERO webclient](../_static/image/omero_dataset_id.png)
 
 The flag `--upload_id` is optional and can be use to upload the prediction results back into Omero. 
 
