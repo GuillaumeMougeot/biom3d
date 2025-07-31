@@ -18,7 +18,11 @@ Biom3d comes with 2 modes: local or remote. 'Local' means that the computation w
 
 If you have installed biom3d with the local version simply click on the 'Start locally' button to start, you can choose a path to store your files in the field over the button, by default, the files are stored in the directory where biom3d have been launched.
 
+<<<<<<< HEAD
+If you have installed biom3d with the remote version, you must then complete the required fields. The first one is the IP address of your remote computer (where the API of biom3d is installed). The second and third one is your user name and password to connect to the remote computer, the forth one is the path to your virtual environment (if you don't have a virtual environment leave it empty ).
+=======
 If you have installed biom3d with the remote version, you must then complete the required fields. The first one is the IP address of your remote computer (where the API of biom3d is installed). The second and third one is your user name and password to connect to the remote computer, the forth one is the path to your virtual environment (if you don't have a virtual environment leave it empty).
+>>>>>>> f562750641a74b960ed698e427ed811313552d0e
 
 
 ## Preprocess & Train

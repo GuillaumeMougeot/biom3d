@@ -7,7 +7,7 @@
 # model.cuda()
 #---------------------------------------------------------------------------
 
-from biom3d.models.encoder_vgg import EncoderBlock, SmallEncoderBlock
+from biom3d.models.encoder_vgg import EncoderBlock
 from biom3d.models.decoder_vgg_deep import VGGDecoder
 from biom3d.models.encoder_efficientnet3d import EfficientNet3D, efficientnet3d
 

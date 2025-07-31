@@ -2,11 +2,8 @@
 # Main code: run predictions
 #---------------------------------------------------------------------------
 
-import os
 import argparse
 import pathlib
-import numpy as np
-
 from biom3d.builder import Builder
 from biom3d.utils import deprecated, versus_one, dice, DataHandlerFactory
 from biom3d.eval import eval
@@ -14,7 +11,7 @@ from biom3d.eval import eval
 #---------------------------------------------------------------------------
 # prediction base fonction
 
-def pred_single(log, img_path,out_path):
+def pred_single(log, img_path,out_path,is_2d = False):
     """Prediction on a single image.
     """
     if not isinstance(log,list): log=str(log)
@@ -26,11 +23,11 @@ def pred_single(log, img_path,out_path):
             msk_outpath = out_path,
             model_name = builder.config[-1].DESC if isinstance(builder.config,list) else builder.config.DESC,
         )
-    img = builder.run_prediction_single(handler, return_logit=False)
+    img = builder.run_prediction_single(handler, return_logit=False,is_2d=is_2d)
     handler.save(handler.images[0], img,"pred")
     return builder.config.NUM_CLASSES+1,handler.msk_outpath  # for pred_seg_eval_single
 
-def pred(log, path_in, path_out):
+def pred(log, path_in, path_out,is_2d = False):
     """Prediction on a folder of images.
     """
     if not isinstance(log,list): log=str(log)
@@ -38,21 +35,22 @@ def pred(log, path_in, path_out):
     path_out=str(path_out)
 
     builder = Builder(config=None,path=log, training=False)
-    path_out = builder.run_prediction_folder(path_in=path_in, path_out=path_out, return_logit=False)
+    path_out = builder.run_prediction_folder(path_in=path_in, path_out=path_out, return_logit=False,is_2d=is_2d)
     return path_out
 
 @deprecated("This method is no longer used as it is the default behaviour of DataHandlers.")
-def pred_multiple(log, path_in, path_out):
+def pred_multiple(log, path_in, path_out,is_2d = False):
     """Prediction a folder of folders of images.
     """
-    return pred(log,path_in,path_out)
+    return pred(log,path_in,path_out,is_2d=is_2d)
 
 #---------------------------------------------------------------------------
 # main unet segmentation
-def pred_seg(log=pathlib.Path.home(), path_in=pathlib.Path.home(), path_out=pathlib.Path.home()):
-    pred(log, path_in, path_out)
+def pred_seg(log=pathlib.Path.home(), path_in=pathlib.Path.home(), path_out=pathlib.Path.home(),is_2d = False):
+    pred(log, path_in, path_out,is_2d=is_2d)
 
-def pred_seg_eval(log=pathlib.Path.home(), path_in=pathlib.Path.home(), path_out=pathlib.Path.home(), path_lab=None, eval_only=False):
+# TODO remove eval only, we have a module for that
+def pred_seg_eval(log=pathlib.Path.home(), path_in=pathlib.Path.home(), path_out=pathlib.Path.home(), path_lab=None, eval_only=False,is_2d = False):
     print("Start inference")
     builder_pred = Builder(
         config=None,
@@ -60,7 +58,7 @@ def pred_seg_eval(log=pathlib.Path.home(), path_in=pathlib.Path.home(), path_out
         training=False)
     out = path_out
     if not eval_only:
-        out = builder_pred.run_prediction_folder(path_in=path_in, path_out=path_out, return_logit=False) # run the predictions
+        out = builder_pred.run_prediction_folder(path_in=path_in, path_out=path_out, return_logit=False,is_2d=is_2d) # run the predictions
     print("Inference done!")
 
 
@@ -72,9 +70,9 @@ def pred_seg_eval(log=pathlib.Path.home(), path_in=pathlib.Path.home(), path_out
         # eval
         eval(path_lab,out,num_classes=num_classes)
 
-def pred_seg_eval_single(log, img_path, out_path, msk_path):
+def pred_seg_eval_single(log, img_path, out_path, msk_path,is_2d = False):
     print("Run prediction for:", img_path)
-    num_classes,out = pred_single(log, img_path, out_path)
+    num_classes,out = pred_single(log, img_path, out_path,is_2d=is_2d)
     print("Done! Prediction saved in:", out_path)
     handler1 = DataHandlerFactory.get(
         out_path,
@@ -127,6 +125,8 @@ if __name__=='__main__':
         help="Path to the input label collection") 
     parser.add_argument("-e", "--eval_only", default=False,  action='store_true', dest='eval_only',
         help="Do only the evaluation and skip the prediction (predictions must have been done already.)") 
+    parser.add_argument("--is_2d", default=False, dest="is_2d",
+        help="(default=False) Whether the image is 2d.")
     args = parser.parse_args()
 
     if isinstance(args.log,list) and len(args.log)==1:
@@ -138,10 +138,10 @@ if __name__=='__main__':
         valid_names[args.name].show(run=True)
     else:
         if args.name=="seg_eval":
-            valid_names[args.name](args.log, args.path_in, args.path_out, args.path_lab, args.eval_only)
+            valid_names[args.name](args.log, args.path_in, args.path_out, args.path_lab, args.eval_only,is_2d=args.is_2d)
         elif args.name=="seg_eval_single":
-            valid_names[args.name](args.log, args.path_in, args.path_out, args.path_lab)
+            valid_names[args.name](args.log, args.path_in, args.path_out, args.path_lab,is_2d = args.is_2d)
         else:
-            valid_names[args.name](args.log, args.path_in, args.path_out)
+            valid_names[args.name](args.log, args.path_in, args.path_out,is_2d = args.is_2d)
 
 #---------------------------------------------------------------------------

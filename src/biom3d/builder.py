@@ -565,7 +565,7 @@ class Builder:
             self.callbacks.on_epoch_end(epoch)
         self.callbacks.on_train_end(self.config.NB_EPOCHS)
 
-    def run_prediction_single(self, handler=None, img=None, img_meta=None, return_logit=True):
+    def run_prediction_single(self, handler=None, img=None, img_meta=None, return_logit=True,is_2d=False):
         """Compute a prediction for one image using the predictor defined in the configuration file.
         Two input options are available: either give the image path or the image and its associated metadata.
 
@@ -579,6 +579,8 @@ class Builder:
             Metadata of the image, required it the img_path is not provided.
         return_logit : bool, default=True
             Whether to return the logit, i.e. the model output before the final activation. 
+        is_2d: bool, default=False
+            Whether image is 2d, will add dimension to make it look 3d
         
         Returns
         -------
@@ -612,6 +614,11 @@ class Builder:
             for i, config in enumerate(self.config):
                 # prediction
                 print('Running prediction for model number', i)
+                if is_2d:
+                    if img.ndim == 2:
+                        img = img[np.newaxis, np.newaxis, ...]
+                    elif img.ndim == 3:
+                        img = img[:, np.newaxis, ...]
                 out = read_config(
                     config.PREDICTOR, 
                     register.predictors,
@@ -662,7 +669,7 @@ class Builder:
                 return_logit = return_logit,
                 **img_meta)
 
-    def run_prediction_folder(self, path_in, path_out, return_logit=False):
+    def run_prediction_folder(self, path_in, path_out, return_logit=False,is_2d=False):
         """Compute predictions for a folder of images.
 
         Parameters
@@ -673,6 +680,8 @@ class Builder:
             Path to the output folder where the predictions will be stored.
         return_logit : bool, default=False
             Whether to save the logit, i.e. the model output before the final activation.
+        is_2d: bool, default=False
+            Whether image is 2d, will add dimension to make it look 3d
         """
         handler = utils.DataHandlerFactory.get(
             path_in,
@@ -686,6 +695,11 @@ class Builder:
         for i,_,_ in handler:
             print("running prediction for image: ", i)
             img, img_meta = handler.load(i)
+            if is_2d:
+                if img.ndim == 2:
+                    img = img[np.newaxis, np.newaxis, ...]
+                elif img.ndim == 3:
+                    img = img[:, np.newaxis, ...]
             pred = self.run_prediction_single(img=img, img_meta=img_meta, return_logit=return_logit)
             print("Saving image...")
             fnames_out= handler.save(i,pred,"pred")

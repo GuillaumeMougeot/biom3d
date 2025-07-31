@@ -5,7 +5,6 @@ import torchio as tio
 # ----------------------------------------------------------------------------
 # data augmentation utils
 # not used yet...
-
 def centered_pad(img, final_size, msk=None):
     """
     centered pad an img and msk to fit the final_size

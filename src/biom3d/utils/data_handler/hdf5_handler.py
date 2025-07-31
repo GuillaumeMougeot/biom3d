@@ -3,7 +3,6 @@ from typing import Literal, Optional, Tuple
 from .data_handler_abstract import DataHandler, OutputType
 import h5py
 import numpy as np
-from sys import platform
 from pathlib import Path, PurePosixPath
 from os.path import exists
 import re

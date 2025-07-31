@@ -16,6 +16,7 @@ bash/meso_*
 bash/nnunet_*
 bash/omero_*
 bash/seafile_*
+bash/exp_*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

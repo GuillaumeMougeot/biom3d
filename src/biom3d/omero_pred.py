@@ -6,20 +6,22 @@
 
 import argparse
 import os
+import shutil
 from omero.cli import cli_login
-from omero.gateway import BlitzGateway
+
 
 from biom3d import omero_downloader 
 try:
     from biom3d import omero_uploader
 except:
+    print("couldn't import omero uploader")
     pass
 from biom3d import pred  
 
-def run(obj, target, log, dir_out, host=None, user=None, pwd=None, upload_id=None, ext="_predictions"):
+def run(obj, target, log, dir_out, is_2d, host=None, user=None, pwd=None, upload_id=None, ext="_predictions", attachment=None, session_id=None):
     print("Start dataset/project downloading...")
     if host is not None:
-        datasets, dir_in = omero_downloader.download_object(user, pwd, host, obj, target)
+        datasets, dir_in = omero_downloader.download_object(user, pwd, host, obj, target, session_id)
     else:
         with cli_login() as cli:
             datasets, dir_in = omero_downloader.download_object_cli(cli, obj, target)
@@ -32,7 +34,8 @@ def run(obj, target, log, dir_out, host=None, user=None, pwd=None, upload_id=Non
         dir_out = os.path.join(dir_out, datasets[0].name + ext)
         if not os.path.isdir(dir_out):
             os.makedirs(dir_out, exist_ok=True)
-        dir_out = pred.pred(log, dir_in, dir_out)
+        dir_out = pred.pred(log, dir_in, dir_out,is_2d=is_2d)
+
 
         # eventually upload the dataset back into Omero [DEPRECATED]
         if upload_id is not None and host is not None:
@@ -43,7 +46,25 @@ def run(obj, target, log, dir_out, host=None, user=None, pwd=None, upload_id=Non
                 dataset_name = os.path.basename(os.path.dirname(dir_in))
             dataset_name += ext
 
-            omero_uploader.run(user, pwd, host,upload_id,dataset_name,dir_out)
+            omero_uploader.run(
+                username=user,
+                password=pwd,
+                hostname=host,
+                project=upload_id, 
+                attachment=attachment, 
+                is_pred=True, 
+                dataset_name=dataset_name,
+                path=dir_out,
+                session_id=session_id)
+            
+            # Remove all folders (pred, to_pred, attachment File)
+            try :
+                shutil.rmtree(dir_in)
+                shutil.rmtree(dir_out)
+                os.remove(attachment+".zip")
+            except:
+                pass
+
         print("Done prediction!")
 
         # print for remote. Format TAG:key:value
@@ -83,8 +104,14 @@ if __name__=='__main__':
         help="(optional) Password for Omero server")
     parser.add_argument('--upload_id', type=int, default=None,
         help="(optional) Id of Omero Project in which to upload the dataset. Only works with Omero Project Id and folder of images.")
+    parser.add_argument('--attachment', type=str, default=None,
+        help="(optional) Attachment file")
+    parser.add_argument('--session_id', default=None,
+        help="(optional) Session ID for Omero client.")
     parser.add_argument('--ext', type=str, default='_predictions',
-        help='Name of the extension added to the future uploaded Omero dataset.')
+        help='(optional) Name of the extension added to the future uploaded Omero dataset.')
+    parser.add_argument("--is_2d", default=False,  
+        help="(default=False) Whether the image is 2d.")
     args = parser.parse_args()
 
     run(
@@ -97,4 +124,7 @@ if __name__=='__main__':
         pwd=args.password,
         upload_id=args.upload_id,
         ext=args.ext,
+        attachment=args.attachment,
+        session_id=args.session_id,
+        is_2d=args.is_2d
     )

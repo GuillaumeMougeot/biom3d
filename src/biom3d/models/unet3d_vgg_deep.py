@@ -10,6 +10,52 @@ from biom3d.models.decoder_vgg_deep import VGGDecoder
 # 3D UNet with the previous encoder and decoder
 
 class UNet(nn.Module):
+    """
+    A 3D UNet architecture utilizing VGG-style encoder and decoder blocks for volumetric (3D) image segmentation.
+    
+    The UNet model is a convolutional neural network for fast and precise segmentation of images. 
+    This implementation incorporates VGG blocks for encoding and decoding, allowing for deep feature extraction
+    and reconstruction, respectively. The model supports dynamic adjustment of pooling layers and class numbers,
+    along with optional deep decoder usage and weight initialization from pre-trained checkpoints.
+    
+    Parameters
+    ----------
+    num_pools : list of int
+        A list of integers defining the number of pooling layers for each dimension of the input. Default is [5,5,5].
+    num_classes : int
+        The number of classes for segmentation. Default is 1.
+    factor : int
+        The scaling factor for the number of channels in VGG blocks. Default is 32.
+    encoder_ckpt : str, optional
+        Path to a checkpoint file from which to load encoder weights.
+    model_ckpt : str, optional
+        Path to a checkpoint file from which to load the entire model's weights.
+    use_deep : bool
+        Flag to indicate whether to use a deep decoder. Default is True.
+    in_planes : int
+        The number of input channels. Default is 1.
+    flip_strides : bool
+        Flag to flip strides to match encoder and decoder dimensions. Useful for ensuring dimensionality alignment.
+    
+    Attributes
+    ----------
+    encoder : VGGEncoder
+        The encoder part of the UNet, responsible for downscaling and feature extraction.
+    decoder : VGGDecoder
+        The decoder part of the UNet, responsible for upscaling and constructing the segmentation map.
+    
+    Methods
+    -------
+    freeze_encoder(freeze=True)
+        Freezes or unfreezes the encoder's weights.
+    unfreeze_encoder()
+        Convenience method to unfreeze the encoder's weights.
+    load(model_ckpt)
+        Loads the model's weights from a specified checkpoint.
+    forward(x)
+        Defines the computation performed at every call. Applies the encoder and decoder on the input.
+        
+    """
     def __init__(
         self, 
         num_pools=[5,5,5], 
@@ -70,7 +116,12 @@ class UNet(nn.Module):
 
     def freeze_encoder(self, freeze=True):
         """
-        freeze or unfreeze encoder model
+        Freezes or unfreezes the encoder's weights based on the input flag.
+        
+        Parameters
+        ----------
+        freeze : bool, optional
+            If True, the encoder's weights are frozen, otherwise they are unfrozen. Default is True.
         """
         if freeze:
             print("Freezing encoder weights...")
@@ -80,11 +131,18 @@ class UNet(nn.Module):
             l.requires_grad = not freeze
     
     def unfreeze_encoder(self):
+        """
+        Unfreezes the encoder's weights. Convenience method calling `freeze_encoder` with `False`.
+        """
         self.freeze_encoder(False)
 
     def load(self, model_ckpt):
         """Load the model from checkpoint.
         The checkpoint dictionary must have a 'model' key with the saved model for value.
+        Parameters
+        ----------
+        model_ckpt : str
+            The path to the checkpoint file containing the model's weights.
         """
         print("Load model weights from", model_ckpt)
         if torch.cuda.is_available():
@@ -99,6 +157,19 @@ class UNet(nn.Module):
         print(self.load_state_dict(ckpt['model'], strict=False))
 
     def forward(self, x): 
+        """
+        Defines the forward pass of the UNet model.
+        
+        Parameters
+        ----------
+        x : torch.Tensor
+            The input tensor representing the image to be segmented.
+        
+        Returns
+        -------
+        torch.Tensor
+            The output segmentation map tensor.
+        """
         # x is an image
         out = self.encoder(x)
         out = self.decoder(out)

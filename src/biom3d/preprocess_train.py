@@ -4,11 +4,7 @@
 #---------------------------------------------------------------------------
 
 import argparse
-import os 
-
-from biom3d.preprocess import Preprocessing, auto_config_preprocess
-from biom3d.auto_config import auto_config, data_fingerprint
-from biom3d.utils import load_python_config, save_python_config
+from biom3d.preprocess import auto_config_preprocess
 from biom3d.builder import Builder
 
 def preprocess_train(
@@ -21,6 +17,7 @@ def preprocess_train(
         desc="unet",
         max_dim=128,
         num_epochs=1000,
+        is_2d=False,
         ):
     # preprocessing
     config_path = auto_config_preprocess(
@@ -33,6 +30,7 @@ def preprocess_train(
         desc=desc, 
         max_dim=max_dim,
         num_epochs=num_epochs,
+        is_2d=is_2d
     )
 
     # training
@@ -61,6 +59,8 @@ if __name__=='__main__':
         help="(default=unet_default) Optional. A name used to describe the model.")
     parser.add_argument("--ct_norm", default=False,  action='store_true', dest='ct_norm',
         help="(default=False) Whether to use CT-Scan normalization routine (cf. nnUNet).") 
+    parser.add_argument("--is_2d", default=False, dest='is_2d',
+        help="(default=False) Whether the image is 2d.")
 
     args = parser.parse_args()
 
@@ -74,4 +74,5 @@ if __name__=='__main__':
         desc=args.desc,
         max_dim=args.max_dim,
         num_epochs=args.num_epochs,
+        is_2d=args.is_2d,
     )

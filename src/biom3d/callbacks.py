@@ -12,6 +12,7 @@ from shutil import copyfile
 import matplotlib.pyplot as plt
 plt.switch_backend('Agg')  # bug fix: change matplotlib backend 
 from torch.utils.tensorboard import SummaryWriter
+from contextlib import nullcontext
 from abc import abstractmethod
 import numpy as np
 
@@ -332,7 +333,7 @@ class ImageSaver(Callback):
                     X, y = next(iter(self.val_dataloader))
                     if torch.cuda.is_available():
                         X, y = X.cuda(), y.cuda()
-                    with torch.cuda.amp.autocast(self.use_fp16):
+                    with torch.amp.autocast("cuda", enabled=self.use_fp16) if torch.cuda.is_available() else nullcontext():
                         pred = self.model(X)
                         if isinstance(pred,list):
                             pred = pred[-1]

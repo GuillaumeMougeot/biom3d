@@ -16,7 +16,7 @@ def dice(inputs, targets, smooth=1, axis=(-3,-2,-1)):
 
 def versus_one(fct, input_img, target_img, num_classes, single_class=None):
     """
-    comparison function between in_path image and tg_path and using the criterion defined by fct
+    comparison function between input image  and target images and using the criterion defined by fct
     """
     img1 = input_img.copy()
     if len(img1.shape)==3:

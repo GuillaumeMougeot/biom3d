@@ -4,7 +4,6 @@
 
 import argparse
 import os
-import numpy as np
 from biom3d.builder import Builder
 from biom3d.utils import load_python_config
 from biom3d.eval import eval
@@ -49,8 +48,8 @@ def main_seg_pred_eval(
     if path_in is not None and path_out is not None:
         print("Start inference")
         builder_pred = Builder(
-            config=config_path,
-            path=path,
+            config=None,
+            path=train_base_dir,
             training=False)
 
         out = builder_pred.run_prediction_folder(path_in=path_in, path_out=path_out, return_logit=False)
