@@ -23,7 +23,7 @@ def pred_single(log, img_path,out_path,is_2d = False,skip_preprocessing=False):
             msk_outpath = out_path,
             model_name = builder.config[-1].DESC if isinstance(builder.config,list) else builder.config.DESC,
         )
-    img = builder.run_prediction_single(handler, return_logit=False,is_2d=is_2d)
+    img = builder.run_prediction_single(handler, return_logit=False,is_2d=is_2d,skip_preprocessing=skip_preprocessing)
     handler.save(handler.images[0], img,"pred")
     return builder.config.NUM_CLASSES+1,handler.msk_outpath  # for pred_seg_eval_single
 
@@ -35,19 +35,19 @@ def pred(log, path_in, path_out,is_2d = False,skip_preprocessing=False):
     path_out=str(path_out)
 
     builder = Builder(config=None,path=log, training=False)
-    path_out = builder.run_prediction_folder(path_in=path_in, path_out=path_out, return_logit=False,is_2d=is_2d)
+    path_out = builder.run_prediction_folder(path_in=path_in, path_out=path_out, return_logit=False,is_2d=is_2d,skip_preprocessing=skip_preprocessing)
     return path_out
 
 @deprecated("This method is no longer used as it is the default behaviour of DataHandlers.")
 def pred_multiple(log, path_in, path_out,is_2d = False,skip_preprocessing=False):
     """Prediction a folder of folders of images.
     """
-    return pred(log,path_in,path_out,is_2d=is_2d)
+    return pred(log,path_in,path_out,is_2d=is_2d,skip_preprocessing=skip_preprocessing)
 
 #---------------------------------------------------------------------------
 # main unet segmentation
 def pred_seg(log=pathlib.Path.home(), path_in=pathlib.Path.home(), path_out=pathlib.Path.home(),is_2d = False,skip_preprocessing=False):
-    pred(log, path_in, path_out,is_2d=is_2d)
+    pred(log, path_in, path_out,is_2d=is_2d,skip_preprocessing=skip_preprocessing)
 
 # TODO remove eval only, we have a module for that
 def pred_seg_eval(log=pathlib.Path.home(), path_in=pathlib.Path.home(), path_out=pathlib.Path.home(), path_lab=None, eval_only=False,is_2d = False,skip_preprocessing=False):
@@ -58,7 +58,7 @@ def pred_seg_eval(log=pathlib.Path.home(), path_in=pathlib.Path.home(), path_out
         training=False)
     out = path_out
     if not eval_only:
-        out = builder_pred.run_prediction_folder(path_in=path_in, path_out=path_out, return_logit=False,is_2d=is_2d) # run the predictions
+        out = builder_pred.run_prediction_folder(path_in=path_in, path_out=path_out, return_logit=False,is_2d=is_2d,skip_preprocessing=skip_preprocessing) # run the predictions
     print("Inference done!")
 
 
@@ -72,7 +72,7 @@ def pred_seg_eval(log=pathlib.Path.home(), path_in=pathlib.Path.home(), path_out
 
 def pred_seg_eval_single(log, img_path, out_path, msk_path,is_2d = False,skip_preprocessing=False):
     print("Run prediction for:", img_path)
-    num_classes,out = pred_single(log, img_path, out_path,is_2d=is_2d)
+    num_classes,out = pred_single(log, img_path, out_path,is_2d=is_2d,skip_preprocessing=skip_preprocessing)
     print("Done! Prediction saved in:", out_path)
     handler1 = DataHandlerFactory.get(
         out_path,

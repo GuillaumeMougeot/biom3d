@@ -18,7 +18,7 @@ except:
     pass
 from biom3d import pred  
 
-def run(obj, target, log, dir_out, is_2d, host=None, user=None, pwd=None, upload_id=None, ext="_predictions", attachment=None, session_id=None):
+def run(obj, target, log, dir_out, is_2d, host=None, user=None, pwd=None, upload_id=None, ext="_predictions", attachment=None, session_id=None,skip_preprocessing=False):
     print("Start dataset/project downloading...")
     if host is not None:
         datasets, dir_in = omero_downloader.download_object(user, pwd, host, obj, target, session_id)
@@ -34,7 +34,7 @@ def run(obj, target, log, dir_out, is_2d, host=None, user=None, pwd=None, upload
         dir_out = os.path.join(dir_out, datasets[0].name + ext)
         if not os.path.isdir(dir_out):
             os.makedirs(dir_out, exist_ok=True)
-        dir_out = pred.pred(log, dir_in, dir_out,is_2d=is_2d)
+        dir_out = pred.pred(log, dir_in, dir_out,is_2d=is_2d,skip_preprocessing=skip_preprocessing)
 
 
         # eventually upload the dataset back into Omero [DEPRECATED]
@@ -112,6 +112,8 @@ if __name__=='__main__':
         help='(optional) Name of the extension added to the future uploaded Omero dataset.')
     parser.add_argument("--is_2d", default=False,  
         help="(default=False) Whether the image is 2d.")
+    parser.add_argument("--skip_preprocessing", default=False, action='store_true',dest="skip_prepprocessing",
+        help="(default=False) Skip preprocessing")
     args = parser.parse_args()
 
     run(
@@ -126,5 +128,6 @@ if __name__=='__main__':
         ext=args.ext,
         attachment=args.attachment,
         session_id=args.session_id,
-        is_2d=args.is_2d
+        is_2d=args.is_2d,
+        skip_preprocessing=args.skip_preprocessing,
     )
