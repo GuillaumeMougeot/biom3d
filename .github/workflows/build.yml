@@ -204,31 +204,9 @@ jobs:
         with:
           name: Biom3d-Windows
           path: artifact_root\
-
-  build-doc:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
-      - name: Install only docs dependencies
-        run: |
-          pip install --upgrade pip
-          pip install -e .[docs]
-      - name: Build documentation
-        run: |
-          cd docs
-          make clean
-          make html
-
-
   release:
     name: Create Release
-    needs: [build-macos, build-windows, build-docker, read-config,build-doc]
+    needs: [build-macos, build-windows, build-docker, read-config]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
