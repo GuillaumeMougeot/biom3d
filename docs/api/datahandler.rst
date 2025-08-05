@@ -76,6 +76,7 @@ Adding a new format
 ~~~~~~~~~~~~~~~~~~~
 
 To add a new format, only two thing are required :
+
 - Create a new implementation of :class:`DataHandler`.
 
   .. note::
@@ -84,6 +85,7 @@ To add a new format, only two thing are required :
       You can use existing implementations as base.
 
 - Add some code to the :class:`DataHandlerFactory` to allow it to recognize your new implementation. 
+- Document your format in `docs/tuto/dataset.md`, specially if your implementation need a specific dataset structure.
 
 .. note::
 

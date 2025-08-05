@@ -595,7 +595,7 @@ class Builder:
             self.callbacks.on_epoch_end(epoch)
         self.callbacks.on_train_end(self.config.NB_EPOCHS)
 
-    def run_prediction_single(self, handler=None, img=None, img_meta=None, return_logit=True,is_2d=False):
+    def run_prediction_single(self, handler=None, img=None, img_meta=None, return_logit=True,is_2d=False,skip_preprocessing=False):
         """Compute a prediction for one image using the predictor defined in the configuration file.
         Two input options are available: either give the image path or the image and its associated metadata.
 
@@ -626,12 +626,13 @@ class Builder:
         print("Input shape:", img.shape)
 
         if isinstance(self.config,list): # multi-model mode!
-            # check if the preprocessing are all equal, then only use one preprocessing
-            # TODO: make it more flexible?
-            assert np.all([config.PREPROCESSOR==self.config[0].PREPROCESSOR for config in self.config[1:]]), "[Error] For multi-model prediction, the current version of biom3d imposes that all preprocessor are identical. {}".format([config.PREPROCESSOR==self.config[0].PREPROCESSOR for config in self.config[1:]])
-            
-            # preprocessing
-            img, img_meta = read_config(self.config[0].PREPROCESSOR, register.preprocessors, img=img, img_meta=img_meta)
+            if not skip_preprocessing:
+                # check if the preprocessing are all equal, then only use one preprocessing
+                # TODO: make it more flexible?
+                assert np.all([config.PREPROCESSOR==self.config[0].PREPROCESSOR for config in self.config[1:]]), "[Error] For multi-model prediction, the current version of biom3d imposes that all preprocessor are identical. {}".format([config.PREPROCESSOR==self.config[0].PREPROCESSOR for config in self.config[1:]])
+                
+                # preprocessing
+                img, img_meta = read_config(self.config[0].PREPROCESSOR, register.preprocessors, img=img, img_meta=img_meta)
 
             # same for postprocessors
             for i in range(len(self.config)):
@@ -671,9 +672,10 @@ class Builder:
                     **img_meta) # all img_meta should be equal as we use the same preprocessors
         
         else: # single model prediction
-            img, img_meta = read_config(self.config.PREPROCESSOR, register.preprocessors, img=img, img_meta=img_meta)
-            
-            print("Preprocessed shape:", img.shape)
+            if not skip_preprocessing:
+                img, img_meta = read_config(self.config.PREPROCESSOR, register.preprocessors, img=img, img_meta=img_meta)
+                
+                print("Preprocessed shape:", img.shape)
 
             # prediction
             out = read_config(
@@ -699,7 +701,7 @@ class Builder:
                 return_logit = return_logit,
                 **img_meta)
 
-    def run_prediction_folder(self, path_in, path_out, return_logit=False,is_2d=False):
+    def run_prediction_folder(self, path_in, path_out, return_logit=False,is_2d=False,skip_preprocessing=False):
         """Compute predictions for a folder of images.
 
         Parameters
@@ -730,7 +732,7 @@ class Builder:
                     img = img[np.newaxis, np.newaxis, ...]
                 elif img.ndim == 3:
                     img = img[:, np.newaxis, ...]
-            pred = self.run_prediction_single(img=img, img_meta=img_meta, return_logit=return_logit)
+            pred = self.run_prediction_single(img=img, img_meta=img_meta, return_logit=return_logit,skip_preprocessing=skip_preprocessing)
             print("Saving image...")
             fnames_out= handler.save(i,pred,"pred")
             print("Saved images in", fnames_out)

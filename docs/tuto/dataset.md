@@ -57,7 +57,7 @@ Labels
 Concerning the naming of the folder/images, you can do whatever you want (as long as label has the same structure as raw).
 
 #### Common mistakes
-##### Preprocessing wiht multiple datasets
+##### Preprocessing with multiple datasets
 If you have several datasets and you want to train a different model on each of them, you will preprocess the data. 
 ```
 ├───Raw1
@@ -101,7 +101,7 @@ A simple way to solve this is to correctly separate your data set.
     └───Label2  
 ```
 Then to start Biom3d from the `Dataset` folder :
-- In command line, simply open terminal directly in folder or cd inside then write the preprocess (and eventually train) command. If you are only doing preprocessing, you can also not change the structure but use `--img_outpath`, `--msk_outpath` and `--fg_outpath`. Note that by default, Biom3d call it's img and mask output the same name as the input with `_out` suffix and the foreground outdir `fg_out`.
+- In command line, simply open terminal directly in folder or cd inside then do the preprocess (and eventually train) command. If you are only doing preprocessing, you can also not change the structure but use `--img_outpath`, `--msk_outpath` and `--fg_outpath`. Note that by default, Biom3d call it's img and mask output the same name as the input with `_out` suffix and the foreground outdir `fg_out`.
 - With GUI, before clicking on start locally, select the dataset folder with the folder selector.
 
 ##### Evaluation on prediction

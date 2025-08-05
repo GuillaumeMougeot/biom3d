@@ -11,7 +11,7 @@ from biom3d.eval import eval
 #---------------------------------------------------------------------------
 # prediction base fonction
 
-def pred_single(log, img_path,out_path,is_2d = False):
+def pred_single(log, img_path,out_path,is_2d = False,skip_preprocessing=False):
     """Prediction on a single image.
     """
     if not isinstance(log,list): log=str(log)
@@ -27,7 +27,7 @@ def pred_single(log, img_path,out_path,is_2d = False):
     handler.save(handler.images[0], img,"pred")
     return builder.config.NUM_CLASSES+1,handler.msk_outpath  # for pred_seg_eval_single
 
-def pred(log, path_in, path_out,is_2d = False):
+def pred(log, path_in, path_out,is_2d = False,skip_preprocessing=False):
     """Prediction on a folder of images.
     """
     if not isinstance(log,list): log=str(log)
@@ -39,18 +39,18 @@ def pred(log, path_in, path_out,is_2d = False):
     return path_out
 
 @deprecated("This method is no longer used as it is the default behaviour of DataHandlers.")
-def pred_multiple(log, path_in, path_out,is_2d = False):
+def pred_multiple(log, path_in, path_out,is_2d = False,skip_preprocessing=False):
     """Prediction a folder of folders of images.
     """
     return pred(log,path_in,path_out,is_2d=is_2d)
 
 #---------------------------------------------------------------------------
 # main unet segmentation
-def pred_seg(log=pathlib.Path.home(), path_in=pathlib.Path.home(), path_out=pathlib.Path.home(),is_2d = False):
+def pred_seg(log=pathlib.Path.home(), path_in=pathlib.Path.home(), path_out=pathlib.Path.home(),is_2d = False,skip_preprocessing=False):
     pred(log, path_in, path_out,is_2d=is_2d)
 
 # TODO remove eval only, we have a module for that
-def pred_seg_eval(log=pathlib.Path.home(), path_in=pathlib.Path.home(), path_out=pathlib.Path.home(), path_lab=None, eval_only=False,is_2d = False):
+def pred_seg_eval(log=pathlib.Path.home(), path_in=pathlib.Path.home(), path_out=pathlib.Path.home(), path_lab=None, eval_only=False,is_2d = False,skip_preprocessing=False):
     print("Start inference")
     builder_pred = Builder(
         config=None,
@@ -70,7 +70,7 @@ def pred_seg_eval(log=pathlib.Path.home(), path_in=pathlib.Path.home(), path_out
         # eval
         eval(path_lab,out,num_classes=num_classes)
 
-def pred_seg_eval_single(log, img_path, out_path, msk_path,is_2d = False):
+def pred_seg_eval_single(log, img_path, out_path, msk_path,is_2d = False,skip_preprocessing=False):
     print("Run prediction for:", img_path)
     num_classes,out = pred_single(log, img_path, out_path,is_2d=is_2d)
     print("Done! Prediction saved in:", out_path)
@@ -127,6 +127,8 @@ if __name__=='__main__':
         help="Do only the evaluation and skip the prediction (predictions must have been done already.)") 
     parser.add_argument("--is_2d", default=False, dest="is_2d",
         help="(default=False) Whether the image is 2d.")
+    parser.add_argument("--skip_preprocessing", default=False, action='store_true',dest="skip_prepprocessing",
+        help="(default=False) Skip preprocessing")
     args = parser.parse_args()
 
     if isinstance(args.log,list) and len(args.log)==1:
@@ -138,10 +140,25 @@ if __name__=='__main__':
         valid_names[args.name].show(run=True)
     else:
         if args.name=="seg_eval":
-            valid_names[args.name](args.log, args.path_in, args.path_out, args.path_lab, args.eval_only,is_2d=args.is_2d)
+            valid_names[args.name](args.log, 
+                                   args.path_in, 
+                                   args.path_out, 
+                                   args.path_lab, 
+                                   args.eval_only,
+                                   is_2d=args.is_2d,
+                                   skip_preprocessing=args.skip_preprocessing)
         elif args.name=="seg_eval_single":
-            valid_names[args.name](args.log, args.path_in, args.path_out, args.path_lab,is_2d = args.is_2d)
+            valid_names[args.name](args.log, 
+                                   args.path_in, 
+                                   args.path_out, 
+                                   args.path_lab,
+                                   is_2d = args.is_2d,
+                                   skip_preprocessing=args.skip_preprocessing)
         else:
-            valid_names[args.name](args.log, args.path_in, args.path_out,is_2d = args.is_2d)
+            valid_names[args.name](args.log, 
+                                   args.path_in, 
+                                   args.path_out,
+                                   is_2d = args.is_2d,
+                                   skip_preprocessing=args.skip_preprocessing)
 
 #---------------------------------------------------------------------------
