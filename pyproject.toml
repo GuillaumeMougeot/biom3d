@@ -51,6 +51,7 @@ docs = [
     'furo>=2022.06.21',
     'docutils>=0.17.1',
     'sphinx-copybutton',
+    'sphinx_design',
 ]
 gui = [
     "omero-py",
