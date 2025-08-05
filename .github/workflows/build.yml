@@ -109,15 +109,15 @@ jobs:
           pip install wheel
           pip install pyinstaller paramiko pyyaml
           pyinstaller --clean --onefile \
-            --name Biom3d_MacOS_${{ steps.arch.outputs.ARCH }}_Remote \
+            --name Biom3d_MacOS_${{ steps.arch.outputs.ARCH }}_Remote.app \
             --icon=deployment/exe/windows/logo.ico \
             src/biom3d/gui.py
-          cp /Users/runner/work/biom3d/biom3d/dist/Biom3d_MacOS_${{ steps.arch.outputs.ARCH }}_Remote $GITHUB_WORKSPACE
+          cp /Users/runner/work/biom3d/biom3d/dist/Biom3d_MacOS_${{ steps.arch.outputs.ARCH }}_Remote.app $GITHUB_WORKSPACE
 
       - name: Prepare artifact folder
         run: |
           mkdir artifact_root
-          cp Biom3d_MacOS_${{ steps.arch.outputs.ARCH }}_Remote artifact_root/
+          cp Biom3d_MacOS_${{ steps.arch.outputs.ARCH }}_Remote.app artifact_root/
           cp deployment/exe/macos/Biom3d_MacOS_*.zip artifact_root/
         shell: bash
 
@@ -205,9 +205,31 @@ jobs:
           name: Biom3d-Windows
           path: artifact_root\
 
+  build-doc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install only docs dependencies
+        run: |
+          pip install --upgrade pip
+          pip install sphinx>=4.1.2 sphinxcontrib-apidoc sphinx_rtd_theme>=0.3.1 myst_nb furo>=2022.06.21 docutils>=0.17.1
+
+      - name: Build documentation
+        run: |
+          cd docs
+          make clean
+          make html
+
+
   release:
     name: Create Release
-    needs: [build-macos, build-windows, build-docker, read-config]
+    needs: [build-macos, build-windows, build-docker, read-config,build-doc]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -245,7 +267,7 @@ jobs:
           body_path: changelog.md
           files: |
             mac/Biom3d_MacOS_*.zip
-            mac/Biom3d_MacOS_*_Remote
+            mac/Biom3d_MacOS_*_Remote.app
             win/Biom3d_Windows_*.zip
             win/Biom3d_Windows_*_Remote.exe
 
