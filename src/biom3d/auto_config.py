@@ -119,38 +119,38 @@ def data_fingerprint(img_path, msk_path=None, num_samples=10000,seed=42):
     for img_path,msk_path,_ in handler:
         img,metadata = handler.load(img_path)
 
-    num_dims = None
+        num_dims = None
 
-    spacing = None if 'spacing' not in metadata.keys() else metadata['spacing']
+        spacing = None if 'spacing' not in metadata.keys() else metadata['spacing']
 
-    # store the size
-    img_shape = img.shape 
-    # Check if the number of dimension is consistent across the dataset
-    if num_dims is None: num_dims = len(img_shape)
-    else: assert num_dims == len(img_shape), f"[Error] Inconsistency in the number of dimensions across the dataset: {num_dims} and {len(img_shape)}."
-    # Check if the image is 2D (has two dimensions)
-    if len(img_shape) == 2:
-        # Add a third dimension with size 1 to make it 3D
-        img_shape = (1,) + img_shape
-    sizes += [list(img_shape)]
+        # store the size
+        img_shape = img.shape 
+        # Check if the number of dimension is consistent across the dataset
+        if num_dims is None: num_dims = len(img_shape)
+        else: assert num_dims == len(img_shape), f"[Error] Inconsistency in the number of dimensions across the dataset: {num_dims} and {len(img_shape)}."
+        # Check if the image is 2D (has two dimensions)
+        if len(img_shape) == 2:
+            # Add a third dimension with size 1 to make it 3D
+            img_shape = (1,) + img_shape
+        sizes += [list(img_shape)]
 
-    # store the spacing
-    if spacing is not None and spacing!=[]: 
-        spacings+=[spacing]
+        # store the spacing
+        if spacing is not None and spacing!=[]: 
+            spacings+=[spacing]
 
-    if msk_path is not None:
-        # read msk
-        msk,_ = handler.load(msk_path)
-        
-        # extract only useful voxels
-        img = img[msk > 0]
+        if msk_path is not None:
+            # read msk
+            msk,_ = handler.load(msk_path)
+            
+            # extract only useful voxels
+            img = img[msk > 0]
 
-        # to get a global sample of all the images, 
-        # we use random sampling on the image voxels inside the mask
-        rng = np.random.default_rng(seed)
+            # to get a global sample of all the images, 
+            # we use random sampling on the image voxels inside the mask
+            rng = np.random.default_rng(seed)
 
-        if len(img) > 0:
-            samples.append(rng.choice(img, num_samples, replace=True) if len(img)>0 else [])
+            if len(img) > 0:
+                samples.append(rng.choice(img, num_samples, replace=True) if len(img)>0 else [])
     handler.close()
 
     # median computation
