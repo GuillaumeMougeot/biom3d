@@ -31,6 +31,13 @@ This tool is addressed to three different profiles:
    tuto/dataset.md
 
 .. toctree::
+   :maxdepth: 0
+   :caption: How it works ?
+
+   how_it_works/pre_processing
+   how_it_works/post_processing
+
+.. toctree::
    :maxdepth: 2
    :caption: FAQ
 

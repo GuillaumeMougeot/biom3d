@@ -128,7 +128,7 @@ if __name__=='__main__':
     parser.add_argument("--is_2d", default=False, dest="is_2d",
         help="(default=False) Whether the image is 2d.")
     parser.add_argument("--skip_preprocessing", default=False, action='store_true',dest="skip_preprocessing",
-        help="(default=False) Skip preprocessing")
+        help="(default=False) Skip preprocessing, it assume the preprocessing has already be done and can crash otherwise")
     args = parser.parse_args()
 
     if isinstance(args.log,list) and len(args.log)==1:
