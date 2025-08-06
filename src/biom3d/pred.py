@@ -127,7 +127,7 @@ if __name__=='__main__':
         help="Do only the evaluation and skip the prediction (predictions must have been done already.)") 
     parser.add_argument("--is_2d", default=False, dest="is_2d",
         help="(default=False) Whether the image is 2d.")
-    parser.add_argument("--skip_preprocessing", default=False, action='store_true',dest="skip_prepprocessing",
+    parser.add_argument("--skip_preprocessing", default=False, action='store_true',dest="skip_preprocessing",
         help="(default=False) Skip preprocessing")
     args = parser.parse_args()
 
