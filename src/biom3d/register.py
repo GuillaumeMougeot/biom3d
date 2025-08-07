@@ -19,6 +19,7 @@ datasets = Dict(
 )
 
 try:
+    # Batchgen use nnUnet batchgenerator that may not be installed (it is not a dependency), do pip install batchgenerators
     from biom3d.datasets.semseg_batchgen import MTBatchGenDataLoader
     datasets.BatchGen = Dict(fct=MTBatchGenDataLoader, kwargs=Dict())
 except:

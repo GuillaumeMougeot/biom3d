@@ -14,3 +14,4 @@ Here is Biom3d python API for most importants modules.
       trainers.rst
       predictors.rst
       datahandler.rst
+      register.rst

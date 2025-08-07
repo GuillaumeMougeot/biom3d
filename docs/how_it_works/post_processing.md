@@ -54,7 +54,7 @@ When you modify the python config, you need to to follow python syntaxe.
 
 If you have any doubt about how to write a value or on syntaxe, check how we do in our [documentation](../tuto/config.md), the default configs or on Python or yaml documentation.
 
-- The `fct` is a postprocessing function defined by [`register.py`](../api/register.py). For the moment there is only one prediction function so there is no use to modify it.
+- The `fct` is a postprocessing function defined by [`register.py`](../api/register.rst). For the moment there is only one prediction function so there is no use to modify it.
 - If you want to skip postprocessing and get the raw output, you will need to add a new parameter :
     ```yaml
     POSTPROCESSOR:
