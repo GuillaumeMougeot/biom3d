@@ -20,9 +20,8 @@ There are currently 2 dataloader and 1 batchgenerator.
 
 .. currentmodule:: biom3d.datasets.semseg_patch_fast
 
-.. class:: SemSeg3DPatchFast
-
-----------------------------
+SegPatchFast
+------------
 
 This is the default dataloading module.
 
@@ -31,9 +30,8 @@ This is the default dataloading module.
 
 .. currentmodule:: biom3d.datasets.semseg_torchio
 
-.. class:: TorchioDataset
-
--------------------------
+Torchio
+-------
 
 This dataloader is an implementation of torchio subjectloader, optimized to do operation with torchio. It was written to ease data augmentation but is not used.
 
@@ -42,9 +40,8 @@ This dataloader is an implementation of torchio subjectloader, optimized to do o
 
 .. currentmodule:: biom3d.datasets.semseg_batchgen
 
-.. class:: MTBatchGenDataLoader
-
--------------------------------
+BatchGen
+--------
 
 This is nnUnet batchgenerator. It has been slightly modified to act like a dataloader to be easier to interchange with the others.
 

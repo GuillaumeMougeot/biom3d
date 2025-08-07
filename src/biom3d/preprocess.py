@@ -376,6 +376,7 @@ def correct_mask(
         raise RuntimeError(f"Invalid encoding_type specified: {encoding_type}")
 
     # --- 3. Post-process to restore original dimensionality ---
+    # Clement : I don't see the use of this, we always do assert msk.ndim == 4, so it will crash
     if  standardize_dims and not use_one_hot:
         print("[INFO] Restoring original dimensions.")
         # Squeeze back down to original ndim
@@ -453,7 +454,7 @@ def seg_preprocessor(
             msk,
             num_classes,
             is_2d=is_2d,
-            standardize_dims=True, 
+            standardize_dims=True, # Doesn't work with 3D image (not 2D with channel) need fixing
             use_one_hot=use_one_hot,
             remove_bg=remove_bg,
             output_dtype=np.uint16,

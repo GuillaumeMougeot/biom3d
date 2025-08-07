@@ -41,6 +41,7 @@ master_doc = 'index'
 # Napoleon settings
 napoleon_numpy_docstring = True
 napoleon_include_init_with_doc = True
+napoleon_attr_annotations = True
 
 
 # -- Options for extlinks ----------------------------------------------------
