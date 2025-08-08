@@ -15,3 +15,9 @@ The models module define the different models used by Biom3d, currently we have 
 
       encoder_eff3d.rst
       encoder_vgg.rst
+
+.. toctree::
+      :maxdepth: 2
+      :caption: Unet models
+
+      eff3d.rst
