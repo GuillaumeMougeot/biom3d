@@ -1,8 +1,6 @@
-#---------------------------------------------------------------------------
-# 3D VGG decoder
-# with deep supervision: meaning that each decoder level has an output
-#---------------------------------------------------------------------------
+"""3D VGG decoder, with deep supervision (each decoder level has an output)."""
 
+from typing import List, Type, Union
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -14,22 +12,58 @@ from biom3d.utils import convert_num_pools
 #---------------------------------------------------------------------------
 # 3D Resnet decoder
 
-def _weights_init(m):
+def _weights_init(m:nn.Module):
+    """
+    Initialize weights of convolutional and linear layers using Kaiming normal initialization.
+
+    Parameters
+    ----------
+    m : nn.Module
+        A PyTorch module. If it's an instance of `nn.Conv3d` or `nn.Linear`, its weights will be initialized.
+    """
     if isinstance(m, nn.Linear) or isinstance(m, nn.Conv3d):
         init.kaiming_normal_(m.weight)
 
 class DecoderBlock(nn.Module):
-    expansion = 1
+    """
+    A decoder block consisting of an upsampling operation followed by an encoder block.
+
+    This block upsamples the lower-resolution feature map, concatenates it with a skip connection
+    from the encoder, and processes the result through a residual encoder block.
+
+    :ivar int expansion: Expansion factor of the encoder block (default is 1).
+    :ivar nn.ConvTranspose3d up: Transposed convolution used for upsampling.
+    :ivar nn.Module encoder_block: Encoder block applied after concatenation.
+    """
+
+    expansion:int = 1
+    up: nn.ConvTranspose3d
+    encoder_block:nn.Module
 
     def __init__(self, 
-        block,
-        in_planes_low,  # in_planes is the depth size after the concatenation
-        in_planes_high,  # in_planes is the depth size after the concatenation
-        planes,     # the depth size of the output 
-        stride, # for the upconv
+        block:Type[nn.Module],
+        in_planes_low:int,  # in_planes is the depth size after the concatenation
+        in_planes_high:int,  # in_planes is the depth size after the concatenation
+        planes:int,     # the depth size of the output 
+        stride:List[int], # for the upconv
         # option='A'# option for the upsampling (A: use upsamble; B: use convtranspose NOT IMPLEMENTED!)
         ):
+        """
+        Initialize a decoder block consisting of an upsampling operation followed by an encoder block.
 
+        Parameters
+        ----------
+        block : Type[nn.Module]
+            Class of the residual block used to build encoder/decoder layers (e.g., EncoderBlock).
+        in_planes_low : int
+            Number of input channels from the low-resolution feature map.
+        in_planes_high : int
+            Number of channels from the high-resolution skip connection.
+        planes : int
+            Number of output channels after the encoder block.
+        stride : list of int
+            Stride for the transposed convolution (upsampling factor).
+        """
         super(DecoderBlock, self).__init__()
 
         # if option == 'A': 
@@ -43,7 +77,20 @@ class DecoderBlock(nn.Module):
             stride=1,
             )
 
-    def forward(self, x): # x is a list of two inputs [low_res, high_res]
+    def forward(self, x:List[torch.Tensor])->torch.Tensor: # x is a list of two inputs [low_res, high_res]
+        """
+        Forward pass of the decoder block.
+
+        Parameters
+        ----------
+        x : list of torch.Tensor
+            A pair [low_res, high_res] of feature maps to be merged.
+
+        Returns
+        -------
+        torch.Tensor
+            Output of the encoder block after upsampling and concatenation.
+        """
         low, high = x
         low = self.up(low)
         out = torch.cat([low,high],dim=1)
@@ -51,18 +98,55 @@ class DecoderBlock(nn.Module):
         return out
 
 class VGGDecoder(nn.Module):
+    """
+    A VGG-style decoder with optional deep supervision and intermediate embeddings.
+
+    This decoder reconstructs feature maps by progressively upsampling and fusing skip connections
+    from an encoder. It supports multi-scale supervision and embedding output.
+
+    :ivar bool use_deep: If True, enable deep supervision (multi-level outputs).
+    :ivar bool use_emb: If True, only return the intermediate embedding from the third decoder stage.
+    :ivar List[List[int]] strides: List of strides (upsampling factors) per decoder stage.
+    :ivar nn.ModuleList layers: List of DecoderBlocks composing the decoder.
+    :ivar nn.ModuleList convs: List of 1×1 convolutions applied after each decoder stage (for supervision).
+    """
+
     def __init__(
         self, 
-        block, 
-        num_pools, 
-        factor_e = 32, # factor encoder
-        factor_d = 32, # factor decoder
-        flip_strides = False, # whether to invert strides order. Flipped strides creates larger feature maps.
-        num_classes=1,
-        use_deep=True,      # use deep supervision
-        use_emb=False, # will only output the third level of the decoder
-        roll_strides = True, #used for models trained before commit f2ac9ee (August 2023)
+        block:Type[nn.Module], 
+        num_pools:List[int], 
+        factor_e:int|List[int] = 32, 
+        factor_d:int|List[int] = 32, 
+        flip_strides:bool = False, 
+        num_classes:int = 1,
+        use_deep:bool=True, 
+        use_emb:bool=False, 
+        roll_strides:bool = True, 
         ):
+        """
+        Initialize the decoder architecture.
+
+        Parameters
+        ----------
+        block : Type[nn.Module]
+            Class of the residual block used to build encoder/decoder layers (e.g., EncoderBlock).
+        num_pools : list of int
+            Number of pooling operations at each encoder stage.
+        factor_e : int or list of int, default=32
+            Base or per-layer depth factor for encoder feature maps.
+        factor_d : int or list of int, default=32
+            Base or per-layer depth factor for decoder feature maps.
+        flip_strides : bool, default=False
+            Whether to reverse the order of upsampling strides. Flipped strides creates larger feature maps.
+        num_classes : int, default=1
+            Number of output channels (e.g. segmentation classes).
+        use_deep : bool, default=True
+            If True, enables deep supervision at multiple decoder levels.
+        use_emb : bool, default=False
+            If True, return the third decoder output as an embedding.
+        roll_strides : bool, default=True
+            Legacy support for reversing encoder stride order (for older models, before commit f2ac9ee (August 2023)).
+        """
         super(VGGDecoder, self).__init__()
 
         self.use_deep = use_deep
@@ -116,20 +200,60 @@ class VGGDecoder(nn.Module):
         self.apply(_weights_init)
 
     def _make_layer(self, 
-        block,      # encoder block
-        in_planes_low,  # depth size after concatenation
-        in_planes_high,  
-        planes,     # output depth size   
-        stride,     # for the upconv
-        num_blocks
-        ):# number of encoder blocks
+        block:Type[nn.Module],     
+        in_planes_low:int,  
+        in_planes_high:int,  
+        planes:int,      
+        stride:List[int],     
+        num_blocks:int
+        ):
+        """
+        Create a sequential layer composed of a DecoderBlock followed by encoder blocks.
+
+        This function builds a composite decoder stage. It first upsamples and fuses encoder features
+        using `DecoderBlock`, then adds more encoder blocks..
+
+        Parameters
+        ----------
+        block : Type[nn.Module]
+            Class of the encoder-style residual block used after the initial DecoderBlock.
+        in_planes_low : int
+            Number of input channels from the lower-resolution feature map.
+        in_planes_high : int
+            Number of input channels from the higher-resolution feature map (skip connection).
+        planes : int
+            Number of output channels after the decoder stage.
+        stride : list of int
+            Stride (upsampling factor) for the transposed convolution.
+        num_blocks : int
+            Number of residual blocks to apply in total (≥1). The first is wrapped in a DecoderBlock.
+
+        Returns
+        -------
+        nn.Sequential
+            A sequential module containing the DecoderBlock and additional residual blocks.
+        """
         layers = []
         layers.append(DecoderBlock(block, in_planes_low, in_planes_high, planes, stride))
         for _ in range(num_blocks-1):
             layers.append(block(planes, planes, stride=1))
         return nn.Sequential(*layers)
 
-    def forward(self, x): # x is a list of input of length=6 generated by an encoder
+    def forward(self, x:List[torch.Tensor])->Union[torch.Tensor,List[torch.Tensor]]: 
+        """
+        Forward pass through the decoder.
+
+        Parameters
+        ----------
+        x : list of torch.Tensor
+            List of feature maps from the encoder (length depends on number of stages, but it should be 6).
+
+        Returns
+        -------
+        out: torch.Tensor or list of torch.Tensor
+            Final prediction map or list of maps (if deep supervision is enabled).
+            If `use_emb` is True, returns only the intermediate embedding tensor.
+        """
         deep_out = []
         for i in range(len(self.layers)):
             inputs = x[-1] if i==0 else out
@@ -138,7 +262,6 @@ class VGGDecoder(nn.Module):
             if i>=2 and self.use_deep: # deep supervision
                 tmp = self.convs[i](out)
                 deep_out += [F.interpolate(tmp, size=x[0].shape[2:], mode='trilinear')]
-                # deep_out += [tmp]
             # if i is the antipenultimate layer
             elif i==(len(self.layers)-3) and self.use_emb: 
                 return self.convs[i](out)

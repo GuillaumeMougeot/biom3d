@@ -16,3 +16,4 @@ Here is Biom3d python API for most importants modules.
       datahandler.rst
       register.rst
       datasets/datasets.rst
+      models/models.rst
