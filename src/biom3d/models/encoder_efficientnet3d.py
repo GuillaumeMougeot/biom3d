@@ -1,31 +1,37 @@
-#---------------------------------------------------------------------------
-# 3D efficient net adapted from:
-# https://github.com/shijianjian/EfficientNet-PyTorch-3D 
-#
-# usage:
-# model = EfficientNet3D.from_name("efficientnet-b1", override_params={'include_top': False}, in_channels=1)
-# model.cuda()
-# model.to('mps') on apple silicon
+"""
+This file contains helper functions for building the model and for loading model parameters. These helper functions are built to mirror those in the official TensorFlow implementation.
 
-# lists of pyramid layers:
-# {
-#     0: ['_conv_stem'],              # 100
-#     1: ['_blocks', '1', '_bn0'],    # 50
-#     2: ['_blocks', '3', '_bn0'],    # 25
-#     3: ['_blocks', '5', '_bn0'],    # 12
-#     4: ['_blocks', '11', '_bn0'],   # 6
-#     5: ['_bn1']                     # 3
-# }
-#---------------------------------------------------------------------------
+3D EfficientNet adapted from:
+https://github.com/shijianjian/EfficientNet-PyTorch-3D
+
+Usage example:
+
+.. code-block:: python
+
+    model = EfficientNet3D.from_name("efficientnet-b1", override_params={'include_top': False}, in_channels=1)
+    model.cuda()  # On CUDA machine
+    model.to('mps')  # On Apple Silicon
+
+List of pyramid layers:
+
+.. code-block:: python
+
+    {
+        0: ['_conv_stem'],              # 100
+        1: ['_blocks', '1', '_bn0'],    # 50
+        2: ['_blocks', '3', '_bn0'],    # 25
+        3: ['_blocks', '5', '_bn0'],    # 12
+        4: ['_blocks', '11', '_bn0'],   # 6
+        5: ['_bn1']                     # 3
+    }
 
 """
-This file contains helper functions for building the model and for loading model parameters.
-These helper functions are built to mirror those in the official TensorFlow implementation.
-"""
+
 
 import re
 import math
 import collections
+from typing import Dict, List, Optional, Tuple
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -41,11 +47,62 @@ GlobalParams = collections.namedtuple('GlobalParams', [
     'batch_norm_momentum', 'batch_norm_epsilon', 'dropout_rate',
     'num_classes', 'width_coefficient', 'depth_coefficient',
     'depth_divisor', 'min_depth', 'drop_connect_rate', 'image_size', 'include_top'])
+"""
+Global model parameters used across the entire network (stem, blocks, and head).
+
+Parameters
+----------
+batch_norm_momentum : float
+    Momentum for batch normalization layers.
+batch_norm_epsilon : float
+    Small epsilon value for numerical stability in batch norm.
+dropout_rate : float
+    Dropout rate used before the classifier head.
+num_classes : int
+    Number of output classes for classification.
+width_coefficient : float
+    Width scaling coefficient for number of filters.
+depth_coefficient : float
+    Depth scaling coefficient for number of block repeats.
+depth_divisor : int
+    Divisor to ensure the number of filters is divisible by this value.
+min_depth : int
+    Minimum depth (number of filters).
+drop_connect_rate : float
+    Drop connect probability for stochastic depth.
+image_size : int
+    Input image size.
+include_top : bool
+    Whether to include the fully-connected classifier head.
+"""
+
 
 # Parameters for an individual model block
 BlockArgs = collections.namedtuple('BlockArgs', [
     'kernel_size', 'num_repeat', 'input_filters', 'output_filters',
     'expand_ratio', 'id_skip', 'stride', 'se_ratio'])
+"""
+Named tuple describing the parameters for a single model block.
+
+Parameters
+----------
+kernel_size : int
+    Size of the convolution kernel.
+num_repeat : int
+    Number of block repeats.
+input_filters : int
+    Number of input filters.
+output_filters : int
+    Number of output filters.
+expand_ratio : int
+    Expansion ratio for internal layers.
+id_skip : bool
+    Whether to use skip connections.
+stride : int
+    Stride size.
+se_ratio : float or None
+    Squeeze-and-excitation ratio.
+"""
 
 # Change namedtuple defaults
 GlobalParams.__new__.__defaults__ = (None,) * len(GlobalParams._fields)
@@ -53,30 +110,110 @@ BlockArgs.__new__.__defaults__ = (None,) * len(BlockArgs._fields)
 
 
 class SwishImplementation(torch.autograd.Function):
+    """
+    Memory-efficient implementation of the Swish activation function.
+
+    Swish function: x * sigmoid(x)
+    """
+
     @staticmethod
-    def forward(ctx, i):
+    def forward(ctx, i:torch.Tensor)->torch.Tensor:
+        """
+        Forward pass for Swish activation.
+
+        Parameters
+        ----------
+        ctx : Context object
+            Used to stash information for backward computation.
+        i : torch.Tensor
+            Input tensor.
+
+        Returns
+        -------
+        torch.Tensor
+            Output tensor after applying Swish.
+        """
         result = i * torch.sigmoid(i)
         ctx.save_for_backward(i)
         return result
 
     @staticmethod
-    def backward(ctx, grad_output):
+    def backward(ctx, grad_output:torch.Tensor)->torch.Tensor:
+        """
+        Backward pass for Swish activation.
+
+        Parameters
+        ----------
+        ctx : Context object
+            Contains saved tensors from forward pass.
+        grad_output : torch.Tensor
+            Gradient of the loss with respect to the output.
+
+        Returns
+        -------
+        torch.Tensor
+            Gradient of the loss with respect to the input.
+        """
         i = ctx.saved_variables[0]
         sigmoid_i = torch.sigmoid(i)
         return grad_output * (sigmoid_i * (1 + i * (1 - sigmoid_i)))
 
 
 class MemoryEfficientSwish(nn.Module):
-    def forward(self, x):
+    """Module wrapping the memory-efficient Swish activation function."""
+
+    def forward(self, x:torch.Tensor)->torch.Tensor:
+        """
+        Apply the memory-efficient Swish activation.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input tensor.
+
+        Returns
+        -------
+        torch.Tensor
+            Output tensor after Swish activation.
+        """
         return SwishImplementation.apply(x)
 
 class Swish(nn.Module):
-    def forward(self, x):
+    """Standard Swish activation function module."""
+     
+    def forward(self, x:torch.Tensor)->torch.Tensor:
+        """
+        Apply Swish activation function: x * sigmoid(x).
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input tensor.
+
+        Returns
+        -------
+        torch.Tensor
+            Output tensor after Swish activation.
+        """
         return x * torch.sigmoid(x)
 
 
-def round_filters(filters, global_params):
-    """ Calculate and round number of filters based on depth multiplier. """
+def round_filters(filters:int, global_params:GlobalParams)->int:
+    """
+    Calculate and round number of filters based on depth multiplier.
+
+    Parameters
+    ----------
+    filters : int
+        Original number of filters.
+    global_params : GlobalParams
+        Global parameters containing width_coefficient, depth_divisor, and min_depth.
+
+    Returns
+    -------
+    int
+        Rounded (floor) number of filters adjusted by width coefficient and divisor.
+    """
     multiplier = global_params.width_coefficient
     if not multiplier:
         return filters
@@ -90,16 +227,46 @@ def round_filters(filters, global_params):
     return int(new_filters)
 
 
-def round_repeats(repeats, global_params):
-    """ Round number of filters based on depth multiplier. """
+def round_repeats(repeats:int, global_params:GlobalParams)->int:
+    """
+    Round the number of block repeats ased on depth multiplier..
+
+    Parameters
+    ----------
+    repeats : int
+        Original number of repeats.
+    global_params : GlobalParams
+        Global parameters containing depth_coefficient.
+
+    Returns
+    -------
+    int
+        Rounded (ceil) number of repeats adjusted by depth coefficient.
+    """
     multiplier = global_params.depth_coefficient
     if not multiplier:
         return repeats
     return int(math.ceil(multiplier * repeats))
 
 
-def drop_connect(inputs, p, training):
-    """ Drop connect. """
+def drop_connect(inputs:torch.Tensor, p:float, training:bool)->torch.Tensor:
+    """
+    Apply drop connect (stochastic depth) regularization.
+
+    Parameters
+    ----------
+    inputs : torch.Tensor
+        Input tensor of shape (batch_size, ...).
+    p : float
+        Drop connect probability.
+    training : bool
+        Whether the model is in training mode.
+
+    Returns
+    -------
+    torch.Tensor
+        Tensor after applying drop connect.
+    """
     if not training: return inputs
     batch_size = inputs.shape[0]
     keep_prob = 1 - p
@@ -114,8 +281,20 @@ def drop_connect(inputs, p, training):
 ########################################################################
 
 
-def efficientnet_params(model_name):
-    """ Map EfficientNet model name to parameter coefficients. """
+def efficientnet_params(model_name:str)->Tuple[float,float,int,float]:
+    """
+    Map EfficientNet model name to parameter coefficients.
+
+    Parameters
+    ----------
+    model_name : str
+        Name of the EfficientNet model.
+
+    Returns
+    -------
+    tuple of (float, float, int, float)
+        A tuple with width_coefficient, depth_coefficient, image_size, dropout_rate.
+    """
     params_dict = {
         # Coefficients:   width,depth,res,dropout
         'efficientnet-b0': (1.0, 1.0, 224, 0.2),
@@ -133,11 +312,28 @@ def efficientnet_params(model_name):
 
 
 class BlockDecoder(object):
-    """ Block Decoder for readability, straight from the official TensorFlow repository """
+    """
+    Block Decoder for EfficientNet blocks. From Tensorflow repository.
+
+    Provides utilities to encode/decode block configuration strings
+    into BlockArgs namedtuples for better readability and processing.
+    """
 
     @staticmethod
-    def _decode_block_string(block_string):
-        """ Gets a block through a string notation of arguments. """
+    def _decode_block_string(block_string:str)->BlockArgs:
+        """
+        Decode a single block string to a BlockArgs namedtuple.
+
+        Parameters
+        ----------
+        block_string : str
+            String describing the block parameters (e.g. 'r1_k3_s222_e1_i32_o16_se0.25').
+
+        Returns
+        -------
+        BlockArgs
+            Namedtuple describing the block parameters.
+        """
         assert isinstance(block_string, str)
 
         ops = block_string.split('_')
@@ -163,8 +359,20 @@ class BlockDecoder(object):
             stride=[int(options['s'][0])])
 
     @staticmethod
-    def _encode_block_string(block):
-        """Encodes a block to a string."""
+    def _encode_block_string(block:BlockArgs)->str:
+        """
+        Encode a BlockArgs namedtuple back to a string.
+
+        Parameters
+        ----------
+        block : BlockArgs
+            BlockArgs namedtuple to encode.
+
+        Returns
+        -------
+        str
+            Encoded string describing the block.
+        """
         args = [
             'r%d' % block.num_repeat,
             'k%d' % block.kernel_size,
@@ -180,12 +388,19 @@ class BlockDecoder(object):
         return '_'.join(args)
 
     @staticmethod
-    def decode(string_list):
+    def decode(string_list:List[str])->List[BlockArgs]:
         """
-        Decodes a list of string notations to specify blocks inside the network.
+        Decode a list of block strings into a list of BlockArgs.
 
-        :param string_list: a list of strings, each string is a notation of block
-        :return: a list of BlockArgs namedtuples of block args
+        Parameters
+        ----------
+        string_list : list of str
+            List of block description strings.
+
+        Returns
+        -------
+        list of BlockArgs
+            List of decoded block arguments.
         """
         assert isinstance(string_list, list)
         blocks_args = []
@@ -194,12 +409,19 @@ class BlockDecoder(object):
         return blocks_args
 
     @staticmethod
-    def encode(blocks_args):
+    def encode(blocks_args:List[BlockArgs])->List[str]:
         """
-        Encodes a list of BlockArgs to a list of strings.
+        Encode a list of BlockArgs into a list of strings.
 
-        :param blocks_args: a list of BlockArgs namedtuples of block args
-        :return: a list of strings, each string is a notation of block
+        Parameters
+        ----------
+        blocks_args : list of BlockArgs
+            List of block arguments to encode.
+
+        Returns
+        -------
+        list of str
+            List of encoded block description strings.
         """
         block_strings = []
         for block in blocks_args:
@@ -207,10 +429,41 @@ class BlockDecoder(object):
         return block_strings
 
 
-def efficientnet3d(width_coefficient=None, depth_coefficient=None, dropout_rate=0.2,
-                 drop_connect_rate=0.2, image_size=None, num_classes=1000, include_top=True):
-    """ Creates a efficientnet model. """
+def efficientnet3d(width_coefficient:Optional[float]=None, 
+                   depth_coefficient:Optional[float]=None, 
+                   dropout_rate:float=0.2,
+                   drop_connect_rate:float=0.2, 
+                   image_size:Optional[int]=None, 
+                   num_classes:int=1000, 
+                   include_top:bool=True,
+                   )->Tuple[BlockArgs,GlobalParams]:
+    """
+    Create EfficientNet3D block arguments and global parameters.
 
+    Parameters
+    ----------
+    width_coefficient : float, optional
+        Width multiplier to scale number of filters.
+    depth_coefficient : float, optional
+        Depth multiplier to scale number of layers.
+    dropout_rate : float, default=0.2
+        Dropout rate before the classifier.
+    drop_connect_rate : float, default=0.2
+        Drop connect rate for stochastic depth.
+    image_size : int, optional
+        Input image size (default is None).
+    num_classes : int, default=1000
+        Number of output classes (default is 1000).
+    include_top : bool, default=True
+        Whether to include the classification head (default is True).
+
+    Returns
+    -------
+    blocks_args : list of BlockArgs
+        List of block arguments describing the network architecture.
+    global_params : GlobalParams
+        Namedtuple of global model parameters.
+    """
     blocks_args = [
         'r1_k3_s222_e1_i32_o16_se0.25', 'r2_k3_s222_e6_i16_o24_se0.25',
         'r2_k5_s222_e6_i24_o40_se0.25', 'r3_k3_s222_e6_i40_o80_se0.25',
@@ -236,8 +489,31 @@ def efficientnet3d(width_coefficient=None, depth_coefficient=None, dropout_rate=
     return blocks_args, global_params
 
 
-def get_model_params(model_name, override_params):
-    """ Get the block args and global params for a given model """
+def get_model_params(model_name:str, override_params:Optional[Dict])->Tuple[BlockArgs,GlobalParams]:
+    """
+    Retrieve EfficientNet block args and global parameters by model name.
+
+    Parameters
+    ----------
+    model_name : str
+        EfficientNet model name (e.g., 'efficientnet-b0').
+    override_params : dict or None
+        Dictionary to override default global parameters.
+
+    Raises
+    ------
+    NotImplementedError
+        If model name doesn't start with 'efficientnet'
+    ValueError
+        If override_params has field not in GlobalParams
+
+    Returns
+    -------
+    blocks_args : list of BlockArgs
+        List of block arguments.
+    global_params : GlobalParams
+        Namedtuple of global parameters.
+    """
     if model_name.startswith('efficientnet'):
         w, d, s, p = efficientnet_params(model_name)
         # note: all models have drop connect rate = 0.2
@@ -252,17 +528,22 @@ def get_model_params(model_name, override_params):
 
 class MBConvBlock3D(nn.Module):
     """
-    Mobile Inverted Residual Bottleneck Block
+    Mobile Inverted Residual Bottleneck Block.
 
-    Args:
-        block_args (namedtuple): BlockArgs, see above
-        global_params (namedtuple): GlobalParam, see above
-
-    Attributes:
-        has_se (bool): Whether the block contains a Squeeze and Excitation layer.
+    :ivar bool has_se: Whether the block contains a Squeeze and Excitation layer.
     """
 
-    def __init__(self, block_args, global_params):
+    def __init__(self, block_args:BlockArgs, global_params:GlobalParams):
+        """
+        Mobile Inverted Residual Bottleneck Block (3D).
+
+        Parameters
+        ----------
+        block_args : namedtuple
+            BlockArgs namedtuple containing block configuration.
+        global_params : namedtuple
+            GlobalParams namedtuple containing global model parameters.
+        """
         super().__init__()
         self._block_args = block_args
         self._bn_mom = 1 - global_params.batch_norm_momentum
@@ -300,13 +581,22 @@ class MBConvBlock3D(nn.Module):
         self._bn2 = nn.InstanceNorm3d(num_features=final_oup)
         self._swish = MemoryEfficientSwish()
 
-    def forward(self, inputs, drop_connect_rate=None):
+    def forward(self, inputs:torch.Tensor, drop_connect_rate:Optional[float]=None)->torch.Tensor:
         """
-        :param inputs: input tensor
-        :param drop_connect_rate: drop connect rate (float, between 0 and 1)
-        :return: output of block
-        """
+        Forward pass through the MBConv block.
 
+        Parameters
+        ----------
+        inputs : torch.Tensor
+            Input tensor to the block.
+        drop_connect_rate : float, optional
+            Drop connect probability (between 0 and 1). Default is None.
+
+        Returns
+        -------
+        torch.Tensor
+            Output tensor after processing through the block.
+        """
         # Expansion and Depthwise Convolution
         x = inputs
         if self._block_args.expand_ratio != 1:
@@ -329,25 +619,67 @@ class MBConvBlock3D(nn.Module):
             x = x + inputs  # skip connection
         return x
 
-    def set_swish(self, memory_efficient=True):
-        """Sets swish function as memory efficient (for training) or standard (for export)"""
+    def set_swish(self, memory_efficient:bool=True):
+        """
+        Set the Swish activation function implementation.
+
+        Parameters
+        ----------
+        memory_efficient : bool, optional
+            If True, use memory-efficient Swish (suitable for training).
+            If False, use standard Swish (suitable for export). Default is True.
+        """
         self._swish = MemoryEfficientSwish() if memory_efficient else Swish()
 
 
 class EfficientNet3D(nn.Module):
     """
-    An EfficientNet model. Most easily loaded with the .from_name or .from_pretrained methods
+    An EfficientNet model. Most easily loaded with the .from_name or .from_pretrained methods.
 
-    Args:
-        blocks_args (list): A list of BlockArgs to construct blocks
-        global_params (namedtuple): A set of GlobalParams shared between blocks
+    :ivar nn.ModuleList _blocks: List of MBConvBlock3D blocks making up the network.
+    :ivar nn.Conv3d _conv_stem: Initial convolutional stem layer.
+    :ivar nn.Conv3d _conv_head: Final convolutional head layer before classifier.
+    :ivar nn.InstanceNorm3d _bn0: Batch normalization after the stem.
+    :ivar nn.BatchNorm3d _bn1: Batch normalization after the head.
+    :ivar nn.AdaptiveAvgPool3d _avg_pooling: Global average pooling layer.
+    :ivar nn.Dropout _dropout: Dropout layer before the classifier.
+    :ivar nn.Linear _fc: Fully connected linear layer for classification.
+    :ivar nn.Module _swish: Swish activation function module.
 
-    Example:
-        model = EfficientNet3D.from_pretrained('efficientnet-b0')
+    Examples
+    --------
+    >>> model = EfficientNet3D.from_name('efficientnet-b0')
+    >>> x = torch.randn(1, 3, 224, 224, 224)
+    >>> logits = model(x)
 
     """
 
-    def __init__(self, blocks_args=None, global_params=None, in_channels=3, num_pools=[5,5,5], first_stride=[1,1,1]):
+    def __init__(self, blocks_args:BlockArgs, 
+                 global_params:Optional[GlobalParams]=None, 
+                 in_channels:int=3, 
+                 num_pools:List[int]=[5,5,5], 
+                 first_stride:List[int]=[1,1,1]):
+        """
+        Efficientnet 3D model implementation.
+
+        Parameters
+        ----------
+        blocks_args : list of BlockArgs
+            List of block argument namedtuples to construct the network blocks.
+        global_params : namedtuple
+            Global parameters shared across blocks (e.g., dropout rate, batch norm params).
+        in_channels : int, optional
+            Number of input channels. Default is 3.
+        num_pools : list of int, optional
+            List defining the number of pooling layers per dimension. Default is [5, 5, 5].
+        first_stride : list of int, optional
+            Stride size of the first convolution layer in each spatial dimension. Default is [1, 1, 1].
+
+        Raises
+        ------
+        AssertionError
+            If block_args is not a list or empty
+        """
         super().__init__()
         assert isinstance(blocks_args, list), 'blocks_args should be a list'
         assert len(blocks_args) > 0, 'block args must be greater than 0'
@@ -416,16 +748,35 @@ class EfficientNet3D(nn.Module):
         self._fc = nn.Linear(out_channels, self._global_params.num_classes)
         self._swish = MemoryEfficientSwish()
 
-    def set_swish(self, memory_efficient=True):
-        """Sets swish function as memory efficient (for training) or standard (for export)"""
+    def set_swish(self, memory_efficient:bool=True):
+        """
+        Set the Swish activation function implementation.
+
+        Parameters
+        ----------
+        memory_efficient : bool, optional
+            If True, use memory-efficient Swish (suitable for training).
+            If False, use standard Swish (suitable for export). Default is True.
+        """
         self._swish = MemoryEfficientSwish() if memory_efficient else Swish()
         for block in self._blocks:
             block.set_swish(memory_efficient)
 
 
-    def extract_features(self, inputs):
-        """ Returns output of the final convolution layer """
+    def extract_features(self, inputs:torch.Tensor)->torch.Tensor:
+        """
+        Extract features from inputs by forwarding through convolutional layers.
 
+        Parameters
+        ----------
+        inputs : torch.Tensor
+            Input tensor of shape (batch_size, channels, depth, height, width).
+
+        Returns
+        -------
+        torch.Tensor
+            Feature tensor after convolutional blocks and head.
+        """
         # Stem
         x = self._swish(self._bn0(self._conv_stem(inputs)))
 
@@ -441,8 +792,21 @@ class EfficientNet3D(nn.Module):
 
         return x
 
-    def forward(self, inputs):
-        """ Calls extract_features to extract features, applies final linear layer, and returns logits. """
+    def forward(self, inputs:torch.Tensor)->torch.Tensor:
+        """
+        Forward pass of the EfficientNet3D model. Apply final Linear layer.
+
+        Parameters
+        ----------
+        inputs : torch.Tensor
+            Input tensor of shape (batch_size, channels, depth, height, width).
+
+        Returns
+        -------
+        torch.Tensor
+            Logits tensor of shape (batch_size, num_classes) if include_top=True,
+            otherwise feature tensor.
+        """
         bs = inputs.size(0)
         # Convolution layers
         x = self.extract_features(inputs)
@@ -456,20 +820,68 @@ class EfficientNet3D(nn.Module):
         return x
 
     @classmethod
-    def from_name(cls, model_name, override_params=None, in_channels=3, **kwargs):
+    def from_name(cls:"EfficientNet3D", 
+                  model_name:str, 
+                  override_params:Optional[Dict]=None, 
+                  in_channels:int=3, 
+                  **kwargs)->"EfficientNet3D":
+        """
+        Create an EfficientNet3D model from a predefined model name.
+
+        Parameters
+        ----------
+        model_name : str
+            Name of the EfficientNet model variant, e.g. 'efficientnet-b0'.
+        override_params : dict or None, optional
+            Dictionary to override global parameters.
+        in_channels : int, optional
+            Number of input channels.
+        **kwargs : dict
+            Additional keyword arguments passed to the constructor.
+
+        Returns
+        -------
+        EfficientNet3D
+            Constructed EfficientNet3D model.
+        """
         cls._check_model_name_is_valid(model_name)
         blocks_args, global_params = get_model_params(model_name, override_params)
         return cls(blocks_args, global_params, in_channels, **kwargs)
 
     @classmethod
-    def get_image_size(cls, model_name):
+    def get_image_size(cls:"EfficientNet3D", model_name:str)->int:
+        """
+        Get the default input image size for a given EfficientNet model.
+
+        Parameters
+        ----------
+        model_name : str
+            EfficientNet model name.
+
+        Returns
+        -------
+        int
+            Default image size.
+        """
         cls._check_model_name_is_valid(model_name)
         _, _, res, _ = efficientnet_params(model_name)
         return res
 
     @classmethod
-    def _check_model_name_is_valid(cls, model_name):
-        """ Validates model name. """ 
+    def _check_model_name_is_valid(cls:"EfficientNet3D", model_name:str):
+        """
+        Check if the given model name is valid.
+
+        Parameters
+        ----------
+        model_name : str
+            Name of the model to validate.
+
+        Raises
+        ------
+        ValueError
+            If the model name is not valid.
+        """
         valid_models = ['efficientnet-b'+str(i) for i in range(9)]
         if model_name not in valid_models:
             raise ValueError('model_name should be one of: ' + ', '.join(valid_models))

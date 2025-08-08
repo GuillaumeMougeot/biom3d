@@ -184,3 +184,28 @@ html_theme_options = {
 # Ignore >>> when copying code
 copybutton_prompt_text = r'>>> |\.\.\. '
 copybutton_prompt_is_regexp = True
+
+# Code to ignore named-tuple in automodule because they're ugly and we put a cleaner autofunction:: namedtuple after
+def is_namedtuple_class(obj):
+    """Check if an object is a namedtuple class."""
+    return (
+        isinstance(obj, type)
+        and issubclass(obj, tuple)
+        and hasattr(obj, '_fields')
+        and hasattr(obj, '_asdict')
+    )
+
+def skip_namedtuple_members(app, what, name, obj, skip, options):
+    # Skip namedtuple classes (e.g., GlobalParams)
+    if is_namedtuple_class(obj):
+        return True
+
+    # Skip attributes (fields) of namedtuples (e.g., batch_norm_epsilon)
+    parent = getattr(obj, '__objclass__', None)
+    if parent and is_namedtuple_class(parent):
+        return True
+
+    return skip  # fallback to default behavior
+
+def setup(app):
+    app.connect("autodoc-skip-member", skip_namedtuple_members)

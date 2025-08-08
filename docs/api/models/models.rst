@@ -5,6 +5,12 @@ The models module define the different models used by Biom3d, currently we have 
 
 .. toctree::
       :maxdepth: 2
-      :caption: Decoder 
+      :caption: Decoders
 
       decoder_vgg.rst
+
+.. toctree::
+      :maxdepth: 2
+      :caption: Encoders 
+
+      encoder_eff3d.rst
