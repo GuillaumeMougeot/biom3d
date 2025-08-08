@@ -6,6 +6,14 @@ You can find examples of command lines [in the bash folder on the GitHub repo of
 
 > **Warning**: For Windows users, the paths are here written in "linux-like format". You will have to change '/' symbols to '``\``' symbols in the command lines. 
 
+
+> This tutorial assume you have done a manual installation, however it is also possible to use the CLI with the Installer, just replace `python` in the command by the path to the `python executable` in the installer :
+>```bash
+># With Biom3d the folder you extracted from the installer
+>Biom3d\bin\python.exe ... # On Windows
+>Biom3d.app/Contents/MacOS/bin/bin/python3.11 ... # On macOS
+>```
+
 ## The quickest way
 
 Let's say you would like to train a deep learning model with on one of the tasks of the [Medical Segmentation Decathlon](http://medicaldecathlon.com/). For example, Task07 goal is to segment the pancreas and its tumor in CT-scans. If you download the data folder of Task07, you should see the following data structure:
