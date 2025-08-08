@@ -21,3 +21,4 @@ The models module define the different models used by Biom3d, currently we have 
       :caption: Unet models
 
       eff3d.rst
+      vgg_deep.rst

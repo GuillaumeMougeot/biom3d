@@ -92,6 +92,7 @@ Models
 .. currentmodule:: biom3d.models.unet3d_vgg_deep
 
 .. class:: UNet
+    :no-index:
 
 ---------------
 
