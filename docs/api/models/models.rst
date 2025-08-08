@@ -14,3 +14,4 @@ The models module define the different models used by Biom3d, currently we have 
       :caption: Encoders 
 
       encoder_eff3d.rst
+      encoder_vgg.rst

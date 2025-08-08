@@ -1,20 +1,25 @@
-#---------------------------------------------------------------------------
-# 3D Resnet adapted from:
-# https://github.com/akamaster/pytorch_resnet_cifar10 
-#---------------------------------------------------------------------------
+"""3D Resnet adapted from: https://github.com/akamaster/pytorch_resnet_cifar10."""
 
+from typing import Callable, Iterable, List, Literal, Optional, Type
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+from torch import Tensor
 
 from biom3d.utils import convert_num_pools
 
 #---------------------------------------------------------------------------
 # 3D Resnet encoder
 
-__all__ = ['ResNet', 'resnet20', 'resnet32', 'resnet44', 'resnet56', 'resnet110', 'resnet1202']
+def _weights_init(m:nn.Module):
+    """
+    Initialize weights of the given module.
 
-def _weights_init(m):
+    Parameters
+    ----------
+    m : nn.Module
+        Module to initialize.
+    """
     if isinstance(m, nn.Conv2d):
         nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
         if m.bias is not None:
@@ -28,30 +33,124 @@ def _weights_init(m):
             nn.init.constant_(m.bias, 0)
 
 class LambdaLayer(nn.Module):
-    def __init__(self, lambd):
+    """
+    Applies a lambda function as a layer.
+
+    :ivar callable lambd: lambda function to be applied in forward
+    """
+
+    def __init__(self, lambd:Callable):
+        """
+        Apply a lambda function as a layer.
+
+        Parameters
+        ----------
+        lambd : callable
+            Lambda function to apply in forward pass.
+        """
         super(LambdaLayer, self).__init__()
         self.lambd = lambd
 
-    def forward(self, x):
+    def forward(self, x:Tensor)->Tensor:
+        """
+        Forward pass applying the lambda function.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input tensor.
+
+        Returns
+        -------
+        torch.Tensor
+            Output after applying the lambda function.
+        """
         return self.lambd(x)
 
 class GlobalAvgPool3d(nn.Module):
+    """
+    Performs global average pooling over the last three dimensions.
+
+    This layer averages the input tensor over the depth, height, and width dimensions.
+    """
+
     def __init__(self):
+        """
+        Perform global average pooling over the last three dimensions.
+
+        This layer averages the input tensor over the depth, height, and width dimensions.
+        """
         super(GlobalAvgPool3d, self).__init__()
 
-    def forward(self,x):
+    def forward(self,x:Tensor)->Tensor:
+        """
+        Forward pass computing the global average pooling.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input tensor of shape (N, C, D, H, W).
+
+        Returns
+        -------
+        torch.Tensor
+            Output tensor of shape (N, C) after global average pooling.
+        """
         out = x.mean(dim=(-3,-2,-1))
         return out
 
 class SmallEncoderBlock(nn.Module):
-    def __init__(self, in_planes, planes, stride=1, option='B', is_last=False):
+    """
+    Small 3D encoder block with one convolution and optional normalization and activation.
+
+    :ivar nn.Conv3d conv1: 3D convolution layer
+    :ivar nn.InstanceNorm3d bn1: Instance normalization layer (only if is_last is False)
+    :ivar bool is_last: indicates if this is the last block (no norm or activation)
+    """
+
+    conv1:nn.Conv3d
+    is_last:bool
+
+    def __init__(self, in_planes:int, planes:int, stride:int=1, option:Literal['A','B']='B', is_last:bool=False):
+        """
+        Small 3D encoder block with one convolution and optional normalization and activation.
+
+        Parameters
+        ----------
+        in_planes : int
+            Number of input channels.
+        planes : int
+            Number of output channels.
+        stride : int, default=1
+            Stride of the convolution.
+        option : str, default='B'
+            Option parameter used to initialize block (not used).
+        is_last : bool, default=False
+            If True, no normalization or activation is applied. 
+        """
         super(SmallEncoderBlock, self).__init__()
         self.conv1 = nn.Conv3d(in_planes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
         self.is_last = is_last
         if not is_last:
             self.bn1 = nn.InstanceNorm3d(planes, affine=True)
 
-    def forward(self, x):
+    def forward(self, x:Tensor)->Tensor:
+        """
+        Forward pass through the block.
+
+        Applies convolution, followed by instance normalization and LeakyReLU if not the last block.
+        Otherwise, applies only convolution.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input tensor.
+
+        Returns
+        -------
+        torch.Tensor
+            Output tensor after block processing.
+        """
         if not self.is_last:
             out = F.leaky_relu(self.bn1(self.conv1(x)), inplace=True)
         else:
@@ -59,7 +158,45 @@ class SmallEncoderBlock(nn.Module):
         return out
 
 class EncoderBlock(nn.Module):
-    def __init__(self, in_planes, planes, stride=1, option='B', is_last=False):
+    """
+    A 3D convolutional encoder block with optional InstanceNorm and LeakyReLU activation.
+
+    This block consists of two convolutional layers. The second normalization and activation
+    are skipped if the block is marked as the last.
+
+    :ivar nn.Conv3d conv1: First 3D convolution layer.
+    :ivar nn.InstanceNorm3d bn1: Instance normalization applied after the first convolution.
+    :ivar nn.Conv3d conv2: Second 3D convolution layer.
+    :ivar bn2: Instance normalization applied after the second convolution (if not last block).
+    :ivar bool is_last: Flag indicating if the block is the last in the sequence.
+    """
+
+    conv1:nn.Conv3d
+    bn1:nn.InstanceNorm3d
+    conv2:nn.Conv3d
+    is_last:bool
+    bn2: nn.InstanceNorm3d
+
+    def __init__(self, in_planes:int, planes:int, stride:int=1, option:Literal['A','B']='B', is_last:bool=False):
+        """
+        3D convolutional encoder block with optional InstanceNorm and LeakyReLU activation.
+
+        This block consists of two convolutional layers. The second normalization and activation
+        are skipped if the block is marked as the last.
+
+        Parameters
+        ----------
+        in_planes : int
+            Number of input channels.
+        planes : int
+            Number of output channels.
+        stride : int or tuple, default=1
+            Stride for the first convolution layer.
+        option : str, default='B'
+            Not used in this implementation, placeholder for possible variants.
+        is_last : bool, default=False
+            Whether this block is the last one, which disables the second normalization and activation.
+        """
         super(EncoderBlock, self).__init__()
 
         self.conv1 = nn.Conv3d(in_planes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
@@ -70,7 +207,20 @@ class EncoderBlock(nn.Module):
         if not is_last:
             self.bn2 = nn.InstanceNorm3d(planes, affine=True)
 
-    def forward(self, x):
+    def forward(self, x:Tensor)->Tensor:
+        """
+        Forward pass through the EncoderBlock.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input tensor of shape (N, C, D, H, W).
+
+        Returns
+        -------
+        torch.Tensor
+            Output tensor after convolution, normalization, and activation.
+        """
         out = F.leaky_relu(self.bn1(self.conv1(x)), inplace=True)
         if not self.is_last:
             out = F.leaky_relu(self.bn2(self.conv2(out)), inplace=True)
@@ -79,19 +229,63 @@ class EncoderBlock(nn.Module):
         return out
 
 class VGGEncoder(nn.Module):
+    """
+    VGG-style 3D encoder composed of multiple EncoderBlocks.
+
+    The architecture applies a sequence of blocks with progressively increasing number of channels,
+    with configurable pooling and strides.
+
+    :ivar int in_planes: Number of input channels to the current layer.
+    :ivar bool use_emb: Whether embedding is used.
+    :ivar bool use_head: Whether fully connected head is used.
+    :ivar ModuleList layers: ModuleList containing the sequence of encoder layers.
+    :ivar nn.Sequential head: Optional fully connected head for embedding (if use_head is True).
+    """
+
     def __init__(self, 
-        block, 
-        num_pools, 
-        factor = 32,
-        first_stride=[1,1,1], # the stride of the first layer convolution
-        flip_strides = False, # whether to invert strides order. Flipped strides creates larger feature maps.
-        use_emb=False, # use the embedding output (along with the existing ones)
-        emb_dim=320,
-        use_head=False,
-        patch_size = None, # only needed when using the head
-        in_planes = 1,
-        roll_strides = True, #used for models trained before commit f2ac9ee (August 2023)
+        block:Type[nn.Module], 
+        num_pools:List[int], 
+        factor:int = 32,
+        first_stride:List[int]=[1,1,1], 
+        flip_strides:bool = False, 
+        use_emb:bool=False, 
+        emb_dim:int=320,
+        use_head:bool=False,
+        patch_size:Optional[Iterable[int]] = None,
+        in_planes:int = 1,
+        roll_strides:bool = True,
         ): 
+        """
+        VGG-style 3D encoder composed of multiple EncoderBlocks.
+
+        The architecture applies a sequence of blocks with progressively increasing number of channels,
+        with configurable pooling and strides.
+
+        Parameters
+        ----------
+        block : nn.Module
+            Encoder block class to use (e.g. EncoderBlock).
+        num_pools : list of int
+            Number of pooling steps in each spatial dimension.
+        factor : int, default=32
+            Base factor for channel scaling.
+        first_stride : list of int, default=[1,1,1]
+            Stride for the first convolution layer. 
+        flip_strides : bool, default=False
+            Whether to flip the order of computed strides. Flipped strides creates larger feature maps.
+        use_emb : bool, default=False
+            Whether to use an embedding layer on top of the last encoder output.
+        emb_dim : int, default=320
+            Dimension of the embedding output.
+        use_head : bool, default=False
+            Whether to use a fully connected head after flattening.
+        patch_size : iterable of int , optional
+            Input patch size, needed if use_head is True.
+        in_planes : int, default=1
+            Number of input channels.
+        roll_strides : bool, default=True
+            Whether to roll strides when computing pooling (used for backward compatibility for models trained before commit f2ac9ee (August 2023)).
+        """
         super(VGGEncoder, self).__init__()
         factors = [factor * i for i in [1,2,4,8,10,10,10]] # TODO: make this flexible to larger U-Net model?
         self.in_planes = in_planes
@@ -135,7 +329,34 @@ class VGGEncoder(nn.Module):
 
         self.apply(_weights_init)
 
-    def _make_layer(self, block, planes, num_blocks, stride, is_last=False):
+    def _make_layer(self, 
+                    block:nn.Module, 
+                    planes:int, 
+                    num_blocks:int, 
+                    stride:List[int]|int, 
+                    is_last:bool=False,
+                    )->nn.Sequential:
+        """
+        Create a sequential layer composed of multiple blocks.
+
+        Parameters
+        ----------
+        block : nn.Module
+            The encoder block to use.
+        planes : int
+            Number of output channels.
+        num_blocks : int
+            Number of blocks to stack.
+        stride : list or int
+            Stride(s) to use for the first block.
+        is_last : bool, default=False
+            Whether this layer is the last one.
+
+        Returns
+        -------
+        nn.Sequential
+            Sequential container of blocks.
+        """
         strides = [stride] + [1]*(num_blocks-1)
         layers = []
         for stride in strides:
@@ -144,7 +365,23 @@ class VGGEncoder(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def forward(self, x, use_encoder=False):
+    def forward(self, x:Tensor, use_encoder:bool=False)->Tensor:
+        """
+        Forward pass through the VGGEncoder.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input tensor of shape (N, C, D, H, W).
+        use_encoder : bool, default=False
+            Whether to apply the embedding head to the last output.
+
+        Returns
+        -------
+        list of torch.Tensor or torch.Tensor
+            List of intermediate feature maps if `use_emb` is False.
+            If `use_emb` is True, returns the embedding vector (after flattening and head if use_encoder=True).
+        """
         # stores the intermediate outputs
         out = []
         for i in range(len(self.layers)):
