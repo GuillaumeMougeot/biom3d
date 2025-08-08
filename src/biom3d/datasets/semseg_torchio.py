@@ -1,9 +1,6 @@
-#---------------------------------------------------------------------------
-# Dataset primitives for 3D segmentation dataset
-# solution: patch approach with the whole dataset into memory 
-#           based on Torchio, fastest dataloading method so far.
-#---------------------------------------------------------------------------
+"""Dataset primitives for 3D segmentation dataset. Solution: patch approach with the whole dataset into memory, based on Torchio, fastest dataloading method so far."""
 
+from typing import Dict, List, Optional, Tuple
 import numpy as np 
 import torchio as tio
 import random 
@@ -14,7 +11,7 @@ from torchio import SubjectsDataset
 from torchio import Subject
 import copy
 
-from biom3d.utils import get_folds_train_test_df, DataHandlerFactory
+from biom3d.utils import get_folds_train_test_df, DataHandlerFactory, DataHandler
 
 #---------------------------------------------------------------------------
 # utilities to random crops
@@ -26,22 +23,37 @@ from torchio.types import TypeTripletInt, TypeSpatialShape
 from torchio.utils import to_tuple
 
 class RandomCropOrPad(RandomTransform, SpatialTransform):
-    """Randomly crop a subject, and pad it if needed
     """
+    Randomly crop a subject, and pad it if needed.
+
+    :ivar np.ndarray[np.uint16] patch_size:      
+    :ivar float fg_rate: Foreground rate, if > 0, force the use of foreground.
+    :ivar str label_name: Name of the label image in the tio.Subject.
+    :ivar int start_fg_idx: Starting index in foreground. Determined by softmax use.    
+    """
+
+    patch_size:np.ndarray[np.uint16]        
+    fg_rate:float
+    label_name:str
+    start_fg_idx:int
 
     def __init__(
         self,
-        patch_shape,
-        fg_rate = 0,
-        label_name = None,
-        use_softmax = True,
+        patch_shape:np.ndarray,
+        fg_rate:float = 0,
+        label_name:str = None,
+        use_softmax:bool = True,
         **kwargs,
     ):
         """
-        __init__ adapted from tio.data.sampler.PatchSampler
+        Randomly crop a subject, and pad it if needed.
+
+        Adapted from tio.data.sampler.PatchSampler.
         
         Parameters
         ----------
+        patch_size: ndarray
+            Size of a patch.
         fg_rate: int, default=0
             Foreground rate, if > 0, force the use of foreground. Label name must be specified.
         label_name: str, default=None
@@ -50,6 +62,11 @@ class RandomCropOrPad(RandomTransform, SpatialTransform):
             Used with the foreground rate to know if the background should be removed.
         **kwargs : dict
             Additional keyword arguments.
+
+        Raises
+        ------
+        ValueError
+            If a dimension of patch_size in <1 or not an int (or np.integer)
         """
         super().__init__(**kwargs)
         patch_size_array = np.array(to_tuple(patch_shape, length=3))
@@ -71,9 +88,23 @@ class RandomCropOrPad(RandomTransform, SpatialTransform):
         subject: Subject,
         index_ini: TypeTripletInt,
     ) -> Subject:
+        """
+        Extract a patch from the given subject starting at a specified index.
+
+        Args:
+            subject: Subject 
+                The subject to extract the patch from.
+            index_ini: TypeTripletInt 
+                The starting index (x, y, z) of the patch.
+
+        Returns:
+            cropped_subject: Subject
+                The extracted patch as a new subject.
+        """
         cropped_subject = self.crop(subject, index_ini, self.patch_size)  # type: ignore[arg-type]  # noqa: B950
         return cropped_subject
     
+    # TODO: Maybe use method injection instead of copying for maintability (beware behaviour change)
     def crop(
         self,
         subject: Subject,
@@ -81,7 +112,23 @@ class RandomCropOrPad(RandomTransform, SpatialTransform):
         patch_size: TypeTripletInt,
     ) -> Subject:
         """
-        copied from tio.data.sampler.PatchSampler
+        Crop a patch from the subject at a given position and size.
+
+        Copied from ``tio.data.sampler.PatchSampler``.
+
+        Parameters
+        ----------
+        subject : Subject
+            The subject to crop.
+        index_ini : TypeTripletInt
+            The starting index (x, y, z) of the crop.
+        patch_size : TypeTripletInt
+            The size of the patch to extract (dx, dy, dz).
+
+        Returns
+        -------
+        cropped_subject: Subject
+            The cropped subject with the patch and an updated LOCATION attribute.
         """
         transform = self._get_crop_transform(subject, index_ini, patch_size)
         cropped_subject = transform(subject)
@@ -100,9 +147,24 @@ class RandomCropOrPad(RandomTransform, SpatialTransform):
         patch_size: TypeSpatialShape,
     ):
         """
-        adapted from tio.data.sampler.PatchSampler
-        """
+        Compute a centered crop transform from index and patch size.
 
+        Adapted from ``tio.data.sampler.PatchSampler``.
+
+        Parameters
+        ----------
+        subject : Subject
+            The subject to be cropped.
+        index_ini : TypeTripletInt
+            The (x, y, z) starting index of the patch.
+        patch_size : TypeSpatialShape
+            The size of the patch to extract.
+
+        Returns
+        -------
+        tio.Crop
+            A crop transform that extracts the desired patch while remaining within bounds.
+        """
         shape = np.array(subject.spatial_shape, dtype=np.uint16)
         index_ini_array = np.array(index_ini, dtype=np.uint16)
         patch_size_array = np.array(patch_size, dtype=np.uint16)
@@ -117,7 +179,24 @@ class RandomCropOrPad(RandomTransform, SpatialTransform):
         
     def apply_transform(self, subject: Subject) -> Subject:
         """
-        adapted from tio.data.sampler.UniformSampler
+        Apply patch sampling to the subject, with optional foreground enforcement.
+
+        A patch is randomly sampled from the subject. If `fg_rate` > 0, a random foreground
+        voxel may be used to center the patch, based on the label map. Otherwise, a random
+        valid location is used. If the patch is smaller than `patch_size`, symmetric padding
+        is applied.
+
+        Adapted from tio.data.sampler.UniformSampler
+
+        Parameters
+        ----------
+        subject : Subject
+            The subject to transform.
+
+        Returns
+        -------
+        transformed: Subject
+            The subject containing the sampled and padded patch.
         """
         valid_range = np.maximum(subject.spatial_shape - self.patch_size,1)
         
@@ -171,13 +250,15 @@ class LabelToFloat:
     """
     Transform to convert label data to float type.
         
-    Parameters
-    ----------
-    label_name : str
-        Name of the label to be transformed.
+    :ivar str label_name: Name of the label to be transformed.
     """
-    def __init__(self, label_name):
+
+    label_name:str
+
+    def __init__(self, label_name:str):
         """
+        Transform to convert label data to float type.
+            
         Parameters
         ----------
         label_name : str
@@ -185,22 +266,34 @@ class LabelToFloat:
         """
         self.label_name = label_name
         
-    def __call__(self, subject):
+    def __call__(self, subject:Subject)->Subject:
+        """
+        Apply the transform to the given subject.
+
+        Converts the label tensor to float if the label is present.
+            
+        Parameters
+        ----------
+        subject : Subject
+            A TorchIO subject that may contain the specified label.
+        """
         if self.label_name in subject.keys():
             subject[self.label_name].set_data(subject[self.label_name].data.float())
         return subject
 
 class LabelToLong:
     """
-    Transform to convert label data to long (integer) type.
-    
-    Parameters
-    ----------
-    label_name : str
-        Name of the label to be transformed.
+    Transform to convert label data to long type.
+        
+    :ivar str label_name: Name of the label to be transformed.
     """
-    def __init__(self, label_name):
+
+    label_name:str
+
+    def __init__(self, label_name:str):
         """
+        Transform to convert label data to long type.
+            
         Parameters
         ----------
         label_name : str
@@ -208,22 +301,34 @@ class LabelToLong:
         """
         self.label_name = label_name
         
-    def __call__(self, subject):
+    def __call__(self, subject:Subject)->Subject:
+        """
+        Apply the transform to the given subject.
+
+        Converts the label tensor to long if the label is present.
+            
+        Parameters
+        ----------
+        subject : Subject
+            A TorchIO subject that may contain the specified label.
+        """
         if self.label_name in subject.keys():
             subject[self.label_name].set_data(subject[self.label_name].data.long())
         return subject
 
 class LabelToBool:
     """
-    Transform to convert label data to boolean type.
-    
-    Parameters
-    ----------
-    label_name : str
-        Name of the label to be transformed.
+    Transform to convert label data to bool type.
+        
+    :ivar str label_name: Name of the label to be transformed.
     """
-    def __init__(self, label_name):
+
+    label_name:str
+
+    def __init__(self, label_name:str):
         """
+        Transform to convert label data to bool type.
+            
         Parameters
         ----------
         label_name : str
@@ -231,7 +336,17 @@ class LabelToBool:
         """
         self.label_name = label_name
         
-    def __call__(self, subject):
+    def __call__(self, subject:Subject)->Subject:
+        """
+        Apply the transform to the given subject.
+
+        Converts the label tensor to bool if the label is present.
+            
+        Parameters
+        ----------
+        subject : Subject
+            A TorchIO subject that may contain the specified label.
+        """
         if self.label_name in subject.keys():
             subject[self.label_name].set_data(subject[self.label_name].data.bool())
         return subject
@@ -239,65 +354,124 @@ class LabelToBool:
 #---------------------------------------------------------------------------
 
 class TorchIOReaderWrapper:
-    def __init__(self, handler):
+    """
+    A wrapper class so TorchIO can use a DataHandler.
+
+    :ivar DataHandler handler: DataHandler used to read data.
+    """
+
+    handler:DataHandler
+
+    def __init__(self, handler:DataHandler):
+        """
+        Initialize the wrapper.
+        
+        Paramters
+        ---------
+        handler: DataHandler
+            DataHandler used to read data.
+        """
         self.handler = handler  
 
-    def __call__(self, path):
+    def __call__(self, path:str)->Tuple[torch.Tensor,Optional[Dict]]:
         """
-        Custom reader function for image data.
+        Delegate data reading to DataHandler.
+
         Parameters
         ----------
-        x : str
-            Path to the image file.
+        path : str
+            Path to the image file. Supposedly a path coming from the DataHandler.
+
         Returns
         -------
-        Tuple
-            Loaded image data and metadata (if any).
+        img: torch.Tensor
+            Image data
+        meta: dict, optional
+            Eventual meta data (can be None).
         """
-        return self.handler.load(path), None
-
+        img,meta = self.handler.load(path), None
+        img = torch.from_numpy(img)
+        return img,meta
 #---------------------------------------------------------------------------
 # Based on torchio.SubjectsDataset
 
 class TorchioDataset(SubjectsDataset):
     """
-    Similar as torchio.SubjectsDataset but can be use with an unlimited amount of steps.
+    Custom dataset similar to `torchio.SubjectsDataset` but supports an unlimited number of steps (batches) per epoch.
+
+    Handles loading of images, masks, and foreground data, train/validation splitting,
+    optional in-memory data loading, and specific data augmentations.
+
+    :ivar str img_path: Path to the collection containing image files.
+    :ivar str msk_path: Path to the collection containing mask files.
+    :ivar Optional[str] fg_path: Path to the collection containing foreground data (optional).
+    :ivar int batch_size: Batch size for sampling.
+    :ivar np.ndarray patch_size: Size of the patches to extract.
+    :ivar Optional[np.ndarray] aug_patch_size: Size of patches used for augmentation (optional). Can be larger than patch_size
+    :ivar int nbof_steps: Number of steps (batches) per epoch.
+    :ivar bool load_data: Whether to load all data into memory.
+    :ivar DataHandler handler: Data handler for loading images and masks.
+    :ivar bool train: Indicates if the dataset is used for training (True) or validation (False).
+    :ivar List[str] fnames: List of filenames used depending on training or validation mode.
+    :ivar List[Subject] subjects_list: List of TorchIO Subjects created from the files.
+    :ivar bool use_aug: Whether data augmentations are enabled.
+    :ivar float fg_rate: Foreground inclusion rate to force foreground sampling in patches.
+    :ivar bool use_softmax: Whether to use softmax activation; if False, sigmoid is used.
+    :ivar int batch_idx: Current batch index for internal tracking.
     """
+
+    img_path:str
+    msk_path:str
+    fg_path:Optional[str]
+    batch_size:int
+    patch_size:np.ndarray
+    aug_patch_size:Optional[np.ndarray]
+    nbof_steps:int
+    load_data:bool
+    handler:DataHandler
+    train:bool
+    fnames:List[str]
+    subjects_list:List[Subject]
+    use_aug:bool
+    fg_rate:float
+    use_softmax:bool
+    batch_idx:int
     
     def __init__(
         self,
-        img_path,
-        msk_path,
-        batch_size, 
-        patch_size,
-        nbof_steps,
-        fg_path     = None,
-        folds_csv  = None, 
-        fold       = 0, 
-        val_split  = 0.25,
-        train      = True,
-        use_aug    = True,
-        aug_patch_size = None,
-        fg_rate = 0.33, # if > 0, force the use of foreground, needs to run some pre-computations (note: better use the foreground scheduler)
-        # crop_scale = 1.0, # if > 1, then use random_crop_resize instead of random_crop_pad
-        load_data = False,
-        use_softmax = True,
+        img_path:str,
+        msk_path:str,
+        batch_size:int, 
+        patch_size:np.ndarray,
+        nbof_steps:int,
+        fg_path:Optional[str]     = None,
+        folds_csv:Optional[str]  = None, 
+        fold:int       = 0, 
+        val_split:float  = 0.25,
+        train:bool      = True,
+        use_aug:bool    = True,
+        aug_patch_size:Optional[np.ndarray] = None,
+        fg_rate:float = 0.33, 
+        load_data:bool = False,
+        use_softmax:bool = True,
     ):
         """
+        Similar as torchio.SubjectsDataset but can be use with an unlimited amount of steps.
+
         Parameters
         ----------
-        img_dir : str
-            Directory containing the image files.
-        msk_dir : str
-            Directory containing the mask files.
+        img_path : str
+            Path to collection containing the image files.
+        msk_path : str
+            Path to collection containing the mask files.
         batch_size : int
             Batch size for dataset sampling.
-        patch_size : nd.array
+        patch_size : ndarray
             Size of the patches to be used.
         nbof_steps : int
             Number of steps (batches) per epoch.
-        fg_dir : str, optional
-            Directory containing foreground information.
+        fg_path : str, optional
+            Path to collection containing foreground information.
         folds_csv : str, optional
             CSV file containing fold information for dataset splitting.
         fold : int, default=0
@@ -308,12 +482,12 @@ class TorchioDataset(SubjectsDataset):
             If True, use the dataset for training; otherwise, use it for validation.
         use_aug : bool, default=True
             If True, apply data augmentation.
-        aug_patch_size : nd.array
+        aug_patch_size : ndarray, optional
             Patch size to use for augmented patches.
         fg_rate : float, default=0.33
-            Foreground rate, used to force foreground inclusion in patches.
+            Foreground rate, used to force foreground inclusion in patches. If > 0, force the use of foreground, needs to run some pre-computations (note: better use the foreground scheduler)
         load_data : bool, default=False
-            If True, loads the all dataset into computer memory (faster but more memory expensive). ONLY COMPATIBLE WITH .npy PREPROCESSED IMAGES
+            If True, loads the all dataset into computer memory (faster but more memory expensive). 
         use_softmax : bool, default=True
             If True, use softmax activation; otherwise, sigmoid is used.
         """
@@ -468,20 +642,28 @@ class TorchioDataset(SubjectsDataset):
         SubjectsDataset.__init__(self, subjects=self.subjects_list)
     
     def _do_fg(self):
-        """
-        determines whether to force the foreground depending on the batch idx
-        """
+        """Determine whether to force the foreground depending on the batch idx."""
         return self.batch_idx >= round(self.batch_size * (1 - self.fg_rate))
     
     def _update_batch_idx(self):
+        """Increment batch index, modulo batch size."""
         self.batch_idx += 1
         if self.batch_idx >= self.batch_size:
             self.batch_idx = 0
 
     def __len__(self):
+        """Return number of step * batch size."""
         return self.nbof_steps*self.batch_size
 
     def __getitem__(self, index: int) -> Subject:
+        """
+        Return Subject corresponding to index in the dataloader.
+
+        Parameters
+        ----------
+        index: int
+            Index of wanted data.
+        """
         try:
             index = int(index)%len(self._subjects)
         except (RuntimeError, TypeError):

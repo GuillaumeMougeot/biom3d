@@ -8,3 +8,4 @@ The datasets module define dataloader or batch loader used for both training and
 
       batchgen.rst
       patch_fast.rst
+      torchio.rst

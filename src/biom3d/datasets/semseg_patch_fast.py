@@ -329,7 +329,7 @@ def random_crop_resize(img:np.ndarray,
         Image data.
     msk : ndarray
         Mask data.
-    crop_scale : float, >1
+    crop_scale : float, >=1
         Scale factor for the crop size.
     final_size : iterable of int 
         Final size of the image and mask after cropping and resizing.
@@ -341,7 +341,7 @@ def random_crop_resize(img:np.ndarray,
     Raises
     ------
     ValueError
-        If crop_scale <= 1.
+        If crop_scale < 1.
 
     Returns
     -------
@@ -352,7 +352,7 @@ def random_crop_resize(img:np.ndarray,
     """
     final_size = np.array(final_size)
 
-    if crop_scale <= 1 :raise ValueError(f"Crop scale must be a float >1, found '{crop_scale}'")
+    if crop_scale < 1 :raise ValueError(f"Crop scale must be a float >1, found '{crop_scale}'")
         
     # determine crop shape
     max_crop_shape = np.round(final_size * crop_scale).astype(int)
