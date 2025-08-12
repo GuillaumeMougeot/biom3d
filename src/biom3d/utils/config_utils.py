@@ -1,26 +1,56 @@
+"""Module to save and load config files (python or yaml)."""
+
 import importlib.util
 import sys
 import shutil
 import fileinput
+from typing import Any, Iterator, List, MutableMapping, Optional, Type, TypeVar
 import numpy as np
 import os
-import yaml # pip install pyyaml
+import yaml
 from datetime import datetime
 
-# ----------------------------------------------------------------------------
-# config utils
-# Convenience class that behaves exactly like dict(), but allows accessing
-# the keys and values using the attribute syntax, i.e., "mydict.key = value".
-# Author: Terro Keras (progressive_growing_of_gans)
+T = TypeVar("T", bound=MutableMapping[str, Any])
 
 class Dict(dict):
-    def __init__(self, *args, **kwargs): super().__init__(*args, **kwargs)
-    def __getattr__(self, name): return self[name]
-    def __setattr__(self, name, value): self[name] = value
-    def __delattr__(self, name): del self[name]
+    """
+    Convenience class that behaves exactly like dict(), but allows accessing, the keys and values using the attribute syntax, i.e., "mydict.key = value".
 
-def config_to_type(cfg, new_type):
-    """Change config type to a new type. This function is recursive and can be use to change the type of nested dictionaries. 
+    Author 
+    ------
+    Terro Keras (progressive_growing_of_gans).
+    """
+
+    def __init__(self, *args, **kwargs): 
+        """Intialize the Dict."""
+        super().__init__(*args, **kwargs)
+    def __getattr__(self, name): 
+        """Allow attribute-style access to dictionary keys."""
+        return self[name]
+    def __setattr__(self, name, value): 
+        """Allow setting dictionary keys using attribute-style syntax."""
+        self[name] = value
+    def __delattr__(self, name): 
+        """Allow deleting dictionary keys using attribute-style syntax."""
+        del self[name]
+
+def config_to_type(cfg:MutableMapping[str, Any], 
+                   new_type:Type[T],
+                   )->T:
+    """
+    Change config type to a new type. This function is recursive and can be use to change the type of nested dictionaries.
+    
+    Parameters
+    ----------
+    cfg: dictionary like from str to Any 
+        The config file we want to convert (possibly nested).
+    new_type: T
+        The type we want to convert to, a dictionary like from str to Any (dict, Dict,...).
+
+    Returns
+    -------
+    cfg: T
+        The config converted in given type.
     """
     old_type = type(cfg)
     cfg = new_type(cfg)
@@ -29,27 +59,44 @@ def config_to_type(cfg, new_type):
             cfg[k] = config_to_type(cfg[k], new_type)
     return cfg
 
-def save_yaml_config(path, cfg):
+def save_yaml_config(path:str, cfg:MutableMapping[str, Any]):
     """
-    save a configuration in a yaml file.
-    path must thus contains a yaml extension.
-    example: path='logs/test.yaml'
+    Save a configuration in a yaml file.
+
+    Parameters
+    ----------
+    path: str
+        Path to file, must contains a yaml extension (.yaml or .yml), e.g.: path='logs/test.yaml'.
+    cfg: dictionary like from str to any
+        The config dictionary to save.
     """
     cfg = config_to_type(cfg, dict)
     with open(path, "w") as f:
         yaml.dump(cfg, f, sort_keys=False)
     
-def load_yaml_config(path):
+def load_yaml_config(path:str)->Dict:
     """
-    load a yaml stored with the self.save method.
+    Load a yaml stored with the self.save method.
+
+    Returns
+    -------
+    cfg: Dict
+        The content of the config file.
     """
     return config_to_type(compat_old_config(yaml.load(open(path),Loader=yaml.FullLoader)), Dict)
 
-def nested_dict_pairs_iterator(dic):
-    ''' This function accepts a nested dictionary as argument
-        and iterate over all values of nested dictionaries
-        get from: https://thispointer.com/python-how-to-iterate-over-nested-dictionary-dict-of-dicts/ 
-    '''
+def nested_dict_pairs_iterator(dic:MutableMapping[str,Any])->Iterator[List[Any]]:
+    """
+    Iterate over a dictionary by returning a [key,value] iterator.
+
+    This function accepts a nested dictionary as argument and iterate over all values of nested dictionaries.
+    Stolen  from: https://thispointer.com/python-how-to-iterate-over-nested-dictionary-dict-of-dicts/ 
+
+    Parameters
+    ----------
+    dict: dictionary like from str to Any
+        Our dictionary we want to iterate over.
+    """
     # Iterate over all key-value pairs of dict argument
     for key, value in dic.items():
         # Check if value is of dict type
@@ -61,9 +108,23 @@ def nested_dict_pairs_iterator(dic):
             # If value is not dict type then yield the value
             yield [key, value]
 
-def nested_dict_change_value(dic, key, value):
+def nested_dict_change_value(dic:MutableMapping[str,Any], key:str, value:Any)->MutableMapping[str,Any]:
     """
     Change all value with a given key from a nested dictionary.
+
+    Parameters
+    ----------
+    dic: dictonary like from str to Any
+        The dictonary we want to alter.
+    key: str
+        The key we want to modify the value.
+    value: any
+        The new value.
+
+    Returns
+    -------
+    dic: dictonary like from str to Any
+        Modified dictionary, this is not a copy of dict.
     """
     # Loop through all key-value pairs of a nested dictionary and change the value 
     for pairs in nested_dict_pairs_iterator(dic):
@@ -74,8 +135,11 @@ def nested_dict_change_value(dic, key, value):
             save[key] = value
     return dic
 
-def replace_line_single(line, key, value):
-    """Given a line, replace the value if the key is in the line. This function follows the following format:
+def replace_line_single(line:str, key:str, value:str)->str:
+    r"""
+    Replace a key, value association in a given line.
+
+    Given a line, replace the value if the key is in the line. This function follows the following format:
     \'key = value\'. The line must follow this format and the output will respect this format. 
     
     Parameters
@@ -86,6 +150,11 @@ def replace_line_single(line, key, value):
         The key to look for in the line.
     value : str
         The new value that will replace the previous one.
+
+    Raises
+    ------
+    AssertionError
+        If line doesn't follow given format.
     
     Returns
     -------
@@ -115,29 +184,47 @@ def replace_line_single(line, key, value):
         line += "\n"
     return line
 
-def replace_line_multiple(line, dic):
-    """Similar to replace_line_single but with a dictionary of keys and values.
+def replace_line_multiple(line:str, dic:MutableMapping[str,str])->str:
+    r"""
+    Similar to replace_line_single but with a dictionary of keys and values.
+
+    Parameters
+    ----------
+    line: str
+        The input line that follows the format: \'key = value\'.
+    dict: dictionary like from str to str
+        The dictionary that associate key str and value str
+    
+    Returns
+    -------
+    line : str
+        The modified line.
     """
     for key, value in dic.items():
         line = replace_line_single(line, key, value)
     return line
 
 def save_python_config(
-    config_dir,
-    base_config = None,
+    config_dir:str,
+    base_config:Optional[str] = None,
     **kwargs,
-    ):
-    """
+    )->str:
+    r"""
     Save the configuration in a config file. If the path to a base configuration is provided, then update this file with the new auto-configured parameters else use biom3d.config_default file.
 
     Parameters
     ----------
     config_dir : str
         Path to the configuration folder. If the folder does not exist, then create it.
-    base_config : str, default=None
+    base_config : str, optional
         Path to an existing configuration file which will be updated with the auto-config values.
     **kwargs
         Keyword arguments of the configuration file.
+
+    Raises
+    ------
+    RuntimeError
+        If base config is None and default config module can't be loaded.
 
     Returns
     -------
@@ -157,7 +244,6 @@ def save_python_config(
         PATCH_SIZE=[40, 224, 224],\\
         NUM_POOLS=[3, 5, 5])
     """
-
     # create the config dir if needed
     if not os.path.exists(config_dir):
         os.makedirs(config_dir, exist_ok=True)
@@ -194,9 +280,9 @@ def save_python_config(
             print(line, end='') 
     return new_config_name
 
-def load_python_config(config_path):
-    """Return the configuration dictionary given the path of the configuration file.
-    The configuration file is in Python format.
+def load_python_config(config_path:str)->Dict:
+    """
+    Return the configuration dictionary given the path of the configuration file. The configuration file is in Python format.
     
     Adapted from: https://stackoverflow.com/questions/67631/how-can-i-import-a-module-dynamically-given-the-full-path 
     
@@ -217,7 +303,27 @@ def load_python_config(config_path):
     config.CONFIG=compat_old_config(config.CONFIG)
     return config_to_type(config.CONFIG, Dict) # change type from config.Dict to Dict
 
-def recursive_rename_key(d, old_key, new_key):
+def recursive_rename_key(d:MutableMapping[str,Any]|List[MutableMapping[str,Any]], 
+                         old_key:str, 
+                         new_key:str,
+                         )->MutableMapping[str,Any]:
+    """
+    Rename all instance of a given key.
+
+    Parameters
+    ----------
+    d: dictionary like from str to any or a list of said dictionary
+        The dictionary to modify.
+    old_key: str
+        The key to rename.
+    new_key: str
+        New name for the key.
+
+    Returns
+    -------
+    d: dictionary like from str to any
+        Renamed dictionary.
+    """
     if isinstance(d, dict):
         new_dict = {}
         for k, v in d.items():
@@ -229,8 +335,22 @@ def recursive_rename_key(d, old_key, new_key):
     else:
         return d
     
-def compat_old_config(config):
-    # Retrocompatibility with old configs
+def compat_old_config(config:MutableMapping[str,Any])->MutableMapping[str,Any]:
+    """
+    Rename a set of key in a dictionary.
+
+    Used to interpret old config files as new one and prevent crashing.
+
+    Parameters
+    ----------
+    config: dictionary like from str to any
+        The config to adapt.
+
+    Returns
+    -------
+    config: dictionary like from str to any
+        Config updated.
+    """
     for k,v in {"IMG_DIR":"IMG_PATH", 
               "MSK_DIR":"MSK_PATH",
               "FG_DIR":"FG_PATH",
@@ -241,8 +361,10 @@ def compat_old_config(config):
         config = recursive_rename_key(config,k,v)
     return config
 
-def adaptive_load_config(config_path):
-    """Return the configuration dictionary given the path of the configuration file.
+def adaptive_load_config(config_path:str)->Dict:
+    """
+    Return the configuration dictionary given the path of the configuration file.
+    
     The configuration file is in Python or YAML format.
 
     Parameters
@@ -261,5 +383,5 @@ def adaptive_load_config(config_path):
     elif extension=='.yaml':
         config =  load_yaml_config(config_path)
     else:
-        print("[Error] Unknow format for config file.")
+        print("[Error] Unknow format for config file.") #TODO: raise error
     return config
