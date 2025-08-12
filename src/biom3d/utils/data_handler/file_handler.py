@@ -3,7 +3,7 @@ import SimpleITK as sitk
 import numpy as np
 from skimage import io
 import tifffile as tiff
-from typing import Literal, Optional, Tuple
+from typing import Any, Dict, Iterator, Literal, Optional, Tuple
 from os.path import isdir, join, dirname,exists,basename,normpath
 from os import makedirs, listdir
 import pickle
@@ -176,10 +176,46 @@ class FileHandler(DataHandler):
         return str(self.msk_outpath / relative)
     
 class ImageManager:
+    """
+    Static class to treat different image format.
+    
+    For the moment, the following format:
+    - Numpy
+    - Nifty
+    - TIFF
+    """
+
     @staticmethod
-    def _sitk_imread(img_path, return_spacing=True, return_origin=False, return_direction=False):
+    def _sitk_imread(img_path:str, 
+                     return_spacing:bool=True, 
+                     return_origin:bool=False, 
+                     return_direction:bool=False,
+                     )->Tuple[np.ndarray,Dict[str,Any]]:
         """
-        image reader for nii.gz files
+        Image reader for nii.gz files.
+
+        Parameters
+        ----------
+        img_path: str
+            Path to image file, must contain the extension.
+        return_spacing:bool, default=True
+            Whether to return spacing (not used)
+        return_origin:bool, default=False
+            Whether to return origin (not used)
+        return_direction:bool, default=False
+            Whether to return direction (not used)
+
+        Raises
+        ------
+        RuntimeError
+            If image not in 3 or 4 dimensions.
+
+        Returns
+        -------
+        img: ndarray
+            The image contained in the file
+        meta: dict from str to any
+            The image metadata
         """
         img = sitk.ReadImage(img_path)
         img_np = sitk.GetArrayFromImage(img)
@@ -197,12 +233,27 @@ class ImageManager:
         return img_np, {"spacing": spacing, "origin": origin, "direction": direction}
 
     @staticmethod
-    def adaptive_imread(img_path):
+    def adaptive_imread(img_path:str)->Tuple[np.ndarray,Dict[str,Any]]:
         """
-        use skimage imread or sitk imread depending on the file extension:
-        .tif --> skimage.io.imread
-        .h5 --> h5py
-        .nii.gz --> SimpleITK.imread
+        Load an image file.
+
+        Use skimage imread or sitk imread depending on the file extension:
+        
+        - `.tif` | `.tiif` → skimage.io.imread
+        - `.nii.gz` → SimpleITK.imread
+        - `.npy` → numpy.load
+
+        Parameters
+        ----------
+        img_path: str
+            Path to image file, must contain extension.
+
+        Returns
+        -------
+        img: ndarray
+            The image contained in the file.
+        meta: dictionary from str to any
+            The image metadata as a dict. Can be empty
         """
         extension = img_path[img_path.rfind('.'):].lower()
         if extension == ".tif" or extension == ".tiff":
@@ -221,9 +272,28 @@ class ImageManager:
             return ImageManager._sitk_imread(img_path)
         
     @staticmethod
-    def _sitk_imsave(img_path, img, metadata={}):
+    def _sitk_imsave(img_path:str, img:np.ndarray, metadata:dict[str,Any]={}):
         """
-        image saver for nii gz files
+        Image saver for nii.gz images.
+
+        Parameters
+        ----------
+        img_path: str
+            Path to image file, must contain extension.
+        img: ndarray
+            Image data.
+        metadata: dictionary from str to any, default={}
+            Image metadata. Following keys have default values if not found:
+                - 'spacing'=(1,1,1)
+                - 'origin'=(0,0,0)
+                - 'direction'=(1., 0., 0., 0., 1., 0., 0., 0., 1.)
+
+        Returns
+        -------
+        img: ndarray
+            The image contained in the file.
+        meta: dictionary from str to any
+            The image metadata as a dict. Can be empty
         """
         if 'spacing' not in metadata.keys():
             metadata['spacing']=(1,1,1)
@@ -238,17 +308,24 @@ class ImageManager:
         sitk.WriteImage(img_out, img_path)
 
     @staticmethod
-    def adaptive_imsave(img_path, img, img_meta={}):
-        """Adaptive image saving. Use tifffile for `.tif`, use numpy for `.npy` and use SimpleITK for other format. 
+    def adaptive_imsave(img_path:str, img:np.ndarray, img_meta:Dict[str,Any]={}):
+        """
+        Save an image.
+
+        Use skimage or sitk depending on the file extension:
+
+        - `.tif` | `.tiif` → ImageManager._tif_write_imagej
+        - `.nii.gz` → ImageManager._sitk_imsave
+        - `.npy` → numpy.save
 
         Parameters
         ----------
-            img_path : str
-                Path to the output file.
-            img : numpy.ndarray
-                Image array.
-            spacing : tuple, default=(1,1,1)
-                Optional spacing of the image. Only used with the SimpleITK library.
+        img_path : str
+            Path to the output file.
+        img : numpy.ndarray
+            Image array.
+        metadata: dictionary from str to any, default={}
+            Image metadata.
         """
         extension = img_path[img_path.rfind('.'):].lower()
         makedirs(dirname(img_path), exist_ok=True)
@@ -273,9 +350,10 @@ class ImageManager:
     # ----------------------------------------------------------------------------
     # tif metadata reader and writer
     @staticmethod
-    def _tif_read_imagej(img_path, axes_order='CZYX'):
+    def _tif_read_imagej(img_path:str, axes_order:str='CZYX')->Tuple[np.ndarray,Dict[str,Any]]:
         """Read tif file metadata stored in a ImageJ format.
-        adapted from: https://forum.image.sc/t/python-copy-all-metadata-from-one-multipage-tif-to-another/26597/8
+
+        Adapted from: https://forum.image.sc/t/python-copy-all-metadata-from-one-multipage-tif-to-another/26597/8
 
         Parameters
         ----------
@@ -334,9 +412,20 @@ class ImageManager:
         return img, img_meta
 
     @staticmethod
-    def _tif_write_imagej(img_path, img, img_meta):
-        """Write tif file using metadata in ImageJ format.
-        adapted from: https://forum.image.sc/t/python-copy-all-metadata-from-one-multipage-tif-to-another/26597/8
+    def _tif_write_imagej(img_path:str, img:np.ndarray, img_meta:Dict[str,Any]):
+        """
+        Write tif file using metadata in ImageJ format.
+        
+        Adapted from: https://forum.image.sc/t/python-copy-all-metadata-from-one-multipage-tif-to-another/26597/8
+
+        Parameters
+        ----------
+        img_path : str
+            Path to the output file.
+        img : numpy.ndarray
+            Image array.
+        metadata: dictionary from str to any
+            Image metadata.
         """
         # saving ImageJ hyperstack requires a 6 dimensional array in axes order TZCYXS
         img = tiff.tifffile.transpose_axes(img, img_meta["axes"], 'TZCYXS')
@@ -351,10 +440,23 @@ class ImageManager:
                 )
 
     @staticmethod
-    def _tif_read_meta(tif_path, display=False):
+    def _tif_read_meta(tif_path:str, display:bool=False)->Dict[str,Any]:
         """
-        read the metadata of a tif file and stores them in a python dict.
-        if there is a 'ImageDescription' tag, it transforms it as a dictionary
+        Read the metadata of a tif file and stores them in a python dict.
+
+        If there is a 'ImageDescription' tag, it transforms it as a dictionary
+
+        Parameters
+        ----------
+        img_path : str
+            Path to the output file.
+        display : bool, default=False
+            Whether to diplay metadata after reading
+
+        Returns
+        -------
+        meta: dict of str to any
+            Image's metadata.
         """
         meta = {}
         with tiff.TiffFile(tif_path) as tif:
@@ -377,9 +479,24 @@ class ImageManager:
         return meta
 
     @staticmethod
-    def _tif_write_meta(data,meta,out_path):
+    def _tif_write_meta(data:np.ndarray,
+                        meta:Dict[str,Any],
+                        out_path:str):
         """
-        write data and metadata in 'out_path'
+        Write data and metadata in 'out_path'.
+
+        Parameters
+        ----------
+        data: ndarray
+            Image data.
+        meta: dict from str to any
+            Image meta data, must contains 
+                - 'ImageDescription'->'spacing' 
+                - 'ImageDescription'->'unit'
+                - 'XResolution'
+                - 'YResolution'
+        out_path: str
+            File to save data.
         """
         out_meta = {
             'spacing':float(meta['ImageDescription']['spacing']),
@@ -399,18 +516,40 @@ class ImageManager:
         )
 
     @staticmethod
-    def _tif_copy_meta(in_path1, in_path2, out_path):
+    def _tif_copy_meta(in_path1:str, in_path2:str, out_path:str):
         """
-        store (metadata of in_path1 + data of in_path2) in out_path
+        Store (metadata of in_path1 + data of in_path2) in out_path
+
+        Parameters
+        ----------
+        in_path1: str
+            Path to file where we take metadata.
+        in_path2: str
+            Path to file where we take data
+        out_path: str
+            Path to new file.
         """
         in_meta = ImageManager._tif_read_meta(in_path1)
         data = tiff.imread(in_path2)
         ImageManager._tif_write_meta(data, in_meta, out_path)
 
     @staticmethod
-    def _tif_get_spacing(path, res=1e-6):
+    def _tif_get_spacing(path:str, res:float=1e-6)->Tuple[float,float,float]:
         """
-        get the image spacing stored in the metadata file.
+        Get the image spacing stored in the metadata file.
+
+        Parameters
+        ----------
+        path: str
+            Path to file.
+        res: float, default=1e-6
+            Unit conversion factor applied to resolution values.
+            For example, use 1e-6 to convert from microns to meters.
+
+        Returns
+        -------
+        (xres,yres,zres): tuple of float
+            Represent spacing on each dimension.
         """
         img_meta = ImageManager._tif_read_meta(path)
 

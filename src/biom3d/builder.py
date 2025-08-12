@@ -169,7 +169,7 @@ class Builder:
         # for training or fine-tuning:
         # load the config file and change some parameters if multi-gpus training
         if config is not None: 
-            assert isinstance(config,str) or isinstance(config,dict) or isinstance(config,utils.Dict), "[Error] Config has the wrong type {}".format(type(config))
+            assert isinstance(config,str) or isinstance(config,dict) or isinstance(config,utils.AttrDict), "[Error] Config has the wrong type {}".format(type(config))
             if isinstance(config,str):
                 self.config_path = config
                 self.config = utils.adaptive_load_config(config)
@@ -637,7 +637,7 @@ class Builder:
             # same for postprocessors
             for i in range(len(self.config)):
                 if 'POSTPROCESSOR' not in self.config[i].keys():
-                    self.config[i].POSTPROCESSOR = utils.Dict(fct="Seg", kwargs=utils.Dict())
+                    self.config[i].POSTPROCESSOR = utils.AttrDict(fct="Seg", kwargs=utils.AttrDict())
 
             assert np.all([config.POSTPROCESSOR==self.config[0].POSTPROCESSOR for config in self.config[1:]]), "[Error] For multi-model prediction, the current version of biom3d imposes that all postprocessors are identical. {}".format([config.POSTPROCESSOR==self.config[0].POSTPROCESSOR for config in self.config[1:]])
 
@@ -689,7 +689,7 @@ class Builder:
             
             # retro-compatibility: use "Seg" post-processor as default 
             if 'POSTPROCESSOR' not in self.config.keys():
-                self.config.POSTPROCESSOR = utils.Dict(fct="Seg", kwargs=utils.Dict())
+                self.config.POSTPROCESSOR = utils.AttrDict(fct="Seg", kwargs=utils.AttrDict())
             
             # postprocessing
             if "return_logit" in self.config.POSTPROCESSOR.kwargs.keys():

@@ -12,7 +12,7 @@ from datetime import datetime
 
 T = TypeVar("T", bound=MutableMapping[str, Any])
 
-class Dict(dict):
+class AttrDict(dict):
     """
     Convenience class that behaves exactly like dict(), but allows accessing, the keys and values using the attribute syntax, i.e., "mydict.key = value".
 
@@ -45,7 +45,7 @@ def config_to_type(cfg:MutableMapping[str, Any],
     cfg: dictionary like from str to Any 
         The config file we want to convert (possibly nested).
     new_type: T
-        The type we want to convert to, a dictionary like from str to Any (dict, Dict,...).
+        The type we want to convert to, a dictionary like from str to Any (dict, AttrDict,...).
 
     Returns
     -------
@@ -74,7 +74,7 @@ def save_yaml_config(path:str, cfg:MutableMapping[str, Any]):
     with open(path, "w") as f:
         yaml.dump(cfg, f, sort_keys=False)
     
-def load_yaml_config(path:str)->Dict:
+def load_yaml_config(path:str)->AttrDict:
     """
     Load a yaml stored with the self.save method.
 
@@ -83,7 +83,7 @@ def load_yaml_config(path:str)->Dict:
     cfg: Dict
         The content of the config file.
     """
-    return config_to_type(compat_old_config(yaml.load(open(path),Loader=yaml.FullLoader)), Dict)
+    return config_to_type(compat_old_config(yaml.load(open(path),Loader=yaml.FullLoader)), AttrDict)
 
 def nested_dict_pairs_iterator(dic:MutableMapping[str,Any])->Iterator[List[Any]]:
     """
@@ -100,7 +100,7 @@ def nested_dict_pairs_iterator(dic:MutableMapping[str,Any])->Iterator[List[Any]]
     # Iterate over all key-value pairs of dict argument
     for key, value in dic.items():
         # Check if value is of dict type
-        if isinstance(value, dict) or isinstance(value, Dict):
+        if isinstance(value, dict) or isinstance(value, AttrDict):
             # If value is dict then iterate over all its values
             for pair in  nested_dict_pairs_iterator(value):
                 yield [key, *pair]
@@ -280,7 +280,7 @@ def save_python_config(
             print(line, end='') 
     return new_config_name
 
-def load_python_config(config_path:str)->Dict:
+def load_python_config(config_path:str)->AttrDict:
     """
     Return the configuration dictionary given the path of the configuration file. The configuration file is in Python format.
     
@@ -293,7 +293,7 @@ def load_python_config(config_path:str)->Dict:
     
     Returns
     -------
-    cfg : biom3d.utils.Dict
+    cfg : biom3d.utils.AttrDict
         Dictionary of the config.
     """
     spec = importlib.util.spec_from_file_location("config", config_path)
@@ -301,7 +301,7 @@ def load_python_config(config_path:str)->Dict:
     sys.modules["config"] = config
     spec.loader.exec_module(config)
     config.CONFIG=compat_old_config(config.CONFIG)
-    return config_to_type(config.CONFIG, Dict) # change type from config.Dict to Dict
+    return config_to_type(config.CONFIG, AttrDict) # change type from config.Dict to AttrDict
 
 def recursive_rename_key(d:MutableMapping[str,Any]|List[MutableMapping[str,Any]], 
                          old_key:str, 
@@ -361,7 +361,7 @@ def compat_old_config(config:MutableMapping[str,Any])->MutableMapping[str,Any]:
         config = recursive_rename_key(config,k,v)
     return config
 
-def adaptive_load_config(config_path:str)->Dict:
+def adaptive_load_config(config_path:str)->AttrDict:
     """
     Return the configuration dictionary given the path of the configuration file.
     

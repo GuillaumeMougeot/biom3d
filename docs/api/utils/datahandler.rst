@@ -72,8 +72,8 @@ Specials methods
 .. autoattribute:: OutputType.FG
 .. autoattribute:: OutputType.PRED
 
-Adding a new format
-~~~~~~~~~~~~~~~~~~~
+Adding a new dataset format
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To add a new format, only two thing are required :
 
@@ -90,3 +90,22 @@ To add a new format, only two thing are required :
 .. note::
 
     When testing, be sure to also test with dataset of only 1 image to test if preprocessing._split_image work well.
+
+Adding a new image format
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. currentmodule:: biom3d.utils.data_handler.file_handler
+
+In case you work on file using :class:`FileHandler` and you need to use another format than Numpy, TIFF or Nifty, you can easily implement it.
+
+In the module `biom3d.utils.data_handler.file_handler`, there is a static class named :class:`ImageManager`. This class implement the methods to read and save a single image as a file.
+
+Two functions will interest us :
+
+.. autoclass:: ImageManager
+    :members: adaptive_imread, adaptive_imsave
+
+To implement a new file format for image (for example png because why not) you simply have to add the possibility for those two function to treat the new format, then it is all automatic.
+
+.. note:: 
+
+    We strongly advise to create two separate private function, one for reading and another one for saving, and call them in adaptive.
