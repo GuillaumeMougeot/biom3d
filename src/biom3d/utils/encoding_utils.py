@@ -1,12 +1,30 @@
 """This module implement several version of one hot encoding."""
 
+from typing import Literal, Optional
 import numpy as np
 from numba import njit,prange
 
 
-def one_hot(values, num_classes=None):
+def one_hot(values:np.ndarray, num_classes:Optional[int]=None)->np.ndarray:
     """
-    transform the values np.array into a one_hot encoded
+    Convert an integer array to one-hot encoding using NumPy.
+
+    Parameters
+    ----------
+    values : ndarray
+        Integer array of labels to encode.
+    num_classes : int, optional
+        Total number of classes. If None, inferred as max(values)+1.
+
+    Returns
+    -------
+    ndarray
+        One-hot encoded array of shape `(num_classes, *values.shape)`, dtype int64.
+
+    Notes
+    -----
+    - If max value is 255, values are normalized to {0,1}.
+    - Unique values are re-indexed to consecutive integers before encoding.
     """
     if num_classes==None: n_values = np.max(values) + 1
     else: n_values = num_classes
@@ -25,11 +43,28 @@ def one_hot(values, num_classes=None):
     return np.moveaxis(out, -1, 0).astype(np.int64)
 
 @njit
-def one_hot_fast_v1(values, num_classes=None):
+def one_hot_fast_v1(values:np.ndarray, num_classes:Optional[int]=None):
     """
-    transform the 'values' array into a one_hot encoded one
+    Numba-accelerated one-hot encoding with simple class heuristics.
 
-    Warning ! If the number of unique values in the input array is lower than the number of classes, then it will consider that the array values are all between zero and `num_classes`. If one value is greater than `num_classes`, then it will add missing values systematically after the maximum value, which could not be the expected behavior. 
+    Parameters
+    ----------
+    values : ndarray
+        Integer array of labels to encode.
+    num_classes : int, optional
+        Number of classes. If None, inferred from unique values.
+
+    Returns
+    -------
+    np.ndarray
+        One-hot encoded array of shape `(num_classes, *values.shape)`, dtype uint8.
+
+    Warnings
+    --------
+    - If number of unique values < num_classes, missing classes are appended after max value.
+    - If max value exceeds num_classes, behavior might be unexpected.
+    - For binary classes, applies thresholding if input is not in {0,1}.
+
     """
     # get unique values
     uni = np.sort(np.unique(values)).astype(np.uint8)
@@ -63,34 +98,47 @@ def one_hot_fast_v1(values, num_classes=None):
     return out
 
 @njit
-def one_hot_fast(values, num_classes=None, mapping_mode='strict'):
+def one_hot_fast(values: np.ndarray, 
+                 num_classes: Optional[int] = None, 
+                 mapping_mode: Literal['strict','remap','pad'] = 'strict'):
     """
-    Transforms an integer array into a one-hot encoded array with robust mapping control.
+    Transform an integer array into a one-hot encoded array with robust mapping control.
 
     This function is accelerated with Numba and designed to be a safe, standalone utility.
 
-    Args:
-        values (np.ndarray): The integer label array to be encoded.
-        num_classes (int, optional): The total number of classes. If None, this is
-            inferred from the unique values in the array, and `mapping_mode` is
-            forced to 'remap'.
-        mapping_mode (str, optional): Controls how input values are mapped to class channels.
-            - 'strict' (Default): Safest mode. Requires all values to be within the
-              range [0, num_classes-1]. Raises a ValueError if any value is outside
-              this range.
-            - 'remap': For arbitrarily numbered labels. Remaps the `N` unique values
-              in the input array to `[0, 1, ..., N-1]`. Requires that the number of
-              unique values equals `num_classes`.
-            - 'pad': For correctly-numbered labels where some classes may be missing.
-              Creates channels for all classes in `range(num_classes)` and populates
-              the ones present in `values`. Raises a ValueError if any value is
-              outside the `[0, num_classes-1]` range.
+    Parameters
+    ----------
+    values: ndarray
+        The integer label array to be encoded.
+    num_classes: int, optional
+        The total number of classes. If None, this is 
+        inferred from the unique values in the array, and `mapping_mode` is
+        forced to 'remap'.
+    mapping_mode: 'strict','remap' or 'pad', default='strict'
+        Controls how input values are mapped to class channels:
 
-    Returns:
-        np.ndarray: The one-hot encoded array of shape (num_classes, *values.shape)
-                    and dtype `np.uint8`.
-    Raises:
-        ValueError: If the input values are incompatible with the chosen mode.
+        - 'strict' (Default): Safest mode. Requires all values to be within the
+          range [0, num_classes-1]. Raises a ValueError if any value is outside
+          this range.
+
+        - 'remap': For arbitrarily numbered labels. Remaps the `N` unique values
+          in the input array to `[0, 1, ..., N-1]`. Requires that the number of
+          unique values equals `num_classes`.
+
+        - 'pad': For correctly-numbered labels where some classes may be missing.
+          Creates channels for all classes in `range(num_classes)` and populates
+          the ones present in `values`. Raises a ValueError if any value is
+          outside the `[0, num_classes-1]` range.
+
+    Raises
+    ------
+    ValueError 
+        If the input values are incompatible with the chosen mode or unknown mapping_mode.
+
+    Returns
+    -------
+    ndarray
+        The one-hot encoded array of shape `(num_classes, *values.shape)` and dtype `np.uint8`.
     """
     uni = np.unique(values)
 

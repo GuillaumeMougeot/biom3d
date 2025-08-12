@@ -8,7 +8,7 @@ The utils module define functions (or class) that can be used in several other m
       Altough we present submoduls, you don't need to specify them when importing :
 
       .. code-block:: python
-            
+
             from biom3d.utils.data_handler_abstract import DataHandler 
             # Is the same thing as
             from biom3d.utils import DataHandler
@@ -24,3 +24,4 @@ The utils module define functions (or class) that can be used in several other m
       sampling.rst
       image.rst
       filtering.rst
+      encoding.rst
