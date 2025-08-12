@@ -1,13 +1,36 @@
+"""
+Sampling and data augmentation functions.
+
+Data augmentation not implemented yet...
+"""
+# TODO: finish this module (or remove)
+from typing import Iterable, Optional, Tuple, Union
 import numpy as np
 import torchio as tio
 
-
-# ----------------------------------------------------------------------------
-# data augmentation utils
-# not used yet...
-def centered_pad(img, final_size, msk=None):
+# TODO: same code as some function in dataloaders, try to call it to avoid code duplication
+def centered_pad(img:np.ndarray, 
+                 final_size:Iterable[int], 
+                 msk:Optional[np.ndarray]=None,
+                 )->Union[np.ndarray,Tuple[np.ndarray,np.ndarray]]:
     """
-    centered pad an img and msk to fit the final_size
+    Centered pad an img and msk to fit the final_size.
+
+    Parameters
+    ----------
+    img: ndarray
+        The image to pad.
+    final_size: iterable of int
+        The size of the image after the pad.
+    msk: ndarray, optional
+        The mask to pad.
+
+    Returns
+    -------
+    img: ndarray
+        Padded image.
+    msk: ndarray, optional
+        Padded mask.
     """
     final_size = np.array(final_size)
     img_shape = np.array(img.shape[1:])
@@ -29,11 +52,20 @@ def centered_pad(img, final_size, msk=None):
 class SmartPatch:
     """
     Randomly crop and resize the images to a certain crop_shape.
-    The global_crop_resize method performs a random crop and resize.
-    The local_crop_resize method performs a random crop and resize making sure that the crop 
-    is overlapping (to a certain extent, defined by the min_overlap parameter) with the global
-    crop previously performed. 
+
+    This class provide two functionalities:
+    - `global_crop_resize`: method performs a random crop and resize.
+    - `local_crop_resize`: performs a second random crop that overlaps with the global one, with a minimum overlap ratio defined by `min_overlap`.
+
+    :ivar ndarray local_crop_shape: Shape of local crop
+    :ivar ndarray global_crop_shape: Minimal crop size
+    :ivar ndarray | float global_crop_scale: Value between 0 and 1. Factor multiplying (img_shape - global_crop_min_shape) and added to the global_crop_min_shape. A value of 1 means that the maximum shape of the global crop will be the image shape. A value of 0 means that the maximum value will be the global_crop_min_shape. 
+    :ivar ndarray global_crop_shape: shape of local crop
+    :ivar ndarray global_crop_min_shape_scale: Factor multiplying the minimal global_crop_shape, 1.0 is a good default
+    :ivar float alpha: 1 - min_overlap; used internally to determine maximum allowed center displacement.
+    :ivar ndarra | None global_crop_center: The center coordinates of the global crop, once computed.        
     """
+
     def __init__(
         self,
         local_crop_shape,
@@ -43,17 +75,24 @@ class SmartPatch:
         global_crop_min_shape_scale=1.0,
         ):
         """
+         Initialize a SmartPatch object.
+
         Parameters
         ----------
-        global_crop_shape : list or tuple of size == 3
-            Minimal crop size
-        global_crop_scale : float, default=1.0
-            Value between 0 and 1. Factor multiplying (img_shape - global_crop_min_shape) and added to the global_crop_min_shape. A value of 1 means that the maximum shape of the global crop will be the image shape. A value of 0 means that the maximum value will be the global_crop_min_shape. 
-        global_crop_min_shape_factor : float, default=1.0
-            (DEPRECATED?) Factor multiplying the minimal global_crop_shape, 1.0 is a good default
-        
-        """
-        
+        local_crop_shape : list or tuple of 3 ints
+            Shape of the local crop.
+        global_crop_shape : list or tuple of 3 ints
+            Minimal shape for the global crop.
+        min_overlap : float
+            Value between 0 and 1. Minimum required overlap between local and global crops.
+        global_crop_scale : float or list/tuple of 3 floats, default=1.0
+            Scaling factor(s) applied to (image_shape - global_crop_min_shape). Controls how large
+            the global crop can be beyond its minimum shape.
+            - 1.0 means the crop can reach the full image size.
+            - 0.0 means the crop stays at minimal shape.
+        global_crop_min_shape_scale : float or list/tuple of 3 floats, default=1.0
+            Scaling factor(s) applied to `global_crop_shape` to define the minimum global crop shape.
+        """        
         self.local_crop_shape = np.array(local_crop_shape)
         self.global_crop_shape = np.array(global_crop_shape)
         self.global_crop_scale = np.array(global_crop_scale)
@@ -63,7 +102,31 @@ class SmartPatch:
         # internal arguments
         self.global_crop_center = None
         
-    def global_crop_resize(self, img, msk=None):
+    def global_crop_resize(self, img:np.ndarray, 
+                           msk:Optional[np.ndarray]=None,
+                           )->Union[np.ndarray,Tuple[np.ndarray,np.ndarray]]:
+        """
+        Perform a random global crop and resize on the input image (and optional mask).
+
+        The crop shape is randomly selected between a minimum shape (scaled by `global_crop_min_shape_scale`) 
+        and a maximum shape controlled by `global_crop_scale` and the image size.
+
+        The crop is then extracted and resized to the fixed `global_crop_shape`.
+
+        Parameters
+        ----------
+        img : np.ndarray
+            Input image tensor with shape (C, H, W, D).
+        msk : np.ndarray, optional
+            Optional mask tensor with the same spatial dimensions as img.
+
+        Returns
+        -------
+        crop_img: np.ndarray
+            Cropped and resized image.
+        crop_msk: np.ndarray, optional
+            Cropped and resized mask, if `msk` is provided.
+        """
         img_shape = np.array(img.shape)[1:]
         
         # determine crop shape
@@ -104,9 +167,35 @@ class SmartPatch:
         else:
             return crop_img
 
-    def local_crop_pad(self, img, msk=None):
+    def local_crop_pad(self, img:np.ndarray, 
+                           msk:Optional[np.ndarray]=None,
+                           )->Union[np.ndarray,Tuple[np.ndarray,np.ndarray]]:
         """
-        global_crop_resize must be called at least once before calling local_crop_pad
+        Perform a local crop centered near the global crop center with padding if needed.
+
+        This method requires `global_crop_resize` to have been called before, so that
+        `self.global_crop_center` is defined.
+
+        The local crop overlaps with the global crop by at least the configured minimum overlap.
+
+        Parameters
+        ----------
+        crop_img : np.ndarray
+            Input image tensor with shape (C, H, W, D).
+        crop_msk : np.ndarray, optional
+            Optional mask tensor with the same spatial dimensions as img.
+
+        Raises
+        ------
+        AssertionError
+            If `global_crop_resize` has not been called before.
+
+        Returns
+        -------
+        crop_img: np.ndarray
+            Cropped and resized image.
+        crop_msk: np.ndarray, optional
+            Cropped and resized mask, if `msk` is provided.
         """
         assert self.global_crop_center is not None, "Error! self.global_crop_resize must be called once before self.local_crop_pad."
         
@@ -151,9 +240,37 @@ class SmartPatch:
         else:
             return crop_img
 
-    def local_crop_resize(self, img, msk=None):
+    def local_crop_resize(self,
+                          img: np.ndarray,
+                          msk: Optional[np.ndarray] = None,
+                          ) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
         """
-        global_crop_resize must be called at least once before calling local_crop_resize
+        Perform a local crop with random size and resize, overlapping the global crop.
+
+        This method requires `global_crop_resize` to have been called before, so that
+        `self.global_crop_center` is defined.
+
+        The crop size is randomly selected within `self.local_crop_scale` fraction of the image size,
+        and positioned to ensure a minimum overlap with the global crop.
+
+        Parameters
+        ----------
+        img : np.ndarray
+            Input image tensor with shape (C, H, W, D).
+        msk : np.ndarray, optional
+            Optional mask tensor with the same spatial dimensions as img.
+
+        Raises
+        ------
+        AssertionError
+            If `global_crop_resize` has not been called before.
+
+        Returns
+        -------
+        crop_img : np.ndarray
+            Input image tensor with shape (C, H, W, D).
+        crop_msk : np.ndarray, optional
+            Optional mask tensor with the same spatial dimensions as img.
         """
         assert self.global_crop_center is not None, "Error! self.global_crop_resize must be called once before self.local_crop_resize."
 
