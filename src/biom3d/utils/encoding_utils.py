@@ -1,8 +1,7 @@
+"""This module implement several version of one hot encoding."""
+
 import numpy as np
 from numba import njit,prange
-# ----------------------------------------------------------------------------
-# preprocess utils
-# from the median image shape predict the size of the patch, the pool, the batch 
 
 
 def one_hot(values, num_classes=None):

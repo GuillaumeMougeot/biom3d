@@ -6,5 +6,5 @@ Filtering & thresholding
       For the moment, this submodule is only used in post processing.
 
 
-.. automodule:: biom3d.utils.postprocessing_utils
+.. automodule:: biom3d.utils.filtering_utils
     :members:
