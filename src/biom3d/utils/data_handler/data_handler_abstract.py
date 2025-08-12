@@ -1,3 +1,9 @@
+"""
+DataHandler class is a class made to abstract image loading and saving.
+
+It implement iterator to easily iterate over dataset. This module define the abstract class.
+"""
+
 from __future__ import annotations
 from abc import abstractmethod
 from typing import Literal, Optional, Tuple, Type
@@ -6,18 +12,15 @@ from numpy import ndarray
 from enum import Enum
 
 class OutputType(Enum):
-    """
-    Possible save type.
-    """
+    """Possible save type."""
+
     IMG = "img" ; """Saving an image."""
     MSK = "msk" ; """Saving a mask."""
     FG = "fg" ; """ Saving a foreground."""
     PRED = "pred"; """Saving a prediction"""
 
 class DataHandler :
-    """
-    Abstract class that define the interface to save, load and iterate over images.
-    """
+    """Abstract class that define the interface to save, load and iterate over images."""
 
     images: list ;"""A list of image paths."""
     masks: Optional[list]; """A list of mask paths."""
@@ -33,7 +36,7 @@ class DataHandler :
     _saver:Optional[Type[DataHandler]];"""DataHandler used to save, can be another DataHandler for different output format, self or None (read_only)."""
 
     def __init__(self):
-        """ Set default value to attributes, never call it outside a child class. All implementation shall call this one AND set default value to their specific attributes."""
+        """Set default value to attributes, never call it outside a child class. All implementation shall call this one AND set default value to their specific attributes."""
         self._image_index = -1
         self._iterator = 0
         self.fg = None
@@ -294,7 +297,7 @@ class DataHandler :
     @abstractmethod
     def insert_prefix_to_name(self,fname:str,prefix:str):
         """
-        Insert a prefix to a name to create unique variation for the same name (it is used by Preprocess._split_single)
+        Insert a prefix to a name to create unique variation for the same name (it is used by Preprocess._split_single).
     
         Example
         -------
@@ -309,7 +312,9 @@ class DataHandler :
 
     def save(self,fname,img,out_type:OutputType|str,**kwargs)->str:
         """
-        Public interface of _save. It do basic checks then delegate to self._saver._save().
+        Public interface of _save.
+        
+        It does basic checks then delegate to self._saver._save().
 
         Parameters
         ----------
@@ -349,15 +354,11 @@ class DataHandler :
         return self._saver._save(fname,img,out_type,**kwargs)
 
     def reset_iterator(self):
-        """
-        Reset the _iterator value to 0
-        """
+        """Reset the _iterator value to 0."""
         self._iterator = 0
 
     def __iter__(self):
-        """
-        Return a new iterator (by calling reset_iterator)
-        """
+        """Return a new iterator (by calling reset_iterator)."""
         self.reset_iterator()
         return self
 
@@ -389,15 +390,11 @@ class DataHandler :
         return (img_path, msk_path,fg_path)
 
     def __len__(self):
-        """
-        Return the handler's size, so the number of images.
-        """
+        """Return the handler's size, so the number of images."""
         return self._size
     
     def __del__(self):
-        """
-        Will try to call self.close() on destruction.
-        """
+        """Will try to call self.close() on destruction."""
         try : self.close()
         except: pass
 

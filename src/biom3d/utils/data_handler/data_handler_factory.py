@@ -1,3 +1,5 @@
+"""Class to instantiate a DataHandler depending on the input and output type."""
+
 from os.path import isdir,splitext,exists
 from os import lstat,getcwd,access,W_OK
 from typing import Optional, Type
@@ -8,6 +10,8 @@ from .file_handler import FileHandler
 from .hdf5_handler import HDF5Handler
 
 class DataHandlerFactory:
+    """Class to instantiate a DataHandler depending on the input and output type."""
+    
     EXTENSION_MAP: dict[str, Type['DataHandler']] = {
         ".h5": HDF5Handler,
         ".hdf5": HDF5Handler,
