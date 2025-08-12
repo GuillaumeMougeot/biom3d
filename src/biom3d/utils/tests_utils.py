@@ -1,22 +1,102 @@
+"""
+This module define some simple metrics.
+
+The metrics defined here can't be used as loss function, contrarly to the module biom3d.metrics.
+"""
+
+from typing import Callable, Optional, Tuple, Union
 from biom3d.utils import one_hot_fast
 import numpy as np
 
-# metric definition
-def iou(inputs, targets, smooth=1):
+def iou(inputs:np.ndarray, targets:np.ndarray, smooth:float=1.0)->float:
+    """
+    Calculate the Intersection over Union (IoU) score between two binary masks.
+
+    Parameters
+    ----------
+    inputs : ndarray
+        Binary array representing the predicted mask.
+    targets : ndarray
+        Binary array representing the ground truth mask.
+    smooth : float, default=1.0
+        Smoothing factor to avoid division by zero.
+
+    Returns
+    -------
+    float
+        IoU score between inputs and targets.
+    """
     inter = (inputs & targets).sum()
     union = (inputs | targets).sum()
     return (inter+smooth)/(union+smooth)
 
-def dice(inputs, targets, smooth=1, axis=(-3,-2,-1)):   
-    """Dice score between inputs and targets.
+def dice(inputs:np.ndarray, 
+         targets:np.ndarray, 
+         smooth:float=1.0, 
+         axis:Tuple[int]=(-3,-2,-1),
+         )->float:   
+    """
+    Compute the Dice coefficient between inputs and targets.
+
+    Parameters
+    ----------
+    inputs : ndarray
+        Binary array or one-hot encoded mask of predictions.
+    targets : ndarray
+        Binary array or one-hot encoded mask of ground truth.
+    smooth : float, default=1.0
+        Smoothing factor to avoid division by zero.
+    axis : tuple of int, default is last three axes (supposed spatial axis)
+        Axes along which to compute the Dice score.
+
+    Returns
+    -------
+    float
+        Mean Dice score over specified axes.
     """
     inter = (inputs & targets).sum(axis=axis)   
     dice = (2.*inter + smooth)/(inputs.sum(axis=axis) + targets.sum(axis=axis) + smooth)  
     return dice.mean()
 
-def versus_one(fct, input_img, target_img, num_classes, single_class=None):
+def versus_one(fct:Callable, 
+               input_img:np.ndarray, 
+               target_img:np.ndarray, 
+               num_classes:int, 
+               single_class:Optional[int]=None,
+               )->float|None:
     """
-    comparison function between input image  and target images and using the criterion defined by fct
+    Compare input and target images using a given metric function.
+
+    This function:
+    - Converts label images to one-hot encoding if needed.
+    - Optionally selects a single class channel.
+    - Binarizes masks.
+    - Removes background class channel if present.
+    - Checks shape compatibility.
+    - Applies the provided comparison function `fct` on processed masks.
+
+    Parameters
+    ----------
+    fct : callable
+        A function that takes two binary masks and returns a metric score (e.g., IoU or Dice).
+    input_img : ndarray
+        Input image as label indices or one-hot encoded mask.
+    target_img : ndarray
+        Target (ground truth) image as label indices or one-hot encoded mask.
+    num_classes : int
+        Number of classes expected in input and target images.
+    single_class : int or None, optional
+        Index of class to compare individually. If None, compares all classes.
+
+    Returns
+    -------
+    float or None
+        The score returned by `fct`.
+
+    Notes
+    -----
+    If shapes after processing don't match, prints an error message and returns None.
+    Copy the images so no side effect.
     """
     img1 = input_img.copy()
     if len(img1.shape)==3:
@@ -42,6 +122,6 @@ def versus_one(fct, input_img, target_img, num_classes, single_class=None):
         print("bug:sum(img1.shape)!=sum(img2.shape):")
         print("img1.shape", img1.shape)
         print("img2.shape", img2.shape)
-        return
+        return # TODO should raise error
     out = fct(img1, img2)
     return out

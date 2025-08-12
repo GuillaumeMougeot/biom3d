@@ -25,3 +25,4 @@ The utils module define functions (or class) that can be used in several other m
       image.rst
       filtering.rst
       encoding.rst
+      test.rst
