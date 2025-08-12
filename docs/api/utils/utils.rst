@@ -10,3 +10,4 @@ The utils module define functions (or class) that can be used in several other m
       datahandler.rst
       config.rst
       sampling.rst
+      image.rst

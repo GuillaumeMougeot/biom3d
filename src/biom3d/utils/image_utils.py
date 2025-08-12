@@ -1,17 +1,41 @@
+"""Module to visualize and resize images or plot."""
+
 try: import napari
 except: pass
-
+from typing import List, Tuple
 from skimage.transform import resize
 import numpy as np
 import matplotlib.pyplot as plt
 plt.switch_backend('Agg')  # bug fix: change matplotlib backend 
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 # ----------------------------------------------------------------------------
 # 3d viewer
-
-def display_voxels(image, xlim, ylim, zlim, save=False):
+def display_voxels(image: np.ndarray,
+                   xlim: Tuple[int, int],
+                   ylim: Tuple[int, int],
+                   zlim: Tuple[int, int],
+                   save: bool = False,
+                   ) -> None:
     """
-    plot using matplotlib a 3d volume from a 3d image
+    Plot a 3D volume from a 3D image using matplotlib.
+
+    Parameters
+    ----------
+    image : ndarray
+        3D numpy array representing the volume to display. Expected shape: (Z, Y, X).
+    xlim : tuple of int
+        Limits for the x-axis (min, max).
+    ylim : tuple of int
+        Limits for the y-axis (min, max).
+    zlim : tuple of int
+        Limits for the z-axis (min, max).
+    save : bool, default=False
+        If True, saves the plot as "voxel.png". Otherwise, shows the plot.
+
+    Returns
+    -------
+    None
     """
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
@@ -24,9 +48,31 @@ def display_voxels(image, xlim, ylim, zlim, save=False):
     plt.tight_layout()
     plt.savefig('voxel.png') if save else plt.show() 
 
-def display_mesh(mesh, xlim, ylim, zlim, save=False):
+def display_mesh(mesh:Poly3DCollection,
+                  xlim: Tuple[int, int],
+                  ylim: Tuple[int, int],
+                  zlim: Tuple[int, int],
+                  save: bool = False,
+                  ) -> None:
     """
-    plot using matplotlib a 3d volume from a 3d mesh
+    Plot a 3D volume from a 3D mesh using matplotlib.
+
+    Parameters
+    ----------
+    mesh : Poly3DCollection
+        3D numpy array representing the volume to display. Expected shape: (Z, Y, X).
+    xlim : tuple of int
+        Limits for the x-axis (min, max).
+    ylim : tuple of int
+        Limits for the y-axis (min, max).
+    zlim : tuple of int
+        Limits for the z-axis (min, max).
+    save : bool, default=False
+        If True, saves the plot as "voxel.png". Otherwise, shows the plot.
+
+    Returns
+    -------
+    None
     """
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
@@ -39,27 +85,58 @@ def display_mesh(mesh, xlim, ylim, zlim, save=False):
     plt.tight_layout()
     plt.savefig('mesh.png') if save else plt.show() 
 
-def napari_viewer(img, pred):
+def napari_viewer(img: np.ndarray, pred: np.ndarray)->None:
+    """
+    Open image and prediction with Napari.
+    
+    Parameters
+    ----------
+    img: ndarray
+        Image data.
+    pred: ndarray
+        Predicted mask (or just mask).
+
+    Returns
+    -------
+    None
+    """
     viewer = napari.view_image(img, name='original')
     viewer.add_image(pred, name='pred')
     viewer.layers['pred'].opacity=0.5
     viewer.layers['pred'].colormap='red'
     napari.run()
 
-def resize_segmentation(segmentation, new_shape, order=3):
-    '''
-    Copied from batch_generator library. Copyleft Fabian Insensee.
-    Resizes a segmentation map. Supports all orders (see skimage documentation). Will transform segmentation map to one
-    hot encoding which is resized and transformed back to a segmentation map.
-    This prevents interpolation artifacts ([0, 0, 2] -> [0, 1, 2])
-    :param segmentation:
-    :param new_shape:
-    :param order:
-    :return:
-    '''
+def resize_segmentation(segmentation: np.ndarray,
+                        new_shape: Tuple[int, ...],
+                        order: int = 3,
+                        ) -> np.ndarray:
+    """
+    Resize a segmentation map using one-hot encoding to avoid interpolation artifacts.
+
+    Copied and adapted from the batch_generator library (Fabian Isensee).
+
+    Parameters
+    ----------
+    segmentation : ndarray
+        The segmentation map to resize. Can be 2D or 3D.
+    new_shape : tuple of int
+        The desired output shape. Must match the dimensionality of `segmentation`.
+    order : int, default=3
+        The interpolation order. Use 0 for nearest neighbor (recommended for labels), higher for smoother interpolation.
+
+    Raises
+    ------
+    AssertionError
+        If segmentaion shape and new shape don't the same number of dimensions.
+
+    Returns
+    -------
+    reshaped: ndarray
+        The resized segmentation map. Same dtype as input.
+    """
     tpe = segmentation.dtype
     unique_labels = np.unique(segmentation)
-    assert len(segmentation.shape) == len(new_shape), "new shape must have same dimensionality as segmentation"
+    assert len(segmentation.shape) == len(new_shape), "New shape must have same dimensionality as segmentation"
     if order == 0:
         return resize(segmentation.astype(float), new_shape, order, mode="edge", clip=True, anti_aliasing=False).astype(tpe)
     else:
@@ -71,22 +148,42 @@ def resize_segmentation(segmentation, new_shape, order=3):
             reshaped[reshaped_multihot >= 0.5] = c
         return reshaped
 
-def resize_3d(img, output_shape, order=3, is_msk=False, monitor_anisotropy=True, anisotropy_threshold=3):
+def resize_3d(img:np.ndarray, 
+              output_shape:Tuple[int]|List[int]|np.ndarray[int], 
+              order:int=3, 
+              is_msk:bool=False, 
+              monitor_anisotropy:bool=True, 
+              anisotropy_threshold:int=3
+              )->np.ndarray:
     """
     Resize a 3D image given an output shape.
     
     Parameters
     ----------
-    img : numpy.ndarray
-        3D image to resample.
-    output_shape : tuple, list or numpy.ndarray
-        The output shape. Must have an exact length of 3.
-    order : int
-        The order of the spline interpolation. For images use 3, for mask/label use 0.
+    img : ndarray
+        3D image to resample, expected shape (C, W, H, D) where C is the channel dimension.
+    output_shape : tuple, list or ndarray
+        Desired output shape. Must be of shape (C, W, H, D) or (W, H, D) and match the dimensionality.
+    order : int, default=3
+        Interpolation order. Use 3 for smooth images, 0 for masks.
+    is_msk : bool, default=False
+        Whether the input is a mask. If True, uses nearest-neighbor-like interpolation.
+    monitor_anisotropy : bool, default=True
+        Whether to check for axis anisotropy and adapt resizing accordingly.
+    anisotropy_threshold : int, default=3
+        Threshold to detect anisotropy. If the ratio between largest and smallest spatial axis exceeds this, 
+        anisotropy is triggered.
+
+    Raises
+    ------
+    AssertionError
+        If image not in 4D.
+    AssertionError
+        If output shape not in 3D or 4D. 
 
     Returns
     -------
-    new_img : numpy.ndarray
+    new_img : ndarray
         Resized image.
     """
     assert len(img.shape)==4, '[Error] Please provided a 3D image with "CWHD" format'
