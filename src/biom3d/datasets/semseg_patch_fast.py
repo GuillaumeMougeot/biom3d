@@ -676,21 +676,28 @@ class SemSeg3DPatchFast(Dataset):
         self.use_softmax = use_softmax
         self.batch_idx = 0
     
-    def set_fg_rate(self,value:float):
+    def set_fg_rate(self,value:float)->None:
         """Setter function for the foreground rate class parameter."""
         self.fg_rate = value
 
-    def _do_fg(self):
-        """Determine whether to force the foreground depending on the batch idx."""
+    def _do_fg(self)->bool:
+        """
+        Determine whether to force the foreground depending on the batch idx.
+        
+        Returns
+        -------
+        bool
+            True if batch_index >= batch_size * (1-fg_rate)
+        """
         return self.batch_idx >= round(self.batch_size * (1 - self.fg_rate))
     
-    def _update_batch_idx(self):
+    def _update_batch_idx(self)->None:
         """Increment batch index, modulo batch_size."""
         self.batch_idx += 1
         if self.batch_idx >= self.batch_size:
             self.batch_idx = 0
     
-    def __len__(self):
+    def __len__(self)->int:
         """Return nbof_step*batch_size."""
         return self.nbof_steps*self.batch_size
     

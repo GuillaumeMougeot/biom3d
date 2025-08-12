@@ -24,13 +24,13 @@ class AttrDict(dict):
     def __init__(self, *args, **kwargs): 
         """Intialize the Dict."""
         super().__init__(*args, **kwargs)
-    def __getattr__(self, name): 
+    def __getattr__(self, name:str)->Any: 
         """Allow attribute-style access to dictionary keys."""
         return self[name]
-    def __setattr__(self, name, value): 
+    def __setattr__(self, name:str, value:Any)->None: 
         """Allow setting dictionary keys using attribute-style syntax."""
         self[name] = value
-    def __delattr__(self, name): 
+    def __delattr__(self, name:str)->None: 
         """Allow deleting dictionary keys using attribute-style syntax."""
         del self[name]
 
@@ -59,7 +59,7 @@ def config_to_type(cfg:MutableMapping[str, Any],
             cfg[k] = config_to_type(cfg[k], new_type)
     return cfg
 
-def save_yaml_config(path:str, cfg:MutableMapping[str, Any]):
+def save_yaml_config(path:str, cfg:MutableMapping[str, Any])->None:
     """
     Save a configuration in a yaml file.
 
@@ -69,6 +69,10 @@ def save_yaml_config(path:str, cfg:MutableMapping[str, Any]):
         Path to file, must contains a yaml extension (.yaml or .yml), e.g.: path='logs/test.yaml'.
     cfg: dictionary like from str to any
         The config dictionary to save.
+
+    Returns
+    -------
+    None
     """
     cfg = config_to_type(cfg, dict)
     with open(path, "w") as f:

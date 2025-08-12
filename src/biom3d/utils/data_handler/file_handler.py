@@ -272,7 +272,7 @@ class ImageManager:
             return ImageManager._sitk_imread(img_path)
         
     @staticmethod
-    def _sitk_imsave(img_path:str, img:np.ndarray, metadata:dict[str,Any]={}):
+    def _sitk_imsave(img_path:str, img:np.ndarray, metadata:dict[str,Any]={})->None:
         """
         Image saver for nii.gz images.
 
@@ -290,10 +290,7 @@ class ImageManager:
 
         Returns
         -------
-        img: ndarray
-            The image contained in the file.
-        meta: dictionary from str to any
-            The image metadata as a dict. Can be empty
+        None
         """
         if 'spacing' not in metadata.keys():
             metadata['spacing']=(1,1,1)
@@ -308,7 +305,7 @@ class ImageManager:
         sitk.WriteImage(img_out, img_path)
 
     @staticmethod
-    def adaptive_imsave(img_path:str, img:np.ndarray, img_meta:Dict[str,Any]={}):
+    def adaptive_imsave(img_path:str, img:np.ndarray, img_meta:Dict[str,Any]={})->None:
         """
         Save an image.
 
@@ -326,6 +323,10 @@ class ImageManager:
             Image array.
         metadata: dictionary from str to any, default={}
             Image metadata.
+
+        Returns
+        -------
+        None
         """
         extension = img_path[img_path.rfind('.'):].lower()
         makedirs(dirname(img_path), exist_ok=True)
@@ -369,7 +370,6 @@ class ImageManager:
         img_meta : dict
             Image metadata. 
         """
-
         with tiff.TiffFile(img_path) as tif:
             assert tif.is_imagej
 
@@ -412,7 +412,7 @@ class ImageManager:
         return img, img_meta
 
     @staticmethod
-    def _tif_write_imagej(img_path:str, img:np.ndarray, img_meta:Dict[str,Any]):
+    def _tif_write_imagej(img_path:str, img:np.ndarray, img_meta:Dict[str,Any])->None:
         """
         Write tif file using metadata in ImageJ format.
         
@@ -426,6 +426,10 @@ class ImageManager:
             Image array.
         metadata: dictionary from str to any
             Image metadata.
+
+        Returns
+        -------
+        None
         """
         # saving ImageJ hyperstack requires a 6 dimensional array in axes order TZCYXS
         img = tiff.tifffile.transpose_axes(img, img_meta["axes"], 'TZCYXS')
@@ -481,7 +485,8 @@ class ImageManager:
     @staticmethod
     def _tif_write_meta(data:np.ndarray,
                         meta:Dict[str,Any],
-                        out_path:str):
+                        out_path:str,
+                        )->None:
         """
         Write data and metadata in 'out_path'.
 
@@ -497,6 +502,10 @@ class ImageManager:
                 - 'YResolution'
         out_path: str
             File to save data.
+
+        Returns
+        -------
+        None
         """
         out_meta = {
             'spacing':float(meta['ImageDescription']['spacing']),
@@ -516,9 +525,9 @@ class ImageManager:
         )
 
     @staticmethod
-    def _tif_copy_meta(in_path1:str, in_path2:str, out_path:str):
+    def _tif_copy_meta(in_path1:str, in_path2:str, out_path:str)->None:
         """
-        Store (metadata of in_path1 + data of in_path2) in out_path
+        Store (metadata of in_path1 + data of in_path2) in out_path.
 
         Parameters
         ----------
@@ -528,6 +537,10 @@ class ImageManager:
             Path to file where we take data
         out_path: str
             Path to new file.
+
+        Returns
+        -------
+        None
         """
         in_meta = ImageManager._tif_read_meta(in_path1)
         data = tiff.imread(in_path2)

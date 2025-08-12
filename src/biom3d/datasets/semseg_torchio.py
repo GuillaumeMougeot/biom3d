@@ -145,7 +145,7 @@ class RandomCropOrPad(RandomTransform, SpatialTransform):
         subject,
         index_ini: TypeTripletInt,
         patch_size: TypeSpatialShape,
-    ):
+    )->tio.Crop:
         """
         Compute a centered crop transform from index and patch size.
 
@@ -641,17 +641,24 @@ class TorchioDataset(SubjectsDataset):
 
         SubjectsDataset.__init__(self, subjects=self.subjects_list)
     
-    def _do_fg(self):
-        """Determine whether to force the foreground depending on the batch idx."""
+    def _do_fg(self)->bool:
+        """
+        Determine whether to force the foreground depending on the batch idx.
+        
+        Returns
+        -------
+        bool
+            True if batch_index >= batch_size * (1-fg_rate).
+        """
         return self.batch_idx >= round(self.batch_size * (1 - self.fg_rate))
     
-    def _update_batch_idx(self):
+    def _update_batch_idx(self)->None:
         """Increment batch index, modulo batch size."""
         self.batch_idx += 1
         if self.batch_idx >= self.batch_size:
             self.batch_idx = 0
 
-    def __len__(self):
+    def __len__(self)->int:
         """Return number of step * batch size."""
         return self.nbof_steps*self.batch_size
 

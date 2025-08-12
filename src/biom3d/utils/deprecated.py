@@ -65,7 +65,7 @@ def adaptive_imread(img_path:str)->Tuple[ndarray,Dict[str,Any]]:
 
 @deprecated("For image loading/saving, use an DataHandler for more flexibility")
 # Marked deprecated in August 2025
-def sitk_imsave(img_path:str, img:ndarray, metadata:dict[str,Any]={}):
+def sitk_imsave(img_path:str, img:ndarray, metadata:dict[str,Any]={})->None:
     """
     Image saver for nii.gz images.
 
@@ -83,16 +83,13 @@ def sitk_imsave(img_path:str, img:ndarray, metadata:dict[str,Any]={}):
 
     Returns
     -------
-    img: ndarray
-        The image contained in the file.
-    meta: dictionary from str to any
-        The image metadata as a dict. Can be empty
+    None
     """
     return ImageManager._sitk_imsave(img_path,img,metadata)
 
 @deprecated("For image loading/saving, use an DataHandler for more flexibility")
 # Marked deprecated in August 2025
-def adaptive_imsave(img_path:str, img:ndarray, img_meta:Dict[str,Any]={}):
+def adaptive_imsave(img_path:str, img:ndarray, img_meta:Dict[str,Any]={})->None:
     """
     Save an image.
 
@@ -109,6 +106,10 @@ def adaptive_imsave(img_path:str, img:ndarray, img_meta:Dict[str,Any]={}):
         Image array.
     metadata: dictionary from str to any, default={}
         Image metadata.
+
+    Returns
+    -------
+    None
     """
     return ImageManager.adaptive_imsave(img_path,img,img_meta)
 
@@ -116,7 +117,7 @@ def adaptive_imsave(img_path:str, img:ndarray, img_meta:Dict[str,Any]={}):
 # tif metadata reader and writer
 @deprecated("For image loading/saving, use an DataHandler for more flexibility")
 # Marked deprecated in August 2025
-def tif_read_imagej(img_path:str, axes_order:str='CZYX'):
+def tif_read_imagej(img_path:str, axes_order:str='CZYX')->Tuple[ndarray,Dict[str,Any]]:
     """Read tif file metadata stored in a ImageJ format.
 
     Adapted from: https://forum.image.sc/t/python-copy-all-metadata-from-one-multipage-tif-to-another/26597/8
@@ -130,7 +131,7 @@ def tif_read_imagej(img_path:str, axes_order:str='CZYX'):
 
     Returns
     -------
-    img : numpy.ndarray
+    img : ndarray
         Image.
     img_meta : dict
         Image metadata. 
@@ -139,7 +140,7 @@ def tif_read_imagej(img_path:str, axes_order:str='CZYX'):
 
 @deprecated("For image loading/saving, use an DataHandler for more flexibility")
 # Marked deprecated in August 2025
-def tif_write_imagej(img_path:str, img:ndarray, img_meta:Dict[str,Any]):
+def tif_write_imagej(img_path:str, img:ndarray, img_meta:Dict[str,Any])->None:
     """
     Write tif file using metadata in ImageJ format.
     
@@ -153,6 +154,10 @@ def tif_write_imagej(img_path:str, img:ndarray, img_meta:Dict[str,Any]):
         Image array.
     metadata: dictionary from str to any
         Image metadata.
+
+    Returns
+    -------
+    None
     """
     return ImageManager._tif_write_imagej(img_path,img,img_meta)
 
@@ -182,7 +187,7 @@ def tif_read_meta(tif_path:str, display:bool=False)->Dict[str,Any]:
 # Marked deprecated in August 2025
 def tif_write_meta(data:ndarray,
                         meta:Dict[str,Any],
-                        out_path:str):
+                        out_path:str)->None:
     """
     Write data and metadata in 'out_path'.
 
@@ -198,12 +203,16 @@ def tif_write_meta(data:ndarray,
             * 'YResolution'
     out_path: str
         File to save data.
+
+    Returns
+    -------
+    None
     """
     return ImageManager._tif_write_meta(data,meta,out_path)
 
 @deprecated("For image loading/saving, use an DataHandler for more flexibility")
 # Marked deprecated in August 2025
-def tif_copy_meta(in_path1:str, in_path2:str, out_path:str):
+def tif_copy_meta(in_path1:str, in_path2:str, out_path:str)->None:
     """
     Store (metadata of in_path1 + data of in_path2) in out_path
 
@@ -215,6 +224,10 @@ def tif_copy_meta(in_path1:str, in_path2:str, out_path:str):
         Path to file where we take data
     out_path: str
         Path to new file.
+
+    Returns
+    -------
+    None
     """
     return ImageManager._tif_copy_meta(in_path1,in_path2,out_path)
 

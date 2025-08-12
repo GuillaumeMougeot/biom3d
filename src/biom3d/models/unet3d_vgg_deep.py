@@ -108,7 +108,7 @@ class UNet(nn.Module):
         if model_ckpt is not None:
             self.load(model_ckpt)
 
-    def freeze_encoder(self, freeze:bool=True):
+    def freeze_encoder(self, freeze:bool=True)->None:
         """
         Freeze or unfreeze the encoder's weights based on the input flag.
         
@@ -116,6 +116,10 @@ class UNet(nn.Module):
         ----------
         freeze : bool, optional
             If True, the encoder's weights are frozen, otherwise they are unfrozen. Default is True.
+
+        Returns
+        -------
+        None
         """
         if freeze:
             print("Freezing encoder weights...")
@@ -124,11 +128,11 @@ class UNet(nn.Module):
         for l in self.encoder.parameters(): 
             l.requires_grad = not freeze
     
-    def unfreeze_encoder(self):
+    def unfreeze_encoder(self)->None:
         """Unfreeze the encoder's weights. Convenience method calling `freeze_encoder` with `False`."""
         self.freeze_encoder(False)
 
-    def load(self, model_ckpt:str):
+    def load(self, model_ckpt:str)->None:
         """
         Load the model from checkpoint.
 
@@ -138,6 +142,10 @@ class UNet(nn.Module):
         ----------
         model_ckpt : str
             The path to the checkpoint file containing the model's weights.
+
+        Returns
+        -------
+        None
         """
         print("Load model weights from", model_ckpt)
         if torch.cuda.is_available():

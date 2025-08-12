@@ -227,7 +227,7 @@ class EffUNet(nn.Module):
                 del ckpt['model']['encoder.last_layer.weight']
             self.load_state_dict(ckpt['model'])
 
-    def freeze_encoder(self, freeze:bool=True):
+    def freeze_encoder(self, freeze:bool=True)->None:
         """
         Freeze or unfreeze the encoder's weights.
 
@@ -235,6 +235,10 @@ class EffUNet(nn.Module):
         ----------
         freeze : bool, optional
             If True, disables gradient computation for encoder parameters.
+
+        Returns
+        -------
+        None
         """
         if freeze:
             print("Freezing encoder weights...")
@@ -243,7 +247,7 @@ class EffUNet(nn.Module):
         for l in self.encoder.parameters(): 
             l.requires_grad = not freeze
     
-    def unfreeze_encoder(self):
+    def unfreeze_encoder(self)->None:
         """Shortcut for unfreezing the encoder."""
         self.freeze_encoder(False)
 

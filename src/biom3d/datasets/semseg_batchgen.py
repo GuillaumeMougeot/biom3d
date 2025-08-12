@@ -341,7 +341,7 @@ class RandomCropAndPadTransform(AbstractTransform):
         self.fg_rate = fg_rate
         self.crop_size = crop_size
 
-    def __call__(self, **data_dict:Dict[str,Any]):
+    def __call__(self, **data_dict:Dict[str,Any])->Dict[str,Any]:
         """
         Apply random cropping and padding transform to the data dictionary.
 
@@ -456,7 +456,7 @@ class DataReader(AbstractTransform):
         self.loc_key= loc_key
         self.handler=handler
     
-    def __call__(self, **data_dict:Dict[str,Any]):
+    def __call__(self, **data_dict:Dict[str,Any])->Dict[str,Any]:
         """
         Add data to the data_dict.
 
@@ -1310,7 +1310,7 @@ class BatchGenDataLoader(SlimDataLoaderBase):
         self.current_position = 0
         self.was_initialized = False
 
-    def reset(self):
+    def reset(self)->None:
         """
         Reset the internal state of the batch generator.
 
@@ -1320,6 +1320,10 @@ class BatchGenDataLoader(SlimDataLoaderBase):
         ------
         AssertionError
             If `self.indices` is not set.
+
+        Returns
+        -------
+        None
         """
         assert self.indices is not None
 
@@ -1327,13 +1331,13 @@ class BatchGenDataLoader(SlimDataLoaderBase):
 
         self.was_initialized = True
 
-    def get_indices(self):
+    def get_indices(self)->np.ndarray:
         """
         Retrieve a random batch of indices from the dataset.
 
         Returns
         -------
-        np.ndarray
+        ndarray
             A NumPy array of randomly sampled indices with shape (batch_size,).
 
         Raises
@@ -1645,7 +1649,7 @@ class MTBatchGenDataLoader(MultiThreadedAugmenter):
             batch_size
         )
 
-    def __len__(self):
+    def __len__(self)->int:
         """Return the number of batches in the batch generator."""
         return self.length
     

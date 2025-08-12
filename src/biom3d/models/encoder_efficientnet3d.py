@@ -619,7 +619,7 @@ class MBConvBlock3D(nn.Module):
             x = x + inputs  # skip connection
         return x
 
-    def set_swish(self, memory_efficient:bool=True):
+    def set_swish(self, memory_efficient:bool=True)->None:
         """
         Set the Swish activation function implementation.
 
@@ -628,6 +628,10 @@ class MBConvBlock3D(nn.Module):
         memory_efficient : bool, optional
             If True, use memory-efficient Swish (suitable for training).
             If False, use standard Swish (suitable for export). Default is True.
+
+        Returns
+        -------
+        None
         """
         self._swish = MemoryEfficientSwish() if memory_efficient else Swish()
 
@@ -748,7 +752,7 @@ class EfficientNet3D(nn.Module):
         self._fc = nn.Linear(out_channels, self._global_params.num_classes)
         self._swish = MemoryEfficientSwish()
 
-    def set_swish(self, memory_efficient:bool=True):
+    def set_swish(self, memory_efficient:bool=True)->None:
         """
         Set the Swish activation function implementation.
 
@@ -757,6 +761,10 @@ class EfficientNet3D(nn.Module):
         memory_efficient : bool, optional
             If True, use memory-efficient Swish (suitable for training).
             If False, use standard Swish (suitable for export). Default is True.
+
+        Returns
+        -------
+        None
         """
         self._swish = MemoryEfficientSwish() if memory_efficient else Swish()
         for block in self._blocks:
@@ -868,7 +876,7 @@ class EfficientNet3D(nn.Module):
         return res
 
     @classmethod
-    def _check_model_name_is_valid(cls:"EfficientNet3D", model_name:str):
+    def _check_model_name_is_valid(cls:"EfficientNet3D", model_name:str)->None:
         """
         Check if the given model name is valid.
 
@@ -881,6 +889,10 @@ class EfficientNet3D(nn.Module):
         ------
         ValueError
             If the model name is not valid.
+
+        Returns
+        -------
+        None
         """
         valid_models = ['efficientnet-b'+str(i) for i in range(9)]
         if model_name not in valid_models:

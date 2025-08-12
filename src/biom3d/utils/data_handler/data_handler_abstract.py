@@ -56,7 +56,7 @@ class DataHandler :
                      img_inner_paths_list:Optional[list]=None,      
                      msk_inner_paths_list:Optional[list]=None,      
                      fg_inner_paths_list:Optional[list]=None,      
-                     **kwargs):
+                     **kwargs)->None:
         """
         Parse and initialize the inputs. If you want to open files, established connection,etc, check wether it is compatible with multiprocessing and picklable or the data/batchloader will not work.
 
@@ -98,11 +98,15 @@ class DataHandler :
         ConnectionError, HttpError, TimeoutError, ...
                 Other exceptions related to the format may be raised; this is not an exhaustive list.
                 We recommend not trying to catch these specifically in generic code.     
+
+        Returns
+        -------
+        None
         """
         pass
 
     @abstractmethod
-    def _output_parse(self,msk_outpath:str,model_name:Optional[str]=None,**kwargs):
+    def _output_parse(self,msk_outpath:str,model_name:Optional[str]=None,**kwargs)->None:
         """
         Parse and initialize the outputs.
 
@@ -121,6 +125,10 @@ class DataHandler :
         PermissionError, ConnectionError, HttpError, TimeoutError, ...
                 Other exceptions related to the format may be raised; this is not an exhaustive list.
                 We recommend not trying to catch these specifically in generic code.     
+
+        Returns
+        -------
+        None
         """
         pass
 
@@ -131,7 +139,7 @@ class DataHandler :
                                  img_outpath:Optional[str]=None,
                                  msk_outpath:Optional[str]=None,
                                  fg_outpath:Optional[str] = None,
-                                 **kwargs):
+                                 **kwargs)->None:
         """
         Parse and initialize the outputs for preprocessing.
 
@@ -159,6 +167,10 @@ class DataHandler :
         PermissionError, ConnectionError, HttpError, TimeoutError, ...
                 Other exceptions related to the format may be raised; this is not an exhaustive list.
                 We recommend not trying to catch these specifically in generic code. 
+
+        Returns
+        -------
+        None
         """
         pass
 
@@ -182,7 +194,7 @@ class DataHandler :
         self._input_parse(**kwargs)
 
     @abstractmethod
-    def get_output(self):
+    def get_output(self)->Tuple[str,str,str]:
         """
         Return a tuple of three element with the paths of images output, mask output and foreground output. (eg : Path to folders, archive, URLs).
 
@@ -223,7 +235,7 @@ class DataHandler :
         pass
 
     @abstractmethod
-    def load(self,path)->Tuple[ndarray,dict]:
+    def load(self,path:str)->Tuple[ndarray,dict]:
         """
         Load a ressource at given path. It is not necessary to check if ressource is in images, masks or foreground.
     
@@ -353,16 +365,16 @@ class DataHandler :
         if self._saver == None : raise NotImplementedError("This handler is in read only")
         return self._saver._save(fname,img,out_type,**kwargs)
 
-    def reset_iterator(self):
+    def reset_iterator(self)->None:
         """Reset the _iterator value to 0."""
         self._iterator = 0
 
-    def __iter__(self):
+    def __iter__(self)->None:
         """Return a new iterator (by calling reset_iterator)."""
         self.reset_iterator()
         return self
 
-    def __next__(self):
+    def __next__(self)->Tuple[str,str,str]:
         """
         Increments _iterator and _image_index and return a tuple of paths.
 
@@ -389,11 +401,11 @@ class DataHandler :
         fg_path = self.fg[self._image_index] if self.fg != None else None
         return (img_path, msk_path,fg_path)
 
-    def __len__(self):
+    def __len__(self)->int:
         """Return the handler's size, so the number of images."""
         return self._size
     
-    def __del__(self):
+    def __del__(self)->None:
         """Will try to call self.close() on destruction."""
         try : self.close()
         except: pass

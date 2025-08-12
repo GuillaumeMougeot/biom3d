@@ -12,7 +12,7 @@ from biom3d.utils import convert_num_pools
 #---------------------------------------------------------------------------
 # 3D Resnet decoder
 
-def _weights_init(m:nn.Module):
+def _weights_init(m:nn.Module)->None:
     """
     Initialize weights of convolutional and linear layers using Kaiming normal initialization.
 
@@ -20,6 +20,10 @@ def _weights_init(m:nn.Module):
     ----------
     m : nn.Module
         A PyTorch module. If it's an instance of `nn.Conv3d` or `nn.Linear`, its weights will be initialized.
+
+    Returns
+    -------
+    None
     """
     if isinstance(m, nn.Linear) or isinstance(m, nn.Conv3d):
         init.kaiming_normal_(m.weight)
@@ -206,7 +210,7 @@ class VGGDecoder(nn.Module):
         planes:int,      
         stride:List[int],     
         num_blocks:int
-        ):
+        )->nn.Sequential:
         """
         Create a sequential layer composed of a DecoderBlock followed by encoder blocks.
 

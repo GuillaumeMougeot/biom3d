@@ -11,7 +11,7 @@ from biom3d.utils import convert_num_pools
 #---------------------------------------------------------------------------
 # 3D Resnet encoder
 
-def _weights_init(m:nn.Module):
+def _weights_init(m:nn.Module)->None:
     """
     Initialize weights of the given module.
 
@@ -19,6 +19,10 @@ def _weights_init(m:nn.Module):
     ----------
     m : nn.Module
         Module to initialize.
+
+    Returns
+    -------
+    None
     """
     if isinstance(m, nn.Conv2d):
         nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
