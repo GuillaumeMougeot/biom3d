@@ -1,9 +1,29 @@
+"""This submodule contains thresolding and filter that are used in post processing."""
+
 from skimage import measure
 import numpy as np
 
-def compute_otsu_criteria(im, th):
-    """Otsu's method to compute criteria.
-    Found here: https://en.wikipedia.org/wiki/Otsu%27s_method
+def compute_otsu_criteria(im:np.ndarray, th:float)->float:
+    """
+    Compute the Otsu criteria value for a given threshold on the image.
+
+    This function implements the core step of Otsu's method, which evaluates
+    the within-class variance weighted by class probabilities for a specific threshold.
+    The goal is to find the threshold minimizing this weighted variance.
+    Found here: https://en.wikipedia.org/wiki/Otsu%27s_method.
+
+    Parameters
+    ----------
+    im : ndarray
+        Grayscale input image as a 2D numpy array.
+    th : float
+        Threshold value to evaluate.
+
+    Returns
+    -------
+    float
+        Weighted sum of variances for the two classes separated by the threshold.
+        Returns `np.inf` if one class is empty (to ignore this threshold).
     """
     # create the thresholded image
     thresholded_im = np.zeros(im.shape)
@@ -30,31 +50,85 @@ def compute_otsu_criteria(im, th):
 
     return weight0 * var0 + weight1 * var1
 
-def otsu_thresholding(im):
-    """Otsu's thresholding.
+def otsu_thresholding(im:np.ndarray)->float:
+    """
+    Compute the optimal threshold for an image using Otsu's method.
+
+    This function searches for the threshold value that minimizes the
+    weighted within-class variance of the thresholded image.
+
+    Parameters
+    ----------
+    im : ndarray
+        Grayscale input image as a 2D numpy array.
+
+    Returns
+    -------
+    float
+        Optimal threshold value computed using Otsu's method.
     """
     threshold_range = np.linspace(im.min(), im.max()+1, num=255)
     criterias = [compute_otsu_criteria(im, th) for th in threshold_range]
     best_th = threshold_range[np.argmin(criterias)]
     return best_th
 
-def dist_vec(v1,v2):
+def dist_vec(v1:np.ndarray,v2:np.ndarray)->float:
     """
-    euclidean distance between two vectors (np.array)
+    Euclidean distance between two vectors (np.array).
+
+    Parameters
+    ----------
+    v1 : ndarray
+        Vector 1
+    v2 : ndarray
+        Vector 2
+
+    Returns
+    -------
+    float
+        Euclidean distance between v1 and v2.
     """
     v = v2-v1
     return np.sqrt(np.sum(v*v))
 
-def center(labels, idx):
+def center(labels:np.ndarray, idx:int)->np.ndarray:
     """
-    return the barycenter of the pixels of label = idx
+    Compute the barycenter of pixels belonging to a specific label.
+
+    Parameters
+    ----------
+    labels : ndarray
+        Label image array where each pixel has an integer label.
+    idx : int
+        Label index for which to compute the barycenter.
+
+    Returns
+    -------
+    ndarray
+        Coordinates of the barycenter as a 1D array (e.g. [y, x] or [z, y, x] depending on dimensions).
+        If no pixels with the given label are found, returns an empty array.
     """
     return np.mean(np.argwhere(labels == idx), axis=0)
 
-def closest(labels, num):
+def closest(labels:np.ndarray, num:int)->int:
     """
-    return the index of the object the closest to the center of the image.
-    num: number of label in the image (background does not count)
+    Find the label index of the object closest to the center of the image.
+
+    The function computes the barycenter of all objects (labels 1 to num),
+    then returns the label of the object whose barycenter is closest to the image center.
+
+    Parameters
+    ----------
+    labels : ndarray
+        Label image array where each pixel has an integer label.
+    num : int
+        Number of labels (excluding background) to consider.
+
+    Returns
+    -------
+    int
+        The label index (1-based) of the object closest to the image center.
+        Returns 1 if no objects are found.
     """
     labels_center = np.array(labels.shape)/2
     centers = [center(labels,idx+1) for idx in range(num)]
@@ -65,27 +139,61 @@ def closest(labels, num):
     else:
         return np.argmin(dist)+1
 
-def keep_center_only(msk):
+def keep_center_only(msk:np.ndarray)->np.ndarray:
     """
-    return mask (msk) with only the connected component that is the closest 
-    to the center of the image.
+    Keep only the connected component in the mask that is closest to the image center.
+
+    Parameters
+    ----------
+    msk : ndarray
+        Binary mask (2D or 3D) where connected components are to be analyzed.
+
+    Returns
+    -------
+    ndarray
+        Mask with only the connected component closest to the center.
+        The returned mask has the same dtype as input, with values 0 or 255.
     """
     labels, num = measure.label(msk, background=0, return_num=True)
     close_idx = closest(labels,num)
     return (labels==close_idx).astype(msk.dtype)*255
 
-def volumes(labels):
+def volumes(labels:np.ndarray)->np.ndarray:
     """
-    returns the volumes of all the labels in the image
+    Compute the volume (pixel or voxel count) of each label in the label image.
+
+    Parameters
+    ----------
+    labels : ndarray
+        Label image array where each pixel has an integer label.
+
+    Returns
+    -------
+    ndarray
+        Array of counts of pixels per label, sorted by label index ascending.
     """
     return np.unique(labels, return_counts=True)[1]
 
-def keep_big_volumes(msk, thres_rate=0.3):
+def keep_big_volumes(msk:np.ndarray, thres_rate:float=0.3)->np.ndarray:
     """
-    Return the mask (msk) with less labels/volumes. Select only the biggest volumes with
-    the following strategy: minimum_volume = thres_rate * np.sum(np.square(vol))/np.sum(vol)
-    This computation could be seen as the expected volume if the variable volume follows the 
-    probability distribution: p(vol) = vol/np.sum(vol) 
+    Return a mask keeping only the largest connected components based on a volume threshold.
+
+    The threshold is computed as: min_volume = thres_rate * otsu_thresholding(volumes)
+    where `volumes` are the sizes of all connected components (excluding background),
+    and `otsu_thresholding` finds an adaptive threshold on the volumes distribution.
+
+    Parameters
+    ----------
+    msk : ndarray
+        Input binary mask.
+    thres_rate : float, default=0.3
+        Multiplier for the threshold on volumes.
+
+    Returns
+    -------
+    ndarray
+        Mask with only the connected components whose volume is greater than the threshold.
+        Background remains zero.
     """
     # transform image to label
     labels, num = measure.label(msk, background=0, return_num=True)
@@ -116,13 +224,23 @@ def keep_big_volumes(msk, thres_rate=0.3):
 
     return s
 
-def keep_biggest_volume_centered(msk):
+def keep_biggest_volume_centered(msk:np.ndarray)->np.ndarray:
     """
-    return mask (msk) with only the connected component that is the closest 
-    to the center of the image if its volumes is not too small ohterwise returns
-    the biggest object (different from the background).
-    (too small meaning that its volumes shouldn't smaller than half of the biggest one)
-    the final mask intensities are either 0 or msk.max()
+    Return a mask with only the connected component closest to the image center, provided its volume is not too small compared to the largest connected component. Otherwise, return the largest connected component.
+
+    "Too small" means its volume is less than half of the largest component.
+
+    The returned mask intensities are either 0 or `msk.max()`.
+
+    Parameters
+    ----------
+    msk : ndarray
+        Input binary mask.
+
+    Returns
+    -------
+    ndarray
+        Mask with only one connected component kept.
     """
     labels, num = measure.label(msk, background=0, return_num=True)
     if num <= 1: # if only one volume, no need to remove something
