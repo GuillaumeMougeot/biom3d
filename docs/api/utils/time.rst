@@ -1,5 +1,5 @@
 Time
 ====
 
-.. automodule:: biom3d.utils.time_utils
+.. automodule:: biom3d.utils.time
     :members:

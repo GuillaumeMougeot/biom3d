@@ -1,16 +1,16 @@
 from .decorators import * # Imported before deprecated
-from .time_utils import *
-from .fold_utils import *
-from .network_utils import *
-from .os_utils import *
+from .time import *
+from .fold import *
+from .neural_network import *
+from .os import *
 # Those three must be imported in this order
 from .data_handler import *
-from .encoding_utils import *
-from .tests_utils import *
+from .encoding import *
+from .tests import *
 # --------------
-from .filtering_utils import *
-from .image_utils import *
-from .config_utils import *
+from .filtering import *
+from .image import *
+from .config import *
 from .data_augmentation import *
-from .tests_utils import *
+from .tests import *
 from .deprecated import *

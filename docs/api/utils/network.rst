@@ -1,5 +1,5 @@
 Neural network
 ==============
 
-.. automodule:: biom3d.utils.network_utils
+.. automodule:: biom3d.utils.neural_network
     :members:

@@ -1,5 +1,5 @@
 Files & directories
 ===================
 
-.. automodule:: biom3d.utils.os_utils
+.. automodule:: biom3d.utils.os
     :members:

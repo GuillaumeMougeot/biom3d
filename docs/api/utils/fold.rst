@@ -1,5 +1,5 @@
 Folds
 =====
 
-.. automodule:: biom3d.utils.fold_utils
+.. automodule:: biom3d.utils.fold
     :members:
