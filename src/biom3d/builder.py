@@ -275,10 +275,10 @@ class Builder:
     :ivar torch.utils.data.Dataset val_dataset: Validation dataset, see `biom3d.datasets`. Defined only in training mode.
     :ivar torch.utils.data.DataLoader val_dataloader: DataLoader for validation, see `biom3d.datasets`. Defined only in training mode.
 
-    :ivar torch.nn.Module loss_fn: Loss function for training, see `biom3d.metrics`. Defined only in training mode.
-    :ivar torch.nn.Module val_loss_fn: Loss function for validation, see `biom3d.metrics`. Defined only if `VAL_LOSS` is in config.
-    :ivar List[torch.nn.Module] train_metrics: Training metrics, see `biom3d.metrics`. Defined only if `TRAIN_METRICS` is in config.
-    :ivar List[torch.nn.Module] val_metrics: Validation metrics, see `biom3d.metrics`. Defined only if `VAL_METRICS` is in config.
+    :ivar biom3d.Metric loss_fn: Loss function for training, see `biom3d.metrics`. Defined only in training mode.
+    :ivar biom3d.Metric val_loss_fn: Loss function for validation, see `biom3d.metrics`. Defined only if `VAL_LOSS` is in config.
+    :ivar List[biom3d.Metric] train_metrics: Training metrics, see `biom3d.metrics`. Defined only if `TRAIN_METRICS` is in config.
+    :ivar List[biom3d.Metric] val_metrics: Validation metrics, see `biom3d.metrics`. Defined only if `VAL_METRICS` is in config.
 
     :ivar torch.optim.Optimizer optim: Optimizer instance, typically SGD. Defined only in training mode.
 

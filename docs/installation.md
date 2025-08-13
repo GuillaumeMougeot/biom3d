@@ -214,6 +214,13 @@ pip install -e .
 
 *Optional*: If planning to edit the documentation, please use the following command:
 
-```
+```sh
 pip install -e .[docs]
 ```
+
+We also used pydocstyle for documentation linting so you can add 
+```sh
+pip install pydocstyle
+```
+
+ 
