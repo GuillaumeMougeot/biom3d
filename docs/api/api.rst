@@ -6,15 +6,15 @@ Here is Biom3d python API for most importants modules.
       :maxdepth: 2
       :caption: API 
 
-      preprocess.rst
       auto_config.rst
       builder.rst
-      metrics.rst
       callbacks.rst
-      trainers.rst
-      predictors.rst
-      register.rst
-      eval.rst
-      utils/utils.rst
       datasets/datasets.rst
+      eval.rst
+      metrics.rst
       models/models.rst
+      predictors.rst
+      preprocess.rst
+      register.rst
+      trainers.rst
+      utils/utils.rst
