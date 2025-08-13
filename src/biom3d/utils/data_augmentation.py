@@ -4,7 +4,7 @@ Sampling and data augmentation functions.
 Data augmentation not implemented yet...
 """
 # TODO: finish this module (or remove)
-from typing import Iterable, Optional, Tuple, Union
+from typing import Iterable, Optional, Tuple
 import numpy as np
 import torchio as tio
 
@@ -12,7 +12,7 @@ import torchio as tio
 def centered_pad(img:np.ndarray, 
                  final_size:Iterable[int], 
                  msk:Optional[np.ndarray]=None,
-                 )->Union[np.ndarray,Tuple[np.ndarray,np.ndarray]]:
+                 )->np.ndarray|Tuple[np.ndarray,np.ndarray]:
     """
     Centered pad an img and msk to fit the final_size.
 
@@ -104,7 +104,7 @@ class SmartPatch:
         
     def global_crop_resize(self, img:np.ndarray, 
                            msk:Optional[np.ndarray]=None,
-                           )->Union[np.ndarray,Tuple[np.ndarray,np.ndarray]]:
+                           )->np.ndarray|Tuple[np.ndarray,np.ndarray]:
         """
         Perform a random global crop and resize on the input image (and optional mask).
 
@@ -169,7 +169,7 @@ class SmartPatch:
 
     def local_crop_pad(self, img:np.ndarray, 
                            msk:Optional[np.ndarray]=None,
-                           )->Union[np.ndarray,Tuple[np.ndarray,np.ndarray]]:
+                           )->np.ndarray|Tuple[np.ndarray,np.ndarray]:
         """
         Perform a local crop centered near the global crop center with padding if needed.
 
@@ -243,7 +243,7 @@ class SmartPatch:
     def local_crop_resize(self,
                           img: np.ndarray,
                           msk: Optional[np.ndarray] = None,
-                          ) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+                          ) -> np.ndarray| Tuple[np.ndarray, np.ndarray]:
         """
         Perform a local crop with random size and resize, overlapping the global crop.
 

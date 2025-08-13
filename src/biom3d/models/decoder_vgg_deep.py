@@ -1,6 +1,6 @@
 """3D VGG decoder, with deep supervision (each decoder level has an output)."""
 
-from typing import List, Type, Union
+from typing import List, Type
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -243,7 +243,7 @@ class VGGDecoder(nn.Module):
             layers.append(block(planes, planes, stride=1))
         return nn.Sequential(*layers)
 
-    def forward(self, x:List[torch.Tensor])->Union[torch.Tensor,List[torch.Tensor]]: 
+    def forward(self, x:List[torch.Tensor])->torch.Tensor|List[torch.Tensor]: 
         """
         Forward pass through the decoder.
 

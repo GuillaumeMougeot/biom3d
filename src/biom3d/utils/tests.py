@@ -4,7 +4,7 @@ This module define some simple metrics.
 The metrics defined here can't be used as loss function, contrarly to the module biom3d.metrics.
 """
 
-from typing import Callable, Optional, Tuple, Union
+from typing import Callable, Optional, Tuple
 from biom3d.utils import one_hot_fast
 import numpy as np
 

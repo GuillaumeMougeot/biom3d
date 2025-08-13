@@ -18,7 +18,7 @@ from batchgenerators.augmentations.utils import rotate_coords_3d, rotate_coords_
 from batchgenerators.dataloading.data_loader import SlimDataLoaderBase
 from batchgenerators.dataloading.multi_threaded_augmenter import MultiThreadedAugmenter
 
-from typing import Any, Dict, Hashable, Optional, Union, Tuple, List, Iterable
+from typing import Any, Dict, Hashable, Optional, Tuple, List, Iterable
 
 from biom3d.utils import DataHandlerFactory, DataHandler, get_folds_train_test_df
 
@@ -210,7 +210,7 @@ def random_crop(img:np.ndarray,
 def centered_pad(img:np.ndarray, 
                  final_size:np.ndarray, 
                  msk:Optional[np.ndarray]=None,
-                 )->Union[np.ndarray,Tuple[np.ndarray,np.ndarray]]:
+                 )->np.ndarray|Tuple[np.ndarray,np.ndarray]:
     """
     Centered pad an img and msk to fit the final_size.
     
@@ -375,7 +375,7 @@ def imread(handler:DataHandler,
            msk:str, 
            loc:Optional[str]=None,
            is3d:bool=True,
-           )->Tuple[np.ndarray,np.ndarray,Union[np.ndarray,None]]:
+           )->Tuple[np.ndarray,np.ndarray,np.ndarray|None]:
     """
     Read all data with the provided DataHandler.
 
@@ -497,8 +497,8 @@ def get_bbox(patch_size:Iterable[int],
              annotated_classes_key:Hashable,
              data_shape: np.ndarray, 
              force_fg: bool, 
-             class_locations: Union[Dict,None],
-             overwrite_class: Optional[Union[int, Tuple[int, ...]]] = None, 
+             class_locations: Optional[Dict],
+             overwrite_class: Optional[int| Tuple[int, ...]] = None, 
              verbose: bool = False
             )->Tuple[List[int],List[int]]:
     """
@@ -736,10 +736,10 @@ class Convert2DTo3DTransform(AbstractTransform):
     :ivar List[str] | Tuple[str] apply_to_keys: Key of the data dictionary to convert, default=('data','seg')
     """
 
-    apply_to_keys:Union[List[str], Tuple[str]]
+    apply_to_keys:List[str]| Tuple[str]
 
     def __init__(self, 
-                 apply_to_keys: Union[List[str], Tuple[str]] = ('data', 'seg'),
+                 apply_to_keys: List[str]| Tuple[str] = ('data', 'seg'),
                  ):
         """
         Reverts Convert3DTo2DTransform by transforming a 4D array (b, c * x, y, z) back to 5D  (b, c, x, y, z).
@@ -791,7 +791,7 @@ class Convert3DTo2DTransform(AbstractTransform):
     :ivar List[str] | Tuple[str] apply_to_keys: Key of the data dictionary to convert, default=('data','seg')
     """
 
-    def __init__(self, apply_to_keys: Union[List[str], Tuple[str]] = ('data', 'seg')):
+    def __init__(self, apply_to_keys: List[str]| Tuple[str] = ('data', 'seg')):
         """
         Transform a 5D array (b, c, x, y, z) to a 4D array (b, c * x, y, z) by overloading the color channel.
 
@@ -899,10 +899,10 @@ class DownsampleSegForDSTransform2(AbstractTransform):
     output_key:str
     input_key:str
     order:int
-    ds_scales:Union[List, Tuple]
+    ds_scales:List| Tuple
 
     def __init__(self, 
-                 ds_scales: Union[List, Tuple],
+                 ds_scales: List | Tuple,
                  order: int = 0, 
                  input_key: str = "seg",
                  output_key: str = "seg", 
@@ -986,11 +986,11 @@ class DownsampleSegForDSTransform2(AbstractTransform):
         data_dict[self.output_key] = output
         return data_dict
     
-def get_training_transforms(aug_patch_size: Union[np.ndarray, Tuple[int]],
-                            patch_size: Union[np.ndarray, Tuple[int]],
+def get_training_transforms(aug_patch_size: np.ndarray| Tuple[int],
+                            patch_size: np.ndarray | Tuple[int],
                             fg_rate: float,
                             rotation_for_DA: dict,
-                            deep_supervision_scales: Union[List, Tuple,None],
+                            deep_supervision_scales: List | Tuple | None,
                             mirror_axes: Tuple[int, ...],
                             handler:DataHandler,
                             do_dummy_2d_data_aug: bool,
@@ -1004,15 +1004,15 @@ def get_training_transforms(aug_patch_size: Union[np.ndarray, Tuple[int]],
 
     Parameters
     ----------
-    aug_patch_size : Union[np.ndarray, Tuple[int]]
+    aug_patch_size : ndarray or tuple of int
         Size of the patch used during augmentation (may be larger than `patch_size`).
-    patch_size : Union[np.ndarray, Tuple[int]]
+    patch_size : ndarray or tuple of int
         Final cropped patch size used for training.
     fg_rate : float
         Probability of cropping patches that contain foreground voxels.
     rotation_for_DA : dict
         Dictionary specifying rotation angles for data augmentation. Should contain keys 'x', 'y', and 'z'.
-    deep_supervision_scales : Union[List, Tuple]
+    deep_supervision_scales : list, tuple or None
         List of scales for deep supervision. Used to downsample segmentation masks accordingly.
     mirror_axes : Tuple[int, ...]
         Axes along which to apply mirroring (e.g., (0, 1, 2)).
@@ -1099,10 +1099,10 @@ def get_training_transforms(aug_patch_size: Union[np.ndarray, Tuple[int]],
     tr_transforms = Compose(tr_transforms)
     return tr_transforms
 
-def get_validation_transforms(patch_size: Union[np.ndarray, Tuple[int]],
+def get_validation_transforms(patch_size: np.ndarray | Tuple[int],
                               fg_rate: float,
                               handler:DataHandler,
-                              deep_supervision_scales: Union[List, Tuple] = None,
+                              deep_supervision_scales: List | Tuple | None = None,
                               use_data_reader: bool = True,
                               ) -> AbstractTransform:
     """
@@ -1110,13 +1110,13 @@ def get_validation_transforms(patch_size: Union[np.ndarray, Tuple[int]],
 
     Parameters
     ----------
-    patch_size : Union[np.ndarray, Tuple[int]]
+    patch_size : ndarray or tuple of int
         Size of the patch used for cropping and padding.
     fg_rate : float
         Probability of focusing on foreground regions when cropping.
     handler : DataHandler
         DataHandler used to load images. Used only if use_data_reader is True
-    deep_supervision_scales : Union[List, Tuple], optional
+    deep_supervision_scales : list, tuple or None, optional
         List of scales for deep supervision. If provided, segmentation masks will be downsampled accordingly.
     use_data_reader : bool, default=True
         If True, includes the DataReader transform to load data from disk.
@@ -1281,7 +1281,7 @@ class BatchGenDataLoader(SlimDataLoaderBase):
         # print train and validation image names
         print("{} images: {}".format("Training" if self.train else "Validation", self.fnames))
         
-        def generate_data(handler:DataHandler)->List[Dict[str,Union[np.ndarray,str]]]:
+        def generate_data(handler:DataHandler)->List[Dict[str,np.ndarray|str]]:
             """Load data, if self.load_data is False, it will only load their path."""
             data=[]
             nonlocal load_data
@@ -1383,11 +1383,11 @@ class BatchGenDataLoader(SlimDataLoaderBase):
 #---------------------------------------------------------------------------
 # multi-threading
 
-def get_patch_size(final_patch_size:Union[list[int], tuple[int], np.ndarray], 
-                   rot_x:Union[float,Tuple[float],List[float]], 
-                   rot_y:Union[float,Tuple[float],List[float]], 
-                   rot_z:Union[float,Tuple[float],List[float]], 
-                   scale_range:Union[Tuple[float],List[float]],
+def get_patch_size(final_patch_size:list[int]| tuple[int]| np.ndarray, 
+                   rot_x:float|Tuple[float]|List[float], 
+                   rot_y:float|Tuple[float]|List[float], 
+                   rot_z:float|Tuple[float]|List[float], 
+                   scale_range:Tuple[float]|List[float],
                    )->np.ndarray:
     """
     Compute the required patch size to accommodate rotation and scaling augmentations.
@@ -1398,7 +1398,7 @@ def get_patch_size(final_patch_size:Union[list[int], tuple[int], np.ndarray],
 
     Parameters
     ----------
-    final_patch_size : Union[list[int], tuple[int], np.ndarray]
+    final_patch_size : list/tuple/ndarray of int 
         The desired final patch size before any augmentations.
         Should be 2D (for 2D images) or 3D (for volumetric data).
 

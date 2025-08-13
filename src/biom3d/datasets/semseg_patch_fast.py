@@ -1,7 +1,7 @@
 """Dataset primitives for 3D segmentation dataset. Solution: patch approach with the whole dataset into memory."""
 
 
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 import numpy as np 
 import torchio as tio
 import random 
@@ -167,7 +167,7 @@ def foreground_crop(img:np.ndarray,
 def centered_pad(img:np.ndarray, 
                  final_size:Iterable[int], 
                  msk:Optional[np.ndarray]=None,
-                 )->Union[np.ndarray,Tuple[np.ndarray,np.ndarray]]:
+                 )->np.ndarray|Tuple[np.ndarray,np.ndarray]:
     """
     Do a centered pad an img and msk to fit the final_size.
 
