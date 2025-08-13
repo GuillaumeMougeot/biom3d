@@ -1,25 +1,31 @@
-# ----------------------------------------------------------------------------
-# a set of utility functions 
-# content:
-#  - read folds from a csv file
-#  - create logs and models directories
-# ----------------------------------------------------------------------------
+"""This submodule provides function for file and directory managment."""
 from datetime import datetime
-import os 
+import os
+from typing import List 
 
-# ----------------------------------------------------------------------------
-# create logs and models directories
-
-def create_save_dirs(log_dir, desc, dir_names=['model', 'logs', 'images'], return_base_dir=False):
+def create_save_dirs(log_dir:str, 
+                     desc:str, 
+                     dir_names:List[str]=['model', 'logs', 'images'], 
+                     return_base_dir:bool=False,
+                     )->List[str]:
     """
-    Creates saving folders. 
+    Create a directory structure for saving models, logs, images, etc.
 
-    Arguments:
-        dir_names: a list of name of the desired folders.
-                   e.g.: ['images','cpkt','summary']
-    
-    Returns:
-        list_dirs: a list of path of the corresponding folders.
+    Parameters
+    ----------
+    log_dir: str
+        Root directory in which to create the new structure.
+    desc: str
+        Name of the model that will be appended to the timestamp.
+    dir_names: list of str, default=['model', 'logs', 'images']
+        Names of the subdirectories to create inside the base directory.
+    return_base_dir: bool, default=False
+        If True, the base directory path is included in the returned list.
+
+    Returns
+    -------
+    list_dirs : list of str
+        List of full paths to the created subdirectories. Contains root if return_base_dir is True
     """
     list_dirs = []
     current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -37,11 +43,43 @@ def create_save_dirs(log_dir, desc, dir_names=['model', 'logs', 'images'], retur
 # ----------------------------------------------------------------------------
 # os utils
 
-def abs_path(root, listdir_):
+def abs_path(root:str, listdir_:List[str])->List[str]:
+    """
+    Convert a list of filenames into absolute paths using the given root.
+
+    Parameters
+    ----------
+    root: str
+        Root directory to prepend to each filename.
+    listdir_: list of str
+        List of filenames or relative paths.
+
+    Returns
+    -------
+    list_abs_paths: list of str
+        List of absolute paths constructed by joining `root` and each element of `listdir_`.
+
+    Notes
+    ----- 
+    Is not recursive.
+    """
     listdir = listdir_.copy()
     for i in range(len(listdir)):
         listdir[i] = os.path.join(root, listdir[i])
     return listdir
 
-def abs_listdir(path):
+def abs_listdir(path:str)->List[str]:
+    """
+    List all files in a directory and return their absolute paths (sorted).
+
+    Parameters
+    ----------
+    path: str
+        Path to the directory to list.
+
+    Returns
+    -------
+    list_abs_paths: list of str
+        Sorted list of absolute paths for each file in the directory.
+    """
     return abs_path(path, sorted(os.listdir(path)))

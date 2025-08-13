@@ -26,3 +26,8 @@ The utils module define functions (or class) that can be used in several other m
       filtering.rst
       encoding.rst
       test.rst
+      decorator.rst
+      fold.rst
+      network.rst
+      os.rst
+      time.rst

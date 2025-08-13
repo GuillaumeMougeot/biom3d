@@ -214,7 +214,7 @@ def tif_write_meta(data:ndarray,
 # Marked deprecated in August 2025
 def tif_copy_meta(in_path1:str, in_path2:str, out_path:str)->None:
     """
-    Store (metadata of in_path1 + data of in_path2) in out_path
+    Store (metadata of in_path1 + data of in_path2) in out_path.
 
     Parameters
     ----------

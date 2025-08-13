@@ -1,19 +1,47 @@
-import numpy as np
+"""This submodule provides functions to split, save and load folds."""
 
-# ----------------------------------------------------------------------------
-# read folds from a csv file
+from typing import List, Tuple
+import numpy as np
+from pandas import DataFrame
+
 #TODO use verbose
-def get_train_test_df(df, verbose=True):
+def get_train_test_df(df:DataFrame, verbose:bool=True)->Tuple[np.ndarray,np.ndarray]:
     """
-    Return the train set and the test set
+    Extract train and test sets from a DataFrame based on the 'hold_out' column.
+
+    Parameters
+    ----------
+    df: pandas.DataFrame
+        The dataset containing a 'hold_out' column with 0 (train) and 1 (test) labels.
+    verbose: bool, default=True
+        If True, enables debug printing (currently unused).
+
+    Returns
+    -------
+    train_set : ndarray
+        Array of training filenames (or sample IDs).
+    test_set : ndarray
+        Array of test filenames (or sample IDs).
     """
     train_set = np.array(df[df['hold_out']==0].iloc[:,0])
     test_set = np.array(df[df['hold_out']==1].iloc[:,0])
     return train_set, test_set
 
-def get_folds_df(df, verbose=True):
+def get_folds_df(df:DataFrame, verbose:bool=True)->List[List[str]]:
     """
-    Return of folds in a list of list
+    Extract folds from a DataFrame into a list of lists.
+
+    Parameters
+    ----------
+    df: pandas.DataFrame
+        DataFrame with a 'fold' column indicating fold assignment.
+    verbose: bool, default=True
+        If True, prints the number and size of the folds.
+
+    Returns
+    -------
+    list of list
+        List of folds, each being a list of filenames (or sample IDs).
     """
     folds = []
     if df.empty:
@@ -31,11 +59,28 @@ def get_folds_df(df, verbose=True):
         print("Size of folds: {}".format(size_folds))
     return folds
 
-def get_folds_train_test_df(df, verbose=True, merge_test=True):
+def get_folds_train_test_df(df:DataFrame, 
+                            verbose:bool=True, 
+                            merge_test:bool=True,
+                            )->Tuple[List[List[str]],List[List[str]]|List[str]]:
     """
-    Return folds from the train set and the test set in a list of list.
-    Output: (train_folds, test_folds)
-    If merge_test==True then the test folds are merged in one list.
+    Extract fold groups from both train and test sets.
+
+    Parameters
+    ----------
+    df: pandas.DataFrame
+        DataFrame with 'hold_out' and 'fold' columns.
+    verbose: bool, default=True
+        If True, prints debug info.
+    merge_test: bool, default=True
+        If True, test folds are merged into one list.
+
+    Returns
+    -------
+    train_folds: list of list
+        List of training folds, each being a list of filenames.
+    test_folds: list or list of list
+        Test set either as a merged list or as a list of folds.
     """
     if verbose:
         print("Training set:")
@@ -52,11 +97,26 @@ def get_folds_train_test_df(df, verbose=True, merge_test=True):
         test_folds = test_folds_merged
     return train_folds, test_folds
 
-def get_splits_train_val_test(df):
+def get_splits_train_val_test(df:DataFrame)->Tuple[List[List[str]],List[str],List[str]]:
     """
-    the splits contains [100%,50%,25%,10%,5%,2%,the rest] of the dataset
-    return the train set as a list of list,
-    the val and test set as lists
+    Create dataset splits of different sizes, along with validation and test sets.
+
+    Assumes columns:
+    - 'split': indicates split index (e.g., 0=50%, 1=25%, etc.)
+    - 'fold': used to separate training and validation
+    - 'hold_out': 0=train/val, 1=test
+    - 'filename': sample identifier
+
+    The splits contains [100%,50%,25%,10%,5%,2%,the rest] of the dataset
+
+    Returns
+    -------
+    train_splits: list of list
+        List of training splits (first is the full training set, followed by reduced ones).
+    valset: list
+        List of filenames used for validation.
+    testset: list
+        List of filenames used for testing.
     """
     nbof_splits = df['split'].max()+1
     valset = list(df[(df['split']==-1)*(df['fold']==0)*(df['hold_out']==0)]['filename'])
@@ -68,13 +128,30 @@ def get_splits_train_val_test(df):
     train_splits = [list(df[(df['fold']!=0)*(df['hold_out']==0)].iloc[:,0])] + train_splits
     return train_splits, valset, testset
 
-def get_splits_train_val_test_overlapping(df):
+def get_splits_train_val_test_overlapping(df:DataFrame)->Tuple[List[List[str]],List[str],List[str]]:
     """
-    CAREFUL: works only if the splits contains [1/(2**0), 1/(2**1), ..., 1/(2**n), 1/(2**n)] of the training dataset 
-    the splits contains of the dataset.
-    "overlapping" indicates that every smaller set is contained into all bigger sets.
-    return the train set as a list of list,
-    the val and test set as lists
+    Create overlapping training splits plus validation and test sets.
+
+    Each smaller training subset is fully included in all larger ones.
+    Used for dataset scaling experiments (e.g., 100%, 50%, 25%, etc.).
+
+    Parameters
+    ----------
+    df: pandas.DataFrame
+        DataFrame with 'split', 'fold', 'hold_out', and 'filename' columns.
+
+    Returns
+    -------
+    train_splits: list of list
+        List of overlapping training subsets.
+    valset: list
+        List of filenames used for validation.
+    testset: list
+        List of filenames used for testing.
+
+    Notes
+    -----
+    Only works if the splits follow descending powers of two.
     """
     nbof_splits = df['split'].max()+1
     valset = list(df[(df['split']==-1)*(df['fold']==0)*(df['hold_out']==0)]['filename'])
