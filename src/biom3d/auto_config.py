@@ -51,6 +51,7 @@ def compute_median(path:str, return_spacing:bool=False)->np.ndarray | Tuple[np.n
     )
 
     sizes = []
+    num_dims=None
     if return_spacing: spacings = []
     for img_path,_,_ in handler:
         img,metadata = handler.load(img_path)
@@ -342,7 +343,7 @@ def find_patch_pool_batch(dims:Tuple[int]|List[int],
     
     return patch, pool, batch
 
-def get_aug_patch(patch_size:Iterable[int])->np.ndarray:
+def get_aug_patch(patch_size:Tuple[int]|List[int]|np.ndarray)->np.ndarray:
     """
     Return augmentation patch size.
     
@@ -363,13 +364,13 @@ def get_aug_patch(patch_size:Iterable[int])->np.ndarray:
 
     if np.any(dummy_2d>3): # then use dummy_2d
         axis = np.argmin(dummy_2d)
-        diag = np.sqrt(np.array(list(s**2 if i!=axis else 0 for i,s in enumerate(ps))).sum())
+        diag = np.sqrt(np.array([s**2 if i!=axis else 0 for i,s in enumerate(ps)]).sum())
         diag = np.round(diag).astype(int)
-        aug_patch = list(int(diag) for _ in range(len(patch_size)))
+        aug_patch = [int(diag) for _ in range(len(patch_size))]
         aug_patch[axis] = int(patch_size[axis])
     else:
         diag = np.round(np.sqrt((ps**2).sum())).astype(int)
-        aug_patch = list(int(diag) for _ in range(len(patch_size)))
+        aug_patch = [int(diag) for _ in range(len(patch_size))]
     return aug_patch
         
 
