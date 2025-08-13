@@ -1,7 +1,9 @@
-#---------------------------------------------------------------------------
-# Method builder
-# The main purpose of this class is to easily reload a training 
-#---------------------------------------------------------------------------
+"""
+Method builder.
+
+The main purpose of this class is to easily reload a training and do prediction.
+"""
+
 
 import sys # for printing into file (Logger)
 from datetime import datetime
@@ -17,24 +19,33 @@ from biom3d import register
 from biom3d import callbacks as clbk
 from biom3d import utils
 
+from torch.nn import Module
+from typing import Any, Callable, Dict, Iterable, List, Optional, TextIO
 #---------------------------------------------------------------------------
 # utils to read config's functions in the function register
 
-def read_config(config_fct, register_cat, **kwargs):
-    """Read the config function in the register category and run the corresponding function with the keyword arguments which are merged from 1. the register kwargs, 2. the config file kwargs and 3. this function kwargs.
+def read_config(config_fct:str, register_cat:utils.AttrDict, **kwargs:Dict[str,Any])->Any:
+    """
+    Read the config function in the register category and run the corresponding function.
+     
+    Some keyword argument are merged: 
+    1. the register kwargs. 
+    2. the config file kwargs. 
+    3. this function kwargs.
 
     Parameters
     ----------
     config_fct : str
         Name of the function listed in the register.
-    register_cat : Dict
+    register_cat : AttrDict
         Dictionary defining one category in the register.
-    **kwargs : dict, optional
+    **kwargs : dict from str to any, optional
         Additional keyword arguments of the function defined by the config_fct
         
     Returns
     -------
-    The eventual outputs of the function.
+    any
+        The eventual outputs of the function.
     """
     # read the corresponding name in the register
     register_fct_ = register_cat[config_fct.fct]
@@ -48,24 +59,80 @@ def read_config(config_fct, register_cat, **kwargs):
     # run the function with its kwargs
     return register_fct(**register_kwargs) 
 
-#---------------------------------------------------------------------------
-# class to redirect prints to file and to terminal simultaneously
-# source: https://stackoverflow.com/questions/14906764/how-to-redirect-stdout-to-both-file-and-console-with-scripting
 
-class Logger(object):
-    def __init__(self, terminal, filename):
+
+class Logger(object): # Should be more versatile and in utils
+    """
+    Class to redirect prints to file and to terminal simultaneously.
+
+    Source: https://stackoverflow.com/questions/14906764/how-to-redirect-stdout-to-both-file-and-console-with-scripting
+
+    :ivar TextIO terminal: The default terminal (stdout).
+    :ivar TextIO log: An open file (in append mode).
+    """
+
+    terminal:TextIO
+    log:TextIO
+
+    def __init__(self, terminal:TextIO, filename:str):
+        """
+        Initialize a logger with given parameters.
+
+        Parameters
+        ----------
+        terminal: TextIO 
+            The terminal to print to.
+        filemame: str 
+            Path to a log file. Will be opened in append mode.
+        """
         self.terminal = terminal
         self.log = open(filename, "a")
    
-    def write(self, message):
+    def write(self, message:str)->None:
+        """
+        Write given message in both terminal and log file.
+
+        Parameters
+        ----------
+        message: str
+            The message to write
+        
+        Returns
+        -------
+        None
+        """
         self.terminal.write(message)
         self.log.write(message)  
 
     #TODO implementation needed
     def flush(self):
+        """
+        Flush both terminal and log file.
+
+        Do nothing for the moment.
+        """
         pass   
 
-def get_params_groups(model):
+def get_params_groups(model:Module)->List[Dict[str,Any]]:
+    """
+    Split model parameters into two groups: those to be regularized (e.g., with weight decay), and those not to be regularized (such as biases and normalization layers).
+
+    Parameters
+    ----------
+    model : torch.nn.Module
+        The model containing parameters to be grouped.
+
+    Returns
+    -------
+    A list of two dict from str to any:
+        - The first with key 'params' for regularized parameters.
+        - The second with key 'params' and 'weight_decay': 0. for non-regularized parameters.
+    
+    Notes
+    -----
+    This is typically used when setting up an optimizer with different weight decay for
+    different parameter types, such as excluding biases and normalization layers from regularization.
+    """
     regularized = []
     not_regularized = []
     for name, param in model.named_parameters():
@@ -80,17 +147,84 @@ def get_params_groups(model):
 
 class LARS(torch.optim.Optimizer):
     """
-    Almost copy-paste from https://github.com/facebookresearch/barlowtwins/blob/main/main.py
+    Layer-wise Adaptive Rate Scaling (LARS) optimizer.
+
+    This optimizer is designed for large-batch training and improves convergence
+    by adapting the learning rate for each layer based on the ratio of parameter
+    norm to gradient norm. It is commonly used in self-supervised learning methods
+    such as Barlow Twins or SimCLR.
+
+    Based on implementation from: https://github.com/facebookresearch/barlowtwins/blob/main/main.py
+
+    Notes
+    -----
+    - LARS adapts the learning rate per layer based on the ratio:
+      `eta * ||param|| / ||grad||`.
+    - Biases and batch norm parameters are typically excluded from weight decay
+      and LARS adaptation, based on parameter shape (1D).
+    - This optimizer requires that gradients are already computed (i.e., after `loss.backward()`).
+
     """
-    def __init__(self, params, lr=0, weight_decay=0, momentum=0.9, eta=0.001,
-                 weight_decay_filter=None, lars_adaptation_filter=None):
+
+    def __init__(self, params:Iterable|Dict, 
+                 lr:float=0.0, 
+                 weight_decay:float=0.0, 
+                 momentum:float=0.9, 
+                 eta:float=0.001,
+                 weight_decay_filter:Optional[Callable]=None, 
+                 lars_adaptation_filter:Optional[Callable]=None):
+        """
+        Initialize the LARS.
+
+        Parameters
+        ----------
+        params : iterable
+            Iterable of parameters or dicts defining parameter groups.
+        lr : float, default=0
+            Learning rate.
+        weight_decay : float, default=0
+            Weight decay (L2 regularization).
+        momentum : float, default=0.9
+            Momentum factor.
+        eta : float, default=0.001
+            LARS coefficient to scale the learning rate based on layer norms.
+        weight_decay_filter : callable, optional
+            A function that takes a parameter and returns True if weight decay
+            should be applied to it. If None, applies to all except 1D parameters.
+        lars_adaptation_filter : callable, optional
+            A function that takes a parameter and returns True if LARS adaptation
+            should be applied. If None, applies to all except 1D parameters.
+        """
         defaults = dict(lr=lr, weight_decay=weight_decay, momentum=momentum,
                         eta=eta, weight_decay_filter=weight_decay_filter,
                         lars_adaptation_filter=lars_adaptation_filter)
         super().__init__(params, defaults)
 
     @torch.no_grad()
-    def step(self):
+    def step(self)->None:
+        """
+        Perform a single optimization step.
+
+        For each parameter with a gradient:
+        - Applies optional weight decay (L2 regularization), usually skipped for biases and norm parameters.
+        - Computes the LARS scaling factor (based on the ratio of parameter norm to gradient norm)
+        and rescales the gradient accordingly.
+        - Applies momentum using a running buffer.
+        - Updates the parameter with the computed update.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        - The step assumes gradients have already been computed (i.e., after `loss.backward()`).
+        - Parameters of dimension 1 (e.g., biases, BatchNorm weights) are usually excluded from
+          weight decay and LARS scaling by design.
+        - No filtering logic is applied unless you manually pre-filter the parameter groups.
+
+         
+        """
         for g in self.param_groups:
             for p in g['params']:
                 dp = p.grad
@@ -122,29 +256,55 @@ class LARS(torch.optim.Optimizer):
 # Global routine
 
 class Builder:
-    """The Builder is the core of biom3d. 
+    """The Builder is the core of biom3d.
 
     The Builder reads a configuration file and builds the components required for training and prediction.
 
-    Please note that in this current version the training and inference can only be done with CUDA.
+    Please note that in this current version the training and inference can only be done with CUDA or Apple Silicon.
 
     Multi-GPUs training is also supported with DataParallel only (Distributed Data Parallel is not).
 
     Training is currently done with the SGD optimizer. If you would like to change the optimizer, you can edit `self.build_training` method.
 
-    If both `config` and `path` are defined then Builder considers that fine-tuning is intended.
+    :ivar utils.AttrDict | List[utils.AttrDict] config: The configuration object(s), loaded from file or passed directly. A list if using multi-model mode.
+    :ivar str config_path: Path to the configuration file. Only defined if provided at init or loaded from disk.
+    :ivar torch.nn.Module | List[torch.nn.Module] model: The model instance(s). Always defined when training, fine-tuning, or loading for inference.
 
-    If `path` is a list of path, then multi-model prediction will be used, training should be off/False.
+    :ivar torch.utils.data.Dataset train_dataset: Training dataset, see `biom3d.datasets`. Defined only in training mode.
+    :ivar torch.utils.data.DataLoader train_dataloader: DataLoader for training, see `biom3d.datasets`. Defined only in training mode.
+    :ivar torch.utils.data.Dataset val_dataset: Validation dataset, see `biom3d.datasets`. Defined only in training mode.
+    :ivar torch.utils.data.DataLoader val_dataloader: DataLoader for validation, see `biom3d.datasets`. Defined only in training mode.
 
-    Parameters
-    ----------
-    config : str, dict or biom3d.utils.Dict
-        Path to a Python configuration file (in either .py or .yaml format) or dictionary of a configuration file. Please refer to biom3d.config_default.py to see the default configuration file format.
-    path : str, list of str
-        Path to a builder folder which contains the model folder, the model configuration and the training logs.
-        If path is a list of strings, then it is considered that it is intended to run multi-model predictions. Training is not compatible with this mode.
-    training : bool, default=True
-        Whether to load the model in training or testing mode.
+    :ivar torch.nn.Module loss_fn: Loss function for training, see `biom3d.metrics`. Defined only in training mode.
+    :ivar torch.nn.Module val_loss_fn: Loss function for validation, see `biom3d.metrics`. Defined only if `VAL_LOSS` is in config.
+    :ivar List[torch.nn.Module] train_metrics: Training metrics, see `biom3d.metrics`. Defined only if `TRAIN_METRICS` is in config.
+    :ivar List[torch.nn.Module] val_metrics: Validation metrics, see `biom3d.metrics`. Defined only if `VAL_METRICS` is in config.
+
+    :ivar torch.optim.Optimizer optim: Optimizer instance, typically SGD. Defined only in training mode.
+
+    :ivar biom3d.callbacks.LRSchedulerMultiStep | biom3d.callbacks.LRSchedulerCosine | biom3d.callbacks.LRSchedulerPoly clbk_scheduler: Main learning rate scheduler. Defined only if scheduler is configured.
+    :ivar biom3d.callbacks.ForceFGScheduler clbk_fg_scheduler: Foreground rate scheduler. Defined only if `USE_FG_CLBK` is True.
+    :ivar biom3d.callbacks.WeightDecayScheduler clbk_wd_scheduler: Weight decay scheduler. Defined only if `USE_WD_CLBK` is True.
+    :ivar biom3d.callbacks.MomentumScheduler clbk_momentum_scheduler: Momentum scheduler. Defined only if `USE_MOMENTUM_CLBK` is True.
+    :ivar biom3d.callbacks.OverlapScheduler clbk_overlap_scheduler: Scheduler for overlap rate. Defined only if `USE_OVERLAP_CLBK` is True.
+    :ivar biom3d.callbacks.GlobalScaleScheduler clbk_global_scale_scheduler: Scheduler for global scale. Defined only if `USE_GLOBAL_SCALE_CLBK` is True.
+    :ivar biom3d.callbacks.DatasetSizeScheduler clbk_dataset_size_scheduler: Scheduler for dataset size. Defined only if `USE_DATASET_SIZE_CLBK` is True.
+
+    :ivar biom3d.callbacks.ModelSaver clbk_modelsaver: Callback to save the model at each epoch. Always defined in training mode.
+    :ivar biom3d.callbacks.LogSaver clbk_logsaver: Callback to save logs. Always defined in training mode.
+    :ivar biom3d.callbacks.ImageSaver clbk_imagesaver: Callback to save prediction images. Defined only if `USE_IMAGE_CLBK` is True and validation loader is available.
+    :ivar biom3d.callbacks.MetricsUpdater clbk_metricupdater: Callback to update metrics. Always defined in training mode.
+    :ivar biom3d.callbacks.TensorboardSaver clbk_tensorboardsaver: Callback to save metrics to Tensorboard. Always defined in training mode.
+    :ivar biom3d.callbacks.LogPrinter clbk_logprinter: Callback to print logs to console. Always defined in training mode.
+    :ivar biom3d.callbacks.Callbacks callbacks: Aggregated container for all callbacks. Always defined in training mode.
+
+    :ivar str base_dir: Root directory created by `build_train`. Defined only in training mode.
+    :ivar str image_dir: Directory for saved prediction images. Subfolder of `base_dir`.
+    :ivar str log_dir: Directory for logs and configuration files. Subfolder of `base_dir`.
+    :ivar str model_dir: Directory for saved model weights. Subfolder of `base_dir`.
+    :ivar str model_path: Full path to the model file used in training. Defined only in training mode.
+    :ivar int initial_epoch: Starting epoch number (e.g. for resuming training). Defined only in training mode.
+
 
     Examples
     --------
@@ -161,11 +321,36 @@ class Builder:
     >>> builder = Builder(path=path, training=False)
     >>> builder.run_prediction_folder(path_in="input/folder", path_out="output/folder")
     """
+
     def __init__(self, 
-        config=None,         # inherit from Config class, stores the global variables
-        path=None,      # path to a training folder
-        training=True,  # use training mode or testing?
-        ):                
+        config:str|Dict|utils.AttrDict=None,         # inherit from Config class, stores the global variables
+        path:str|List[str]=None,      # path to a training folder
+        training:bool=True,  # use training mode or testing?
+        ):    
+        """
+        Initialize the builder.
+
+        If both `config` and `path` are defined then Builder considers that fine-tuning is intended.
+
+        If `path` is a list of path, then multi-model prediction will be used, training should be off/False.
+
+        Raises
+        ------
+        AssertionError
+            If config is not in the correct type.
+        AssertionError
+            If config is None and path is None
+
+        Parameters
+        ----------
+        config : str, dict or biom3d.utils.AttrDict
+            Path to a Python configuration file (in either .py or .yaml format) or dictionary of a configuration file. Please refer to biom3d.config_default.py to see the default configuration file format.
+        path : str, list of str
+            Path to a builder folder which contains the model folder, the model configuration and the training logs.
+            If path is a list of strings, then it is considered that it is intended to run multi-model predictions. Training is not compatible with this mode.
+        training : bool, default=True
+            Whether to load the model in training or testing mode.
+        """            
         # for training or fine-tuning:
         # load the config file and change some parameters if multi-gpus training
         if config is not None: 
@@ -218,7 +403,7 @@ class Builder:
         
         # standard training
         else:
-            assert config is not None, "[Error] config file not defined."
+            assert config is not None, "[Error] config file not defined." # Maiby do an assert config is not None and path is not None at the beginning
             # print(self.config)
             self.build_train()
         
@@ -227,8 +412,19 @@ class Builder:
             self.config.USE_FP16 = False
         
 
-    def build_dataset(self):
-        """Build the dataset.
+    def build_dataset(self)->None:
+        """
+        Build training and validation datasets and dataloaders.
+
+        This method reads dataset and dataloader configurations from `self.config` and 
+        instantiates the corresponding objects using `read_config()` or default `DataLoader`.
+
+        If only kwargs are provided (e.g., `*_DATALOADER_KWARGS`), the dataloaders are
+        constructed using standard `torch.utils.data.DataLoader`.
+
+        Returns
+        -------
+        None
         """
         if 'TRAIN_DATASET' in self.config.keys():
             self.train_dataset = read_config(self.config.TRAIN_DATASET, register.datasets)
@@ -245,10 +441,23 @@ class Builder:
             self.val_dataloader = DataLoader(self.val_dataset,**self.config.VAL_DATALOADER_KWARGS)
 
 
-    def build_model(self, training=True):
-        """Build the model, the losses and the metrics.
+    def build_model(self, training:bool=True)->None:
         """
-        
+        Build the model, losses, metrics, and optimizer.
+
+        Handles both standard and self-supervised learning models.
+        - If using a self-supervised architecture (e.g., BYOL/SimCLR), it initializes a student-teacher pair.
+        - In training mode, it also loads loss functions, evaluation metrics, and configures the optimizer.
+
+        Parameters
+        ----------
+        training : bool, default=True
+            Whether to initialize the model in training mode (builds losses, metrics, optimizer), or prediction..
+
+        Returns
+        -------
+        None
+        """        
         # self-supervised models are special cases
         # 2 models must be defined: student and teacher model
         if 'Self' in self.config.MODEL.fct:
@@ -367,12 +576,19 @@ class Builder:
                 lr=lr, momentum=0.99, nesterov=True, weight_decay=weight_decay)
 
 
-    def build_callbacks(self):
-        """Build the callbacks for the training process. Callback are used to monitor the training process and to update the schedulers.
-
-        As the callbacks are often dependant on the Builder arguments, they are defined directly here.
+    def build_callbacks(self)->None:
         """
+        Build the training callbacks.
 
+        This includes model saving, learning rate schedulers, logging, metrics monitoring,
+        image saving, tensorboard logging, and various training schedulers (momentum, weight decay, etc.).
+
+        The exact callbacks instantiated depend on keys present in `self.config`.
+
+        Returns
+        -------
+        None
+        """
         clbk_dict = {}
 
         # callbacks: saver (model, summary, images, train_state), logger (prints), scheduler, model_freezer, telegram_sender
@@ -507,8 +723,20 @@ class Builder:
         self.callbacks = clbk.Callbacks(clbk_dict)
 
 
-    def build_train(self):
-        """Successively build the dataset, the model and the callbacks.
+    def build_train(self)->None:
+        """
+        Build and initialize all components required for training.
+
+        This includes:
+        - setting random seeds for reproducibility,
+        - creating directories for logs, images, and models,
+        - create a Logger,
+        - copying config and CSV files to log directory,
+        - initializing datasets, model, and callbacks.
+
+        Returns
+        -------
+        None
         """
         # make it deterministic 
         np.random.seed(12345)
@@ -556,8 +784,7 @@ class Builder:
         self.build_callbacks()
 
     def run_training(self):
-        """Run the training and validation routines.
-        """
+        """Run the training and validation routines."""
         if not torch.cuda.is_available() and not torch.mps.is_available():
             print("[Warning] GPU not available! The training might be extremely slow. We strongly advise to use a CUDA or Apple Silicon machine to train a model. Predictions can be done using a CPU only machine.")
 
@@ -595,27 +822,49 @@ class Builder:
             self.callbacks.on_epoch_end(epoch)
         self.callbacks.on_train_end(self.config.NB_EPOCHS)
 
-    def run_prediction_single(self, handler=None, img=None, img_meta=None, return_logit=True,is_2d=False,skip_preprocessing=False):
-        """Compute a prediction for one image using the predictor defined in the configuration file.
-        Two input options are available: either give the image path or the image and its associated metadata.
+    def run_prediction_single(self, 
+                              handler:Optional[utils.DataHandler]=None, 
+                              img:Optional[np.ndarray]=None, 
+                              img_meta:Optional[Dict[str,Any]]=None, 
+                              return_logit:bool=True,
+                              is_2d:bool=False,
+                              skip_preprocessing:bool=False,
+                              )->np.ndarray:
+        """
+        Compute a prediction for a single image using the model(s) and predictor(s) specified in the config.
+
+        Two input modes are supported:
+        - Provide a `handler`, which will load the first image in its dataset.
+        - Provide `img` (a NumPy array) and `img_meta` (metadata dictionary) manually.
+
+        It is advised to provide both img and img_meta.
 
         Parameters
         ----------
-        img_path : str
-            Path to the image.
-        img : numpy.ndarray
-            The entire image, required if the img_path is not provided.
-        img_meta : dict
-            Metadata of the image, required it the img_path is not provided.
+        handler : DataHandler, optional
+            A data handler that will be used to load the specific image. It will load the first image in its collection.
+        img : ndarray, optional
+            The image array to predict on. Required if `handler` is not provided.
+        img_meta : dict, optional
+            Metadata associated with the image. Required if `handler` is not provided.
         return_logit : bool, default=True
-            Whether to return the logit, i.e. the model output before the final activation. 
-        is_2d: bool, default=False
-            Whether image is 2d, will add dimension to make it look 3d
-        
+            Whether to return the model's raw output before the activation function.
+        is_2d : bool, default=False
+            Whether the image is 2D. If True, dimensions will be added to make it compatible with 3D models.
+        skip_preprocessing : bool, default=False
+            If True, skips preprocessing of the input image. It may be cause of crash if you do not provide a preprocessed like image.
+
+        Raises
+        ------
+        AssertionError
+            If handler, img and img_meta are None.
+        AssertionError
+            If preprocessor or postprocessor are different between models in multi model predictions.
+
         Returns
         -------
-        numpy.ndarray
-            Output images.
+        ndarray
+            The post-processed prediction output.
         """
         # load image
         if handler is not None:
@@ -701,19 +950,34 @@ class Builder:
                 return_logit = return_logit,
                 **img_meta)
 
-    def run_prediction_folder(self, path_in, path_out, return_logit=False,is_2d=False,skip_preprocessing=False):
-        """Compute predictions for a folder of images.
+    # TODO: Maybe rename this function to run_prediction_collection ?
+    def run_prediction_folder(self, 
+                              path_in:str, 
+                              path_out:str, 
+                              return_logit:bool=False,
+                              is_2d:bool=False,
+                              skip_preprocessing:bool=False
+                              )->str:
+        """
+        Compute predictions for all images in a collection and save the results.
 
         Parameters
         ----------
         path_in : str
-            Path to the input folder of images.
+            Path to the input collection containing the images.
         path_out : str
-            Path to the output folder where the predictions will be stored.
+            Path to the output collection where the predictions will be saved.
         return_logit : bool, default=False
-            Whether to save the logit, i.e. the model output before the final activation.
-        is_2d: bool, default=False
-            Whether image is 2d, will add dimension to make it look 3d
+            Whether to save the model's raw output (logit) before post-processing.
+        is_2d : bool, default=False
+            Whether the input images are 2D. Adds extra dimensions to mimic 3D if True.
+        skip_preprocessing : bool, default=False
+            If True, skips image preprocessing prior to prediction.
+
+        Returns
+        -------
+        str
+            The path to the collection where predictions were saved.
         """
         handler = utils.DataHandlerFactory.get(
             path_in,
@@ -739,10 +1003,10 @@ class Builder:
 
         return handler.msk_outpath
                 
-    def load_train(self, 
-        path, 
-        load_best=False): # whether to load the best model
-        """Load a builder from a folder. The folder should have been created by the `self.build_train` method.
+    def load_train(self, path:str, load_best:bool=False)->None: 
+        """
+        Load a builder from a folder. The folder should have been created by the `self.build_train` method.
+       
         Can be use to restart a training. 
 
         Parameters
@@ -751,8 +1015,11 @@ class Builder:
             Path of the log folder.
         load_best : bool, default=False
             Whether to load the best model or the final model.
-        """
 
+        Returns
+        -------
+        None
+        """
         # define config
         self.config = utils.load_yaml_config(os.path.join(path,"log","config.yaml"))
 
@@ -790,18 +1057,30 @@ class Builder:
         # load callbacks
         self.build_callbacks()
     
-    def load_test(self, 
-        path, 
-        load_best=True): # whether to load the best model
-        """Load a builder from a folder. The folder should have been created by the `self.build_train` method.
-        Can be used to test the model on unseen data.
+    def load_test(self, path:str, load_best:bool=True)->None: 
+        """
+        Load a builder from a folder in testing mode. The folder must have been created during training via `build_train`.
+
+        Can be used to load a model for inference or evaluation on unseen data.
+        Supports both single-model and multi-model mode.
+
 
         Parameters
         ----------
-        path : str
-            Path of the log folder.
+        path : str or list of str
+            Path to the training folder (or list of paths for multi-model prediction).
         load_best : bool, default=True
-            Whether to load the best model or the final model.
+            If True, loads the best model checkpoint (based on validation loss).
+            If False, loads the final checkpoint.
+
+        Raises
+        ------
+        RuntimeError
+            If a model hasn't a load method during multi model predicition. May be extended to single model prediction in the future.
+        
+        Returns
+        -------
+        None
         """
         # if the path is a list of path then multi-model mode
         if isinstance(path,list):
