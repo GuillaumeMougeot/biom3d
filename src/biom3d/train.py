@@ -1,6 +1,4 @@
-#---------------------------------------------------------------------------
-# Main code: the run the dataset and the model
-#---------------------------------------------------------------------------
+"""Main code interface for training."""
 
 import argparse
 import os
@@ -8,11 +6,33 @@ from biom3d.builder import Builder
 from biom3d.utils import load_python_config
 from biom3d.eval import eval
 
-
+from typing import Any
+from biom3d.utils import AttrDict
 #---------------------------------------------------------------------------
 # utils
+def train(config:str|dict[str,Any]|AttrDict|None=None, 
+          path:str|list[str]|None=None,
+          )->Builder: 
+    """
+    Interface function to do a training.
 
-def train(config=None, path=None): 
+    Parameters
+    ----------
+    config : str, dict or biom3d.utils.AttrDict, optional
+            Path to a Python configuration file (in either .py or .yaml format) or dictionary of a configuration file. Please refer to biom3d.config_default.py to see the default configuration file format.
+    path : str, list of str, optional
+        Path to a builder folder which contains the model folder, the model configuration and the training logs.
+        If path is a list of strings, then it is considered that it is intended to run multi-model predictions. Training is not compatible with this mode.
+
+    Raises
+    ------
+    same as Builder.__init__
+
+    Returns
+    -------
+    builder: biom3d.builder.Builder
+        Builder used for the training.
+    """
     builder = Builder(config=config, path=path)
     builder.run_training()
     print("Training done!")
@@ -20,20 +40,52 @@ def train(config=None, path=None):
 
 #---------------------------------------------------------------------------
 # main unet segmentation
-
 def main_seg_pred_eval(
-    config_path=None,
-    path=None,
-    path_in=None,
-    path_out=None,
-    path_lab=None,
-    freeze_encoder=False,
+    config_path:str|None=None,
+    path:str|None=None,
+    path_in:str|None=None,
+    path_out:str|None=None,
+    path_lab:str|None=None,
+    freeze_encoder:bool=False,
     ):
     """
-    do 3 tasks:
+    Interface function to do a training., then prediction and evaluation.
+
+    Do 3 tasks:
+
     - train the model
     - compute predictions on the test set (path_in) and store the results in path_out
     - evaluate the prediction stored in path_out and print the result
+
+    Parameters
+    ----------
+    config_path : str, optional
+            Path to a Python configuration file (in either .py or .yaml format).
+    path : str , optional
+        Path to a builder folder which contains the model folder, the model configuration and the training logs.
+    path_in: str, optional
+        Path to raw image collection used for prediction.
+    path_out: str, optional
+        Path to prediction output.
+    path_lab:str, optional
+        Path to mask collection corresponding to the raws, for evaluation.
+    freeze_encoder:bool, default=False
+        Whether to freeze the encoder during training (useful for transfer learning).
+
+    Raises
+    ------
+    same as Builder.__init__
+
+    Returns
+    -------
+    None
+
+    Notes
+    -----
+    - If `path_in` or `path_out` is `None`, then this function is equivalent to `train`
+    - If `path_lab` is `None`, then evaluation will not be done.
+    - Altough all parameter can be written as `None`, it would not work if `config_path` and `path` are both `None`.
+    - Evaluation result is only printed in terminal.
     """
     # train
     print("Start training")
@@ -64,25 +116,52 @@ def main_seg_pred_eval(
 
 #---------------------------------------------------------------------------
 # self-supervised training
-
-
 def main_pretrain_seg_pred_eval(
-    pretrain_config=None,
-    train_config=None,
-    log=None, # TODO
-    path_encoder=None,
-    freeze_encoder=False,
-    model_encoder=False, # if it is a model encoder (UNet) or just an encoder
-    path_in=None,
-    path_out=None,
-    path_lab=None,
+    pretrain_config:str|dict[str,Any]|AttrDict|None=None,
+    train_config:str|None=None,
+    log:str|None=None, # TODO
+    path_encoder:str|None=None,
+    freeze_encoder:bool=False,
+    model_encoder:bool=False, # if it is a model encoder (UNet) or just an encoder
+    path_in:str|None=None,
+    path_out:str|None=None,
+    path_lab:str|None=None,
     ):
     """
-    do 4 tasks:
-    - pretrain the model/encoder
-    - train the model
-    - compute predictions on the test set (path_in) and store the results in path_out
-    - evaluate the prediction stored in path_out and print the result
+    Run a full pipeline including pretraining, training, inference, and evaluation.
+
+    This function is designed to execute the four main stages of a segmentation workflow:
+    1. Pretrain a model or encoder using a pretraining configuration.
+    2. Train a segmentation model using a training configuration. Optionally initialize with a pretrained encoder.
+    3. Generate predictions on a test set (from `path_in`) and save the predicted segmentations to `path_out`.
+    4. If ground truth labels are available at `path_lab`, compute evaluation metrics on the predictions.
+
+    Parameters
+    ----------
+    pretrain_config : str, dict or biom3d.utils.AttrDict, optional
+        Path to the configuration file or dictionary for pretraining the encoder or model.
+    train_config : str
+        Path to the training configuration file (python or yaml).
+    log : str, optional
+        Existing model directory.
+    path_encoder : str, optional
+        Path to the pretrained encoder  to be used in training.
+    freeze_encoder : bool, default=False
+        Whether to freeze the encoder during training (useful for transfer learning).
+    model_encoder : bool, default=False
+        If True, `path_encoder` points to a full model checkpoint. If False, it is an encoder checkpoint only.
+    path_in : str, optional
+        Path to collection containing images for inference (test set).
+    path_out : str, optional
+        Path to collection to store the predicted segmentation masks.
+    path_lab : str, optional
+        Path to collection containing the ground truth masks for evaluation after inference.
+
+    Notes
+    -----
+    - If `path_in` or `path_out` is `None`, then this function is equivalent to `train`
+    - If `path_lab` is `None`, then evaluation will not be done.
+    - Evaluation result is only printed in terminal.
     """
     # pretraining
     print("Start pretraining")

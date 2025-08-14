@@ -19,5 +19,6 @@ Here is Biom3d python API for most importants modules.
       preprocess.rst
       preprocess_train.rst
       register.rst
+      train.rst
       trainers.rst
       utils/utils.rst
