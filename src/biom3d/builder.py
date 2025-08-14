@@ -6,7 +6,7 @@ The main purpose of this class is to easily reload a training and do prediction.
 
 
 import sys # for printing into file (Logger)
-from datetime import datetime
+from datetime import datetime, timezone
 
 import os 
 import shutil
@@ -18,6 +18,7 @@ import numpy as np
 from biom3d import register
 from biom3d import callbacks as clbk
 from biom3d import utils
+from biom3d import __version__
 
 from torch.nn import Module
 from typing import Any, Callable, Iterable, Optional, TextIO
@@ -770,6 +771,9 @@ class Builder:
         if self.config.CSV_DIR is not None:
             basename = os.path.basename(self.config.CSV_DIR)
             shutil.copy(self.config.CSV_DIR, os.path.join(self.log_dir, basename))
+
+        self.config["TRAINED_ON_VERSION"]=__version__
+        self.config["TRAINED_AT_DATE_AND_HOUR"]=datetime.now(timezone.utc)
 
         utils.save_yaml_config(os.path.join(self.log_dir, 'config.yaml'), self.config) # will eventually replace the yaml file
 
