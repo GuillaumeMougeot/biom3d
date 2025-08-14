@@ -1,24 +1,58 @@
-#---------------------------------------------------------------------------
-# "All-in-one" command!
-# Subsequently run the preprocessing and the training.
-#---------------------------------------------------------------------------
+"""
+"All-in-one" command.
+
+Subsequently run the preprocessing and the training.
+"""
 
 import argparse
 from biom3d.preprocess import auto_config_preprocess
 from biom3d.builder import Builder
 
 def preprocess_train(
-        img_path,
-        msk_path,
-        num_classes,
-        config_dir="configs/",
-        base_config=None,
-        ct_norm=False,
-        desc="unet",
-        max_dim=128,
-        num_epochs=1000,
-        is_2d=False,
-        ):
+        img_path:str,
+        msk_path:str,
+        num_classes:str,
+        config_dir:str="configs/",
+        base_config:str|None=None,
+        ct_norm:bool=False,
+        desc:str="unet",
+        max_dim:int=128,
+        num_epochs:int=1000,
+        is_2d:bool=False,
+        )->Builder:
+    """
+    Preprocess images and masks, then launch training with given configuration.
+
+    This function automates preprocessing configuration creation and runs the training process.
+
+    Parameters
+    ----------
+    img_path : str
+        Path to the collection conating images.
+    msk_path : str
+        Path to the collection conating masks.
+    num_classes : int
+        Number of classes for segmentation, background not included.
+    config_dir : str,default="configs/"
+        Directory where preprocessing configurations are saved.
+    base_config : str or None, optional
+        Path to a base configuration file to start from.
+    ct_norm : bool, default=False
+        Whether to apply CT normalization during preprocessing.
+    desc : str, default="unet"
+        Model name.
+    max_dim : int, default=128
+        Maximum dimension size used in preprocessing.
+    num_epochs : int, default=1000
+        Number of epochs for training.
+    is_2d : bool, default=False
+        Whether to treat the input data as 2D slices.
+
+    Returns
+    -------
+    biom3d.builder.Builder
+        The Builder instance that was used to run training, which contains training details and results.
+    """
     # preprocessing
     config_path = auto_config_preprocess(
         img_path=img_path, 
