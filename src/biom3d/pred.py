@@ -164,7 +164,7 @@ def pred_seg_eval(log:pathlib.Path|str|list[str]=pathlib.Path.home(),
                   skip_preprocessing:bool=False
                   )->None:
     """
-    Run prediction on a folder of images and optionally evaluate segmentation.
+    Run prediction on a folder of images and optionally evaluate segmentation (with dice).
 
     Parameters:
     -----------
@@ -214,7 +214,7 @@ def pred_seg_eval_single(log:str|list[str],
                          skip_preprocessing:bool=False
                          )->None:
     """
-    Run prediction on a single image and compute evaluation metric against mask.
+    Run prediction on a single image and compute evaluation metric (dice) against mask.
 
     Parameters:
     -----------
