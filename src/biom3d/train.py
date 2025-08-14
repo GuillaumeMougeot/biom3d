@@ -126,7 +126,7 @@ def main_pretrain_seg_pred_eval(
     path_in:str|None=None,
     path_out:str|None=None,
     path_lab:str|None=None,
-    ):
+    )->None:
     """
     Run a full pipeline including pretraining, training, inference, and evaluation.
 
@@ -156,6 +156,10 @@ def main_pretrain_seg_pred_eval(
         Path to collection to store the predicted segmentation masks.
     path_lab : str, optional
         Path to collection containing the ground truth masks for evaluation after inference.
+
+    Returns
+    -------
+    None
 
     Notes
     -----

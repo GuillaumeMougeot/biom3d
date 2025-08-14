@@ -1,34 +1,45 @@
-#---------------------------------------------------------------------------
-# model trainers
-# TODO: re-structure with classes maybe?
-#---------------------------------------------------------------------------
+"""
+The Trainers are Python functions that take as input a dataloader, a model, a loss function and an optimizer function to start a training process. Optionally, a list of biom3d.metrics.Metric and a biom3d.callback.Callbacks can be provided to the trainer to enrich the training loop.
+
+Validaters, which optionally perform validation in the end of each epoch, are also defined in biom3d.trainers.
+"""
+# TODO: re-structure with classes maybe? Don't feel necessary for the moment, maybe to define an interface to ease extension.
 
 import torch 
 from tqdm import tqdm
 from time import time 
 from contextlib import nullcontext
 
+from typing import Any
+from torch.utils.data.dataloader import DataLoader
+from torch.amp.grad_scaler import GradScaler
+from torch.optim import Optimizer
+from torch.nn import Module
+from biom3d.metrics import Metric
+from biom3d.callbacks import Callbacks
+from torchio.data.loader import SubjectsLoader
 #---------------------------------------------------------------------------
 # model trainers for segmentation
 
 def seg_train(
-    dataloader, 
-    scaler,
-    model, 
-    loss_fn,
-    metrics, 
-    optimizer, 
-    callbacks, 
-    epoch = None, # required by deep supervision
-    use_deep_supervision=False):
+    dataloader:DataLoader, 
+    scaler:GradScaler,
+    model:Module, 
+    loss_fn:Metric,
+    metrics:list[Metric], 
+    optimizer:Optimizer, 
+    callbacks:Callbacks, 
+    epoch:int | None = None, # required by deep supervision
+    use_deep_supervision:bool=False,
+    )->None:
     """
-    Train a segmentation model. 
+    Train a segmentation model.
     
     Call the dataloader to get a batch of images and masks, pass through the model, compute the loss using model output and masks, update model parameters. 
 
-    Work with both CUDA or CPU. CPU is much slower.
+    Work with both CUDA, Metal or CPU. CPU is much slower.
 
-    Work with half precision (fp16) and with standard precision (fp32).
+    Work with half precision (fp16, CUDA only) and with standard precision (fp32).
 
     Use gradient clipping during backpropagation. 
 
@@ -52,8 +63,11 @@ def seg_train(
         Current epoch number, required for deep supervision.
     use_deep_supervision : bool, default=False
         If True, deep supervision is used during training.
-    """
 
+    Returns
+    -------
+    None
+    """
     model.train()
     
     if torch.cuda.is_available():
@@ -120,20 +134,21 @@ def seg_train(
         torch.mps.empty_cache()
 
 def seg_validate(
-    dataloader,
-    model,
-    loss_fn,
-    metrics,
-    use_fp16,
-    use_deep_supervision=False):
+    dataloader:DataLoader,
+    model:Module,
+    loss_fn:Metric,
+    metrics:list[Metric],
+    use_fp16:bool,
+    use_deep_supervision:bool=False,
+    )->None:
     """
     Validate a segmentation model.
 
     Call the validation dataloader to get a batch of images and masks, pass through the model, compute the loss using model output and masks.
 
-    Work with both CUDA or CPU. CPU is much slower.
+    Work with both CUDA, Metal or CPU. CPU is much slower.
 
-    Work with half precision (fp16) and with standard precision (fp32).
+    Work with half precision (fp16, CUDA only) and with standard precision (fp32).
     
     Parameters
     ----------
@@ -149,6 +164,10 @@ def seg_validate(
         Flag to indicate if half-precision (fp16) is used.
     use_deep_supervision : bool, default=False
         If True, deep supervision is used during validation.
+
+    Returns
+    -------
+    None
     """
     for m in [loss_fn]+metrics: m.reset() # reset metrics
     model.eval() # set the module in evaluation mode (only useful for dropout or batchnorm like layers)
@@ -186,7 +205,12 @@ def seg_validate(
 #---------------------------------------------------------------------------
 # model trainers for segmentation with patches 
 
-def seg_patch_validate(dataloader, model, loss_fn, metrics,**kwargs):
+def seg_patch_validate(dataloader:SubjectsLoader, 
+                       model:Module, 
+                       loss_fn:Metric, 
+                       metrics:list[Metric],
+                       **kwargs:dict[str,Any],
+                       )->None:
     """
     Validate the segmentation model with TorchIO patch-based approach.
 
@@ -200,6 +224,12 @@ def seg_patch_validate(dataloader, model, loss_fn, metrics,**kwargs):
         The validation loss function.
     metrics : list of biom3d.metrics.Metric
         List of metrics to compute during validation.
+    **kwargs: dict from str to any
+        Just for compatibility.
+
+    Returns
+    -------
+    None
     """
     print("Start validation...")
     for m in [loss_fn]+metrics: m.reset() # reset metrics
@@ -227,15 +257,16 @@ def seg_patch_validate(dataloader, model, loss_fn, metrics,**kwargs):
     print(template)
 
 def seg_patch_train(
-    dataloader, 
-    model, 
-    loss_fn,
-    metrics, 
-    optimizer, 
-    callbacks, 
-    epoch = None, # required by deep supervision
-    use_deep_supervision=False,
-    **kwargs):
+    dataloader:SubjectsLoader, 
+    model:Module, 
+    loss_fn:Metric,
+    metrics:list[Metric], 
+    optimizer:Optimizer, 
+    callbacks:Callbacks, 
+    epoch: int | None = None, # required by deep supervision
+    use_deep_supervision:bool=False,
+    **kwargs:dict[str,Any],
+    )->None:
     """
     Train the segmentation model using a TorchIO patch-based approach.
 
@@ -257,8 +288,13 @@ def seg_patch_train(
         Current epoch number, required for deep supervision.
     use_deep_supervision : bool, default=False
         If True, deep supervision is used during training.
-    """
+    **kwargs: dict from str to any
+        Just for compatibility
 
+    Returns
+    -------
+    None
+    """
     model.train()
     for batch, queue in enumerate(dataloader):
         patch_loader = torch.utils.data.DataLoader(queue, 
