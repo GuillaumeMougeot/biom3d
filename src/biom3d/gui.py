@@ -1311,7 +1311,9 @@ class TrainTab(ttk.Frame):
                             last_folder = directories[0]
                             image_folder = os.path.join(logs_path, last_folder, "image")
 
-                    biom3d.omero_uploader.run(username=self.omero_connection.username_entry.get(), password=self.omero_connection.password_entry.get(), hostname=self.omero_connection.hostname_entry.get() ,
+                    biom3d.omero_uploader.run(username=self.omero_connection.username_entry.get(), 
+                        password=self.omero_connection.password_entry.get(), 
+                        host=self.omero_connection.hostname_entry.get() ,
                         project=int(self.omero_dataset.id_entry.get()),
                         path=image_folder,
                         attachment=last_folder,
@@ -1931,12 +1933,12 @@ class PredictTab(ttk.Frame):
                     target=target,
                     log=self.model_selection.logs_dir.get(), 
                     dir_out=self.output_dir.data_dir.get(),
+                    is_2d=is_2d_pred.get(),
+                    host=self.omero_connection.hostname.get(),
                     user=self.omero_connection.username.get(),
                     pwd=self.omero_connection.password.get(),
-                    host=self.omero_connection.hostname.get(),
                     upload_id=int(self.omero_dataset.project_id.get()),
                     attachment=attachment_file,
-                    is_2d=is_2d_pred.get()
                 )
         
         else: # if not use Omero
@@ -1982,7 +1984,7 @@ class PredictTab(ttk.Frame):
                     # Upload results to OMERO
                     biom3d.omero_uploader.run(username=self.send_to_omero_connection.username.get(),
                     password=self.send_to_omero_connection.password.get(),
-                    hostname=self.send_to_omero_connection.hostname.get(),
+                    host=self.send_to_omero_connection.hostname.get(),
                     project=int(self.send_to_omero_connection.upload_project_entry.get()),
                     dataset_name=self.send_to_omero_connection.dataset_name_entry.get(),
                     attachment=attachment_file,
