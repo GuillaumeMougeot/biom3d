@@ -14,6 +14,7 @@ Here is Biom3d python API for most importants modules.
       metrics.rst
       models/models.rst
       omero.rst
+      predictions.rst
       predictors.rst
       preprocess.rst
       register.rst

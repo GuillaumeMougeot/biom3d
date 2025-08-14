@@ -1,18 +1,57 @@
-#---------------------------------------------------------------------------
-# Main code: run predictions
-#---------------------------------------------------------------------------
+"""
+Main module for predictions.
+
+This module contains generic predictions functions:
+
+- pred_single
+- pred
+- pred multiple
+
+And interface predictions functions made for CLI:
+
+- pred_seg
+- pred_seg_eval
+- pred_seg_eval_single
+
+"""
 
 import argparse
 import pathlib
+from typing import Optional
 from biom3d.builder import Builder
 from biom3d.utils import deprecated, versus_one, dice, DataHandlerFactory
 from biom3d.eval import eval
 
 #---------------------------------------------------------------------------
 # prediction base fonction
+def pred_single(log:str|list[str], 
+                img_path:str,
+                out_path:str,
+                is_2d:bool = False,
+                skip_preprocessing:bool=False,
+                )->tuple[int,str]:
+    """
+    Predict segmentation or classification on a single image.
 
-def pred_single(log, img_path,out_path,is_2d = False,skip_preprocessing=False):
-    """Prediction on a single image.
+    Parameters:
+    -----------
+    log : str or list of str
+        Path to the model/log directory or configuration.
+    img_path : str
+        Path to the input image file.
+    out_path : str
+        Directory where the prediction output will be saved.
+    is_2d : bool, default=False
+        Whether to process the image as 2D.
+    skip_preprocessing : bool, default=False
+        If True, skips preprocessing step.
+
+    Returns:
+    --------
+    num_classes: int
+        Number of classes + 1 (the background)
+    path_out: str
+        Path to the saved mask output.
     """
     if not isinstance(log,list): log=str(log)
     builder = Builder(config=None,path=log, training=False)
@@ -27,8 +66,32 @@ def pred_single(log, img_path,out_path,is_2d = False,skip_preprocessing=False):
     handler.save(handler.images[0], img,"pred")
     return builder.config.NUM_CLASSES+1,handler.msk_outpath  # for pred_seg_eval_single
 
-def pred(log, path_in, path_out,is_2d = False,skip_preprocessing=False):
-    """Prediction on a folder of images.
+def pred(log:str|list[str], 
+         path_in:str, 
+         path_out:str,
+         is_2d:bool = False,
+         skip_preprocessing:bool=False,
+         )->str:
+    """
+    Predict on all images in a collecion.
+
+    Parameters:
+    -----------
+    log : str or list of string
+        Path to the model/log directory or configuration.
+    path_in : str
+        Path to collection containing input images.
+    path_out : str
+        Path to collection to save prediction outputs.
+    is_2d : bool, default=False
+        Whether to process images as 2D.
+    skip_preprocessing : bool, default=False
+        If True, skips preprocessing step.
+
+    Returns:
+    --------
+    str
+        Path to the output directory containing predictions.
     """
     if not isinstance(log,list): log=str(log)
     path_in=str(path_in)
@@ -39,18 +102,91 @@ def pred(log, path_in, path_out,is_2d = False,skip_preprocessing=False):
     return path_out
 
 @deprecated("This method is no longer used as it is the default behaviour of DataHandlers.")
-def pred_multiple(log, path_in, path_out,is_2d = False,skip_preprocessing=False):
-    """Prediction a folder of folders of images.
+def pred_multiple(log:str|list[str], 
+         path_in:str, 
+         path_out:str,
+         is_2d:bool = False,
+         skip_preprocessing:bool=False,
+         )->str:
+    """
+    Predict on multiple folders of images. DEPRECATED.
+
+    This method is deprecated because the default behavior of DataHandlers 
+    now supports multiple folder prediction.
+
+    Parameters:
+    -----------
+    Same as pred()
+
+    Returns:
+    --------
+    Same as pred()
     """
     return pred(log,path_in,path_out,is_2d=is_2d,skip_preprocessing=skip_preprocessing)
 
 #---------------------------------------------------------------------------
-# main unet segmentation
-def pred_seg(log=pathlib.Path.home(), path_in=pathlib.Path.home(), path_out=pathlib.Path.home(),is_2d = False,skip_preprocessing=False):
+# main unet segmentation interface
+def pred_seg(log:pathlib.Path|str|list[str]=pathlib.Path.home(), 
+             path_in:pathlib.Path | str =pathlib.Path.home(), 
+             path_out:pathlib.Path | str =pathlib.Path.home(),
+             is_2d:bool = False,
+             skip_preprocessing:bool=False
+             )->None:
+    """
+    Run prediction on a folder of images using default paths.
+
+    Parameters:
+    -----------
+    log : pathlib.Path, str or list of str, default=home directory
+        Path to the model or log directory.
+    path_in : pathlib.Path or str, default=home directory
+        Path to collection containing images.
+    path_out : pathlib.Path or str, default=home directory
+        Path to collection where predictions will be saved.
+    is_2d : bool, default=False
+        Whether to process images as 2D.
+    skip_preprocessing : bool, default=False
+        If True, skips preprocessing step.
+
+    Returns
+    -------
+    None
+    """
     pred(log, path_in, path_out,is_2d=is_2d,skip_preprocessing=skip_preprocessing)
 
 # TODO remove eval only, we have a module for that
-def pred_seg_eval(log=pathlib.Path.home(), path_in=pathlib.Path.home(), path_out=pathlib.Path.home(), path_lab=None, eval_only=False,is_2d = False,skip_preprocessing=False):
+def pred_seg_eval(log:pathlib.Path|str|list[str]=pathlib.Path.home(),
+                  path_in:pathlib.Path | str =pathlib.Path.home(), 
+                  path_out:pathlib.Path | str =pathlib.Path.home(), 
+                  path_lab:Optional[pathlib.Path | str]=None, 
+                  eval_only:bool=False,
+                  is_2d:bool = False,
+                  skip_preprocessing:bool=False
+                  )->None:
+    """
+    Run prediction on a folder of images and optionally evaluate segmentation.
+
+    Parameters:
+    -----------
+    log : pathlib.Path, str or list of str, default=home directory
+        Path to the model or log directory.
+    path_in : pathlib.Path or str, default=home directory
+        Path to collection containing images.
+    path_out : pathlib.Path or str, default=home directory
+        Path to collection where predictions will be saved.
+    path_lab : pathlib.Path or str, optional
+        Path to collection containing ground-truth label masks for evaluation.
+    eval_only : bool, default=False
+        If True, skips prediction and runs evaluation only.
+    is_2d : bool, default=False
+        Whether to process images as 2D.
+    skip_preprocessing : bool, default=False
+        If True, skips preprocessing step.
+
+    Returns
+    -------
+    None
+    """
     print("Start inference")
     builder_pred = Builder(
         config=None,
@@ -70,7 +206,35 @@ def pred_seg_eval(log=pathlib.Path.home(), path_in=pathlib.Path.home(), path_out
         # eval
         eval(path_lab,out,num_classes=num_classes)
 
-def pred_seg_eval_single(log, img_path, out_path, msk_path,is_2d = False,skip_preprocessing=False):
+def pred_seg_eval_single(log:str|list[str], 
+                         img_path:str, 
+                         out_path:str, 
+                         msk_path:str,
+                         is_2d:bool = False,
+                         skip_preprocessing:bool=False
+                         )->None:
+    """
+    Run prediction on a single image and compute evaluation metric against mask.
+
+    Parameters:
+    -----------
+    log : str or list of str
+        Path to the model or log directory.
+    img_path : str
+        Path to the input image file.
+    out_path : str
+        Directory where prediction output will be saved.
+    msk_path : str
+        Path to the ground-truth mask for evaluation.
+    is_2d : bool, default=False
+        Whether to process the image as 2D.
+    skip_preprocessing : bool, default=False
+        If True, skips preprocessing step.
+
+    Returns:
+    --------
+    None
+    """
     print("Run prediction for:", img_path)
     num_classes,out = pred_single(log, img_path, out_path,is_2d=is_2d,skip_preprocessing=skip_preprocessing)
     print("Done! Prediction saved in:", out_path)
