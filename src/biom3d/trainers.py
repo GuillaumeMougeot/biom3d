@@ -238,8 +238,6 @@ def seg_patch_validate(dataloader:SubjectsLoader,
         for it in tqdm(dataloader):
             patch_loader = torch.utils.data.DataLoader(it, batch_size=dataloader.batch_size,num_workers=0)
             for (X,y) in patch_loader:
-                #X = patch['img'][tio.DATA]
-                #y = patch['msk'][tio.DATA]
                 if torch.cuda.is_available():
                     X, y = X.cuda(), y.cuda()
                 elif torch.mps.is_available():

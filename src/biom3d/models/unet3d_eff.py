@@ -11,7 +11,7 @@ Usage:
 
 """
 
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Callable, Optional
 from biom3d.models.encoder_vgg import EncoderBlock
 from biom3d.models.decoder_vgg_deep import VGGDecoder
 from biom3d.models.encoder_efficientnet3d import EfficientNet3D, efficientnet3d
@@ -19,7 +19,7 @@ from biom3d.models.encoder_efficientnet3d import EfficientNet3D, efficientnet3d
 import torch
 from torch import nn
 
-def get_layer(model:nn.Module, layer_names:List[str])->nn.Module:
+def get_layer(model:nn.Module, layer_names:list[str])->nn.Module:
     """
     Retrieve a submodule from a model based on a list of keys.
 
@@ -39,7 +39,7 @@ def get_layer(model:nn.Module, layer_names:List[str])->nn.Module:
         model = model._modules[e]
     return model
 
-def get_pyramid(model:nn.Module, pyramid:Dict)->List[nn.Module]:
+def get_pyramid(model:nn.Module, pyramid:dict)->list[nn.Module]:
     """
     Retrieves multiple submodules from a model according to a dictionary of paths.
 
@@ -108,15 +108,15 @@ class EffUNet(nn.Module):
     passes them to the decoder for semantic segmentation.
 
     :ivar EfficientNet3D encoder: EfficientNet3D encoder model.
-    :ivar pyramid: List of intermediate encoder layers used for skip connections.
-    :ivar down: Dictionary mapping pyramid levels to encoder activations (populated via forward hooks).
-    :ivar decoder: VGG-style decoder module.
+    :ivar list pyramid: List of intermediate encoder layers used for skip connections.
+    :ivar dict down: Dictionary mapping pyramid levels to encoder activations (populated via forward hooks).
+    :ivar torch.nn.Module decoder: VGG-style decoder module.
     """
 
     def __init__(
         self, 
-        patch_size:int|Tuple[int], # TODO: Clement: Guillaume this should be a Tuple (or something like it) but the whole code of the encoder is considering it as an int, we need to make it clear
-        num_pools:List[int]=[5,5,5], 
+        patch_size:int|tuple[int], # TODO: Clement: Guillaume this should be a tuple (or something like it) but the whole code of the encoder is considering it as an int, we need to make it clear
+        num_pools:list[int]=[5,5,5], 
         num_classes:int=1, 
         factor:int=32,
         encoder_ckpt:Optional[str] = None,

@@ -1,6 +1,6 @@
 """Dataset primitives for 3D segmentation dataset. Solution: patch approach with the whole dataset into memory, based on Torchio, fastest dataloading method so far."""
 
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 import numpy as np 
 import torchio as tio
 import random 
@@ -373,7 +373,7 @@ class TorchIOReaderWrapper:
         """
         self.handler = handler  
 
-    def __call__(self, path:str)->Tuple[torch.Tensor,Optional[Dict]]:
+    def __call__(self, path:str)->tuple[torch.Tensor,Optional[dict]]:
         """
         Delegate data reading to DataHandler.
 
@@ -412,8 +412,8 @@ class TorchioDataset(SubjectsDataset):
     :ivar bool load_data: Whether to load all data into memory.
     :ivar DataHandler handler: Data handler for loading images and masks.
     :ivar bool train: Indicates if the dataset is used for training (True) or validation (False).
-    :ivar List[str] fnames: List of filenames used depending on training or validation mode.
-    :ivar List[Subject] subjects_list: List of TorchIO Subjects created from the files.
+    :ivar list[str] fnames: List of filenames used depending on training or validation mode.
+    :ivar list[Subject] subjects_list: List of TorchIO Subjects created from the files.
     :ivar bool use_aug: Whether data augmentations are enabled.
     :ivar float fg_rate: Foreground inclusion rate to force foreground sampling in patches.
     :ivar bool use_softmax: Whether to use softmax activation; if False, sigmoid is used.
@@ -430,8 +430,8 @@ class TorchioDataset(SubjectsDataset):
     load_data:bool
     handler:DataHandler
     train:bool
-    fnames:List[str]
-    subjects_list:List[Subject]
+    fnames:list[str]
+    subjects_list:list[Subject]
     use_aug:bool
     fg_rate:float
     use_softmax:bool

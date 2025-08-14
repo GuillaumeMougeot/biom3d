@@ -1,5 +1,5 @@
 import pickle
-from typing import Literal, Optional, Tuple
+from typing import Literal, Optional
 from .data_handler_abstract import DataHandler, OutputType
 import h5py
 import numpy as np
@@ -155,7 +155,7 @@ class HDF5Handler(DataHandler):
         self._output_msk_h5_file = None
         if self._saver != None and self._saver != self : self._saver.close()
 
-    def load(self,fname:str)->Tuple[np.ndarray,dict]:
+    def load(self,fname:str)->tuple[np.ndarray,dict]:
         fname = fname.strip("/")
         fname_split =re.split(PATH_SEPARATOR,fname)
         archive = fname_split[0]

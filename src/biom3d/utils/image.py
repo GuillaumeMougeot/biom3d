@@ -2,7 +2,6 @@
 
 try: import napari
 except: pass
-from typing import List, Tuple
 from skimage.transform import resize
 import numpy as np
 import matplotlib.pyplot as plt
@@ -12,9 +11,9 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 # ----------------------------------------------------------------------------
 # 3d viewer
 def display_voxels(image: np.ndarray,
-                   xlim: Tuple[int, int],
-                   ylim: Tuple[int, int],
-                   zlim: Tuple[int, int],
+                   xlim: tuple[int, int],
+                   ylim: tuple[int, int],
+                   zlim: tuple[int, int],
                    save: bool = False,
                    ) -> None:
     """
@@ -49,9 +48,9 @@ def display_voxels(image: np.ndarray,
     plt.savefig('voxel.png') if save else plt.show() 
 
 def display_mesh(mesh:Poly3DCollection,
-                  xlim: Tuple[int, int],
-                  ylim: Tuple[int, int],
-                  zlim: Tuple[int, int],
+                  xlim: tuple[int, int],
+                  ylim: tuple[int, int],
+                  zlim: tuple[int, int],
                   save: bool = False,
                   ) -> None:
     """
@@ -107,7 +106,7 @@ def napari_viewer(img: np.ndarray, pred: np.ndarray)->None:
     napari.run()
 
 def resize_segmentation(segmentation: np.ndarray,
-                        new_shape: Tuple[int, ...],
+                        new_shape: tuple[int, ...],
                         order: int = 3,
                         ) -> np.ndarray:
     """
@@ -149,7 +148,7 @@ def resize_segmentation(segmentation: np.ndarray,
         return reshaped
 
 def resize_3d(img:np.ndarray, 
-              output_shape:Tuple[int]|List[int]|np.ndarray[int], 
+              output_shape:tuple[int]|list[int]|np.ndarray[int], 
               order:int=3, 
               is_msk:bool=False, 
               monitor_anisotropy:bool=True, 

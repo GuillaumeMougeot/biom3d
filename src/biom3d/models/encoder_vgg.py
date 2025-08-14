@@ -1,6 +1,6 @@
 """3D Resnet adapted from: https://github.com/akamaster/pytorch_resnet_cifar10."""
 
-from typing import Callable, Iterable, List, Literal, Optional, Type
+from typing import Callable, Iterable, Literal, Optional
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
@@ -247,10 +247,10 @@ class VGGEncoder(nn.Module):
     """
 
     def __init__(self, 
-        block:Type[nn.Module], 
-        num_pools:List[int], 
+        block:type[nn.Module], 
+        num_pools:list[int], 
         factor:int = 32,
-        first_stride:List[int]=[1,1,1], 
+        first_stride:list[int]=[1,1,1], 
         flip_strides:bool = False, 
         use_emb:bool=False, 
         emb_dim:int=320,
@@ -337,7 +337,7 @@ class VGGEncoder(nn.Module):
                     block:nn.Module, 
                     planes:int, 
                     num_blocks:int, 
-                    stride:List[int]|int, 
+                    stride:list[int]|int, 
                     is_last:bool=False,
                     )->nn.Sequential:
         """

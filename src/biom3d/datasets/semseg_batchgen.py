@@ -18,7 +18,7 @@ from batchgenerators.augmentations.utils import rotate_coords_3d, rotate_coords_
 from batchgenerators.dataloading.data_loader import SlimDataLoaderBase
 from batchgenerators.dataloading.multi_threaded_augmenter import MultiThreadedAugmenter
 
-from typing import Any, Dict, Hashable, Optional, Tuple, List, Iterable
+from typing import Any, Hashable, Optional, Iterable
 
 from biom3d.utils import DataHandlerFactory, DataHandler, get_folds_train_test_df
 
@@ -30,7 +30,7 @@ def centered_crop(img:np.ndarray,
                   center:Iterable[int], 
                   crop_shape:Iterable[int], 
                   margin:Iterable[float]=np.zeros(3),
-                  )->Tuple[np.ndarray,np.ndarray]:
+                  )->tuple[np.ndarray,np.ndarray]:
     """
     Do a crop, forcing the location voxel to be located in the center of the crop.
 
@@ -76,7 +76,7 @@ def located_crop(img:np.ndarray,
                  location:Iterable[int], 
                  crop_shape:Iterable[int], 
                  margin:Iterable[float]=np.zeros(3),
-                 )->Tuple[np.ndarray,np.ndarray]:
+                 )->tuple[np.ndarray,np.ndarray]:
     """Do a crop, forcing the location voxel to be located in the crop.
     
     Parameters
@@ -120,9 +120,9 @@ def foreground_crop(img:np.ndarray,
                     msk:np.ndarray, 
                     final_size:Iterable[int], 
                     fg_margin:Iterable[float], 
-                    fg:Optional[Dict[int,np.ndarray]]=None, 
+                    fg:Optional[dict[int,np.ndarray]]=None, 
                     use_softmax:bool=True,
-                    )->Tuple[np.ndarray,np.ndarray]:
+                    )->tuple[np.ndarray,np.ndarray]:
     """Do a foreground crop.
     
     Parameters
@@ -170,7 +170,7 @@ def foreground_crop(img:np.ndarray,
 def random_crop(img:np.ndarray,
                 msk:np.ndarray, 
                 crop_shape:Iterable[int]
-                )->Tuple[np.ndarray,np.ndarray]:
+                )->tuple[np.ndarray,np.ndarray]:
     """
     Randomly crop a portion of size prop of the original image size.
     
@@ -210,7 +210,7 @@ def random_crop(img:np.ndarray,
 def centered_pad(img:np.ndarray, 
                  final_size:np.ndarray, 
                  msk:Optional[np.ndarray]=None,
-                 )->np.ndarray|Tuple[np.ndarray,np.ndarray]:
+                 )->np.ndarray|tuple[np.ndarray,np.ndarray]:
     """
     Centered pad an img and msk to fit the final_size.
     
@@ -252,9 +252,9 @@ def random_crop_pad(img:np.ndarray,
                     final_size:Iterable[int], 
                     fg_rate:float=0.33, 
                     fg_margin:Iterable[float]=np.zeros(3), 
-                    fg:Optional[Dict[str,np.ndarray]]=None, 
+                    fg:Optional[dict[str,np.ndarray]]=None, 
                     use_softmax:bool=True,
-                    )->Tuple[np.ndarray,np.ndarray]:
+                    )->tuple[np.ndarray,np.ndarray]:
     """
     Random crop and pad if needed.
     
@@ -341,7 +341,7 @@ class RandomCropAndPadTransform(AbstractTransform):
         self.fg_rate = fg_rate
         self.crop_size = crop_size
 
-    def __call__(self, **data_dict:Dict[str,Any])->Dict[str,Any]:
+    def __call__(self, **data_dict:dict[str,Any])->dict[str,Any]:
         """
         Apply random cropping and padding transform to the data dictionary.
 
@@ -375,7 +375,7 @@ def imread(handler:DataHandler,
            msk:str, 
            loc:Optional[str]=None,
            is3d:bool=True,
-           )->Tuple[np.ndarray,np.ndarray,np.ndarray|None]:
+           )->tuple[np.ndarray,np.ndarray,np.ndarray|None]:
     """
     Read all data with the provided DataHandler.
 
@@ -456,7 +456,7 @@ class DataReader(AbstractTransform):
         self.loc_key= loc_key
         self.handler=handler
     
-    def __call__(self, **data_dict:Dict[str,Any])->Dict[str,Any]:
+    def __call__(self, **data_dict:dict[str,Any])->dict[str,Any]:
         """
         Add data to the data_dict.
 
@@ -497,10 +497,10 @@ def get_bbox(patch_size:Iterable[int],
              annotated_classes_key:Hashable,
              data_shape: np.ndarray, 
              force_fg: bool, 
-             class_locations: Optional[Dict],
-             overwrite_class: Optional[int| Tuple[int, ...]] = None, 
+             class_locations: Optional[dict],
+             overwrite_class: Optional[int| tuple[int, ...]] = None, 
              verbose: bool = False
-            )->Tuple[List[int],List[int]]:
+            )->tuple[list[int],list[int]]:
     """
     Compute bounding box coordinates for cropping a patch from the data, optionally focusing on foreground regions.
 
@@ -662,7 +662,7 @@ class nnUNetRandomCropAndPadTransform(AbstractTransform):
         self.crop_size = crop_size
         self.aug_crop_size = aug_crop_size
 
-    def __call__(self, **data_dict:Dict[str,Any])->Dict:
+    def __call__(self, **data_dict:dict[str,Any])->dict:
         """
         Apply the crop and pad transform to a batch of data.
 
@@ -733,13 +733,13 @@ class Convert2DTo3DTransform(AbstractTransform):
     """
     Reverts Convert3DTo2DTransform by transforming a 4D array (b, c * x, y, z) back to 5D  (b, c, x, y, z).
 
-    :ivar List[str] | Tuple[str] apply_to_keys: Key of the data dictionary to convert, default=('data','seg')
+    :ivar list[str] | tuple[str] apply_to_keys: Key of the data dictionary to convert, default=('data','seg')
     """
 
-    apply_to_keys:List[str]| Tuple[str]
+    apply_to_keys:list[str]| tuple[str]
 
     def __init__(self, 
-                 apply_to_keys: List[str]| Tuple[str] = ('data', 'seg'),
+                 apply_to_keys: list[str]| tuple[str] = ('data', 'seg'),
                  ):
         """
         Reverts Convert3DTo2DTransform by transforming a 4D array (b, c * x, y, z) back to 5D  (b, c, x, y, z).
@@ -751,7 +751,7 @@ class Convert2DTo3DTransform(AbstractTransform):
         """
         self.apply_to_keys = apply_to_keys
 
-    def __call__(self, **data_dict:Dict[str,Any])->Dict:
+    def __call__(self, **data_dict:dict[str,Any])->dict:
         """
         Apply the conversion to a batch of data.
 
@@ -788,10 +788,10 @@ class Convert3DTo2DTransform(AbstractTransform):
     """
     Transforms a 5D array (b, c, x, y, z) to a 4D array (b, c * x, y, z) by overloading the color channel.
 
-    :ivar List[str] | Tuple[str] apply_to_keys: Key of the data dictionary to convert, default=('data','seg')
+    :ivar list[str] | tuple[str] apply_to_keys: Key of the data dictionary to convert, default=('data','seg')
     """
 
-    def __init__(self, apply_to_keys: List[str]| Tuple[str] = ('data', 'seg')):
+    def __init__(self, apply_to_keys: list[str]| tuple[str] = ('data', 'seg')):
         """
         Transform a 5D array (b, c, x, y, z) to a 4D array (b, c * x, y, z) by overloading the color channel.
 
@@ -802,7 +802,7 @@ class Convert3DTo2DTransform(AbstractTransform):
         """
         self.apply_to_keys = apply_to_keys
 
-    def __call__(self, **data_dict:Dict[str,Any])->Dict:
+    def __call__(self, **data_dict:dict[str,Any])->dict:
         """
         Apply the conversion to a batch of data.
 
@@ -858,7 +858,7 @@ class DictToTuple(AbstractTransform):
         self.data_key = data_key
         self.label_key = label_key
     
-    def __call__(self, **data_dict:Dict[str,Any])->Tuple[Any,Any]:
+    def __call__(self, **data_dict:dict[str,Any])->tuple[Any,Any]:
         """
         Extract data_key and label_key from a dictionary and returns them as a tuple.
 
@@ -887,26 +887,26 @@ class DownsampleSegForDSTransform2(AbstractTransform):
     This transform stores the results in `data_dict[output_key]` as a list of segmentations, each scaled 
     according to a corresponding entry in `ds_scales`.
 
-    :ivar Tuple | List ds_scales: Scaling factors per deep supervision level. Each entry can be a float (same scaling for all axes) or a tuple of floats (individual scaling per axis).
+    :ivar tuple | List ds_scales: Scaling factors per deep supervision level. Each entry can be a float (same scaling for all axes) or a tuple of floats (individual scaling per axis).
     :ivar int order: Interpolation order to use for resizing (0 = nearest neighbor).
     :ivar str input_key: Key to access the input segmentation in `data_dict`.
     :ivar str output_key: Key under which to store the output list of downsampled segmentations.
-    :ivar Tuple[int] axes: Axes along which to apply the downsampling. If None, assumes axes are (2, 3, 4), i.e., skips batch and channel.
+    :ivar tuple[int] axes: Axes along which to apply the downsampling. If None, assumes axes are (2, 3, 4), i.e., skips batch and channel.
     
     """
 
-    axes:Tuple[int]
+    axes:tuple[int]
     output_key:str
     input_key:str
     order:int
-    ds_scales:List| Tuple
+    ds_scales:list| tuple
 
     def __init__(self, 
-                 ds_scales: List | Tuple,
+                 ds_scales: list | tuple,
                  order: int = 0, 
                  input_key: str = "seg",
                  output_key: str = "seg", 
-                 axes: Optional[Tuple[int]] = None):
+                 axes: Optional[tuple[int]] = None):
         """
         Transform that generates downsampled versions of a segmentation map for deep supervision.
 
@@ -938,7 +938,7 @@ class DownsampleSegForDSTransform2(AbstractTransform):
         self.order = order
         self.ds_scales = ds_scales
 
-    def __call__(self, **data_dict:Dict[str,Any])->Dict:
+    def __call__(self, **data_dict:dict[str,Any])->dict:
         """
         Apply the downsampling to a batch of data.
 
@@ -986,12 +986,12 @@ class DownsampleSegForDSTransform2(AbstractTransform):
         data_dict[self.output_key] = output
         return data_dict
     
-def get_training_transforms(aug_patch_size: np.ndarray| Tuple[int],
-                            patch_size: np.ndarray | Tuple[int],
+def get_training_transforms(aug_patch_size: np.ndarray| tuple[int],
+                            patch_size: np.ndarray | tuple[int],
                             fg_rate: float,
                             rotation_for_DA: dict,
-                            deep_supervision_scales: List | Tuple | None,
-                            mirror_axes: Tuple[int, ...],
+                            deep_supervision_scales: list | tuple | None,
+                            mirror_axes: tuple[int, ...],
                             handler:DataHandler,
                             do_dummy_2d_data_aug: bool,
                             order_resampling_data: int = 3,
@@ -1014,7 +1014,7 @@ def get_training_transforms(aug_patch_size: np.ndarray| Tuple[int],
         Dictionary specifying rotation angles for data augmentation. Should contain keys 'x', 'y', and 'z'.
     deep_supervision_scales : list, tuple or None
         List of scales for deep supervision. Used to downsample segmentation masks accordingly.
-    mirror_axes : Tuple[int, ...]
+    mirror_axes : tuple[int, ...]
         Axes along which to apply mirroring (e.g., (0, 1, 2)).
     handler : DataHandler
         DataHandler used to load images. Used only if use_data_reader is True
@@ -1099,10 +1099,10 @@ def get_training_transforms(aug_patch_size: np.ndarray| Tuple[int],
     tr_transforms = Compose(tr_transforms)
     return tr_transforms
 
-def get_validation_transforms(patch_size: np.ndarray | Tuple[int],
+def get_validation_transforms(patch_size: np.ndarray | tuple[int],
                               fg_rate: float,
                               handler:DataHandler,
-                              deep_supervision_scales: List | Tuple | None = None,
+                              deep_supervision_scales: list | tuple | None = None,
                               use_data_reader: bool = True,
                               ) -> AbstractTransform:
     """
@@ -1281,7 +1281,7 @@ class BatchGenDataLoader(SlimDataLoaderBase):
         # print train and validation image names
         print("{} images: {}".format("Training" if self.train else "Validation", self.fnames))
         
-        def generate_data(handler:DataHandler)->List[Dict[str,np.ndarray|str]]:
+        def generate_data(handler:DataHandler)->list[dict[str,np.ndarray|str]]:
             """Load data, if self.load_data is False, it will only load their path."""
             data=[]
             nonlocal load_data
@@ -1357,7 +1357,7 @@ class BatchGenDataLoader(SlimDataLoaderBase):
             self.was_initialized=False
             raise StopIteration
 
-    def generate_train_batch(self)->Dict:   
+    def generate_train_batch(self)->dict:   
         """
         Generate a training batch from the dataset.
 
@@ -1384,10 +1384,10 @@ class BatchGenDataLoader(SlimDataLoaderBase):
 # multi-threading
 
 def get_patch_size(final_patch_size:list[int]| tuple[int]| np.ndarray, 
-                   rot_x:float|Tuple[float]|List[float], 
-                   rot_y:float|Tuple[float]|List[float], 
-                   rot_z:float|Tuple[float]|List[float], 
-                   scale_range:Tuple[float]|List[float],
+                   rot_x:float|tuple[float]|list[float], 
+                   rot_y:float|tuple[float]|list[float], 
+                   rot_z:float|tuple[float]|list[float], 
+                   scale_range:tuple[float]|list[float],
                    )->np.ndarray:
     """
     Compute the required patch size to accommodate rotation and scaling augmentations.
@@ -1452,7 +1452,7 @@ def get_patch_size(final_patch_size:list[int]| tuple[int]| np.ndarray,
     return final_shape.astype(int)  
 
 def configure_rotation_dummy_da_mirroring_and_inital_patch_size(patch_size:Iterable[int],
-                                )->Tuple[Dict[str, Tuple[float, float]], bool, np.ndarray, Tuple[int, ...]]:
+                                )->tuple[dict[str, tuple[float, float]], bool, np.ndarray, tuple[int, ...]]:
     """
     Configure rotation parameters, dummy 2D data augmentation, mirroring axes, and compute the initial patch size.
 

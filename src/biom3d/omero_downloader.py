@@ -22,10 +22,10 @@ Usage:
 python download_pdi.py Project:123 my_project_directory
 """
 
-from typing import List, Optional, Tuple
+from typing import Optional
 from omero.cli import CLI
 
-def download_datasets_cli(datasets: List, target_dir:str)->None:
+def download_datasets_cli(datasets: list, target_dir:str)->None:
     """
     Download datasets using OMERO CLI interface.
 
@@ -116,7 +116,7 @@ def download_object_cli(cli:CLI, obj:str, target_dir:str):
 
     return datasets, target_dir
 
-def download_datasets(conn: BlitzGateway, datasets: List, target_dir: str) -> None:
+def download_datasets(conn: BlitzGateway, datasets: list, target_dir: str) -> None:
     """
     Download datasets using OMERO BlitzGateway connection.
 
@@ -159,7 +159,7 @@ def download_object(username: str,
                     obj: str,
                     target_dir: str,
                     session_id: Optional[str] = None,
-                    ) -> Tuple[List, str]:
+                    ) -> tuple[list, str]:
     """
     Connect to OMERO and download a dataset or project via BlitzGateway.
 
@@ -293,7 +293,7 @@ def download_attachment(hostname: str,
         print("Downloaded!")
 
 # Why not directly in __main__ ?
-def main(argv: List[str]) -> None:
+def main(argv: list[str]) -> None:
     """
     Entry point for downloading OMERO datasets or projects from command-line arguments.
 

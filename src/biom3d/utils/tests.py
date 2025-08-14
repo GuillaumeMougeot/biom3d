@@ -4,7 +4,7 @@ This module define some simple metrics.
 The metrics defined here can't be used as loss function, contrarly to the module biom3d.metrics.
 """
 
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional
 from biom3d.utils import one_hot_fast
 import numpy as np
 
@@ -33,7 +33,7 @@ def iou(inputs:np.ndarray, targets:np.ndarray, smooth:float=1.0)->float:
 def dice(inputs:np.ndarray, 
          targets:np.ndarray, 
          smooth:float=1.0, 
-         axis:Tuple[int]=(-3,-2,-1),
+         axis:tuple[int]=(-3,-2,-1),
          )->float:   
     """
     Compute the Dice coefficient between inputs and targets.

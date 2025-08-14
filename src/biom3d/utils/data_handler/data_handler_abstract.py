@@ -6,7 +6,7 @@ It implement iterator to easily iterate over dataset. This module define the abs
 
 from __future__ import annotations
 from abc import abstractmethod
-from typing import Literal, Optional, Tuple, Type
+from typing import Literal, Optional
 from numpy import ndarray
 
 from enum import Enum
@@ -33,7 +33,7 @@ class DataHandler :
     _iterator: int;"""Used to implement iterator. """
     _size: int;"""Used to implement len, is defined by len(images)."""
     _eval:Optional[Literal["label","pred"]]; """Define if handler is used to evaluation. It allow key based format handlers to override some key restriction to load label and prediction as images."""
-    _saver:Optional[Type[DataHandler]];"""DataHandler used to save, can be another DataHandler for different output format, self or None (read_only)."""
+    _saver:Optional[type[DataHandler]];"""DataHandler used to save, can be another DataHandler for different output format, self or None (read_only)."""
 
     def __init__(self):
         """Set default value to attributes, never call it outside a child class. All implementation shall call this one AND set default value to their specific attributes."""
@@ -194,7 +194,7 @@ class DataHandler :
         self._input_parse(**kwargs)
 
     @abstractmethod
-    def get_output(self)->Tuple[str,str,str]:
+    def get_output(self)->tuple[str,str,str]:
         """
         Return a tuple of three element with the paths of images output, mask output and foreground output. (eg : Path to folders, archive, URLs).
 
@@ -235,7 +235,7 @@ class DataHandler :
         pass
 
     @abstractmethod
-    def load(self,path:str)->Tuple[ndarray,dict]:
+    def load(self,path:str)->tuple[ndarray,dict]:
         """
         Load a ressource at given path. It is not necessary to check if ressource is in images, masks or foreground.
     
@@ -374,7 +374,7 @@ class DataHandler :
         self.reset_iterator()
         return self
 
-    def __next__(self)->Tuple[str,str,str]:
+    def __next__(self)->tuple[str,str,str]:
         """
         Increments _iterator and _image_index and return a tuple of paths.
 

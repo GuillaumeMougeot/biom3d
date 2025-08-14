@@ -20,11 +20,11 @@ from biom3d import callbacks as clbk
 from biom3d import utils
 
 from torch.nn import Module
-from typing import Any, Callable, Dict, Iterable, List, Optional, TextIO
+from typing import Any, Callable, Iterable, Optional, TextIO
 #---------------------------------------------------------------------------
 # utils to read config's functions in the function register
 
-def read_config(config_fct:str, register_cat:utils.AttrDict, **kwargs:Dict[str,Any])->Any:
+def read_config(config_fct:str, register_cat:utils.AttrDict, **kwargs:dict[str,Any])->Any:
     """
     Read the config function in the register category and run the corresponding function.
      
@@ -113,7 +113,7 @@ class Logger(object): # Should be more versatile and in utils
         """
         pass   
 
-def get_params_groups(model:Module)->List[Dict[str,Any]]:
+def get_params_groups(model:Module)->list[dict[str,Any]]:
     """
     Split model parameters into two groups: those to be regularized (e.g., with weight decay), and those not to be regularized (such as biases and normalization layers).
 
@@ -166,7 +166,7 @@ class LARS(torch.optim.Optimizer):
 
     """
 
-    def __init__(self, params:Iterable|Dict, 
+    def __init__(self, params:Iterable|dict, 
                  lr:float=0.0, 
                  weight_decay:float=0.0, 
                  momentum:float=0.9, 
@@ -266,9 +266,9 @@ class Builder:
 
     Training is currently done with the SGD optimizer. If you would like to change the optimizer, you can edit `self.build_training` method.
 
-    :ivar utils.AttrDict | List[utils.AttrDict] config: The configuration object(s), loaded from file or passed directly. A list if using multi-model mode.
+    :ivar utils.AttrDict | list[utils.AttrDict] config: The configuration object(s), loaded from file or passed directly. A list if using multi-model mode.
     :ivar str config_path: Path to the configuration file. Only defined if provided at init or loaded from disk.
-    :ivar torch.nn.Module | List[torch.nn.Module] model: The model instance(s). Always defined when training, fine-tuning, or loading for inference.
+    :ivar torch.nn.Module | list[torch.nn.Module] model: The model instance(s). Always defined when training, fine-tuning, or loading for inference.
 
     :ivar torch.utils.data.Dataset train_dataset: Training dataset, see `biom3d.datasets`. Defined only in training mode.
     :ivar torch.utils.data.DataLoader train_dataloader: DataLoader for training, see `biom3d.datasets`. Defined only in training mode.
@@ -277,8 +277,8 @@ class Builder:
 
     :ivar biom3d.Metric loss_fn: Loss function for training, see `biom3d.metrics`. Defined only in training mode.
     :ivar biom3d.Metric val_loss_fn: Loss function for validation, see `biom3d.metrics`. Defined only if `VAL_LOSS` is in config.
-    :ivar List[biom3d.Metric] train_metrics: Training metrics, see `biom3d.metrics`. Defined only if `TRAIN_METRICS` is in config.
-    :ivar List[biom3d.Metric] val_metrics: Validation metrics, see `biom3d.metrics`. Defined only if `VAL_METRICS` is in config.
+    :ivar list[biom3d.Metric] train_metrics: Training metrics, see `biom3d.metrics`. Defined only if `TRAIN_METRICS` is in config.
+    :ivar list[biom3d.Metric] val_metrics: Validation metrics, see `biom3d.metrics`. Defined only if `VAL_METRICS` is in config.
 
     :ivar torch.optim.Optimizer optim: Optimizer instance, typically SGD. Defined only in training mode.
 
@@ -323,8 +323,8 @@ class Builder:
     """
 
     def __init__(self, 
-        config:str|Dict|utils.AttrDict=None,         # inherit from Config class, stores the global variables
-        path:str|List[str]=None,      # path to a training folder
+        config:str|dict|utils.AttrDict=None,         # inherit from Config class, stores the global variables
+        path:str|list[str]=None,      # path to a training folder
         training:bool=True,  # use training mode or testing?
         ):    
         """
@@ -825,7 +825,7 @@ class Builder:
     def run_prediction_single(self, 
                               handler:Optional[utils.DataHandler]=None, 
                               img:Optional[np.ndarray]=None, 
-                              img_meta:Optional[Dict[str,Any]]=None, 
+                              img_meta:Optional[dict[str,Any]]=None, 
                               return_logit:bool=True,
                               is_2d:bool=False,
                               skip_preprocessing:bool=False,

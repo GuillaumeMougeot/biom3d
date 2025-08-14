@@ -1,6 +1,5 @@
 """3D VGG decoder, with deep supervision (each decoder level has an output)."""
 
-from typing import List, Type
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -45,11 +44,11 @@ class DecoderBlock(nn.Module):
     encoder_block:nn.Module
 
     def __init__(self, 
-        block:Type[nn.Module],
+        block:type[nn.Module],
         in_planes_low:int,  # in_planes is the depth size after the concatenation
         in_planes_high:int,  # in_planes is the depth size after the concatenation
         planes:int,     # the depth size of the output 
-        stride:List[int], # for the upconv
+        stride:list[int], # for the upconv
         # option='A'# option for the upsampling (A: use upsamble; B: use convtranspose NOT IMPLEMENTED!)
         ):
         """
@@ -57,7 +56,7 @@ class DecoderBlock(nn.Module):
 
         Parameters
         ----------
-        block : Type[nn.Module]
+        block : type[nn.Module]
             Class of the residual block used to build encoder/decoder layers (e.g., EncoderBlock).
         in_planes_low : int
             Number of input channels from the low-resolution feature map.
@@ -81,7 +80,7 @@ class DecoderBlock(nn.Module):
             stride=1,
             )
 
-    def forward(self, x:List[torch.Tensor])->torch.Tensor: # x is a list of two inputs [low_res, high_res]
+    def forward(self, x:list[torch.Tensor])->torch.Tensor: # x is a list of two inputs [low_res, high_res]
         """
         Forward pass of the decoder block.
 
@@ -110,17 +109,17 @@ class VGGDecoder(nn.Module):
 
     :ivar bool use_deep: If True, enable deep supervision (multi-level outputs).
     :ivar bool use_emb: If True, only return the intermediate embedding from the third decoder stage.
-    :ivar List[List[int]] strides: List of strides (upsampling factors) per decoder stage.
+    :ivar list[list[int]] strides: List of strides (upsampling factors) per decoder stage.
     :ivar nn.ModuleList layers: List of DecoderBlocks composing the decoder.
     :ivar nn.ModuleList convs: List of 1×1 convolutions applied after each decoder stage (for supervision).
     """
 
     def __init__(
         self, 
-        block:Type[nn.Module], 
-        num_pools:List[int], 
-        factor_e:int|List[int] = 32, 
-        factor_d:int|List[int] = 32, 
+        block:type[nn.Module], 
+        num_pools:list[int], 
+        factor_e:int|list[int] = 32, 
+        factor_d:int|list[int] = 32, 
         flip_strides:bool = False, 
         num_classes:int = 1,
         use_deep:bool=True, 
@@ -132,7 +131,7 @@ class VGGDecoder(nn.Module):
 
         Parameters
         ----------
-        block : Type[nn.Module]
+        block : type[nn.Module]
             Class of the residual block used to build encoder/decoder layers (e.g., EncoderBlock).
         num_pools : list of int
             Number of pooling operations at each encoder stage.
@@ -204,11 +203,11 @@ class VGGDecoder(nn.Module):
         self.apply(_weights_init)
 
     def _make_layer(self, 
-        block:Type[nn.Module],     
+        block:type[nn.Module],     
         in_planes_low:int,  
         in_planes_high:int,  
         planes:int,      
-        stride:List[int],     
+        stride:list[int],     
         num_blocks:int
         )->nn.Sequential:
         """
@@ -219,7 +218,7 @@ class VGGDecoder(nn.Module):
 
         Parameters
         ----------
-        block : Type[nn.Module]
+        block : type[nn.Module]
             Class of the encoder-style residual block used after the initial DecoderBlock.
         in_planes_low : int
             Number of input channels from the lower-resolution feature map.
@@ -243,7 +242,7 @@ class VGGDecoder(nn.Module):
             layers.append(block(planes, planes, stride=1))
         return nn.Sequential(*layers)
 
-    def forward(self, x:List[torch.Tensor])->torch.Tensor|List[torch.Tensor]: 
+    def forward(self, x:list[torch.Tensor])->torch.Tensor|list[torch.Tensor]: 
         """
         Forward pass through the decoder.
 

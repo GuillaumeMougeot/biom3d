@@ -1,13 +1,12 @@
 """This submodule provides function for file and directory managment."""
 from datetime import datetime
 import os
-from typing import List 
 
 def create_save_dirs(log_dir:str, 
                      desc:str, 
-                     dir_names:List[str]=['model', 'logs', 'images'], 
+                     dir_names:list[str]=['model', 'logs', 'images'], 
                      return_base_dir:bool=False,
-                     )->List[str]:
+                     )->list[str]:
     """
     Create a directory structure for saving models, logs, images, etc.
 
@@ -43,7 +42,7 @@ def create_save_dirs(log_dir:str,
 # ----------------------------------------------------------------------------
 # os utils
 
-def abs_path(root:str, listdir_:List[str])->List[str]:
+def abs_path(root:str, listdir_:list[str])->list[str]:
     """
     Convert a list of filenames into absolute paths using the given root.
 
@@ -68,7 +67,7 @@ def abs_path(root:str, listdir_:List[str])->List[str]:
         listdir[i] = os.path.join(root, listdir[i])
     return listdir
 
-def abs_listdir(path:str)->List[str]:
+def abs_listdir(path:str)->list[str]:
     """
     List all files in a directory and return their absolute paths (sorted).
 

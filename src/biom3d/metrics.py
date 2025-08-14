@@ -10,7 +10,7 @@ import torch.nn.functional as F
 import numpy as np
 
 from abc import abstractmethod
-from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type
+from typing import Any, Callable, Literal, Optional
 
 #---------------------------------------------------------------------------
 # Metrics base class
@@ -136,10 +136,10 @@ class Dice(Metric):
 
     :ivar str name: Name of the metric (used in logs).
     :ivar bool use_softmax: Whether to apply softmax before Dice computation.
-    :ivar Tuple[int] dim: Dimensions over which Dice is computed (e.g., (2, 3) or (2, 3, 4)).
+    :ivar tuple[int] dim: Dimensions over which Dice is computed (e.g., (2, 3) or (2, 3, 4)).
     """
 
-    def __init__(self, use_softmax:bool=False, dim:Tuple[int]=(), name:str=None):
+    def __init__(self, use_softmax:bool=False, dim:tuple[int]=(), name:str=None):
         """
         Initialize the Dice metric.
 
@@ -213,11 +213,11 @@ class DiceBCE(Metric):
 
     :ivar str name: Name of the metric (used in logs).
     :ivar bool use_softmax: Whether to apply softmax and remove background for Dice computation.
-    :ivar Tuple[int] dim: Dimensions over which Dice is computed.
+    :ivar tuple[int] dim: Dimensions over which Dice is computed.
     :ivar torch.nn.CrossEntropyLoss bce: BCE loss function module.
     """
 
-    def __init__(self, use_softmax:bool=False, dim:Tuple[int]=(), name:Optional[str]=None):
+    def __init__(self, use_softmax:bool=False, dim:tuple[int]=(), name:Optional[str]=None):
         """
         Initialize the DiceBCE metric.
 
@@ -464,21 +464,21 @@ class DeepMetric(Metric):
     to the same ground truth.
 
     :ivar Metric metric: Base metric applied at each level.
-    :ivar List[float] alphas: Weights associated with each level’s output.
+    :ivar list[float] alphas: Weights associated with each level’s output.
     :ivar str name: Name of the metric.
     """
     
     def __init__(self,
-                 metric: Type[Metric],
-                 alphas: List[float],
+                 metric: type[Metric],
+                 alphas: list[float],
                  name: Optional[str] = None,
-                 metric_kwargs: Optional[Dict[str, Any]] = None):
+                 metric_kwargs: Optional[dict[str, Any]] = None):
         """
         Initialize the DeepMetric.
 
         Parameters
         ----------
-        metric : Type[Metric]
+        metric : type[Metric]
             A callable class or constructor of a `Metric` to apply at each level.
         alphas : list of float
             List of coefficients for each prediction level. Must match the number of inputs.
@@ -492,7 +492,7 @@ class DeepMetric(Metric):
         self.name = name 
         self.alphas = alphas 
     
-    def forward(self, inputs: List[torch.Tensor], targets: torch.Tensor) -> torch.Tensor:
+    def forward(self, inputs: list[torch.Tensor], targets: torch.Tensor) -> torch.Tensor:
         """
         Compute the deep supervision metric across multiple prediction levels.
 
@@ -520,7 +520,7 @@ class DeepMetric(Metric):
 #---------------------------------------------------------------------------
 # nnUNet metrics
 def sum_tensor(inp:torch.Tensor, 
-               axes:int|Tuple[int]|List[int], 
+               axes:int|tuple[int]|list[int], 
                keepdim:bool=False,
                )->torch.Tensor:
     """
@@ -551,10 +551,10 @@ def sum_tensor(inp:torch.Tensor,
 
 def get_tp_fp_fn_tn(net_output: torch.Tensor,
                     gt: torch.Tensor,
-                    axes: Optional[int| Tuple[int]| List[int]] = None,
+                    axes: Optional[int| tuple[int]| list[int]] = None,
                     mask: Optional[torch.Tensor] = None,
                     square: bool = False,
-                    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+                    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Compute true positives (TP), false positives (FP), false negatives (FN), and true negatives (TN) between network outputs and ground truth labels.
 
@@ -768,8 +768,8 @@ class DC_and_CE_loss(Metric):
     """
 
     def __init__(self, 
-                 soft_dice_kwargs:Dict[str,Any], 
-                 ce_kwargs:Dict[str,Any], 
+                 soft_dice_kwargs:dict[str,Any], 
+                 ce_kwargs:dict[str,Any], 
                  aggregate:Literal["sum"]="sum", 
                  square_dice:bool=False, 
                  weight_ce:float=1.0, 

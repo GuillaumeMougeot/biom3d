@@ -1,9 +1,8 @@
 """Biom3d adaptation of nnUnet base model."""
 
-from typing import List, Optional
+from typing import Optional
 import torch
 from torch import nn
-import numpy as np
 
 from biom3d.models.encoder_vgg import EncoderBlock, VGGEncoder
 from biom3d.models.decoder_vgg_deep import VGGDecoder
@@ -26,7 +25,7 @@ class UNet(nn.Module):
 
     def __init__(
         self, 
-        num_pools:List[int]=[5,5,5], 
+        num_pools:list[int]=[5,5,5], 
         num_classes:int=1, 
         factor:int=32,
         encoder_ckpt:Optional[str] = None,

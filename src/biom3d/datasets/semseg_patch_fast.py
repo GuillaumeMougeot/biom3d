@@ -1,7 +1,7 @@
 """Dataset primitives for 3D segmentation dataset. Solution: patch approach with the whole dataset into memory."""
 
 
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Iterable, Optional
 import numpy as np 
 import torchio as tio
 import random 
@@ -17,7 +17,7 @@ def centered_crop(img:np.ndarray,
                   center:Iterable[int], 
                   crop_shape:Iterable[int], 
                   margin:Iterable[float]=np.zeros(3),
-                  )->Tuple[np.ndarray,np.ndarray]:
+                  )->tuple[np.ndarray,np.ndarray]:
     """
     Do a crop, forcing the location voxel to be located in the center of the crop.
     
@@ -73,7 +73,7 @@ def located_crop(img:np.ndarray,
                  location:Iterable[int], 
                  crop_shape:Iterable[int], 
                  margin:Iterable[float]=np.zeros(3),
-                 )->Tuple[np.ndarray,np.ndarray]:
+                 )->tuple[np.ndarray,np.ndarray]:
     """
     Do a crop, forcing the location voxel to be located in the crop.
     
@@ -118,9 +118,9 @@ def foreground_crop(img:np.ndarray,
                     msk:np.ndarray, 
                     final_size:Iterable[int], 
                     fg_margin:Iterable[float], 
-                    fg:Optional[Dict[int,np.ndarray]]=None, 
+                    fg:Optional[dict[int,np.ndarray]]=None, 
                     use_softmax:bool=True,
-                    )->Tuple[np.ndarray,np.ndarray]:
+                    )->tuple[np.ndarray,np.ndarray]:
     """Do a foreground crop.
     
     Parameters
@@ -167,7 +167,7 @@ def foreground_crop(img:np.ndarray,
 def centered_pad(img:np.ndarray, 
                  final_size:Iterable[int], 
                  msk:Optional[np.ndarray]=None,
-                 )->np.ndarray|Tuple[np.ndarray,np.ndarray]:
+                 )->np.ndarray|tuple[np.ndarray,np.ndarray]:
     """
     Do a centered pad an img and msk to fit the final_size.
 
@@ -208,7 +208,7 @@ def random_crop(img:np.ndarray,
                 msk:np.ndarray, 
                 crop_shape:Iterable[int], 
                 force_in:bool=True,
-                )->Tuple[np.ndarray,np.ndarray]:
+                )->tuple[np.ndarray,np.ndarray]:
     """
     Randomly crop a portion of size prop of the original image size.
     
@@ -262,9 +262,9 @@ def random_crop_pad(img:np.ndarray,
                     final_size:Iterable[int], 
                     fg_rate:float=0.33, 
                     fg_margin:Iterable[float]=np.zeros(3), 
-                    fg:Optional[Dict[int,np.ndarray]]=None, 
+                    fg:Optional[dict[int,np.ndarray]]=None, 
                     use_softmax:bool=True,
-                    )->Tuple[np.ndarray,np.ndarray]:
+                    )->tuple[np.ndarray,np.ndarray]:
     """
     Do a random crop and pad if needed.
     
@@ -319,7 +319,7 @@ def random_crop_resize(img:np.ndarray,
                        final_size:Iterable[int], 
                        fg_rate:int=0.33, 
                        fg_margin:Iterable[float]=np.zeros(3),
-                       )->Tuple[np.ndarray,np.ndarray]:
+                       )->tuple[np.ndarray,np.ndarray]:
     """
     Do a random crop and resize if needed.
     
@@ -411,7 +411,7 @@ class LabelToLong:
         """
         self.label_name = label_name
         
-    def __call__(self, subject:Dict[str,Any])->Dict[str,Any]:
+    def __call__(self, subject:dict[str,Any])->dict[str,Any]:
         """
         Transform to convert label data to long (integer) type.
                 
@@ -445,7 +445,7 @@ class SemSeg3DPatchFast(Dataset):
     :ivar bool load_data: If True, load the entire dataset into memory. 
     :ivar DataHandler handler: DataHandler used to load data.
     :ivar bool train: If True, use the dataset for training; otherwise, use it for validation.
-    :ivar List[str] fnames: List of image paths relative to img_path.
+    :ivar list[str] fnames: List of image paths relative to img_path.
     :ivar bool use_aug: Whether to use data augmentation
     :ivar float fg_rate: Foreground rate, used to force foreground inclusion in patches.
     :ivar float crop_scale: Scale factor for crop size during augmentation.
@@ -463,7 +463,7 @@ class SemSeg3DPatchFast(Dataset):
     load_data:bool
     handler:DataHandler
     train:bool
-    fnames:List[str]
+    fnames:list[str]
     use_aug:bool
     fg_rate:float
     crop_scale:float
@@ -701,7 +701,7 @@ class SemSeg3DPatchFast(Dataset):
         """Return nbof_step*batch_size."""
         return self.nbof_steps*self.batch_size
     
-    def __getitem__(self, idx:int)->Tuple[np.ndarray,np.ndarray]:
+    def __getitem__(self, idx:int)->tuple[np.ndarray,np.ndarray]:
         """
         Return image and mask associated with index, with padding/croping, and data augmentation if use_data_aug.
         

@@ -16,9 +16,8 @@ from torch.utils.tensorboard import SummaryWriter
 from contextlib import nullcontext
 from abc import abstractmethod
 import numpy as np
-import contextlib
 
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Literal, Optional
 from biom3d.metrics import Metric
 
 #----------------------------------------------------------------------------
@@ -37,23 +36,23 @@ class Callback(object):
     Each method starting by `on_` can be overridden. This method will be called at a certain time point during the training process.
     For instance, the `on_epoch_end` method will be called in the end of each epoch. 
 
-    :ivar List[biom3d.Metric] metrics 
+    :ivar list[biom3d.Metric] metrics 
     """
 
-    metrics:List[Metric]
+    metrics:list[Metric]
 
     def __init__(self):
         """Initilization of attributes."""
         self.metrics = None
 
-    def set_trainer(self, metrics:List[Metric])->None:
+    def set_trainer(self, metrics:list[Metric])->None:
         """
         Associate metrics or training state to this callback.
 
         Parameters
         ----------
         metrics : list of biom3d.Metric
-            List of used metrics or training information to be used by the callback.
+            list of used metrics or training information to be used by the callback.
 
         Returns
         ------- 
@@ -170,7 +169,7 @@ class Callbacks(Callback):
     This allows users to easily manage several callbacks in a modular way, for example
     combining logging, checkpoint saving, metric computation, etc., all in one object.
 
-    :ivar Dict[str,Callback] callbacks: A dictionary of callback.
+    :ivar dict[str,Callback] callbacks: A dictionary of callback.
 
     Examples
     --------
@@ -181,7 +180,7 @@ class Callbacks(Callback):
     >>> cbs.on_epoch_end(10)  # calls on_epoch_end(10) on both LogSaver and ModelSaver
     """
 
-    def __init__(self, callbacks:Dict[str,Any]):
+    def __init__(self, callbacks:dict[str,Any]):
         """
         Initialize from a dictionary.
 
@@ -218,7 +217,7 @@ class Callbacks(Callback):
         """ 
         return self.callbacks[name]
 
-    def set_trainer(self, trainer:List[Metric])->None:
+    def set_trainer(self, trainer:list[Metric])->None:
         """
         Set the trainer or metrics context for each callback.
 
@@ -338,7 +337,7 @@ class ModelSaver(Callback): # TODO: save best_only
     
     Can also save the best model based on a monitored loss metric.
     
-    :ivar torch.nn.Module | List[torch.nn.Module] model: Modele to store, if list it is assumed to be [student,teacher].
+    :ivar torch.nn.Module | list[torch.nn.Module] model: Modele to store, if list it is assumed to be [student,teacher].
     :ivar torch.optim.Optimizer optimizer: torch optimizer.
     :ivar str path: Name of the file representing the model.
     :ivar str path_last: path + '.pth'
@@ -471,8 +470,8 @@ class LogSaver(Callback):
     :ivar int crt_epoch: Current epoch (starts at 1).
     :ivar biom3d.Metric train_loss: Training loss object.
     :ivar biom3d.Metric val_loss: Validation loss object.
-    :ivar List[biom3d.Metric] train_metrics: List of training metrics.
-    :ivar List[biom3d.Metric] val_metrics: List of validation metrics.
+    :ivar list[biom3d.Metric] train_metrics: List of training metrics.
+    :ivar list[biom3d.Metric] val_metrics: List of validation metrics.
     :ivar Optional[Callback] scheduler: Scheduler providing current learning rate.
     """
 
@@ -709,8 +708,8 @@ class TensorboardSaver(Callback):
     :ivar SummaryWriter writer: TensorBoard summary writer.
     :ivar Metric train_loss: Training loss.
     :ivar Metric: Validation loss.
-    :ivar List[Metric] train_metrics: List of training metric modules.
-    :ivar List[Metric] val_metrics: List of validation metric modules.
+    :ivar list[Metric] train_metrics: List of training metric modules.
+    :ivar list[Metric] val_metrics: List of validation metric modules.
     :ivar int batch_size: Size of training mini-batch.
     :ivar int n_batch_per_epoch: Number of batches per epoch.
     :ivar int crt_epoch: Current epoch (used for iteration tracking).
@@ -720,8 +719,8 @@ class TensorboardSaver(Callback):
         log_dir:str, 
         train_loss:Metric, 
         val_loss:Metric, 
-        train_metrics:List[Metric], 
-        val_metrics:List[Metric], 
+        train_metrics:list[Metric], 
+        val_metrics:list[Metric], 
         batch_size:int,
         n_batch_per_epoch:int):
         """
@@ -801,7 +800,7 @@ class LogPrinter(Callback):
 
     Logs the current epoch and periodically prints batch information with associated metrics and losses.
 
-    :ivar List[Metric] metrics: List of metric or loss modules to print (must implement __str__).
+    :ivar list[Metric] metrics: List of metric or loss modules to print (must implement __str__).
     :ivar int nbof_epochs: Total number of epochs.
     :ivar int nbof_batches: Number of batches per epoch.
     :ivar int every_batch: Frequency (in batches) at which logs are printed.
@@ -809,7 +808,7 @@ class LogPrinter(Callback):
 
     def __init__(
         self,
-        metrics:List[Metric],
+        metrics:list[Metric],
         nbof_epochs:int,
         nbof_batches:int,
         every_batch:int=10):
@@ -886,7 +885,7 @@ class LRSchedulerMultiStep(Callback):
     :ivar torch.optim.lr_scheduler.MultiStepLR scheduler: Internal PyTorch scheduler.
     """
 
-    def __init__(self, optimizer:torch.optim.Optimizer, milestones:List[int], gamma:float=0.1):
+    def __init__(self, optimizer:torch.optim.Optimizer, milestones:list[int], gamma:float=0.1):
         """
         Initialize the MultiStepLR scheduler.
 
@@ -901,7 +900,7 @@ class LRSchedulerMultiStep(Callback):
         """
         self.scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones, gamma=gamma, verbose=False)
 
-    def get_last_lr(self)->List[float]:
+    def get_last_lr(self)->list[float]:
         """
         Return the last computed learning rate by the scheduler.
 
@@ -956,7 +955,7 @@ class LRSchedulerCosine(Callback):
         """
         self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max, eta_min=1e-6, verbose=False)
 
-    def get_last_lr(self)->List[float]:
+    def get_last_lr(self)->list[float]:
         """
         Return the last computed learning rate by the scheduler.
 
@@ -1455,11 +1454,11 @@ class MetricsUpdater(Callback):
     """
     Update the metrics averages by calling the `update` method of each metric.
 
-    :ivar List[Metric] metrics: List of metrics and losses to update.
+    :ivar list[Metric] metrics: List of metrics and losses to update.
     :ivar int batch_size: Batch size used to update metrics.
     """
 
-    def __init__(self, metrics:List[Metric], batch_size:int):
+    def __init__(self, metrics:list[Metric], batch_size:int):
         """
         Initialize the MetricsUpdater callback.
 

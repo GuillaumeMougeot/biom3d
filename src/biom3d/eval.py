@@ -23,9 +23,9 @@ import argparse
 
 from biom3d.utils import versus_one, dice, iou,DataHandlerFactory
 
-from typing import Callable, List, Tuple
+from typing import Callable
 
-def robust_sort(str_list: List[str]) -> List[str]:
+def robust_sort(str_list: list[str]) -> list[str]:
     """
     Perform a robust sorting of a list of strings, useful for sorting file paths.
 
@@ -59,7 +59,7 @@ def eval(path_lab: str,
          path_out: str,
          num_classes: int,
          fct: Callable = dice,
-         ) -> Tuple[List[float], float]:
+         ) -> tuple[list[float], float]:
     """
     Evaluate segmentation results by comparing predictions to labels using a given metric.
 

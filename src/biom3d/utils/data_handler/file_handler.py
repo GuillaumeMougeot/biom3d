@@ -3,7 +3,7 @@ import SimpleITK as sitk
 import numpy as np
 from skimage import io
 import tifffile as tiff
-from typing import Any, Dict, Iterator, Literal, Optional, Tuple
+from typing import Any, Literal, Optional
 from os.path import isdir, join, dirname,exists,basename,normpath
 from os import makedirs, listdir
 import pickle
@@ -132,7 +132,7 @@ class FileHandler(DataHandler):
                      **kwargs,):
         self._input_parse(img_path,msk_path,fg_path,img_inner_paths_list,msk_inner_paths_list,fg_inner_paths_list,**kwargs)
 
-    def load(self,fname:str)->Tuple[np.ndarray,dict]:
+    def load(self,fname:str)->tuple[np.ndarray,dict]:
         if isdir(fname) : raise ValueError(f"Expected an image, found a directory '{fname}'")
         if self.fg != None and fname in self.fg : return pickle.load(open(fname, 'rb')),{}
         else :
@@ -190,7 +190,7 @@ class ImageManager:
                      return_spacing:bool=True, 
                      return_origin:bool=False, 
                      return_direction:bool=False,
-                     )->Tuple[np.ndarray,Dict[str,Any]]:
+                     )->tuple[np.ndarray,dict[str,Any]]:
         """
         Image reader for nii.gz files.
 
@@ -233,7 +233,7 @@ class ImageManager:
         return img_np, {"spacing": spacing, "origin": origin, "direction": direction}
 
     @staticmethod
-    def adaptive_imread(img_path:str)->Tuple[np.ndarray,Dict[str,Any]]:
+    def adaptive_imread(img_path:str)->tuple[np.ndarray,dict[str,Any]]:
         """
         Load an image file.
 
@@ -305,7 +305,7 @@ class ImageManager:
         sitk.WriteImage(img_out, img_path)
 
     @staticmethod
-    def adaptive_imsave(img_path:str, img:np.ndarray, img_meta:Dict[str,Any]={})->None:
+    def adaptive_imsave(img_path:str, img:np.ndarray, img_meta:dict[str,Any]={})->None:
         """
         Save an image.
 
@@ -351,7 +351,7 @@ class ImageManager:
     # ----------------------------------------------------------------------------
     # tif metadata reader and writer
     @staticmethod
-    def _tif_read_imagej(img_path:str, axes_order:str='CZYX')->Tuple[np.ndarray,Dict[str,Any]]:
+    def _tif_read_imagej(img_path:str, axes_order:str='CZYX')->tuple[np.ndarray,dict[str,Any]]:
         """Read tif file metadata stored in a ImageJ format.
 
         Adapted from: https://forum.image.sc/t/python-copy-all-metadata-from-one-multipage-tif-to-another/26597/8
@@ -412,7 +412,7 @@ class ImageManager:
         return img, img_meta
 
     @staticmethod
-    def _tif_write_imagej(img_path:str, img:np.ndarray, img_meta:Dict[str,Any])->None:
+    def _tif_write_imagej(img_path:str, img:np.ndarray, img_meta:dict[str,Any])->None:
         """
         Write tif file using metadata in ImageJ format.
         
@@ -444,7 +444,7 @@ class ImageManager:
                 )
 
     @staticmethod
-    def _tif_read_meta(tif_path:str, display:bool=False)->Dict[str,Any]:
+    def _tif_read_meta(tif_path:str, display:bool=False)->dict[str,Any]:
         """
         Read the metadata of a tif file and stores them in a python dict.
 
@@ -484,7 +484,7 @@ class ImageManager:
 
     @staticmethod
     def _tif_write_meta(data:np.ndarray,
-                        meta:Dict[str,Any],
+                        meta:dict[str,Any],
                         out_path:str,
                         )->None:
         """
@@ -547,7 +547,7 @@ class ImageManager:
         ImageManager._tif_write_meta(data, in_meta, out_path)
 
     @staticmethod
-    def _tif_get_spacing(path:str, res:float=1e-6)->Tuple[float,float,float]:
+    def _tif_get_spacing(path:str, res:float=1e-6)->tuple[float,float,float]:
         """
         Get the image spacing stored in the metadata file.
 

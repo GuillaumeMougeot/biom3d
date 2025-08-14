@@ -4,7 +4,7 @@ import importlib.util
 import sys
 import shutil
 import fileinput
-from typing import Any, Iterator, List, MutableMapping, Optional, Type, TypeVar
+from typing import Any, Iterator, MutableMapping, Optional, TypeVar
 import numpy as np
 import os
 import yaml
@@ -35,7 +35,7 @@ class AttrDict(dict):
         del self[name]
 
 def config_to_type(cfg:MutableMapping[str, Any], 
-                   new_type:Type[T],
+                   new_type:type[T],
                    )->T:
     """
     Change config type to a new type. This function is recursive and can be use to change the type of nested dictionaries.
@@ -84,12 +84,12 @@ def load_yaml_config(path:str)->AttrDict:
 
     Returns
     -------
-    cfg: Dict
+    cfg: biom3d.utils.AttrDict
         The content of the config file.
     """
     return config_to_type(compat_old_config(yaml.load(open(path),Loader=yaml.FullLoader)), AttrDict)
 
-def nested_dict_pairs_iterator(dic:MutableMapping[str,Any])->Iterator[List[Any]]:
+def nested_dict_pairs_iterator(dic:MutableMapping[str,Any])->Iterator[list[Any]]:
     """
     Iterate over a dictionary by returning a [key,value] iterator.
 
@@ -307,7 +307,7 @@ def load_python_config(config_path:str)->AttrDict:
     config.CONFIG=compat_old_config(config.CONFIG)
     return config_to_type(config.CONFIG, AttrDict) # change type from config.Dict to AttrDict
 
-def recursive_rename_key(d:MutableMapping[str,Any]|List[MutableMapping[str,Any]], 
+def recursive_rename_key(d:MutableMapping[str,Any]|list[MutableMapping[str,Any]], 
                          old_key:str, 
                          new_key:str,
                          )->MutableMapping[str,Any]:
@@ -378,7 +378,7 @@ def adaptive_load_config(config_path:str)->AttrDict:
     
     Returns
     -------
-    cfg : biom3d.utils.Dict
+    cfg : biom3d.utils.AttrDict
         Dictionary of the config.
     """
     extension = config_path[config_path.rfind('.'):]

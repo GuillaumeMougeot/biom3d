@@ -31,7 +31,7 @@ List of pyramid layers:
 import re
 import math
 import collections
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -281,7 +281,7 @@ def drop_connect(inputs:torch.Tensor, p:float, training:bool)->torch.Tensor:
 ########################################################################
 
 
-def efficientnet_params(model_name:str)->Tuple[float,float,int,float]:
+def efficientnet_params(model_name:str)->tuple[float,float,int,float]:
     """
     Map EfficientNet model name to parameter coefficients.
 
@@ -388,7 +388,7 @@ class BlockDecoder(object):
         return '_'.join(args)
 
     @staticmethod
-    def decode(string_list:List[str])->List[BlockArgs]:
+    def decode(string_list:list[str])->list[BlockArgs]:
         """
         Decode a list of block strings into a list of BlockArgs.
 
@@ -409,7 +409,7 @@ class BlockDecoder(object):
         return blocks_args
 
     @staticmethod
-    def encode(blocks_args:List[BlockArgs])->List[str]:
+    def encode(blocks_args:list[BlockArgs])->list[str]:
         """
         Encode a list of BlockArgs into a list of strings.
 
@@ -436,7 +436,7 @@ def efficientnet3d(width_coefficient:Optional[float]=None,
                    image_size:Optional[int]=None, 
                    num_classes:int=1000, 
                    include_top:bool=True,
-                   )->Tuple[BlockArgs,GlobalParams]:
+                   )->tuple[BlockArgs,GlobalParams]:
     """
     Create EfficientNet3D block arguments and global parameters.
 
@@ -489,7 +489,7 @@ def efficientnet3d(width_coefficient:Optional[float]=None,
     return blocks_args, global_params
 
 
-def get_model_params(model_name:str, override_params:Optional[Dict])->Tuple[BlockArgs,GlobalParams]:
+def get_model_params(model_name:str, override_params:Optional[dict])->tuple[BlockArgs,GlobalParams]:
     """
     Retrieve EfficientNet block args and global parameters by model name.
 
@@ -661,8 +661,8 @@ class EfficientNet3D(nn.Module):
     def __init__(self, blocks_args:BlockArgs, 
                  global_params:Optional[GlobalParams]=None, 
                  in_channels:int=3, 
-                 num_pools:List[int]=[5,5,5], 
-                 first_stride:List[int]=[1,1,1]):
+                 num_pools:list[int]=[5,5,5], 
+                 first_stride:list[int]=[1,1,1]):
         """
         Efficientnet 3D model implementation.
 
@@ -830,7 +830,7 @@ class EfficientNet3D(nn.Module):
     @classmethod
     def from_name(cls:"EfficientNet3D", 
                   model_name:str, 
-                  override_params:Optional[Dict]=None, 
+                  override_params:Optional[dict]=None, 
                   in_channels:int=3, 
                   **kwargs)->"EfficientNet3D":
         """

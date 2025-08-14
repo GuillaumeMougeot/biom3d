@@ -1,11 +1,10 @@
 """This submodule provides functions to split, save and load folds."""
 
-from typing import List, Tuple
 import numpy as np
 from pandas import DataFrame
 
 #TODO use verbose
-def get_train_test_df(df:DataFrame, verbose:bool=True)->Tuple[np.ndarray,np.ndarray]:
+def get_train_test_df(df:DataFrame, verbose:bool=True)->tuple[np.ndarray,np.ndarray]:
     """
     Extract train and test sets from a DataFrame based on the 'hold_out' column.
 
@@ -27,7 +26,7 @@ def get_train_test_df(df:DataFrame, verbose:bool=True)->Tuple[np.ndarray,np.ndar
     test_set = np.array(df[df['hold_out']==1].iloc[:,0])
     return train_set, test_set
 
-def get_folds_df(df:DataFrame, verbose:bool=True)->List[List[str]]:
+def get_folds_df(df:DataFrame, verbose:bool=True)->list[list[str]]:
     """
     Extract folds from a DataFrame into a list of lists.
 
@@ -62,7 +61,7 @@ def get_folds_df(df:DataFrame, verbose:bool=True)->List[List[str]]:
 def get_folds_train_test_df(df:DataFrame, 
                             verbose:bool=True, 
                             merge_test:bool=True,
-                            )->Tuple[List[List[str]],List[List[str]]|List[str]]:
+                            )->tuple[list[list[str]],list[list[str]]|list[str]]:
     """
     Extract fold groups from both train and test sets.
 
@@ -97,7 +96,7 @@ def get_folds_train_test_df(df:DataFrame,
         test_folds = test_folds_merged
     return train_folds, test_folds
 
-def get_splits_train_val_test(df:DataFrame)->Tuple[List[List[str]],List[str],List[str]]:
+def get_splits_train_val_test(df:DataFrame)->tuple[list[list[str]],list[str],list[str]]:
     """
     Create dataset splits of different sizes, along with validation and test sets.
 
@@ -128,7 +127,7 @@ def get_splits_train_val_test(df:DataFrame)->Tuple[List[List[str]],List[str],Lis
     train_splits = [list(df[(df['fold']!=0)*(df['hold_out']==0)].iloc[:,0])] + train_splits
     return train_splits, valset, testset
 
-def get_splits_train_val_test_overlapping(df:DataFrame)->Tuple[List[List[str]],List[str],List[str]]:
+def get_splits_train_val_test_overlapping(df:DataFrame)->tuple[list[list[str]],list[str],list[str]]:
     """
     Create overlapping training splits plus validation and test sets.
 

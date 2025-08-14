@@ -1,8 +1,7 @@
 """This submodule provides function for neural network."""
-from typing import List
 import numpy as np
 
-def convert_num_pools(num_pools:List[int],roll_strides:bool=True)->List[List[int]]:
+def convert_num_pools(num_pools:list[int],roll_strides:bool=True)->list[list[int]]:
     """
     Generate adaptive pooling stride configurations based on the number of pools per axis.
 

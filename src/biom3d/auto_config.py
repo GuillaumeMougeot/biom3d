@@ -8,7 +8,7 @@ This script can be used to compute and display:
 - the number of poolings in the 3D U-Net
 """
 
-from typing import Iterable, List, Optional, Tuple
+from typing import Optional
 import numpy as np
 import itertools
 import argparse
@@ -18,7 +18,7 @@ from biom3d.utils import DataHandlerFactory, save_python_config
 # ----------------------------------------------------------------------------
 # Median computation
 
-def compute_median(path:str, return_spacing:bool=False)->np.ndarray | Tuple[np.ndarray,np.ndarray]:
+def compute_median(path:str, return_spacing:bool=False)->np.ndarray | tuple[np.ndarray,np.ndarray]:
     """
     Compute the median shape of a folder of images. If `return_spacing` is True, then also return the median spacing.
 
@@ -88,7 +88,7 @@ def data_fingerprint(img_path:str,
                      msk_path:Optional[str]=None, 
                      num_samples:int=10000,
                      seed:int=42,
-                     )->Tuple[np.ndarray,np.ndarray,float,float,float,float]:
+                     )->tuple[np.ndarray,np.ndarray,float,float,float,float]:
     """
     Compute the data fingerprint.
 
@@ -209,11 +209,11 @@ def data_fingerprint(img_path:str,
 # ----------------------------------------------------------------------------
 # Patch pool batch computation
 
-def find_patch_pool_batch(dims:Tuple[int]|List[int], 
-                          max_dims:Tuple[int]=(128,128,128), 
+def find_patch_pool_batch(dims:tuple[int]|list[int], 
+                          max_dims:tuple[int]=(128,128,128), 
                           max_pool:int=5, 
                           epsilon:float=1e-3,
-                          )->Tuple[np.ndarray,np.ndarray,np.ndarray]:
+                          )->tuple[np.ndarray,np.ndarray,np.ndarray]:
     """
     Given the median image size, compute the patch size, the number of pooling and the batch size.
     
@@ -343,7 +343,7 @@ def find_patch_pool_batch(dims:Tuple[int]|List[int],
     
     return patch, pool, batch
 
-def get_aug_patch(patch_size:Tuple[int]|List[int]|np.ndarray)->np.ndarray:
+def get_aug_patch(patch_size:tuple[int]|list[int]|np.ndarray)->np.ndarray:
     """
     Return augmentation patch size.
     
@@ -437,11 +437,11 @@ def display_info(patch:np.ndarray, pool:np.ndarray, batch:np.ndarray)->None:
     print("NUM_POOLS =", list(pool))
 
 def auto_config(img_path:Optional[str]=None,
-                median:Optional[List[int]|Tuple[int]]=None,
-                max_dims:Tuple[int]=(128,128,128), 
+                median:Optional[list[int]|tuple[int]]=None,
+                max_dims:tuple[int]=(128,128,128), 
                 max_batch:int=16, 
                 min_batch:int=2,
-                )->Tuple[np.ndarray,np.ndarray,np.ndarray,np.ndarray]:
+                )->tuple[np.ndarray,np.ndarray,np.ndarray,np.ndarray]:
     """
     Given an image collection, return the batch size, the patch size and the number of pooling.
 

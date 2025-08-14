@@ -2,7 +2,7 @@
 
 from os.path import isdir,splitext,exists
 from os import lstat,getcwd,access,W_OK
-from typing import Optional, Type
+from typing import Optional
 from urllib.parse import urlparse
 
 from .data_handler_abstract import DataHandler
@@ -12,7 +12,7 @@ from .hdf5_handler import HDF5Handler
 class DataHandlerFactory:
     """Class to instantiate a DataHandler depending on the input and output type."""
     
-    EXTENSION_MAP: dict[str, Type['DataHandler']] = {
+    EXTENSION_MAP: dict[str, type['DataHandler']] = {
         ".h5": HDF5Handler,
         ".hdf5": HDF5Handler,
         "folder": FileHandler
@@ -81,7 +81,7 @@ class DataHandlerFactory:
             return False
 
     @staticmethod
-    def _detect_handler_type(path: str) -> Type['DataHandler']:
+    def _detect_handler_type(path: str) -> type['DataHandler']:
         """
         Extract the data format from path and return `DataHandler` subclass fit to treat it if existing, raise `NotImplementedError` else.
 
