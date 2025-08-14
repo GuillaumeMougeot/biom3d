@@ -1,10 +1,5 @@
 Preprocessing
 =============
 
-.. currentmodule:: biom3d.preprocess
-
-:class:`Preprocessing`
-~~~~~~~~~~~~~~~~~~~~~~
-
-.. autoclass:: Preprocessing
+.. automodule:: biom3d.preprocess
     :members:
