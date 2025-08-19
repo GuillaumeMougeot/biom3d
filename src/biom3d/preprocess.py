@@ -661,6 +661,10 @@ class Preprocessing:
                 print("[Warning] 4 dimensions detected and channel axis is {}. All image dimensions will be swapped.".format(self.channel_axis))
                 self.median_size[[0,self.channel_axis]] = self.median_size[[self.channel_axis,0]]
             self.median_size = self.median_size[1:]
+        # Add an extra dimension to simulate the D axis
+        if is_2d:
+            self.median_size = (1, *self.median_size)
+
 
         self.median_spacing = np.array(median_spacing)
         self.clipping_bounds = np.array(clipping_bounds)
