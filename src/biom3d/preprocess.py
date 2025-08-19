@@ -224,7 +224,7 @@ def correct_mask(
             Defaults to False, expecting 3D data (D,H,W) or (C,D,H,W).
         standardize_dims (bool, optional): If True (default), ensures the output is always 4D,
             ready for a pipeline. If False, the output ndim will match
-            the input ndim.
+            the input ndim. expect if `use_one_hot` is True.
         output_dtype (dtype, optional): The desired numpy data type for the output mask.
                                         Defaults to np.uint16.
         use_one_hot (bool, optional): If encoding type is 'label', whether to encode the mask
