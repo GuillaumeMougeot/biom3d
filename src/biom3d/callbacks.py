@@ -14,6 +14,7 @@ plt.switch_backend('Agg')  # bug fix: change matplotlib backend
 from torch.utils.tensorboard import SummaryWriter
 from abc import abstractmethod
 import numpy as np
+from contextlib import nullcontext
 
 #----------------------------------------------------------------------------
 # Base classes
