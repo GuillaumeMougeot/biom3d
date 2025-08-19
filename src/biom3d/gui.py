@@ -311,14 +311,17 @@ def popupmsg(msg):
     msg : str
         Text to be printed.
     """
-    popup = tk.Tk()
-    popup.wm_title("!")
-    label = ttk.Label(popup, text=msg)
-    popup.minsize(300,100)
-    label.pack(pady=10, padx=10)
-    B1 = ttk.Button(popup, text="Okay", command = popup.destroy)
-    B1.pack(side="bottom",pady=10)
-    popup.mainloop()
+    def _show():
+        popup = tk.Tk()
+        popup.wm_title("!")
+        popup.minsize(300, 100)
+        label = ttk.Label(popup, text=msg)
+        label.pack(pady=10, padx=10)
+        B1 = ttk.Button(popup, text="Okay", command=popup.destroy)
+        B1.pack(side="bottom", pady=10)
+        popup.mainloop()
+
+    threading.Thread(target=_show, daemon=True).start()
       
 #----------------------------------------------------------------------------
 # File dialog
