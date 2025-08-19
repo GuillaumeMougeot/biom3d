@@ -659,7 +659,7 @@ class Preprocessing:
             self.channel_axis = np.argmin(self.median_size)
             if self.channel_axis != 0:
                 print("[Warning] 4 dimensions detected and channel axis is {}. All image dimensions will be swapped.".format(self.channel_axis))
-            self.median_size[[0,self.channel_axis]] = self.median_size[[self.channel_axis,0]]
+                self.median_size[[0,self.channel_axis]] = self.median_size[[self.channel_axis,0]]
             self.median_size = self.median_size[1:]
 
         self.median_spacing = np.array(median_spacing)
