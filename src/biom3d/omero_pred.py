@@ -14,6 +14,7 @@ from biom3d import omero_downloader
 try:
     from biom3d import omero_uploader
 except:
+    print("Warning: couldn't import omero uploader.")
     pass
 from biom3d import pred  
 
