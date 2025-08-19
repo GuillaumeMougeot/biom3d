@@ -259,8 +259,8 @@ def correct_mask(
     processed_mask = mask.copy()
     if is_2d: 
         # print("[INFO] Processing in 2D mode.")
-        if processed_mask.ndim == 2: # (H,W) -> (1,H,W)
-            processed_mask = processed_mask[np.newaxis, ...]
+        if processed_mask.ndim == 2: # (H,W) -> (1,1,H,W)
+            processed_mask = processed_mask[np.newaxis, np.newaxis, ...]
         elif processed_mask.ndim == 3: # (C,H,W) -> (C,1,H,W)
             processed_mask = processed_mask[:, np.newaxis, ...]
         else:
