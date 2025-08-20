@@ -502,7 +502,8 @@ def standardize_img_dims(img:np.ndarray, num_channels:int, channel_axis:int, is_
     """
     Standardizes an image to 4D format: (C, D, H, W) for 3D, or (C, 1, H, W) for 2D.
 
-    This function ensures compatibility with the rest of the pipeline.
+    This function ensures compatibility with the rest of the pipeline. If there is an incoherency between channel_axis and value and said value is unique, it will fix it.
+    E.g: (8,32,32,1) with channel_axis=0 and num_channels = 1 -> (1,8,32,32)
 
     Parameters
     ----------
@@ -552,8 +553,11 @@ def standardize_img_dims(img:np.ndarray, num_channels:int, channel_axis:int, is_
             raise ValueError(f"For 3D, expected 3 or 4 dims, but got {img.ndim}")
     
     # Final check
-    if img.shape[0] != num_channels:
+    if img.shape[0] != num_channels and img.shape.count(num_channels) == 0:
         raise ValueError(f"Image has {img.shape[0]} channels but expected {num_channels}.")
+    else:
+        # Heuristic to save the day in case of incorrect channel axis and 4D (for 3D) or 3D (for 2D) image
+        img=np.swapaxes(img,0,img.shape.index(num_channels))
         
     return img, original_shape
 
