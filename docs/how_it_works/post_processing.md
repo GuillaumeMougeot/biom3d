@@ -13,9 +13,9 @@ The post processing function works in several steps :
    2. Keep biggest only : This filter keep only the biggest **centered** object, it is used in case where you know that you have 1 segmented object per image and that it is centered.
    If both filter are selected, you will have a warning and it will use Keep biggest only.
 
-The image is always resample to it's original shape before pre-preprocessing, if you decide to use the option `--skip preprocessing`, you must assure that the image has `original_shape` in its metadata and is in `(C,D,H,W)` for 3D aornd `(C,1,H,W)` for 2D.
+The image is always resample to it's original shape before pre-preprocessing, if you decide to use the option `--skip-preprocessing`, you must assure that the image has `original_shape` in its metadata and is in `(C,D,H,W)` for 3D or `(C,1,H,W)` for 2D.
 
-## Modifying the paramters :
+## Modifying the parameters :
 There are two way to modify the post procesing behaviour : by calling the function with specific parameter, that require to develop your own python script, or to modify the `config.yaml` file, if you want to do that before the training, you will have to . 
 
 The default look of the post processing part in the config file is :
@@ -101,7 +101,7 @@ If you have any doubt about how to write a value or on syntaxe, check how we do 
         ),
     )
     ```
-- If you want to use `keep_big_only` or `keep_biggest_only`, you don't necessarly need to modify the config files as it is an option in our GUI, however this option hasn't been integrated in our CLI yet. If you want to modify the config here how to :
+- If you want to use `keep_big_only` or `keep_biggest_only`, you don't necessarly need to modify the config files as it is an option in our GUI, however this option hasn't been integrated in our CLI yet. If you want to modify the config here is how to :
   ```yaml
     POSTPROCESSOR:
     fct: Seg
