@@ -39,6 +39,9 @@ class HDF5Handler(DataHandler):
         
         img_key = "raw" if eval is None else eval
 
+        # TODO: For bacmman, Will need a refactor later for more flexibility
+        if img_key not in self._img_h5_file : 
+            img_key = 'inputs'
         if img_key not in self._img_h5_file : 
             k = list(self._img_h5_file.keys())
             self.close()
