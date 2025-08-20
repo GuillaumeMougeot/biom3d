@@ -877,6 +877,7 @@ class Builder:
             assert img is not None and img_meta is not None, '[Error] If the handler not provided, provide the image array and its metadata'
         
         print("Input shape:", img.shape)
+        num_class = self.config.NUM_CLASSES
 
         if isinstance(self.config,list): # multi-model mode!
             if not skip_preprocessing:
@@ -885,7 +886,7 @@ class Builder:
                 assert np.all([config.PREPROCESSOR==self.config[0].PREPROCESSOR for config in self.config[1:]]), "[Error] For multi-model prediction, the current version of biom3d imposes that all preprocessor are identical. {}".format([config.PREPROCESSOR==self.config[0].PREPROCESSOR for config in self.config[1:]])
                 
                 # preprocessing
-                img, img_meta = read_config(self.config[0].PREPROCESSOR, register.preprocessors, img=img, img_meta=img_meta)
+                img, img_meta = read_config(self.config[0].PREPROCESSOR, register.preprocessors, img=img, img_meta=img_meta,num_classes=num_class)
 
             # same for postprocessors
             for i in range(len(self.config)):
@@ -926,7 +927,7 @@ class Builder:
         
         else: # single model prediction
             if not skip_preprocessing:
-                img, img_meta = read_config(self.config.PREPROCESSOR, register.preprocessors, img=img, img_meta=img_meta)
+                img, img_meta = read_config(self.config.PREPROCESSOR, register.preprocessors, img=img, img_meta=img_meta,num_classes=num_class)
                 
                 print("Preprocessed shape:", img.shape)
 

@@ -171,7 +171,7 @@ class HDF5Handler(DataHandler):
                 fname = "/".join(fname_split[:-1])
                 self._img_h5_file = h5py.File(self._images_path_root,'r')
                 file = self._img_h5_file
-            elif archive == "raw":
+            elif archive == "raw" or archive == 'inputs':
                 self._img_h5_file = h5py.File(self._images_path_root,'r')
                 file = self._img_h5_file
             elif archive == "label":
