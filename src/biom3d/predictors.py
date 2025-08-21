@@ -82,7 +82,7 @@ def seg_predict(
     with torch.no_grad():
         if torch.cuda.is_available():
             img = img.cuda()
-        elif torch.mps.is_available():
+        elif torch.backends.mps.is_available():
             img = img.to('mps')
         logit = model(img)[0][0]
 
@@ -115,7 +115,7 @@ def seg_predict_old(img:torch.Tensor, model:torch.nn.Module, return_logit:bool=F
     with torch.no_grad():
         if torch.cuda.is_available():
             img = img.cuda()
-        elif torch.mps.is_available():
+        elif torch.backends.mps.is_available():
             img = img.to('mps')
         img = torch.unsqueeze(img, 0)
         logit = model(img)[0]
@@ -332,7 +332,7 @@ def seg_predict_patch(
         The predicted segmentation mask or logit.
     """
     if torch.cuda.is_available(): device='cuda'
-    elif torch.mps.is_available(): device='mps'
+    elif torch.backends.mps.is_available(): device='mps'
     else: device = 'cpu'
     enable_autocast = torch.cuda.is_available() and enable_autocast # tmp, autocast seems to work only with gpu for now... 
     print('AMP {}'.format('enabled' if enable_autocast else 'disabled'))
@@ -362,7 +362,7 @@ def seg_predict_patch(
             X = patch['img'][tio.DATA]
             if torch.cuda.is_available():
                 X = X.cuda()
-            elif torch.mps.is_available():
+            elif torch.backends.mps.is_available():
                 X = X.to('mps')
             
             if tta: # test time augmentation: flip around each axis
@@ -397,7 +397,7 @@ def seg_predict_patch(
     
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
-    elif torch.mps.is_available():
+    elif torch.backends.mps.is_available():
         torch.mps.empty_cache()
 
     # post-processing:
@@ -490,7 +490,7 @@ def seg_predict_patch_2(
         The predicted segmentation mask or logit.
     """
     if torch.cuda.is_available(): device='cuda'
-    elif torch.mps.is_available(): device='mps'
+    elif torch.backends.mps.is_available(): device='mps'
     else: device = 'cpu'
     enable_autocast = torch.cuda.is_available() and enable_autocast # tmp, autocast seems to work only with gpu for now... 
     print('AMP {}'.format('enabled' if enable_autocast else 'disabled'))
@@ -533,7 +533,7 @@ def seg_predict_patch_2(
             X = patch['img'][tio.DATA]
             if torch.cuda.is_available():
                 X = X.cuda()
-            elif torch.mps.is_available():
+            elif torch.backends.mps.is_available():
                 X = X.to('mps')
             
             if tta: # test time augmentation: flip around each axis
@@ -569,7 +569,7 @@ def seg_predict_patch_2(
     model.cpu()
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
-    elif torch.mps.is_available():
+    elif torch.backends.mps.is_available():
         torch.mps.empty_cache()
 
     # reshape the logit so it has the same size as the original image

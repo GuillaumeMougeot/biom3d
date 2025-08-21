@@ -468,7 +468,7 @@ class Builder:
             if torch.cuda.is_available():
                 student.cuda()
                 teacher.cuda()
-            elif torch.mps.is_available():
+            elif torch.backends.mps.is_available():
                 student.to('mps')
                 teacher.to('mps')
             
@@ -501,7 +501,7 @@ class Builder:
                 if torch.cuda.device_count() > 1:
                     print("Let's use", torch.cuda.device_count(), "GPUs!")
                     self.model = torch.nn.DataParallel(self.model)
-            elif torch.mps.is_available():
+            elif torch.backends.mps.is_available():
                 self.model.to('mps')
                 if torch.mps.device_count() > 1:
                     print("Let's use", torch.mps.device_count(), "GPUs!")
@@ -524,7 +524,7 @@ class Builder:
             self.loss_fn = read_config(self.config.TRAIN_LOSS, register.metrics)
             if torch.cuda.is_available():
                 self.loss_fn.cuda()
-            elif torch.mps.is_available():
+            elif torch.backends.mps.is_available():
                 self.loss_fn.to('mps')
             self.loss_fn.train()
 
@@ -532,7 +532,7 @@ class Builder:
                 self.val_loss_fn = read_config(self.config.VAL_LOSS, register.metrics)
                 if torch.cuda.is_available():
                     self.val_loss_fn.cuda()
-                if torch.mps.is_available():
+                if torch.backends.mps.is_available():
                     self.val_loss_fn.to('mps')
                 self.val_loss_fn.eval()
             else: 
@@ -545,7 +545,7 @@ class Builder:
                 for m in self.train_metrics: 
                     if torch.cuda.is_available():
                         m.cuda()
-                    elif torch.mps.is_available():
+                    elif torch.backends.mps.is_available():
                         m.to('mps')
                     m.eval()
             else: self.train_metrics = []
@@ -555,7 +555,7 @@ class Builder:
                 for m in self.val_metrics: 
                     if torch.cuda.is_available():
                         m.cuda()
-                    elif torch.mps.is_available():
+                    elif torch.backends.mps.is_available():
                         m.to('mps')
                     m.eval()
             else: self.val_metrics = []
@@ -744,7 +744,7 @@ class Builder:
         torch.manual_seed(12345)
         if torch.cuda.is_available():
             torch.cuda.manual_seed_all(12345)
-        elif torch.mps.is_available():
+        elif torch.backends.mps.is_available():
             # No all in API
             torch.mps.manual_seed(12345)
         torch.backends.cudnn.deterministic = True
@@ -789,7 +789,7 @@ class Builder:
 
     def run_training(self):
         """Run the training and validation routines."""
-        if not torch.cuda.is_available() and not torch.mps.is_available():
+        if not torch.cuda.is_available() and not torch.backends.mps.is_available():
             print("[Warning] GPU not available! The training might be extremely slow. We strongly advise to use a CUDA or Apple Silicon machine to train a model. Predictions can be done using a CPU only machine.")
 
         if torch.cuda.is_available() and 'USE_FP16' in self.config.keys() and self.config.USE_FP16:
@@ -1133,7 +1133,7 @@ class Builder:
             # we keep this option to avoid forcing the definition of a 'load' method in the model.
             else: 
                 if torch.cuda.is_available(): device = 'cuda'
-                elif torch.mps.is_available(): device = 'mps'
+                elif torch.backends.mps.is_available(): device = 'mps'
                 else: device = 'cpu'
                 ckpt = torch.load(model_path, map_location=torch.device(device))
                 print("Loading model from", model_path)

@@ -72,7 +72,7 @@ def seg_train(
     
     if torch.cuda.is_available():
         torch.cuda.synchronize()
-    elif torch.mps.is_available():
+    elif torch.backends.mps.is_available():
         torch.mps.synchronize()
     t_start_epoch = time()
     print("[time] start epoch")
@@ -83,7 +83,7 @@ def seg_train(
         if torch.cuda.is_available():
             X, y = X.cuda(), y.cuda()
             torch.cuda.synchronize()
-        if torch.mps.is_available():
+        if torch.backends.mps.is_available():
             X, y = X.to('mps'), y.to('mps')
             torch.mps.synchronize()
         t_data_loading = time()
@@ -124,13 +124,13 @@ def seg_train(
 
         if torch.cuda.is_available():
             torch.cuda.synchronize()
-        elif torch.mps.is_available():
+        elif torch.backends.mps.is_available():
             torch.mps.synchronize()
         t_start_epoch = time()
     
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
-    elif torch.mps.is_available():
+    elif torch.backends.mps.is_available():
         torch.mps.empty_cache()
 
 def seg_validate(
@@ -177,7 +177,7 @@ def seg_validate(
             # with CUDA
             if torch.cuda.is_available():
                 X, y = X.cuda(), y.cuda()
-            elif torch.mps.is_available():
+            elif torch.backends.mps.is_available():
                 X,y = X.to('mps'), y.to('mps')
             
             with torch.amp.autocast("cuda") if use_fp16 and torch.cuda.is_available else nullcontext():
@@ -196,7 +196,7 @@ def seg_validate(
                 
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
-    elif torch.mps.is_available():
+    elif torch.backends.mps.is_available():
         torch.mps.empty_cache()
     template = "val error: avg loss {:.3f}".format(loss_fn.avg.item())
     for m in metrics: template += ", " + str(m)
@@ -240,7 +240,7 @@ def seg_patch_validate(dataloader:SubjectsLoader,
             for (X,y) in patch_loader:
                 if torch.cuda.is_available():
                     X, y = X.cuda(), y.cuda()
-                elif torch.mps.is_available():
+                elif torch.backends.mps.is_available():
                     X,y = X.to('mps'), y.to('mps')
                 pred=model(X).detach()
 
@@ -306,7 +306,7 @@ def seg_patch_train(
 
             if torch.cuda.is_available():
                 X, y = X.cuda(), y.cuda()
-            elif torch.mps.is_available():
+            elif torch.backends.mps.is_available():
                 X, y = X.to('mps'), y.to('mps')
 
             # Compute prediction error
