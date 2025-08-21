@@ -1,0 +1,254 @@
+name: Build and Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  APP_NAME: Biom3d
+  DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+  DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+
+jobs:
+  read-config:
+    runs-on: ubuntu-latest
+    outputs:
+      configs: ${{ steps.read-config.outputs.configs }}
+    steps:
+      - uses: actions/checkout@v3
+      - id: read-config
+        run: |
+          echo "configs=$(jq -c '.configs' .github/workflows/config_docker.json)" >> $GITHUB_OUTPUT
+
+  build-docker:
+    needs: read-config
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        config: ${{ fromJson(needs.read-config.outputs.configs) }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Login Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ env.DOCKER_USERNAME }}
+          password: ${{ env.DOCKER_PASSWORD }}
+
+      - name: Build and push Docker image
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}-${{ matrix.config.architecture }}-torch${{ matrix.config.torch_version }}"
+          if [ -n "${{ matrix.config.cuda_version }}" ]; then
+            TAG="$TAG-cuda${{ matrix.config.cuda_version }}-cudnn${{ matrix.config.cudnn_version }}"
+          fi  
+
+          if [ -n "${{ matrix.config.target }}" ] && [ "${{ matrix.config.target }}" != "gpu" ]; then
+            TAG="$TAG-${{ matrix.config.target }}"
+          fi
+          docker build \
+            --build-arg BASE_IMAGE=${{ matrix.config.base_image }} \
+            --build-arg TARGET=${{ matrix.config.target }} \
+            --build-arg PYTHON_VERSION=${{ matrix.config.python_version }} \
+            --build-arg OMERO_VERSION=${{ matrix.config.omero_version }} \
+            --build-arg TESTED=${{ matrix.config.tested }} \
+            -f deployment/dockerfiles/template.dockerfile \
+            -t ${{ env.DOCKER_USERNAME }}/biom3d:$TAG  .
+          docker push ${{ env.DOCKER_USERNAME }}/biom3d:$TAG
+
+  build-macos:
+    needs: read-config
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Extract version from tag
+        id: get_version
+        run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Update CFBundleVersion in Info.plist
+        run: |
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${{ steps.get_version.outputs.version }}" deployment/exe/macos/Info.plist
+
+      - name: Install Miniforge
+        run: |
+          curl -L -o Miniforge3-MacOSX-arm64.sh https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-MacOSX-arm64.sh
+          bash Miniforge3-MacOSX-arm64.sh -b -p $HOME/miniforge
+          echo "export PATH=$HOME/miniforge/bin:$PATH" >> $GITHUB_ENV
+
+      - name: Initialize conda environment for pack.sh
+        shell: bash
+        run: |
+          source $HOME/miniforge/etc/profile.d/conda.sh
+          conda activate base
+
+      - name: Get architecture
+        id: arch
+        run: echo "ARCH=$(uname -m)" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Build macOS app
+        run: |
+          cd deployment/exe/macos && \
+          export PATH=$HOME/miniforge/bin:$PATH && \
+          source $HOME/miniforge/etc/profile.d/conda.sh && \
+          conda activate base &&\
+          chmod +x ./pack.sh &&\
+          ./pack.sh ${{ steps.arch.outputs.ARCH }}
+
+      - name: Set REMOTE = True for remote build
+        run: sed -i '' 's/^REMOTE = False/REMOTE = True/' src/biom3d/gui.py
+
+      - name: Build remote MacOS app with minimal Python env
+        shell: bash
+        id: remote
+        run: |
+          python -m venv remote
+          source remote/bin/activate
+          python -m ensurepip --upgrade
+          pip install wheel
+          pip install pyinstaller paramiko pyyaml
+          pyinstaller --clean --onefile \
+            --name Biom3d_MacOS_${{ steps.arch.outputs.ARCH }}_Remote \
+            --icon=deployment/exe/windows/logo.ico \
+            src/biom3d/gui.py
+          cp /Users/runner/work/biom3d/biom3d/dist/Biom3d_MacOS_${{ steps.arch.outputs.ARCH }}_Remote $GITHUB_WORKSPACE
+
+      - name: Prepare artifact folder
+        run: |
+          mkdir artifact_root
+          cp Biom3d_MacOS_${{ steps.arch.outputs.ARCH }}_Remote artifact_root/
+          cp deployment/exe/macos/Biom3d_MacOS_*.zip artifact_root/
+        shell: bash
+
+      - name: Upload MacOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Biom3d-MacOS
+          path: artifact_root
+
+  build-windows:
+    needs: read-config
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Miniforge (Windows)
+        shell: powershell
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Windows-x86_64.exe" -OutFile "Miniforge3.exe"
+          Start-Process -FilePath .\Miniforge3.exe -ArgumentList "/InstallationType=JustMe", "/AddToPath=1", "/RegisterPython=0", "/S", "/D=$env:USERPROFILE\miniforge3" -NoNewWindow -Wait
+
+      - name: Add conda to path
+        run: |
+          Add-Content -Path $Env:GITHUB_PATH -Value "$env:USERPROFILE\miniforge3\Scripts"
+          Add-Content -Path $Env:GITHUB_PATH -Value "$env:USERPROFILE\miniforge3\Library\bin"
+          Add-Content -Path $Env:GITHUB_PATH -Value "$env:USERPROFILE\miniforge3\bin"
+        shell: powershell
+
+      - name: Initialize Conda
+        run: |
+          conda init cmd.exe
+        shell: cmd
+
+      - name: Get architecture
+        id: arch
+        shell: powershell
+        run: |
+          $arch = $env:PROCESSOR_ARCHITECTURE
+          switch ($arch) {
+            "AMD64" { $arch = "x86_64" }
+            "ARM64" { $arch = "arm64" }
+            "x86" { $arch = "x86" }
+            default { $arch = $arch }
+          }
+          echo "ARCH=$arch" >> $env:GITHUB_OUTPUT
+
+      - name: Build Windows app
+        shell: cmd
+        run: |
+          cd deployment\exe\windows && ^
+          call pack.bat ${{ steps.arch.outputs.ARCH }}
+
+
+      - name: Set REMOTE = True for remote build (Windows)
+        shell: powershell
+        run: |
+          (Get-Content src\biom3d\gui.py) -replace '^REMOTE = False', 'REMOTE = True' | Set-Content src\biom3d\gui.py
+
+      - name: Build remote Windows app with minimal Python env
+        shell: powershell
+        run: |
+          python -m venv remote
+          .\remote\Scripts\activate
+          python -m ensurepip --upgrade
+          pip install wheel
+          pip install pyinstaller paramiko pyyaml
+          pyinstaller --clean --onefile `
+            --name Biom3d_Windows_${{ steps.arch.outputs.ARCH }}_Remote.exe `
+            --icon=deployment/exe/windows/logo.ico `
+            src/biom3d/gui.py
+
+          Copy-Item -Path "dist\Biom3d_Windows_${{ steps.arch.outputs.ARCH }}_Remote.exe" -Destination "$env:GITHUB_WORKSPACE"
+
+
+      - name: Prepare artifact folder
+        run: |
+          mkdir artifact_root
+          copy Biom3d_Windows_${{ steps.arch.outputs.ARCH }}_Remote.exe artifact_root\
+          copy deployment\exe\windows\Biom3d_Windows_*.zip artifact_root\
+        shell: cmd
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Biom3d-Windows
+          path: artifact_root\
+
+  release:
+    name: Create Release
+    needs: [build-macos, build-windows, build-docker, read-config]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Download macOS artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: Biom3d-MacOS
+          path: mac
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: Biom3d-Windows
+          path: win
+
+      # - name: Zip source code # Not necessary
+      #  run: |
+      #    git archive --format zip --output source.zip HEAD
+
+      - name: Extract changelog for version
+        id: changelog
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/}"
+          if grep -q "## \[$VERSION\]" CHANGELOG.md; then
+            awk "/## \[$VERSION\]/ {flag=1; next} /^## \[/ {flag=0} flag" CHANGELOG.md > changelog.md
+          else
+            echo "Version $VERSION not found in CHANGELOG.md" > changelog.md
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body_path: changelog.md
+          files: |
+            mac/Biom3d_MacOS_*.zip
+            mac/Biom3d_MacOS_*_Remote
+            win/Biom3d_Windows_*.zip
+            win/Biom3d_Windows_*_Remote.exe
+
+        #    source.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
