@@ -557,7 +557,7 @@ def standardize_img_dims(img:np.ndarray, num_channels:int, channel_axis:int, is_
         raise ValueError(f"Image has {img.shape[0]} channels but expected {num_channels}.")
     else:
         # Heuristic to save the day in case of incorrect channel axis and 4D (for 3D) or 3D (for 2D) image
-        img=np.swapaxes(img,0,img.shape.index(num_channels))
+        img=np.moveaxis(img,img.shape.index(num_channels),0)
         
     return img, original_shape
 
