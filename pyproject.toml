@@ -14,13 +14,13 @@ authors = [
 ]
 description = "Biom3d. Framework for easy-to-use biomedical image segmentation."
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.9"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "torch",
+    "torch>=2.3",
     "tqdm>=4.62.3",
     "scikit-image>=0.14",
     "scipy>=1.9.1",
@@ -30,13 +30,14 @@ dependencies = [
     "matplotlib>=3.5.3",
     "tensorboard>=2.8.0",
     "PyYAML>=5.4",
-    "torchio>=0.18.84, <0.20.6",
+    "torchio>=0.20.6",
     "protobuf>=3.19.3",
     "appdirs>=1.4.4",
     "numba>=0.56.4",
     "paramiko",
     "netcat",
-    "tifffile"
+    "tifffile",
+    "h5py"
 ]
 keywords=['deep learning', 'image segmentation', 'medical image analysis',
             'medical image segmentation', 'biological image segmentation', 'bio-imaging']
@@ -49,6 +50,8 @@ docs = [
     'myst_nb',
     'furo>=2022.06.21',
     'docutils>=0.17.1',
+    'sphinx-copybutton',
+    'sphinx_design',
 ]
 gui = [
     "omero-py",

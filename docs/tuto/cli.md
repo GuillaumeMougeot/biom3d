@@ -6,6 +6,14 @@ You can find examples of command lines [in the bash folder on the GitHub repo of
 
 > **Warning**: For Windows users, the paths are here written in "linux-like format". You will have to change '/' symbols to '``\``' symbols in the command lines. 
 
+
+> This tutorial assume you have done a manual installation, however it is also possible to use the CLI with the Installer, just replace `python` in the command by the path to the `python executable` in the installer :
+>```bash
+># With Biom3d the folder you extracted from the installer
+>Biom3d\bin\python.exe ... # On Windows
+>Biom3d.app/Contents/MacOS/bin/bin/python3.11 ... # On macOS
+>```
+
 ## The quickest way
 
 Let's say you would like to train a deep learning model with on one of the tasks of the [Medical Segmentation Decathlon](http://medicaldecathlon.com/). For example, Task07 goal is to segment the pancreas and its tumor in CT-scans. If you download the data folder of Task07, you should see the following data structure:
@@ -122,10 +130,12 @@ That's it! The preprocessing and training should start.
 > **Warning**: About the file/folder naming, the only constraint is that the images and masks have the exact same name. All the folders can have any name with **no space** in it and the parent folder structure does not matter. 
 
 > **Warning**: Constraints on image format:
-> * The images and masks must be .tif files or .nii.gz file. If using another format then install biom3d from source and edit `biom3d.utils.adaptive_imread` and `biom3d.utils.adaptive_imsave`... or preprocess your images to have the proper format.
+> * The images and masks must be .tif files, .nii.gz or .h5 file. If using another format then install biom3d from source and edit `biom3d.utils.adaptive_imread` and `biom3d.utils.adaptive_imsave`... or preprocess your images to have the proper format.
 > * The images and masks must all have 3 or 4 dimensions: (height, width, depth) or (channel, height, width, depth).
 > * Each dimension of each image must be identical to each dimension of the corresponding mask, expect for the channel dimension.
 > * Masks values must be either 0 or 1 if stored in (channel, height, width, depth) format, or must be in 0,1,...,N where N is the number of classes.
+> 
+> See out [dataset documentation](dataset.md) for more details.
 
 Prediction can be run with the aforementioned command (cf. section above).
 
@@ -218,10 +228,7 @@ python -m biom3d.omero_pred\
 ```
 
 Please complete each of the field above. The Omero dataset ID can be found in your Omero browser here:
-
-<p align="center">
-  <img src="_static/image/omero_dataset_id.PNG" />
-</p>
+![Screenshot of where to find dataset ID in OMERO webclient](../_static/image/omero_dataset_id.png)
 
 The flag `--upload_id` is optional and can be use to upload the prediction results back into Omero. 
 

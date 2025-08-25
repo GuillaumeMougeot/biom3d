@@ -9,18 +9,18 @@ To use the client, simply download it from a [release](https://github.com/Guilla
 
 Then you just have to enter the IP adress of the server, the username, password and folder to work in. Every of those parameters are to be given by the person that installed the server instance (most likely your IT department). 
 
-Once you've enter those parameter and clicked on `start remotely` and then the same way as the [GUI](gui.md). Here we will describe the differences.
+Once you've enter those parameter and clicked on `start remotely` and then the same way as the [GUI](gui.md). Here we will describe the differences. In the [GUI](gui.md) documentation, there is a full walktrough.
 
 ### Training
 In the training tab, the sole difference is the dataset sending. Dataset are stored on the server and you need to send them to the server.
 For that you select the folder where are the raw et the one where are the label and name your dataset with a unique identifier. Then click on `Send Dataset` and it will be send to the server.
 You can then select that dataset to train in the training configuration (if you just sended it, you should click on `update`).
-![Screenshot of training tab on client](../images/server_train.png)
+![Screenshot of training tab on client](../_static/image/gui_remote_preprocess&train.png)
 
 ### Prediction
 The predictions tab have the same functionnality of sending data. 
 You can select existing data folder or create a new one. However you can only select models that are present on the server and not export one (this feature is on our backlog). Then, once the prediction is finished, you can select the folder on the server and download it to the given folder on your computer (or send it to OMERO).
-![Screenshot of prediction tab on client](../images/server_predictions.png)
+![Screenshot of prediction tab on client](../_static/image/gui_remote_predict.png)
 
 (server)=
 ## Setting up a server
