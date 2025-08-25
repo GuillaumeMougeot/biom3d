@@ -175,7 +175,6 @@ class UNet(nn.Module):
         torch.Tensor
             The output segmentation map tensor.
         """
-        # x is an image
         out = self.encoder(x)
         out = self.decoder(out)
         return out

@@ -317,6 +317,7 @@ def correct_mask(
     assumptions about the data and prints warnings about any corrections it performs.
     Expert users can override the automatic behavior.
 
+<<<<<<< HEAD
     Parameters
     ----------
     mask : ndarray
@@ -338,6 +339,28 @@ def correct_mask(
             If `use_one_hot=True`, removes the background channel (assumed to be index 0).
         encoding_type : {'auto', 'label', 'binary', 'onehot'}, default='auto'
             - 'auto': (Default) Automatically determine the type based on mask.ndim. 3D is assumed 'label', 4D is assumed 'binary'.
+=======
+    Args:
+        mask (np.ndarray): The input mask. Assumed shape is (D,H,W) for a label mask
+                           or (C,D,H,W) for a one-hot or binary mask.
+        num_classes (int): The total number of expected classes.
+        is_2d (bool, optional): If True, treats the input as 2D data.
+            - Expects (H,W) for label masks.
+            - Expects (C,H,W) for binary/one-hot masks.
+            Defaults to False, expecting 3D data (D,H,W) or (C,D,H,W).
+        standardize_dims (bool, optional): If True (default), ensures the output is always 4D,
+            ready for a pipeline. If False, the output ndim will match
+            the input ndim. expect if `use_one_hot` is True.
+        output_dtype (dtype, optional): The desired numpy data type for the output mask.
+                                        Defaults to np.uint16.
+        use_one_hot (bool, optional): If encoding type is 'label', whether to encode the mask
+                                      to a one hot encoded mask instead.
+        remove_bg (bool, optional): If use_one_hot encoding and if True, 
+                                    then remove the first channel, i.e. the background.
+        encoding_type (str, optional): The type of mask encoding.
+            - 'auto': (Default) Automatically determine the type based on mask.ndim.
+                      3D is assumed 'label', 4D is assumed 'binary'.
+>>>>>>> e4a486520cfde10fa6990aa8fa85d405e541e885
             - 'label': A single-channel mask where pixel values are class indices (0, 1, 2...).
             - 'binary': A multi-channel mask where each channel is an independent binary (0/1) segmentation. Used with sigmoid activations.
             - 'onehot': A multi-channel mask where channels are mutually exclusive. Used with softmax activations.
@@ -367,7 +390,7 @@ def correct_mask(
     processed_mask = mask.copy()
     if is_2d: 
         # print("[INFO] Processing in 2D mode.")
-        if processed_mask.ndim == 2: # (H,W) -> (1,H,W)
+        if processed_mask.ndim == 2: # (H,W) -> (1,1,H,W)
             processed_mask = processed_mask[np.newaxis, np.newaxis, ...]
         elif processed_mask.ndim == 3: # (C,H,W) -> (C,1,H,W)
             processed_mask = processed_mask[:, np.newaxis, ...]
@@ -878,8 +901,13 @@ class Preprocessing:
             self.channel_axis = np.argmin(self.median_size)
             if self.channel_axis != 0:
                 print("[Warning] 4 dimensions detected and channel axis is {}. All image dimensions will be swapped.".format(self.channel_axis))
-            self.median_size[[0,self.channel_axis]] = self.median_size[[self.channel_axis,0]]
+                self.median_size[[0,self.channel_axis]] = self.median_size[[self.channel_axis,0]]
             self.median_size = self.median_size[1:]
+        # Add an extra dimension to simulate the D axis
+        if is_2d:
+            self.median_size = (1, *self.median_size)
+
+
         self.median_spacing = np.array(median_spacing)
         self.clipping_bounds = np.array(clipping_bounds)
         self.intensity_moments = intensity_moments
