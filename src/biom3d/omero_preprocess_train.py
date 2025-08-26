@@ -122,8 +122,8 @@ def run(
     print("Start Training with Omero...")     
     if action == "preprocess_train" :
         preprocess_train.preprocess_train(
-            img_dir=dir_in,
-            msk_dir=dir_in_mask,
+            img_path=dir_in,
+            msk_path=dir_in_mask,
             num_classes=num_classes,
             config_dir=config_dir,
             base_config=base_config,
@@ -135,8 +135,8 @@ def run(
 
     elif action == "preprocess" :
         config_path = preprocess.auto_config_preprocess(
-            img_dir=dir_in,
-            msk_dir=dir_in_mask,
+            img_path=dir_in,
+            msk_path=dir_in_mask,
             num_classes=num_classes,
             config_dir=config_dir,
             base_config=base_config,
