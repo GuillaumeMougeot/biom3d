@@ -317,7 +317,6 @@ def correct_mask(
     assumptions about the data and prints warnings about any corrections it performs.
     Expert users can override the automatic behavior.
 
-<<<<<<< HEAD
     Parameters
     ----------
     mask : ndarray
@@ -339,28 +338,6 @@ def correct_mask(
             If `use_one_hot=True`, removes the background channel (assumed to be index 0).
         encoding_type : {'auto', 'label', 'binary', 'onehot'}, default='auto'
             - 'auto': (Default) Automatically determine the type based on mask.ndim. 3D is assumed 'label', 4D is assumed 'binary'.
-=======
-    Args:
-        mask (np.ndarray): The input mask. Assumed shape is (D,H,W) for a label mask
-                           or (C,D,H,W) for a one-hot or binary mask.
-        num_classes (int): The total number of expected classes.
-        is_2d (bool, optional): If True, treats the input as 2D data.
-            - Expects (H,W) for label masks.
-            - Expects (C,H,W) for binary/one-hot masks.
-            Defaults to False, expecting 3D data (D,H,W) or (C,D,H,W).
-        standardize_dims (bool, optional): If True (default), ensures the output is always 4D,
-            ready for a pipeline. If False, the output ndim will match
-            the input ndim. expect if `use_one_hot` is True.
-        output_dtype (dtype, optional): The desired numpy data type for the output mask.
-                                        Defaults to np.uint16.
-        use_one_hot (bool, optional): If encoding type is 'label', whether to encode the mask
-                                      to a one hot encoded mask instead.
-        remove_bg (bool, optional): If use_one_hot encoding and if True, 
-                                    then remove the first channel, i.e. the background.
-        encoding_type (str, optional): The type of mask encoding.
-            - 'auto': (Default) Automatically determine the type based on mask.ndim.
-                      3D is assumed 'label', 4D is assumed 'binary'.
->>>>>>> e4a486520cfde10fa6990aa8fa85d405e541e885
             - 'label': A single-channel mask where pixel values are class indices (0, 1, 2...).
             - 'binary': A multi-channel mask where each channel is an independent binary (0/1) segmentation. Used with sigmoid activations.
             - 'onehot': A multi-channel mask where channels are mutually exclusive. Used with softmax activations.
@@ -580,6 +557,8 @@ def standardize_img_dims(img:np.ndarray, num_channels:int, channel_axis:int, is_
         raise ValueError(f"Image has {img.shape[0]} channels but expected {num_channels}.")
     else:
         # Heuristic to save the day in case of incorrect channel axis and 4D (for 3D) or 3D (for 2D) image
+        print("[WARNING] The channels where not found at channel axis, but we found a dimension with same size and moved it at first dimension.\n" \
+        f"Image shape : '{img.shape}'")
         img=np.moveaxis(img,img.shape.index(num_channels),0)
         
     return img, original_shape

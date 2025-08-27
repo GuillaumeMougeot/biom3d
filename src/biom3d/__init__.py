@@ -1,1 +1,6 @@
-__version__ = "1.0.0" # To change at each release
+from importlib.metadata import version, PackageNotFoundError
+
+try:
+    __version__ = version("biom3d")
+except PackageNotFoundError:
+    __version__ = None 
