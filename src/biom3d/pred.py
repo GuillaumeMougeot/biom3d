@@ -27,7 +27,6 @@ from biom3d.eval import eval
 def pred_single(log:str|list[str], 
                 img_path:str,
                 out_path:str,
-                is_2d:bool = False,
                 skip_preprocessing:bool=False,
                 )->tuple[int,str]:
     """
@@ -41,8 +40,6 @@ def pred_single(log:str|list[str],
         Path to the input image file.
     out_path : str
         Directory where the prediction output will be saved.
-    is_2d : bool, default=False
-        Whether to process the image as 2D.
     skip_preprocessing : bool, default=False
         If True, skips preprocessing step.
 
@@ -62,14 +59,13 @@ def pred_single(log:str|list[str],
             msk_outpath = out_path,
             model_name = builder.config[-1].DESC if isinstance(builder.config,list) else builder.config.DESC,
         )
-    img = builder.run_prediction_single(handler, return_logit=False,is_2d=is_2d,skip_preprocessing=skip_preprocessing)
+    img = builder.run_prediction_single(handler, return_logit=False,skip_preprocessing=skip_preprocessing)
     handler.save(handler.images[0], img,"pred")
     return builder.config.NUM_CLASSES+1,handler.msk_outpath  # for pred_seg_eval_single
 
 def pred(log:str|list[str], 
          path_in:str, 
          path_out:str,
-         is_2d:bool = False,
          skip_preprocessing:bool=False,
          )->str:
     """
@@ -83,8 +79,6 @@ def pred(log:str|list[str],
         Path to collection containing input images.
     path_out : str
         Path to collection to save prediction outputs.
-    is_2d : bool, default=False
-        Whether to process images as 2D.
     skip_preprocessing : bool, default=False
         If True, skips preprocessing step.
 
@@ -98,14 +92,13 @@ def pred(log:str|list[str],
     path_out=str(path_out)
 
     builder = Builder(config=None,path=log, training=False)
-    path_out = builder.run_prediction_folder(path_in=path_in, path_out=path_out, return_logit=False,is_2d=is_2d,skip_preprocessing=skip_preprocessing)
+    path_out = builder.run_prediction_folder(path_in=path_in, path_out=path_out, return_logit=False,skip_preprocessing=skip_preprocessing)
     return path_out
 
 @deprecated("This method is no longer used as it is the default behaviour of DataHandlers.")
 def pred_multiple(log:str|list[str], 
          path_in:str, 
          path_out:str,
-         is_2d:bool = False,
          skip_preprocessing:bool=False,
          )->str:
     """
@@ -122,14 +115,13 @@ def pred_multiple(log:str|list[str],
     --------
     Same as pred()
     """
-    return pred(log,path_in,path_out,is_2d=is_2d,skip_preprocessing=skip_preprocessing)
+    return pred(log,path_in,path_out,skip_preprocessing=skip_preprocessing)
 
 #---------------------------------------------------------------------------
 # main unet segmentation interface
 def pred_seg(log:pathlib.Path|str|list[str]=pathlib.Path.home(), 
              path_in:pathlib.Path | str =pathlib.Path.home(), 
              path_out:pathlib.Path | str =pathlib.Path.home(),
-             is_2d:bool = False,
              skip_preprocessing:bool=False
              )->None:
     """
@@ -143,8 +135,6 @@ def pred_seg(log:pathlib.Path|str|list[str]=pathlib.Path.home(),
         Path to collection containing images.
     path_out : pathlib.Path or str, default=home directory
         Path to collection where predictions will be saved.
-    is_2d : bool, default=False
-        Whether to process images as 2D.
     skip_preprocessing : bool, default=False
         If True, skips preprocessing step.
 
@@ -152,7 +142,7 @@ def pred_seg(log:pathlib.Path|str|list[str]=pathlib.Path.home(),
     -------
     None
     """
-    pred(log, path_in, path_out,is_2d=is_2d,skip_preprocessing=skip_preprocessing)
+    pred(log, path_in, path_out,skip_preprocessing=skip_preprocessing)
 
 # TODO remove eval only, we have a module for that
 def pred_seg_eval(log:pathlib.Path|str|list[str]=pathlib.Path.home(),
@@ -160,7 +150,6 @@ def pred_seg_eval(log:pathlib.Path|str|list[str]=pathlib.Path.home(),
                   path_out:pathlib.Path | str =pathlib.Path.home(), 
                   path_lab:Optional[pathlib.Path | str]=None, 
                   eval_only:bool=False,
-                  is_2d:bool = False,
                   skip_preprocessing:bool=False
                   )->None:
     """
@@ -178,8 +167,6 @@ def pred_seg_eval(log:pathlib.Path|str|list[str]=pathlib.Path.home(),
         Path to collection containing ground-truth label masks for evaluation.
     eval_only : bool, default=False
         If True, skips prediction and runs evaluation only.
-    is_2d : bool, default=False
-        Whether to process images as 2D.
     skip_preprocessing : bool, default=False
         If True, skips preprocessing step.
 
@@ -194,7 +181,7 @@ def pred_seg_eval(log:pathlib.Path|str|list[str]=pathlib.Path.home(),
         training=False)
     out = path_out
     if not eval_only:
-        out = builder_pred.run_prediction_folder(path_in=path_in, path_out=path_out, return_logit=False,is_2d=is_2d,skip_preprocessing=skip_preprocessing) # run the predictions
+        out = builder_pred.run_prediction_folder(path_in=path_in, path_out=path_out, return_logit=False,skip_preprocessing=skip_preprocessing) # run the predictions
     print("Inference done!")
 
 
@@ -210,7 +197,6 @@ def pred_seg_eval_single(log:str|list[str],
                          img_path:str, 
                          out_path:str, 
                          msk_path:str,
-                         is_2d:bool = False,
                          skip_preprocessing:bool=False
                          )->None:
     """
@@ -226,8 +212,6 @@ def pred_seg_eval_single(log:str|list[str],
         Directory where prediction output will be saved.
     msk_path : str
         Path to the ground-truth mask for evaluation.
-    is_2d : bool, default=False
-        Whether to process the image as 2D.
     skip_preprocessing : bool, default=False
         If True, skips preprocessing step.
 
@@ -236,7 +220,7 @@ def pred_seg_eval_single(log:str|list[str],
     None
     """
     print("Run prediction for:", img_path)
-    num_classes,out = pred_single(log, img_path, out_path,is_2d=is_2d,skip_preprocessing=skip_preprocessing)
+    num_classes,out = pred_single(log, img_path, out_path,skip_preprocessing=skip_preprocessing)
     print("Done! Prediction saved in:", out_path)
     handler1 = DataHandlerFactory.get(
         out_path,
@@ -289,8 +273,6 @@ if __name__=='__main__':
         help="Path to the input label collection") 
     parser.add_argument("-e", "--eval_only", default=False,  action='store_true', dest='eval_only',
         help="Do only the evaluation and skip the prediction (predictions must have been done already.)") 
-    parser.add_argument("--is_2d", default=False, dest="is_2d",
-        help="(default=False) Whether the image is 2d.")
     parser.add_argument("--skip_preprocessing", default=False, action='store_true',dest="skip_preprocessing",
         help="(default=False) Skip preprocessing, it assume the preprocessing has already be done and can crash otherwise")
     args = parser.parse_args()
@@ -309,20 +291,17 @@ if __name__=='__main__':
                                    args.path_out, 
                                    args.path_lab, 
                                    args.eval_only,
-                                   is_2d=args.is_2d,
                                    skip_preprocessing=args.skip_preprocessing)
         elif args.name=="seg_eval_single":
             valid_names[args.name](args.log, 
                                    args.path_in, 
                                    args.path_out, 
                                    args.path_lab,
-                                   is_2d = args.is_2d,
                                    skip_preprocessing=args.skip_preprocessing)
         else:
             valid_names[args.name](args.log, 
                                    args.path_in, 
                                    args.path_out,
-                                   is_2d = args.is_2d,
                                    skip_preprocessing=args.skip_preprocessing)
 
 #---------------------------------------------------------------------------

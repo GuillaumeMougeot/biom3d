@@ -831,7 +831,6 @@ class Builder:
                               img:Optional[np.ndarray]=None, 
                               img_meta:Optional[dict[str,Any]]=None, 
                               return_logit:bool=True,
-                              is_2d:bool=False,
                               skip_preprocessing:bool=False,
                               )->np.ndarray:
         """
@@ -886,7 +885,7 @@ class Builder:
                 assert np.all([config.PREPROCESSOR==self.config[0].PREPROCESSOR for config in self.config[1:]]), "[Error] For multi-model prediction, the current version of biom3d imposes that all preprocessor are identical. {}".format([config.PREPROCESSOR==self.config[0].PREPROCESSOR for config in self.config[1:]])
                 
                 # preprocessing
-                img, img_meta = read_config(self.config[0].PREPROCESSOR, register.preprocessors, img=img, img_meta=img_meta,num_classes=num_class)
+                img, img_meta = read_config(self.config[0].PREPROCESSOR, register.preprocessors, img=img, img_meta=img_meta,num_classes=num_class,is_2d=self.config.IS_2D)
 
             # same for postprocessors
             for i in range(len(self.config)):
@@ -899,11 +898,6 @@ class Builder:
             for i, config in enumerate(self.config):
                 # prediction
                 print('Running prediction for model number', i)
-                if is_2d:
-                    if img.ndim == 2:
-                        img = img[np.newaxis, np.newaxis, ...]
-                    elif img.ndim == 3:
-                        img = img[:, np.newaxis, ...]
                 out = read_config(
                     config.PREDICTOR, 
                     register.predictors,
@@ -927,7 +921,7 @@ class Builder:
         
         else: # single model prediction
             if not skip_preprocessing:
-                img, img_meta = read_config(self.config.PREPROCESSOR, register.preprocessors, img=img, img_meta=img_meta,num_classes=num_class)
+                img, img_meta = read_config(self.config.PREPROCESSOR, register.preprocessors, img=img, img_meta=img_meta,num_classes=num_class,is_2d=self.config.IS_2D)
                 
                 print("Preprocessed shape:", img.shape)
 
@@ -953,6 +947,7 @@ class Builder:
                 register.postprocessors,
                 logit = out,
                 return_logit = return_logit,
+                is_2d=self.config.IS_2D,
                 **img_meta)
 
     # TODO: Maybe rename this function to run_prediction_collection ?
@@ -960,7 +955,6 @@ class Builder:
                               path_in:str, 
                               path_out:str, 
                               return_logit:bool=False,
-                              is_2d:bool=False,
                               skip_preprocessing:bool=False
                               )->str:
         """
@@ -996,11 +990,6 @@ class Builder:
         for i,_,_ in handler:
             print("running prediction for image: ", i)
             img, img_meta = handler.load(i)
-            if is_2d:
-                if img.ndim == 2:
-                    img = img[np.newaxis, np.newaxis, ...]
-                elif img.ndim == 3:
-                    img = img[:, np.newaxis, ...]
             pred = self.run_prediction_single(img=img, img_meta=img_meta, return_logit=return_logit,skip_preprocessing=skip_preprocessing)
             print("Saving image...")
             fnames_out= handler.save(i,pred,"pred")

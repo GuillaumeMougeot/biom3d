@@ -247,3 +247,43 @@ def resize_3d(img:np.ndarray,
             new_img[c] = resize_fct(img[c], output_shape[1:], order=order, **resize_kwargs)
             
     return new_img
+
+def resize_2d(img: np.ndarray,
+              output_shape: tuple[int, int]|tuple[int,int,int],
+              order: int = 3,
+              is_msk: bool = False) -> np.ndarray:
+    """
+    Resize a 2D image or segmentation map.
+
+    Parameters
+    ----------
+    img : ndarray
+        Input 2D image or segmentation shape (C, H, W)
+    output_shape : tuple of int
+        Target (H, W) shape.
+    order : int, default=3
+        Interpolation order. Use 0 for masks, 3 for smooth images.
+    is_msk : bool, default=False
+        If True, uses label-aware resizing (avoids interpolation artifacts).
+
+    Returns
+    -------
+    resized : ndarray
+        Resized image or segmentation, same shape format as input.
+    """
+    assert len(img.shape)==3, '[Error] Please provided a 23D image with "CHD" format'
+    assert len(output_shape)==2 or len(output_shape)==3, '[Error] Output shape must be "CHD" or "HD"'
+
+    resize_fct = resize_segmentation if is_msk else resize
+    resize_kwargs = {} if is_msk else {'mode': 'edge', 'anti_aliasing': False}
+
+    if img.ndim == 2:  # No channel
+        return resize_fct(img, output_shape, order=order, **resize_kwargs)
+    
+    # With channel: apply resizing per channel
+    C, _, _ = img.shape
+    resized = np.empty((C, *output_shape), dtype=img.dtype)
+    for c in range(C):
+        resized[c] = resize_fct(img[c], output_shape, order=order, **resize_kwargs)
+
+    return resized

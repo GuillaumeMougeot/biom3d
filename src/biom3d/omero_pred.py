@@ -24,7 +24,6 @@ def run(
     target: str,
     log:str,
     dir_out: str,
-    is_2d: bool,
     host: Optional[str] = None,
     user: Optional[str] = None,
     pwd: Optional[str] = None,
@@ -53,8 +52,6 @@ def run(
         Path to the model folder.
     dir_out : str
         Path to the directory where predictions should be saved.
-    is_2d : bool
-        Whether the input data is 2D or 3D (affects the prediction pipeline).
     host : str, optional
         Hostname of the Omero server, if using API authentication.
     user : str, optional
@@ -97,7 +94,7 @@ def run(
         dir_out = os.path.join(dir_out, datasets[0].name + ext)
         if not os.path.isdir(dir_out):
             os.makedirs(dir_out, exist_ok=True)
-        dir_out = pred.pred(log, dir_in, dir_out,is_2d=is_2d,skip_preprocessing=skip_preprocessing)
+        dir_out = pred.pred(log, dir_in, dir_out,skip_preprocessing=skip_preprocessing)
 
 
         # eventually upload the dataset back into Omero [DEPRECATED]
@@ -173,8 +170,6 @@ if __name__=='__main__':
         help="(optional) Session ID for Omero client.")
     parser.add_argument('--ext', type=str, default='_predictions',
         help='(optional) Name of the extension added to the future uploaded Omero dataset.')
-    parser.add_argument("--is_2d", default=False,  
-        help="(default=False) Whether the image is 2d.")
     parser.add_argument("--skip_preprocessing", default=False, action='store_true',dest="skip_prepprocessing",
         help="(default=False) Skip preprocessing")
     args = parser.parse_args()
@@ -191,6 +186,5 @@ if __name__=='__main__':
         ext=args.ext,
         attachment=args.attachment,
         session_id=args.session_id,
-        is_2d=args.is_2d,
         skip_preprocessing=args.skip_preprocessing,
     )
