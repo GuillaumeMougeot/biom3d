@@ -261,7 +261,7 @@ class DataHandler :
                 We recommend not trying to catch these specifically in generic code.         
         Returns
         -------
-        img: ndarray
+        img: numpy.ndarray
             The image as a numpy ndarray
         metadata: dict
             Image metadata in a dictionary.

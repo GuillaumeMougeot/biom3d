@@ -38,9 +38,9 @@ def compute_median(path:str, return_spacing:bool=False)->np.ndarray | tuple[np.n
 
     Returns
     -------
-    median: ndarray
+    median: numpy.ndarray
         Median shape of the images in the folder. 
-    spacing: ndarray
+    spacing: numpy.ndarray
         Median spacing of the images in the folder. 
     """
     handler = DataHandlerFactory.get(
@@ -119,9 +119,9 @@ def data_fingerprint(img_path:str,
     
     Returns
     -------
-    median_size : ndarray
+    median_size : numpy.ndarray
         Median size of the images in the image folder.
-    median_spacing : ndarray
+    median_spacing : numpy.ndarray
         Median spacing of the images in the image folder.
     mean : float
         Mean of the intensities.
@@ -242,11 +242,11 @@ def find_patch_pool_batch(dims:tuple[int]|list[int],
 
     Returns
     -------
-    patch: ndarray
+    patch: numpy.ndarray
         Patch size.
-    pool: ndarray
+    pool: numpy.ndarray
         Number of pooling.
-    batch: ndarray
+    batch: numpy.ndarray
         Batch size.
     """
     # transform tuples into arrays
@@ -351,12 +351,12 @@ def get_aug_patch(patch_size:tuple[int]|list[int]|np.ndarray)->np.ndarray:
 
     Parameters
     ----------
-    patch_size : tuple, list or ndarray
+    patch_size : tuple, list or numpy.ndarray
         Patch size.
 
     Returns
     -------
-    aug_patch : ndarray
+    aug_patch : numpy.ndarray
         Augmentation patch size.
     """
     ps = np.array(patch_size)
@@ -388,15 +388,15 @@ def parameters_return(patch:np.ndarray,
     
     Parameters
     ----------
-    patch: ndarray
+    patch: numpy.ndarray
         Patch size.
-    pool: ndarray
+    pool: numpy.ndarray
         Pool size.
-    batch: ndarray
+    batch: numpy.ndarray
         batch size.
     config_path: str
         Path to configuration file
-    median_spacing: ndarray, optional
+    median_spacing: numpy.ndarray, optional
         Median spacing over the dataset.
 
     Returns
@@ -418,11 +418,11 @@ def display_info(patch:np.ndarray, pool:np.ndarray, batch:np.ndarray)->None:
 
     Parameters
     ----------
-    patch: ndarray
+    patch: numpy.ndarray
         Patch size.
-    pool: ndarray
+    pool: numpy.ndarray
         Pool size.
-    batch: ndarray
+    batch: numpy.ndarray
         batch size.
 
     Returns
@@ -467,13 +467,13 @@ def auto_config(img_path:Optional[str]=None,
 
     Returns
     -------
-    batch: ndarray
+    batch: numpy.ndarray
         Batch size.
-    aug_patch: ndarray
+    aug_patch: numpy.ndarray
         Augmentation patch size.
-    patch: ndarray
+    patch: numpy.ndarray
         Patch size.
-    pool: ndarray
+    pool: numpy.ndarray
         Number of pooling.
     """
     assert not(img_path is None and median is None), "[Error] Please provide either an image collection path or a median shape."

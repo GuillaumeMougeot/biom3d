@@ -17,9 +17,9 @@ def get_train_test_df(df:DataFrame, verbose:bool=True)->tuple[np.ndarray,np.ndar
 
     Returns
     -------
-    train_set : ndarray
+    train_set : numpy.ndarray
         Array of training filenames (or sample IDs).
-    test_set : ndarray
+    test_set : numpy.ndarray
         Array of test filenames (or sample IDs).
     """
     train_set = np.array(df[df['hold_out']==0].iloc[:,0])

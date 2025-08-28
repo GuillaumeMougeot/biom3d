@@ -18,18 +18,18 @@ def centered_pad(img:np.ndarray,
 
     Parameters
     ----------
-    img: ndarray
+    img: numpy.ndarray
         The image to pad.
     final_size: iterable of int
         The size of the image after the pad.
-    msk: ndarray, optional
+    msk: numpy.ndarray, optional
         The mask to pad.
 
     Returns
     -------
-    img: ndarray
+    img: numpy.ndarray
         Padded image.
-    msk: ndarray, optional
+    msk: numpy.ndarray, optional
         Padded mask.
     """
     final_size = np.array(final_size)
@@ -57,11 +57,11 @@ class SmartPatch:
     - `global_crop_resize`: method performs a random crop and resize.
     - `local_crop_resize`: performs a second random crop that overlaps with the global one, with a minimum overlap ratio defined by `min_overlap`.
 
-    :ivar ndarray local_crop_shape: Shape of local crop
-    :ivar ndarray global_crop_shape: Minimal crop size
-    :ivar ndarray | float global_crop_scale: Value between 0 and 1. Factor multiplying (img_shape - global_crop_min_shape) and added to the global_crop_min_shape. A value of 1 means that the maximum shape of the global crop will be the image shape. A value of 0 means that the maximum value will be the global_crop_min_shape. 
-    :ivar ndarray global_crop_shape: shape of local crop
-    :ivar ndarray global_crop_min_shape_scale: Factor multiplying the minimal global_crop_shape, 1.0 is a good default
+    :ivar numpy.ndarray local_crop_shape: Shape of local crop
+    :ivar numpy.ndarray global_crop_shape: Minimal crop size
+    :ivar numpy.ndarray | float global_crop_scale: Value between 0 and 1. Factor multiplying (img_shape - global_crop_min_shape) and added to the global_crop_min_shape. A value of 1 means that the maximum shape of the global crop will be the image shape. A value of 0 means that the maximum value will be the global_crop_min_shape. 
+    :ivar numpy.ndarray global_crop_shape: shape of local crop
+    :ivar numpy.ndarray global_crop_min_shape_scale: Factor multiplying the minimal global_crop_shape, 1.0 is a good default
     :ivar float alpha: 1 - min_overlap; used internally to determine maximum allowed center displacement.
     :ivar ndarra | None global_crop_center: The center coordinates of the global crop, once computed.        
     """
@@ -115,16 +115,16 @@ class SmartPatch:
 
         Parameters
         ----------
-        img : np.ndarray
+        img : numpy.ndarray
             Input image tensor with shape (C, H, W, D).
-        msk : np.ndarray, optional
+        msk : numpy.ndarray, optional
             Optional mask tensor with the same spatial dimensions as img.
 
         Returns
         -------
-        crop_img: np.ndarray
+        crop_img: numpy.ndarray
             Cropped and resized image.
-        crop_msk: np.ndarray, optional
+        crop_msk: numpy.ndarray, optional
             Cropped and resized mask, if `msk` is provided.
         """
         img_shape = np.array(img.shape)[1:]
@@ -180,9 +180,9 @@ class SmartPatch:
 
         Parameters
         ----------
-        crop_img : np.ndarray
+        crop_img : numpy.ndarray
             Input image tensor with shape (C, H, W, D).
-        crop_msk : np.ndarray, optional
+        crop_msk : numpy.ndarray, optional
             Optional mask tensor with the same spatial dimensions as img.
 
         Raises
@@ -192,9 +192,9 @@ class SmartPatch:
 
         Returns
         -------
-        crop_img: np.ndarray
+        crop_img: numpy.ndarray
             Cropped and resized image.
-        crop_msk: np.ndarray, optional
+        crop_msk: numpy.ndarray, optional
             Cropped and resized mask, if `msk` is provided.
         """
         assert self.global_crop_center is not None, "Error! self.global_crop_resize must be called once before self.local_crop_pad."
@@ -255,9 +255,9 @@ class SmartPatch:
 
         Parameters
         ----------
-        img : np.ndarray
+        img : numpy.ndarray
             Input image tensor with shape (C, H, W, D).
-        msk : np.ndarray, optional
+        msk : numpy.ndarray, optional
             Optional mask tensor with the same spatial dimensions as img.
 
         Raises
@@ -267,9 +267,9 @@ class SmartPatch:
 
         Returns
         -------
-        crop_img : np.ndarray
+        crop_img : numpy.ndarray
             Input image tensor with shape (C, H, W, D).
-        crop_msk : np.ndarray, optional
+        crop_msk : numpy.ndarray, optional
             Optional mask tensor with the same spatial dimensions as img.
         """
         assert self.global_crop_center is not None, "Error! self.global_crop_resize must be called once before self.local_crop_resize."

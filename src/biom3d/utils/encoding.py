@@ -11,14 +11,14 @@ def one_hot(values:np.ndarray, num_classes:Optional[int]=None)->np.ndarray:
 
     Parameters
     ----------
-    values : ndarray
+    values : numpy.ndarray
         Integer array of labels to encode.
     num_classes : int, optional
         Total number of classes. If None, inferred as max(values)+1.
 
     Returns
     -------
-    ndarray
+    numpy.ndarray
         One-hot encoded array of shape `(num_classes, *values.shape)`, dtype int64.
 
     Notes
@@ -49,14 +49,14 @@ def one_hot_fast_v1(values:np.ndarray, num_classes:Optional[int]=None):
 
     Parameters
     ----------
-    values : ndarray
+    values : numpy.ndarray
         Integer array of labels to encode.
     num_classes : int, optional
         Number of classes. If None, inferred from unique values.
 
     Returns
     -------
-    np.ndarray
+    numpy.ndarray
         One-hot encoded array of shape `(num_classes, *values.shape)`, dtype uint8.
 
     Warnings
@@ -108,7 +108,7 @@ def one_hot_fast(values: np.ndarray,
 
     Parameters
     ----------
-    values: ndarray
+    values: numpy.ndarray
         The integer label array to be encoded.
     num_classes: int, optional
         The total number of classes. If None, this is 
@@ -137,7 +137,7 @@ def one_hot_fast(values: np.ndarray,
 
     Returns
     -------
-    ndarray
+    numpy.ndarray
         The one-hot encoded array of shape `(num_classes, *values.shape)` and dtype `np.uint8`.
     """
     uni = np.unique(values)

@@ -26,7 +26,7 @@ class RandomCropOrPad(RandomTransform, SpatialTransform):
     """
     Randomly crop a subject, and pad it if needed.
 
-    :ivar np.ndarray[np.uint16] patch_size:      
+    :ivar numpy.ndarray[np.uint16] patch_size:      
     :ivar float fg_rate: Foreground rate, if > 0, force the use of foreground.
     :ivar str label_name: Name of the label image in the tio.Subject.
     :ivar int start_fg_idx: Starting index in foreground. Determined by softmax use.    
@@ -52,7 +52,7 @@ class RandomCropOrPad(RandomTransform, SpatialTransform):
         
         Parameters
         ----------
-        patch_size: ndarray
+        patch_size: numpy.ndarray
             Size of a patch.
         fg_rate: int, default=0
             Foreground rate, if > 0, force the use of foreground. Label name must be specified.
@@ -406,8 +406,8 @@ class TorchioDataset(SubjectsDataset):
     :ivar str msk_path: Path to the collection containing mask files.
     :ivar Optional[str] fg_path: Path to the collection containing foreground data (optional).
     :ivar int batch_size: Batch size for sampling.
-    :ivar np.ndarray patch_size: Size of the patches to extract.
-    :ivar Optional[np.ndarray] aug_patch_size: Size of patches used for augmentation (optional). Can be larger than patch_size
+    :ivar numpy.ndarray patch_size: Size of the patches to extract.
+    :ivar Optional[numpy.ndarray] aug_patch_size: Size of patches used for augmentation (optional). Can be larger than patch_size
     :ivar int nbof_steps: Number of steps (batches) per epoch.
     :ivar bool load_data: Whether to load all data into memory.
     :ivar DataHandler handler: Data handler for loading images and masks.
@@ -466,7 +466,7 @@ class TorchioDataset(SubjectsDataset):
             Path to collection containing the mask files.
         batch_size : int
             Batch size for dataset sampling.
-        patch_size : ndarray
+        patch_size : numpy.ndarray
             Size of the patches to be used.
         nbof_steps : int
             Number of steps (batches) per epoch.
@@ -482,7 +482,7 @@ class TorchioDataset(SubjectsDataset):
             If True, use the dataset for training; otherwise, use it for validation.
         use_aug : bool, default=True
             If True, apply data augmentation.
-        aug_patch_size : ndarray, optional
+        aug_patch_size : numpy.ndarray, optional
             Patch size to use for augmented patches.
         fg_rate : float, default=0.33
             Foreground rate, used to force foreground inclusion in patches. If > 0, force the use of foreground, needs to run some pre-computations (note: better use the foreground scheduler)

@@ -33,7 +33,7 @@ def sitk_imread(img_path:str,
 
     Returns
     -------
-    img: ndarray
+    img: numpy.ndarray
         The image contained in the file
     meta: dict from str to any
         The image metadata
@@ -58,7 +58,7 @@ def adaptive_imread(img_path:str)->tuple[ndarray,dict[str,Any]]:
 
     Returns
     -------
-    img: ndarray
+    img: numpy.ndarray
         The image contained in the file.
     meta: dictionary from str to any
         The image metadata as a dict. Can be empty
@@ -77,7 +77,7 @@ def sitk_imsave(img_path:str, img:ndarray, metadata:dict[str,Any]={})->None:
     ----------
     img_path: str
         Path to image file, must contain extension.
-    img: ndarray
+    img: numpy.ndarray
         Image data.
     metadata: dictionary from str to any, default={}
         Image metadata. Following keys have default values if not found:
@@ -135,7 +135,7 @@ def tif_read_imagej(img_path:str, axes_order:str='CZYX')->tuple[ndarray,dict[str
 
     Returns
     -------
-    img : ndarray
+    img : numpy.ndarray
         Image.
     img_meta : dict
         Image metadata. 
@@ -197,7 +197,7 @@ def tif_write_meta(data:ndarray,
 
     Parameters
     ----------
-    data: ndarray
+    data:numpy.
         Image data.
     meta: dict from str to any
         Image meta data, must contains 

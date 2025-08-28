@@ -14,7 +14,7 @@ def compute_otsu_criteria(im:np.ndarray, th:float)->float:
 
     Parameters
     ----------
-    im : ndarray
+    im : numpy.ndarray
         Grayscale input image as a 2D numpy array.
     th : float
         Threshold value to evaluate.
@@ -59,7 +59,7 @@ def otsu_thresholding(im:np.ndarray)->float:
 
     Parameters
     ----------
-    im : ndarray
+    im : numpy.ndarray
         Grayscale input image as a 2D numpy array.
 
     Returns
@@ -78,9 +78,9 @@ def dist_vec(v1:np.ndarray,v2:np.ndarray)->float:
 
     Parameters
     ----------
-    v1 : ndarray
+    v1 : numpy.ndarray
         Vector 1
-    v2 : ndarray
+    v2 : numpy.ndarray
         Vector 2
 
     Returns
@@ -97,14 +97,14 @@ def center(labels:np.ndarray, idx:int)->np.ndarray:
 
     Parameters
     ----------
-    labels : ndarray
+    labels : numpy.ndarray
         Label image array where each pixel has an integer label.
     idx : int
         Label index for which to compute the barycenter.
 
     Returns
     -------
-    ndarray
+    numpy.ndarray
         Coordinates of the barycenter as a 1D array (e.g. [y, x] or [z, y, x] depending on dimensions).
         If no pixels with the given label are found, returns an empty array.
     """
@@ -119,7 +119,7 @@ def closest(labels:np.ndarray, num:int)->int:
 
     Parameters
     ----------
-    labels : ndarray
+    labels : numpy.ndarray
         Label image array where each pixel has an integer label.
     num : int
         Number of labels (excluding background) to consider.
@@ -145,12 +145,12 @@ def keep_center_only(msk:np.ndarray)->np.ndarray:
 
     Parameters
     ----------
-    msk : ndarray
+    msk : numpy.ndarray
         Binary mask (2D or 3D) where connected components are to be analyzed.
 
     Returns
     -------
-    ndarray
+    numpy.ndarray
         Mask with only the connected component closest to the center.
         The returned mask has the same dtype as input, with values 0 or 255.
     """
@@ -164,12 +164,12 @@ def volumes(labels:np.ndarray)->np.ndarray:
 
     Parameters
     ----------
-    labels : ndarray
+    labels : numpy.ndarray
         Label image array where each pixel has an integer label.
 
     Returns
     -------
-    ndarray
+    numpy.ndarray
         Array of counts of pixels per label, sorted by label index ascending.
     """
     return np.unique(labels, return_counts=True)[1]
@@ -184,14 +184,14 @@ def keep_big_volumes(msk:np.ndarray, thres_rate:float=0.3)->np.ndarray:
 
     Parameters
     ----------
-    msk : ndarray
+    msk : numpy.ndarray
         Input binary mask.
     thres_rate : float, default=0.3
         Multiplier for the threshold on volumes.
 
     Returns
     -------
-    ndarray
+    numpy.ndarray
         Mask with only the connected components whose volume is greater than the threshold.
         Background remains zero.
     """
@@ -234,12 +234,12 @@ def keep_biggest_volume_centered(msk:np.ndarray)->np.ndarray:
 
     Parameters
     ----------
-    msk : ndarray
+    msk : numpy.ndarray
         Input binary mask.
 
     Returns
     -------
-    ndarray
+    numpy.ndarray
         Mask with only one connected component kept.
     """
     labels, num = measure.label(msk, background=0, return_num=True)

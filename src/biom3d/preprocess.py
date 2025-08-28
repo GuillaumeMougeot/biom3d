@@ -171,18 +171,18 @@ def resize_img_msk(img:np.ndarray,
 
     Parameters
     ----------
-    img : ndarray
+    img : numpy.ndarray
         Input 3D image array to resize.
-    output_shape : tuple, list or ndarray of int
+    output_shape : tuple, list or numpy.ndarray of int
         Desired output shape (Dx, Dy, Dz).
-    msk : ndarray, optional
+    msk : numpy.ndarray, optional
         Corresponding mask to resize.
 
     Returns
     -------
-    new_img: ndarray
+    new_img: numpy.ndarray
         The resized image.
-    new_msk: ndarray, optional
+    new_msk: numpy.ndarray, optional
         The resized mask, if `msk` is provided.
     """
     new_img = resize_3d(img, output_shape, order=3)
@@ -201,7 +201,7 @@ def get_resample_shape(input_shape:tuple[int]|list[int]|np.ndarray,
 
     Parameters
     ----------
-    input_shape : tuple, list or ndarray of int
+    input_shape : tuple, list or numpy.ndarray of int
         Shape of the input volume. Can be (C, D, H, W) or (D, H, W).
     spacing : list of float
         Original voxel spacing for each axis.
@@ -210,7 +210,7 @@ def get_resample_shape(input_shape:tuple[int]|list[int]|np.ndarray,
 
     Returns
     -------
-    ndarray
+    numpy.ndarray
         New shape after resampling, as integers (Dx, Dy, Dz).
     """
     input_shape = np.array(input_shape)
@@ -228,7 +228,7 @@ def sanity_check(msk:np.ndarray, num_classes:Optional[int]=None)->np.ndarray:
 
     Parameters
     ----------
-    msk : ndarray
+    msk : numpy.ndarray
         Segmentation mask. Can be 3D or 4D (if one-hot encoded).
     num_classes : int, optional
         Expected number of classes. If not provided, inferred from unique values.
@@ -242,7 +242,7 @@ def sanity_check(msk:np.ndarray, num_classes:Optional[int]=None)->np.ndarray:
 
     Returns
     -------
-    ndarray
+    numpy.ndarray
         Validated and possibly corrected segmentation mask.
     """
     uni = np.sort(np.unique(msk))
@@ -319,7 +319,7 @@ def correct_mask(
 
     Parameters
     ----------
-    mask : ndarray
+    mask : numpy.ndarray
         The input segmentation mask.
             - Shape for 3D: (D, H, W) for label masks, or (C, D, H, W) for binary/one-hot masks.
             - Shape for 2D (if `is_2d=True`): (H, W) or (C, H, W).
@@ -356,7 +356,7 @@ def correct_mask(
         
     Returns
     -------
-    ndarray
+    numpy.ndarray
         Corrected and standardized segmentation mask.
     """
     if not isinstance(num_classes, int) or num_classes < 2:
@@ -506,7 +506,7 @@ def standardize_img_dims(img:np.ndarray, num_channels:int, channel_axis:int, is_
 
     Parameters
     ----------
-    img : ndarray
+    img : numpy.ndarray
         Input image array. Expected shape:
             - 2D image: (H, W) or (C, H, W)
             - 3D image: (D, H, W) or (C, D, H, W)
@@ -525,7 +525,7 @@ def standardize_img_dims(img:np.ndarray, num_channels:int, channel_axis:int, is_
 
     Returns
     -------
-    img : np.ndarray
+    img : numpy.ndarray
         Standardized image with shape:
             - 2D mode: (C, 1, H, W)
             - 3D mode: (C, D, H, W)
@@ -591,19 +591,19 @@ def seg_preprocessor(
     
     Parameters
     ----------
-    img : ndarray
+    img : numpy.ndarray
         The input image array. Can be 2D or 3D, with or without channel dimension.
     img_meta : dict of str to any
         Dictionary containing image metadata, including the `spacing` field.
     num_classes : int
         Number of segmentation classes. Required if `msk` is provided.
-    msk : ndarray, optional
+    msk : numpy.ndarray, optional
         Segmentation mask corresponding to the image. Can be 2D or 3D.
     use_one_hot : bool, default=False
         If True, the mask will be converted to one-hot encoding.
     remove_bg : bool, default=False
         If True and `use_one_hot` is True, the background channel (0) is removed.
-    median_spacing : list or ndarray of float, optional
+    median_spacing : list or numpy.ndarray of float, optional
         Target spacing for resampling. If empty, resampling is skipped.
     clipping_bounds : list or tuple of float, optional
         Tuple (min, max) to clip intensity values. If empty, no clipping is applied.
@@ -628,13 +628,13 @@ def seg_preprocessor(
     Returns
     -------
     If `msk` is provided, returns `(img, msk, fg)`:
-        - `img`: ndarray
+        - `img`: numpy.ndarray
             Preprocessed image.
         - `msk`:ndarray
             Preprocessed segmentation mask.
         - `fg`:dict mapping class index -> array of sampled voxel coordinates
     If `msk` is None, returns `(img, img_meta)`:
-        - `img`: ndarray
+        - `img`: numpy.ndarray
             Preprocessed image
         - `img_meta`: 
             Original metadata, with added `original_shape`

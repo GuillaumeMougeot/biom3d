@@ -21,7 +21,7 @@ def display_voxels(image: np.ndarray,
 
     Parameters
     ----------
-    image : ndarray
+    image : numpy.ndarray
         3D numpy array representing the volume to display. Expected shape: (Z, Y, X).
     xlim : tuple of int
         Limits for the x-axis (min, max).
@@ -90,9 +90,9 @@ def napari_viewer(img: np.ndarray, pred: np.ndarray)->None:
     
     Parameters
     ----------
-    img: ndarray
+    img: numpy.ndarray
         Image data.
-    pred: ndarray
+    pred: numpy.ndarray
         Predicted mask (or just mask).
 
     Returns
@@ -116,7 +116,7 @@ def resize_segmentation(segmentation: np.ndarray,
 
     Parameters
     ----------
-    segmentation : ndarray
+    segmentation : numpy.ndarray
         The segmentation map to resize. Can be 2D or 3D.
     new_shape : tuple of int
         The desired output shape. Must match the dimensionality of `segmentation`.
@@ -130,7 +130,7 @@ def resize_segmentation(segmentation: np.ndarray,
 
     Returns
     -------
-    reshaped: ndarray
+    reshaped: numpy.ndarray
         The resized segmentation map. Same dtype as input.
     """
     tpe = segmentation.dtype
@@ -159,9 +159,9 @@ def resize_3d(img:np.ndarray,
     
     Parameters
     ----------
-    img : ndarray
+    img : numpy.ndarray
         3D image to resample, expected shape (C, W, H, D) where C is the channel dimension.
-    output_shape : tuple, list or ndarray
+    output_shape : tuple, list or numpy.ndarray
         Desired output shape. Must be of shape (C, W, H, D) or (W, H, D) and match the dimensionality.
     order : int, default=3
         Interpolation order. Use 3 for smooth images, 0 for masks.
@@ -182,7 +182,7 @@ def resize_3d(img:np.ndarray,
 
     Returns
     -------
-    new_img : ndarray
+    new_img : numpy.ndarray
         Resized image.
     """
     assert len(img.shape)==4, '[Error] Please provided a 3D image with "CWHD" format'
@@ -257,7 +257,7 @@ def resize_2d(img: np.ndarray,
 
     Parameters
     ----------
-    img : ndarray
+    img : numpy.ndarray
         Input 2D image or segmentation shape (C, H, W)
     output_shape : tuple of int
         Target (H, W) shape.
@@ -268,7 +268,7 @@ def resize_2d(img: np.ndarray,
 
     Returns
     -------
-    resized : ndarray
+    resized : numpy.ndarray
         Resized image or segmentation, same shape format as input.
     """
     assert len(img.shape)==3, '[Error] Please provided a 23D image with "CHD" format'

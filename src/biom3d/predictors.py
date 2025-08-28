@@ -74,7 +74,7 @@ def seg_predict(
     
     Returns
     -------
-    ndarray
+    numpy.ndarray
         Segmentation mask (binary values 0 or 255) or raw logits.
     """
     img = load_img_seg(img_path)
@@ -108,7 +108,7 @@ def seg_predict_old(img:torch.Tensor, model:torch.nn.Module, return_logit:bool=F
 
     Returns
     -------
-    ndarray
+    numpy.ndarray
         The predicted segmentation mask or logit.
     """
     model.eval()
@@ -137,10 +137,10 @@ class LoadImgPatch:
     Designed to handle image loading, resampling, clipping, normalization, and patch sampling preparation.
 
     :ivar str fname: Filename of the image.
-    :ivar ndarray img: Preprocessed image tensor.
+    :ivar numpy.ndarray img: Preprocessed image tensor.
     :ivar tuple[int] img_shape: Original shape of the image.
-    :ivar ndarray patch_size: Patch size for sampling.
-    :ivar ndarray median_spacing: Median spacing of the dataset for resampling.
+    :ivar numpy.ndarray patch_size: Patch size for sampling.
+    :ivar numpy.ndarray median_spacing: Median spacing of the dataset for resampling.
     :ivar list[float] clipping_bounds: Clipping bounds for intensity.
     :ivar list[float] intensity_moments: Intensity moments for normalization.
     :ivar list[float]|tuple[float] spacing: Original image spacing.
@@ -328,7 +328,7 @@ def seg_predict_patch(
 
     Returns
     -------
-    ndarray
+    numpy.ndarray
         The predicted segmentation mask or logit.
     """
     if torch.cuda.is_available(): device='cuda'
@@ -461,7 +461,7 @@ def seg_predict_patch_2(
 
     Parameters
     ----------
-    img : ndarray
+    img : numpy.ndarray
         The preprocessed image to predict.
     original_shape : tuple of int
         Original shape of the image.
@@ -486,7 +486,7 @@ def seg_predict_patch_2(
 
     Returns
     -------
-    ndarray
+    numpy.ndarray
         The predicted segmentation mask or logit.
     """
     if torch.cuda.is_available(): device='cuda'
@@ -596,7 +596,7 @@ def seg_postprocessing(
 
     Parameters
     ----------
-    logit : torch.Tensor or ndarray
+    logit : torch.Tensor or numpy.ndarray
         The raw model output.
     original_shape : tuple of int
         Shape to resize the output to.
@@ -618,11 +618,11 @@ def seg_postprocessing(
     Raises
     ------
     AssertionError
-        If logit is not a ndarray or torch.Tensor.
+        If logit is not a numpy.ndarray or torch.Tensor.
 
     Returns
     -------
-    ndarray
+    numpy.ndarray
         The post-processed segmentation mask or logit.
     """
     # make original_shape only spatial

@@ -214,7 +214,7 @@ class ImageManager:
 
         Returns
         -------
-        img: ndarray
+        img: numpy.ndarray
             The image contained in the file
         meta: dict from str to any
             The image metadata
@@ -252,7 +252,7 @@ class ImageManager:
 
         Returns
         -------
-        img: ndarray
+        img: numpy.ndarray
             The image contained in the file.
         meta: dictionary from str to any
             The image metadata as a dict. Can be empty
@@ -284,7 +284,7 @@ class ImageManager:
         ----------
         img_path: str
             Path to image file, must contain extension.
-        img: ndarray
+        img: numpy.ndarray
             Image data.
         metadata: dictionary from str to any, default={}
             Image metadata. Following keys have default values if not found:
@@ -496,7 +496,7 @@ class ImageManager:
 
         Parameters
         ----------
-        data: ndarray
+        data: numpy.ndarray
             Image data.
         meta: dict from str to any
             Image meta data, must contains 

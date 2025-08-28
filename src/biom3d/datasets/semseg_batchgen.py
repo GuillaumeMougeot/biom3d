@@ -36,9 +36,9 @@ def centered_crop(img:np.ndarray,
 
     Parameters
     ----------
-    img: ndarray
+    img: numpy.ndarray
         Image data.
-    msk: ndarray
+    msk: numpy.ndarray
         Mask data.
     center: iterable of int
         Center voxel location for cropping.
@@ -49,9 +49,9 @@ def centered_crop(img:np.ndarray,
 
     Returns
     -------    
-    crop_img : np.ndarray
+    crop_img : numpy.ndarray
         The cropped image, centered around center.
-    crop_msk: np.ndarray
+    crop_msk: numpy.ndarray
         The cropped mask, centered around center.
     """
     center = np.array(center)
@@ -81,9 +81,9 @@ def located_crop(img:np.ndarray,
     
     Parameters
     ----------
-    img : ndarray
+    img : numpy.ndarray
         Image data.
-    msk : ndarray
+    msk : numpy.ndarray
         Mask data.
     location : iterable of int
         Specific voxel location to include in the crop.
@@ -94,9 +94,9 @@ def located_crop(img:np.ndarray,
 
     Returns
     -------
-    crop_img : ndarray
+    crop_img : numpy.ndarray
         Cropped image data, containing the specified location voxel within the crop.
-    crop_msk : ndarray
+    crop_msk : numpy.ndarray
         Cropped mask data, corresponding to the cropped image region.
     """
     img_shape = np.array(img.shape)[1:]
@@ -127,24 +127,24 @@ def foreground_crop(img:np.ndarray,
     
     Parameters
     ----------
-    img : ndarray
+    img : numpy.ndarray
         Image data.
-    msk : ndarray
+    msk : numpy.ndarray
         Mask data.
     final_size : iterable of int
         Final size of the cropped image and mask.
     fg_margin : iterable of float
         Margin around the foreground location.
-    fg : dict of int to np.ndarray, optional
+    fg : dict of int to numpy.ndarray, optional
         Foreground information.
     use_softmax : bool, default=True
         If True, assumes softmax activation.
 
     Returns
     -------
-    img : ndarray
+    img : numpy.ndarray
         Cropped image data, focused on the foreground region.
-    msk : ndarray
+    msk : numpy.ndarray
         Cropped mask data, corresponding to the cropped image region.
         
     """
@@ -176,9 +176,9 @@ def random_crop(img:np.ndarray,
     
     Parameters
     ----------
-    img : ndarray
+    img : numpy.ndarray
         Image data.
-    msk : ndarray
+    msk : numpy.ndarray
         Mask data.
     crop_shape : array_like
         Shape of the crop.
@@ -190,9 +190,9 @@ def random_crop(img:np.ndarray,
 
     Returns
     -------
-    crop_img : ndarray
+    crop_img : numpy.ndarray
         Cropped image data.
-    crop_msk : ndarray
+    crop_msk : numpy.ndarray
         Cropped mask data.
     """  
     img_shape = np.array(img.shape)[1:]
@@ -216,18 +216,18 @@ def centered_pad(img:np.ndarray,
     
     Parameters
     ----------
-    img : ndarray
+    img : numpy.ndarray
         Image data.
     final_size : array_like
         Final size after padding.
-    msk : ndarray, optional
+    msk : numpy.ndarray, optional
         Mask data.
 
     Returns
     -------
-    pad_img: ndarray
+    pad_img: numpy.ndarray
         Padded image.
-    pad_mask: ndarray, optional
+    pad_mask: numpy.ndarray, optional
         Padded image
     """
     final_size = np.array(final_size)
@@ -260,9 +260,9 @@ def random_crop_pad(img:np.ndarray,
     
     Parameters
     ----------
-    img : ndarray
+    img : numpy.ndarray
         Image data.
-    msk : ndarray
+    msk : numpy.ndarray
         Mask data.
     final_size : iterable of int
         Final size after cropping and padding.
@@ -270,15 +270,15 @@ def random_crop_pad(img:np.ndarray,
         Probability of focusing the crop on the foreground.
     fg_margin : iterable of float, optional
         Margin around the foreground location.
-    fg : dict of int to ndarray, optional
+    fg : dict of int to numpy.ndarray, optional
         Foreground information.
     use_softmax : bool, default=True
         If True, assumes softmax activation; otherwise sigmoid is used.
     Returns
     -------
-    img : ndarray
+    img : numpy.ndarray
         Cropped and padded image data.
-    msk : ndarray
+    msk : numpy.ndarray
         Cropped and padded mask data.
     """
     if isinstance(img,list): # then batch mode
@@ -394,11 +394,11 @@ def imread(handler:DataHandler,
 
     Returns
     -------
-    img: ndarray
+    img: numpy.ndarray
         The image.
-    msk: ndarray
+    msk: numpy.ndarray
         The mask.
-    fg: ndarray, optional
+    fg: numpy.ndarray, optional
         The foreground, or None.
     """
     img,_ = handler.load(img)
@@ -512,7 +512,7 @@ def get_bbox(patch_size:Iterable[int],
         Current size of the patch after any previous cropping or resizing.
     annotated_classes_key : hashable
         Key identifying the annotated class in `class_locations`.
-    data_shape : np.ndarray
+    data_shape : numpy.ndarray
         Shape of the full data volume or image from which the patch is cropped.
     force_fg : bool
         If True, ensures the patch contains at least one voxel of foreground classes.
@@ -1004,9 +1004,9 @@ def get_training_transforms(aug_patch_size: np.ndarray| tuple[int],
 
     Parameters
     ----------
-    aug_patch_size : ndarray or tuple of int
+    aug_patch_size : numpy.ndarray or tuple of int
         Size of the patch used during augmentation (may be larger than `patch_size`).
-    patch_size : ndarray or tuple of int
+    patch_size : numpy.ndarray or tuple of int
         Final cropped patch size used for training.
     fg_rate : float
         Probability of cropping patches that contain foreground voxels.
@@ -1110,7 +1110,7 @@ def get_validation_transforms(patch_size: np.ndarray | tuple[int],
 
     Parameters
     ----------
-    patch_size : ndarray or tuple of int
+    patch_size : numpy.ndarray or tuple of int
         Size of the patch used for cropping and padding.
     fg_rate : float
         Probability of focusing on foreground regions when cropping.
@@ -1164,7 +1164,7 @@ class BatchGenDataLoader(SlimDataLoaderBase):
     :ivar str | None fg_path: Path to collection containing foreground information.
     :ivar int batch_size: Size of the batches.
     :ivar int nbof_steps: Number of steps per epoch.
-    :ivar ndarray indices: A array of unsigned int representing the possibles index for images.
+    :ivar numpy.ndarray indices: A array of unsigned int representing the possibles index for images.
     :ivar int current_position: Index of the actual image.
     :ivar bool was_initialized: If the batch generator was initialized, used for safeguarding.
     """
@@ -1337,7 +1337,7 @@ class BatchGenDataLoader(SlimDataLoaderBase):
 
         Returns
         -------
-        ndarray
+        numpy.ndarray
             A NumPy array of randomly sampled indices with shape (batch_size,).
 
         Raises
@@ -1420,7 +1420,7 @@ def get_patch_size(final_patch_size:list[int]| tuple[int]| np.ndarray,
 
     Returns
     -------
-    final_shape: ndarray of int
+    final_shape: numpy.ndarray of int
         The adjusted patch size that ensures the transformed patch still contains
         the original field of view, accounting for rotation and scaling.
 
@@ -1476,7 +1476,7 @@ def configure_rotation_dummy_da_mirroring_and_inital_patch_size(patch_size:Itera
     do_dummy_2d_data_aug: bool
         Whether a dummy 2d data augmentation has been done
 
-    initial_patch_size : np.ndarray
+    initial_patch_size : numpy.ndarray
         Path to foregrounds output collection.
     """
     patch_size=np.array(patch_size)

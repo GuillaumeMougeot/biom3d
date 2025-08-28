@@ -846,7 +846,7 @@ class Builder:
         ----------
         handler : DataHandler, optional
             A data handler that will be used to load the specific image. It will load the first image in its collection.
-        img : ndarray, optional
+        img : numpy.ndarray, optional
             The image array to predict on. Required if `handler` is not provided.
         img_meta : dict, optional
             Metadata associated with the image. Required if `handler` is not provided.
@@ -866,7 +866,7 @@ class Builder:
 
         Returns
         -------
-        ndarray
+        numpy.ndarray
             The post-processed prediction output.
         """
         # load image

@@ -14,9 +14,9 @@ def iou(inputs:np.ndarray, targets:np.ndarray, smooth:float=1.0)->float:
 
     Parameters
     ----------
-    inputs : ndarray
+    inputs : numpy.ndarray
         Binary array representing the predicted mask.
-    targets : ndarray
+    targets : numpy.ndarray
         Binary array representing the ground truth mask.
     smooth : float, default=1.0
         Smoothing factor to avoid division by zero.
@@ -40,9 +40,9 @@ def dice(inputs:np.ndarray,
 
     Parameters
     ----------
-    inputs : ndarray
+    inputs : numpy.ndarray
         Binary array or one-hot encoded mask of predictions.
-    targets : ndarray
+    targets : numpy.ndarray
         Binary array or one-hot encoded mask of ground truth.
     smooth : float, default=1.0
         Smoothing factor to avoid division by zero.
@@ -79,9 +79,9 @@ def versus_one(fct:Callable,
     ----------
     fct : callable
         A function that takes two binary masks and returns a metric score (e.g., IoU or Dice).
-    input_img : ndarray
+    input_img : numpy.ndarray
         Input image as label indices or one-hot encoded mask.
-    target_img : ndarray
+    target_img : numpy.ndarray
         Target (ground truth) image as label indices or one-hot encoded mask.
     num_classes : int
         Number of classes expected in input and target images.
