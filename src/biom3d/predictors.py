@@ -642,7 +642,7 @@ def seg_postprocessing(
             if type(logit)==torch.Tensor:
                 logit = logit.numpy()
             assert type(logit)==np.ndarray, "[Error] Logit must be numpy.ndarray but found {}.".format(type(logit))
-            logit = resize_3d(logit, original_shape, order=3)
+            logit = resize_func(logit, original_shape, order=3)
         print("Returning logit...")
         print("Post-processing done!")
         return logit
@@ -662,7 +662,6 @@ def seg_postprocessing(
     # resampling
     if original_shape is not None:
         if use_softmax or force_softmax:
-            print(out.shape)
             out = resize_func(np.expand_dims(out,0), original_shape, order=1, is_msk=True).squeeze()
         else: 
             out = resize_func(out, original_shape, order=1, is_msk=True)
