@@ -17,7 +17,6 @@ from torch.optim import Optimizer
 from torch.nn import Module
 from biom3d.metrics import Metric
 from biom3d.callbacks import Callbacks
-from torchio.data.loader import SubjectsLoader
 #---------------------------------------------------------------------------
 # model trainers for segmentation
 
@@ -205,7 +204,7 @@ def seg_validate(
 #---------------------------------------------------------------------------
 # model trainers for segmentation with patches 
 
-def seg_patch_validate(dataloader:SubjectsLoader, 
+def seg_patch_validate(dataloader:DataLoader, 
                        model:Module, 
                        loss_fn:Metric, 
                        metrics:list[Metric],
@@ -255,7 +254,7 @@ def seg_patch_validate(dataloader:SubjectsLoader,
     print(template)
 
 def seg_patch_train(
-    dataloader:SubjectsLoader, 
+    dataloader:DataLoader, 
     model:Module, 
     loss_fn:Metric,
     metrics:list[Metric], 
