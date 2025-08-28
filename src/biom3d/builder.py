@@ -978,23 +978,23 @@ class Builder:
         str
             The path to the collection where predictions were saved.
         """
-        handler = utils.DataHandlerFactory.get(
+        with utils.DataHandlerFactory.get(
             path_in,
             output=path_out,
             read_only=False,
             msk_outpath = path_out,
             model_name = self.config[-1].DESC if isinstance(self.config,list) else self.config.DESC,
-        )
+        ) as handler:
+            for i,_,_ in handler:
+                print("running prediction for image: ", i)
+                img, img_meta = handler.load(i)
+                pred = self.run_prediction_single(img=img, img_meta=img_meta, return_logit=return_logit,skip_preprocessing=skip_preprocessing)
+                print("Saving image...")
+                fnames_out= handler.save(i,pred,"pred")
+                print("Saved images in", fnames_out)
+            out = handler.msk_outpath
 
-        for i,_,_ in handler:
-            print("running prediction for image: ", i)
-            img, img_meta = handler.load(i)
-            pred = self.run_prediction_single(img=img, img_meta=img_meta, return_logit=return_logit,skip_preprocessing=skip_preprocessing)
-            print("Saving image...")
-            fnames_out= handler.save(i,pred,"pred")
-            print("Saved images in", fnames_out)
-
-        return handler.msk_outpath
+        return out
                 
     def load_train(self, path:str, load_best:bool=False)->None: 
         """

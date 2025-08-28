@@ -410,6 +410,16 @@ class DataHandler :
         try : self.close()
         except: pass
 
+    def __enter__(self)->DataHandler:
+        """Support for 'with' statement."""
+        return self
+    
+    def __exit__(self,exc_type, exc_value, traceback)->False:
+        """Support for 'with' statement: auto-close resources"""
+        try:self.close()
+        except Exception as e:
+            print(f"[Warning] Error during datahandler close(): {e}")
+        return False
 
 
         
