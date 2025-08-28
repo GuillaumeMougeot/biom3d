@@ -982,7 +982,6 @@ class Builder:
             path_in,
             output=path_out,
             read_only=False,
-            img_path = path_in,
             msk_outpath = path_out,
             model_name = self.config[-1].DESC if isinstance(self.config,list) else self.config.DESC,
         )

@@ -549,7 +549,6 @@ class SemSeg3DPatchFast(Dataset):
         self.handler = DataHandlerFactory.get(
             self.img_path,
             read_only=True,
-            img_path = img_path,
             msk_path = msk_path,
             fg_path = fg_path,
         )

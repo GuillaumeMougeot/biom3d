@@ -47,7 +47,6 @@ def compute_median(path:str, return_spacing:bool=False)->np.ndarray | tuple[np.n
         path,
         read_only=True,
         output=None,
-        img_path = path,
     )
 
     sizes = []
@@ -136,7 +135,6 @@ def data_fingerprint(img_path:str,
         img_path,
         read_only=True,
         output=None,
-        img_path = img_path,
         msk_path = msk_path,
     )
     

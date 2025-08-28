@@ -85,14 +85,12 @@ def eval(path_lab: str,
     handler1 = DataHandlerFactory.get(
         path_lab,
         read_only=True,
-        img_path = path_lab,
         eval='label',
     )
 
     handler2 = DataHandlerFactory.get(
         path_out,
         read_only=True,
-        img_path = path_out,
         eval='pred',
     )
     assert len(handler1) == len(handler2), f"[Error] Not the same number of labels and predictions! '{len(handler1)}' for '{len(handler2)}'"

@@ -1236,7 +1236,6 @@ class BatchGenDataLoader(SlimDataLoaderBase):
         handler = DataHandlerFactory.get(
             self.img_path,
             read_only=True,
-            img_path = img_path,
             msk_path = msk_path,
             fg_path = fg_path,
         )
@@ -1616,7 +1615,6 @@ class MTBatchGenDataLoader(MultiThreadedAugmenter):
         handler = DataHandlerFactory.get(
             img_path,
             read_only=True,
-            img_path = img_path,
             msk_path = msk_path,
             fg_path = fg_path,
         )

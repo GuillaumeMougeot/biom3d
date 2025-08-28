@@ -363,6 +363,7 @@ def compat_old_config(config:MutableMapping[str,Any])->MutableMapping[str,Any]:
               "fg_dir":'fg_path',
               }.items() :
         config = recursive_rename_key(config,k,v)
+    if "IS_2D" not in config.keys(): config["IS_2D"] = False
     return config
 
 def adaptive_load_config(config_path:str)->AttrDict:

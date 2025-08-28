@@ -55,7 +55,6 @@ def pred_single(log:str|list[str],
     handler = DataHandlerFactory.get(
             img_path,
             output=out_path,
-            img_path = img_path,
             msk_outpath = out_path,
             model_name = builder.config[-1].DESC if isinstance(builder.config,list) else builder.config.DESC,
         )
@@ -221,17 +220,15 @@ def pred_seg_eval_single(log:str|list[str],
     """
     print("Run prediction for:", img_path)
     num_classes,out = pred_single(log, img_path, out_path,skip_preprocessing=skip_preprocessing)
-    print("Done! Prediction saved in:", out_path)
+    print("Done! Prediction saved in:", out)
     handler1 = DataHandlerFactory.get(
-        out_path,
+        out,
         read_only=True,
-        img_path = out,
         eval="pred",
     )
     handler2 = DataHandlerFactory.get(
         msk_path,
         read_only=True,
-        img_path = msk_path,
         eval="label",
     )
     print("Metric computation with mask:", msk_path)

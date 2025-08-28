@@ -846,7 +846,6 @@ class Preprocessing:
             self.img_path,
             preprocess=True,
             output=img_outpath,
-            img_path = self.img_path,
             msk_path = self.msk_path,
             img_outpath = img_outpath,
             msk_outpath = msk_outpath,
@@ -964,7 +963,6 @@ class Preprocessing:
             images,
             preprocess=True,
             output=images,
-            img_path = images,
             msk_path = masks,
             img_outpath = images,
             msk_outpath = masks,
@@ -1199,7 +1197,6 @@ def auto_config_preprocess(
             img_path,
             read_only=True,
             output=None,
-            img_path = img_path,
         )
 
         

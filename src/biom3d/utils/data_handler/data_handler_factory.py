@@ -116,7 +116,7 @@ class DataHandlerFactory:
         Parameters
         ----------
         input: str
-            Path to input (Folder path, archive path, url,...).
+            Path to input (Folder path, archive path, url,...). This path will be used as the image path.
 
         read_only: bool, default = False
             (Optional) Whether handler is in read only.
@@ -129,9 +129,7 @@ class DataHandlerFactory:
 
         **kwargs:
 
-            All existing parameters to existing handlers, currently
-                img_path:str 
-                    Generic : images output path                    
+            All existing parameters to existing handlers, currently                 
                 msk_path:str, default=None,
                     Generic : mask output path
                 fg_path:str, default = None
@@ -167,6 +165,7 @@ class DataHandlerFactory:
         """
         if read_only and preprocess : raise ValueError("A preprocess handler need to write and can't be in read_only")
         INPUT = DataHandlerFactory._detect_handler_type(input)
+        kwargs["img_path"]=input
         handler = INPUT()
         handler._input_parse(**kwargs)
         handler._preprocess=preprocess
