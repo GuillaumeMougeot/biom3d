@@ -20,7 +20,7 @@ class OutputType(Enum):
     PRED = "pred"; """Saving a prediction"""
 
 class DataHandler :
-    """Abstract class that define the interface to save, load and iterate over images."""
+    """Abstract class that define the interface to save, load and iterate over dataset."""
 
     images: list ;"""A list of image paths."""
     masks: Optional[list]; """A list of mask paths."""

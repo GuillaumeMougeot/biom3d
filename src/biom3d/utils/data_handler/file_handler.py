@@ -192,7 +192,9 @@ class ImageManager:
                      return_direction:bool=False,
                      )->tuple[np.ndarray,dict[str,Any]]:
         """
-        Image reader for nii.gz files.
+        Image reader for more generic images formats.
+
+        See the complete list here : https://simpleitk.readthedocs.io/en/master/IO.html#image-io
 
         Parameters
         ----------
@@ -274,7 +276,9 @@ class ImageManager:
     @staticmethod
     def _sitk_imsave(img_path:str, img:np.ndarray, metadata:dict[str,Any]={})->None:
         """
-        Image saver for nii.gz images.
+        Image saver for more generic images format.
+
+        See the complete list here : https://simpleitk.readthedocs.io/en/master/IO.html#image-io
 
         Parameters
         ----------

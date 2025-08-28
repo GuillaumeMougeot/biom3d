@@ -1,5 +1,5 @@
-"""3
-D efficient net stolen from: https://github.com/shijianjian/EfficientNet-PyTorch-3D.
+"""
+3D efficient net stolen from: https://github.com/shijianjian/EfficientNet-PyTorch-3D.
 
 Usage:
 

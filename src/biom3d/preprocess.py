@@ -656,7 +656,7 @@ def seg_preprocessor(
             msk,
             num_classes,
             is_2d=is_2d,
-            standardize_dims=True, # Doesn't work with 3D image (not 2D with channel) need fixing
+            standardize_dims=True,
             use_one_hot=use_one_hot,
             remove_bg=remove_bg,
             output_dtype=np.uint16,

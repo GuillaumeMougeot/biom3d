@@ -16,7 +16,9 @@ def sitk_imread(img_path:str,
                      return_direction:bool=False,
                      )->tuple[ndarray,dict[str,Any]]:
     """
-    Image reader for nii.gz files.
+    Image reader for more generic images formats.
+
+    See the complete list here : https://simpleitk.readthedocs.io/en/master/IO.html#image-io
 
     Parameters
     ----------
@@ -67,7 +69,9 @@ def adaptive_imread(img_path:str)->tuple[ndarray,dict[str,Any]]:
 # Marked deprecated in August 2025
 def sitk_imsave(img_path:str, img:ndarray, metadata:dict[str,Any]={})->None:
     """
-    Image saver for nii.gz images.
+    Image saver for more generic images formats.
+
+    See the complete list here : https://simpleitk.readthedocs.io/en/master/IO.html#image-io
 
     Parameters
     ----------
