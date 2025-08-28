@@ -192,7 +192,7 @@ def data_fingerprint(img_path:str,
         if spacings[i] is None : spacings[i] = []
 
 
-    median_spacing = np.median(np.array(spacings), axis=0) if len(spacings) > 0 else []
+    median_spacing = np.median(np.array(spacings), axis=0) if len(spacings) > 0 else 0
 
     
     if not samples: 
