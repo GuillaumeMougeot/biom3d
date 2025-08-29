@@ -11,7 +11,7 @@ import numpy as np
 from skimage.io import imread
 from tqdm import tqdm
 
-from biom3d.utils import keep_biggest_volume_centered, adaptive_imread, resize_3d, keep_big_volumes, resize_2d
+from biom3d.utils import keep_biggest_volume_centered, adaptive_imread, keep_big_volumes, resize
 
 #---------------------------------------------------------------------------
 # model predictor for segmentation
@@ -626,13 +626,9 @@ def seg_postprocessing(
         The post-processed segmentation mask or logit.
     """
     # make original_shape only spatial
-    if is_2d:
-        logit = logit.squeeze(1) # Remove Z dim
-        original_shape = original_shape[-2:] 
-    else:
-        original_shape[-3:] 
+    if is_2d: original_shape= (1,original_shape[-2],original_shape[-1])
+    else: original_shape=original_shape[-3:] 
     num_classes = logit.shape[0]
-    resize_func = resize_2d if is_2d else resize_3d
 
     # post-processing:
     print("Post-processing...")
@@ -642,7 +638,7 @@ def seg_postprocessing(
             if type(logit)==torch.Tensor:
                 logit = logit.numpy()
             assert type(logit)==np.ndarray, "[Error] Logit must be numpy.ndarray but found {}.".format(type(logit))
-            logit = resize_func(logit, original_shape, order=3)
+            logit = resize(logit, original_shape, order=3)
         print("Returning logit...")
         print("Post-processing done!")
         return logit
@@ -662,9 +658,9 @@ def seg_postprocessing(
     # resampling
     if original_shape is not None:
         if use_softmax or force_softmax:
-            out = resize_func(np.expand_dims(out,0), original_shape, order=1, is_msk=True).squeeze()
+            out = resize(np.expand_dims(out,0), original_shape, order=1, is_msk=True).squeeze()
         else: 
-            out = resize_func(out, original_shape, order=1, is_msk=True)
+            out = resize(out, original_shape, order=1, is_msk=True)
     
     if keep_big_only and keep_biggest_only:
         print("[Warning] Incompatible options 'keep_big_only' and 'keep_biggest_only' have both been set to True. Please deactivate one! We consider here only 'keep_biggest_only'.")
@@ -685,6 +681,9 @@ def seg_postprocessing(
             
         if use_softmax: # set back to non-one-hot encoded
             out = out.argmax(0)
+            
+    if is_2d:
+        logit = logit.squeeze(1) # Remove Z dim
 
     out = out.astype(np.uint8)    
     

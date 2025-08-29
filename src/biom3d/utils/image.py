@@ -147,7 +147,7 @@ def resize_segmentation(segmentation: np.ndarray,
             reshaped[reshaped_multihot >= 0.5] = c
         return reshaped
 
-def resize_3d(img:np.ndarray, 
+def resize(img:np.ndarray, 
               output_shape:tuple[int]|list[int]|np.ndarray[int], 
               order:int=3, 
               is_msk:bool=False, 
@@ -160,9 +160,9 @@ def resize_3d(img:np.ndarray,
     Parameters
     ----------
     img : numpy.ndarray
-        3D image to resample, expected shape (C, W, H, D) where C is the channel dimension.
+        Image to resample, expected shape (C, W, H, D) where C is the channel dimension.
     output_shape : tuple, list or numpy.ndarray
-        Desired output shape. Must be of shape (C, W, H, D) or (W, H, D) and match the dimensionality.
+        Desired output shape. Must be of shape (C, W, H, D) or (W, H, D), (C,H,D) or (H,D) and match the dimensionality.
     order : int, default=3
         Interpolation order. Use 3 for smooth images, 0 for masks.
     is_msk : bool, default=False
@@ -185,8 +185,7 @@ def resize_3d(img:np.ndarray,
     new_img : numpy.ndarray
         Resized image.
     """
-    assert len(img.shape)==4, '[Error] Please provided a 3D image with "CWHD" format'
-    assert len(output_shape)==3 or len(output_shape)==4, '[Error] Output shape must be "CWHD" or "WHD"'
+    
     
     # convert shape to array
     input_shape = np.array(img.shape)
@@ -247,43 +246,3 @@ def resize_3d(img:np.ndarray,
             new_img[c] = resize_fct(img[c], output_shape[1:], order=order, **resize_kwargs)
             
     return new_img
-
-def resize_2d(img: np.ndarray,
-              output_shape: tuple[int, int]|tuple[int,int,int],
-              order: int = 3,
-              is_msk: bool = False) -> np.ndarray:
-    """
-    Resize a 2D image or segmentation map.
-
-    Parameters
-    ----------
-    img : numpy.ndarray
-        Input 2D image or segmentation shape (C, H, W)
-    output_shape : tuple of int
-        Target (H, W) shape.
-    order : int, default=3
-        Interpolation order. Use 0 for masks, 3 for smooth images.
-    is_msk : bool, default=False
-        If True, uses label-aware resizing (avoids interpolation artifacts).
-
-    Returns
-    -------
-    resized : numpy.ndarray
-        Resized image or segmentation, same shape format as input.
-    """
-    assert len(img.shape)==3, '[Error] Please provided a 23D image with "CHD" format'
-    assert len(output_shape)==2 or len(output_shape)==3, '[Error] Output shape must be "CHD" or "HD"'
-
-    resize_fct = resize_segmentation if is_msk else resize
-    resize_kwargs = {} if is_msk else {'mode': 'edge', 'anti_aliasing': False}
-
-    if img.ndim == 2:  # No channel
-        return resize_fct(img, output_shape, order=order, **resize_kwargs)
-    
-    # With channel: apply resizing per channel
-    C, _, _ = img.shape
-    resized = np.empty((C, *output_shape), dtype=img.dtype)
-    for c in range(C):
-        resized[c] = resize_fct(img[c], output_shape, order=order, **resize_kwargs)
-
-    return resized

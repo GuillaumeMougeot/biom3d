@@ -18,7 +18,7 @@ import argparse
 import pandas as pd
 
 from biom3d.auto_config import auto_config, data_fingerprint
-from biom3d.utils import one_hot_fast, resize_3d, save_python_config,DataHandlerFactory
+from biom3d.utils import one_hot_fast, resize, save_python_config,DataHandlerFactory
 
 #---------------------------------------------------------------------------
 # Define the CSV file for KFold split

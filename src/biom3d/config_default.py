@@ -264,6 +264,7 @@ PREPROCESSOR = Dict(
         intensity_moments=INTENSITY_MOMENTS,
         channel_axis=CHANNEL_AXIS,
         num_channels=NUM_CHANNELS,
+        is_2d=IS_2D,
     )
 )
 
@@ -280,6 +281,7 @@ POSTPROCESSOR = Dict(
         use_softmax=USE_SOFTMAX,
         keep_biggest_only=False,
         keep_big_only=False,
+        is_2d=IS_2D,
     ),
 )
 

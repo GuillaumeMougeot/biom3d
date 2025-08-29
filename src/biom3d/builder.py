@@ -885,7 +885,7 @@ class Builder:
                 assert np.all([config.PREPROCESSOR==self.config[0].PREPROCESSOR for config in self.config[1:]]), "[Error] For multi-model prediction, the current version of biom3d imposes that all preprocessor are identical. {}".format([config.PREPROCESSOR==self.config[0].PREPROCESSOR for config in self.config[1:]])
                 
                 # preprocessing
-                img, img_meta = read_config(self.config[0].PREPROCESSOR, register.preprocessors, img=img, img_meta=img_meta,num_classes=num_class,is_2d=self.config.IS_2D)
+                img, img_meta = read_config(self.config[0].PREPROCESSOR, register.preprocessors, img=img, img_meta=img_meta,num_classes=num_class)
 
             # same for postprocessors
             for i in range(len(self.config)):
@@ -921,7 +921,7 @@ class Builder:
         
         else: # single model prediction
             if not skip_preprocessing:
-                img, img_meta = read_config(self.config.PREPROCESSOR, register.preprocessors, img=img, img_meta=img_meta,num_classes=num_class,is_2d=self.config.IS_2D)
+                img, img_meta = read_config(self.config.PREPROCESSOR, register.preprocessors, img=img, img_meta=img_meta,num_classes=num_class)
                 
                 print("Preprocessed shape:", img.shape)
 
@@ -947,7 +947,6 @@ class Builder:
                 register.postprocessors,
                 logit = out,
                 return_logit = return_logit,
-                is_2d=self.config.IS_2D,
                 **img_meta)
 
     # TODO: Maybe rename this function to run_prediction_collection ?
