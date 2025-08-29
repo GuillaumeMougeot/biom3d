@@ -554,7 +554,7 @@ def standardize_img_dims(img:np.ndarray, num_channels:int, channel_axis:int, is_
     # Final check
     if img.shape[0] != num_channels and img.shape.count(num_channels) != 1:
         raise ValueError(f"Image has {img.shape[0]} channels but expected {num_channels}.")
-    elif img.shape.count(num_channels) == 1:
+    elif img.shape[0] != num_channels and img.shape.count(num_channels) == 1:
         # Heuristic to save the day in case of incorrect channel axis and 4D (for 3D) or 3D (for 2D) image
         print("[WARNING] The channels where not found at channel axis, but we found a dimension with same size and moved it at first dimension.\n" \
         f"Image shape : '{img.shape}'")
