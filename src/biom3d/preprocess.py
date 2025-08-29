@@ -272,9 +272,14 @@ def correct_mask(
             encoding_type = 'label'
             # print(f"[INFO] Auto-detected 3D mask. Assuming 'label' encoding.")
         elif processed_mask.ndim == 4:
-            # For most cases, multi-channel is usually independent binary masks
-            encoding_type = 'binary'
-            # print(f"[INFO] Auto-detected 4D mask. Assuming 'binary' encoding (for sigmoid).")
+            if processed_mask.shape[0] == 1:
+                # Squeeze to label map
+                encoding_type = 'label'
+                processed_mask = processed_mask[0] # (1,D,H,W) -> (D,H,W)
+            else:
+                # For most cases, multi-channel is usually independent binary masks
+                encoding_type = 'binary'
+                # print(f"[INFO] Auto-detected 4D mask. Assuming 'binary' encoding (for sigmoid).")
         else:
             raise RuntimeError(f"Unsupported mask dimension: {processed_mask.ndim}. Shape: {processed_mask.shape}")
 
