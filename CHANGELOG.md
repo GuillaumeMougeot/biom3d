@@ -48,8 +48,6 @@ This release merge several fork and add new functionality to Biom3d.
   - Biom3d version and date time (UTC) of training are stored in model config.yaml
 
 **Still in progress**
-- Integration in Bacmman
-- Bioimage Model Zoo model exportation
 - DockerHub link to include
 
 **Knwown issues**
