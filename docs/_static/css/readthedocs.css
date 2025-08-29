@@ -4,3 +4,9 @@
     height: 40px;
     width: 156px;
 }
+
+img {
+    display: block;
+    margin-left: auto;
+     margin-right: auto;
+}

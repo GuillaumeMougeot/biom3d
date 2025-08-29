@@ -1,103 +1,238 @@
-#---------------------------------------------------------------------------
-# Main code: run predictions
-#---------------------------------------------------------------------------
+"""
+Main module for predictions.
 
-import os
+This module contains generic predictions functions:
+
+- pred_single
+- pred
+- pred multiple
+
+And interface predictions functions made for CLI:
+
+- pred_seg
+- pred_seg_eval
+- pred_seg_eval_single
+
+"""
+
 import argparse
 import pathlib
-import numpy as np
-
+from typing import Optional
 from biom3d.builder import Builder
-from biom3d.utils import abs_listdir, versus_one, dice, adaptive_imread, adaptive_imsave
+from biom3d.utils import deprecated, versus_one, dice, DataHandlerFactory
+from biom3d.eval import eval
 
 #---------------------------------------------------------------------------
 # prediction base fonction
+def pred_single(log:str|list[str], 
+                img_path:str,
+                out_path:str,
+                skip_preprocessing:bool=False,
+                )->tuple[int,str]:
+    """
+    Predict segmentation or classification on a single image.
 
-def pred_single(log, img_path, out_path):
-    """Prediction on a single image.
+    Parameters:
+    -----------
+    log : str or list of str
+        Path to the model/log directory or configuration.
+    img_path : str
+        Path to the input image file.
+    out_path : str
+        Directory where the prediction output will be saved.
+    skip_preprocessing : bool, default=False
+        If True, skips preprocessing step.
+
+    Returns:
+    --------
+    num_classes: int
+        Number of classes + 1 (the background)
+    path_out: str
+        Path to the saved mask output.
     """
     if not isinstance(log,list): log=str(log)
     builder = Builder(config=None,path=log, training=False)
-    img = builder.run_prediction_single(img_path, return_logit=False)
+    handler = DataHandlerFactory.get(
+            img_path,
+            output=out_path,
+            msk_outpath = out_path,
+            model_name = builder.config[-1].DESC if isinstance(builder.config,list) else builder.config.DESC,
+        )
+    img = builder.run_prediction_single(handler, return_logit=False,skip_preprocessing=skip_preprocessing)
+    handler.save(handler.images[0], img,"pred")
+    return builder.config.NUM_CLASSES+1,handler.msk_outpath  # for pred_seg_eval_single
 
-    metadata = adaptive_imread(img_path)[1]
-    adaptive_imsave(out_path, img, metadata)
-    return builder.config.NUM_CLASSES+1 # for pred_seg_eval_single
+def pred(log:str|list[str], 
+         path_in:str, 
+         path_out:str,
+         skip_preprocessing:bool=False,
+         )->str:
+    """
+    Predict on all images in a collecion.
 
-def pred(log, dir_in, dir_out):
-    """Prediction on a folder of images.
+    Parameters:
+    -----------
+    log : str or list of string
+        Path to the model/log directory or configuration.
+    path_in : str
+        Path to collection containing input images.
+    path_out : str
+        Path to collection to save prediction outputs.
+    skip_preprocessing : bool, default=False
+        If True, skips preprocessing step.
+
+    Returns:
+    --------
+    str
+        Path to the output directory containing predictions.
     """
     if not isinstance(log,list): log=str(log)
-    dir_in=str(dir_in)
-    dir_out=str(dir_out)
+    path_in=str(path_in)
+    path_out=str(path_out)
 
-    dir_out = os.path.join(dir_out,os.path.split(log[0] if isinstance(log,list) else log)[-1]) # name the prediction folder with the model folder name
     builder = Builder(config=None,path=log, training=False)
-    builder.run_prediction_folder(dir_in=dir_in, dir_out=dir_out, return_logit=False)
-    return dir_out
+    path_out = builder.run_prediction_folder(path_in=path_in, path_out=path_out, return_logit=False,skip_preprocessing=skip_preprocessing)
+    return path_out
 
-def pred_multiple(log, dir_in, dir_out):
-    """Prediction a folder of folders of images.
+@deprecated("This method is no longer used as it is the default behaviour of DataHandlers.")
+def pred_multiple(log:str|list[str], 
+         path_in:str, 
+         path_out:str,
+         skip_preprocessing:bool=False,
+         )->str:
     """
-    list_dir_in = [os.path.join(dir_in, e) for e in os.listdir(dir_in)]
-    list_dir_out = [os.path.join(dir_out, e) for e in os.listdir(dir_in)]
-    LOG_PATH = log
+    Predict on multiple folders of images. DEPRECATED.
 
-    for i in range(len(list_dir_in)):
-        dir_in = list_dir_in[i]
-        dir_out = list_dir_out[i]
+    This method is deprecated because the default behavior of DataHandlers 
+    now supports multiple folder prediction.
 
-        builder = Builder(config=None,path=LOG_PATH, training=False)
-        builder.run_prediction_folder(dir_in=dir_in, dir_out=dir_out, return_logit=False)
+    Parameters:
+    -----------
+    Same as pred()
+
+    Returns:
+    --------
+    Same as pred()
+    """
+    return pred(log,path_in,path_out,skip_preprocessing=skip_preprocessing)
 
 #---------------------------------------------------------------------------
-# main unet segmentation
-def pred_seg(log=pathlib.Path.home(), dir_in=pathlib.Path.home(), dir_out=pathlib.Path.home()):
-    pred(log, dir_in, dir_out)
+# main unet segmentation interface
+def pred_seg(log:pathlib.Path|str|list[str]=pathlib.Path.home(), 
+             path_in:pathlib.Path | str =pathlib.Path.home(), 
+             path_out:pathlib.Path | str =pathlib.Path.home(),
+             skip_preprocessing:bool=False
+             )->None:
+    """
+    Run prediction on a folder of images using default paths.
 
-def pred_seg_eval(log=pathlib.Path.home(), dir_in=pathlib.Path.home(), dir_out=pathlib.Path.home(), dir_lab=None, eval_only=False):
+    Parameters:
+    -----------
+    log : pathlib.Path, str or list of str, default=home directory
+        Path to the model or log directory.
+    path_in : pathlib.Path or str, default=home directory
+        Path to collection containing images.
+    path_out : pathlib.Path or str, default=home directory
+        Path to collection where predictions will be saved.
+    skip_preprocessing : bool, default=False
+        If True, skips preprocessing step.
+
+    Returns
+    -------
+    None
+    """
+    pred(log, path_in, path_out,skip_preprocessing=skip_preprocessing)
+
+# TODO remove eval only, we have a module for that
+def pred_seg_eval(log:pathlib.Path|str|list[str]=pathlib.Path.home(),
+                  path_in:pathlib.Path | str =pathlib.Path.home(), 
+                  path_out:pathlib.Path | str =pathlib.Path.home(), 
+                  path_lab:Optional[pathlib.Path | str]=None, 
+                  eval_only:bool=False,
+                  skip_preprocessing:bool=False
+                  )->None:
+    """
+    Run prediction on a folder of images and optionally evaluate segmentation (with dice).
+
+    Parameters:
+    -----------
+    log : pathlib.Path, str or list of str, default=home directory
+        Path to the model or log directory.
+    path_in : pathlib.Path or str, default=home directory
+        Path to collection containing images.
+    path_out : pathlib.Path or str, default=home directory
+        Path to collection where predictions will be saved.
+    path_lab : pathlib.Path or str, optional
+        Path to collection containing ground-truth label masks for evaluation.
+    eval_only : bool, default=False
+        If True, skips prediction and runs evaluation only.
+    skip_preprocessing : bool, default=False
+        If True, skips preprocessing step.
+
+    Returns
+    -------
+    None
+    """
     print("Start inference")
     builder_pred = Builder(
         config=None,
         path=log, 
         training=False)
-
-    dir_out = os.path.join(dir_out,os.path.split(log[0] if isinstance(log,list) else log)[-1]) # name the prediction folder with the last model folder name
+    out = path_out
     if not eval_only:
-        builder_pred.run_prediction_folder(dir_in=dir_in, dir_out=dir_out, return_logit=False) # run the predictions
+        out = builder_pred.run_prediction_folder(path_in=path_in, path_out=path_out, return_logit=False,skip_preprocessing=skip_preprocessing) # run the predictions
     print("Inference done!")
 
 
-    if dir_lab is not None:
+    if path_lab is not None:
+        if isinstance(builder_pred.config,list):
+            num_classes = builder_pred.config[0].NUM_CLASSES+1
+        else:
+            num_classes = builder_pred.config.NUM_CLASSES+1
         # eval
-        print("Start evaluation")
-        paths_lab = [dir_lab, dir_out]
-        list_abs = [sorted(abs_listdir(p)) for p in paths_lab]
-        assert sum([len(t) for t in list_abs])%len(list_abs)==0, "[Error] Not the same number of labels and predictions! {}".format([len(t) for t in list_abs])
+        eval(path_lab,out,num_classes=num_classes)
 
-        results = []
-        for idx in range(len(list_abs[0])):
-            print("Metric computation for:", list_abs[1][idx])
-            if isinstance(builder_pred.config,list):
-                num_classes = builder_pred.config[0].NUM_CLASSES+1
-            else:
-                num_classes = builder_pred.config.NUM_CLASSES+1
-            results += [versus_one(
-                fct=dice, 
-                in_path=list_abs[1][idx], 
-                tg_path=list_abs[0][idx], 
-                num_classes=num_classes, 
-                single_class=None,
-                )]
-            print("Metric result:", results[-1])
-        print("Evaluation done! Average result:", np.mean(results))
+def pred_seg_eval_single(log:str|list[str], 
+                         img_path:str, 
+                         out_path:str, 
+                         msk_path:str,
+                         skip_preprocessing:bool=False
+                         )->None:
+    """
+    Run prediction on a single image and compute evaluation metric (dice) against mask.
 
-def pred_seg_eval_single(log, img_path, out_path, msk_path):
+    Parameters:
+    -----------
+    log : str or list of str
+        Path to the model or log directory.
+    img_path : str
+        Path to the input image file.
+    out_path : str
+        Directory where prediction output will be saved.
+    msk_path : str
+        Path to the ground-truth mask for evaluation.
+    skip_preprocessing : bool, default=False
+        If True, skips preprocessing step.
+
+    Returns:
+    --------
+    None
+    """
     print("Run prediction for:", img_path)
-    num_classes = pred_single(log, img_path, out_path)
-    print("Done! Prediction saved in:", out_path)
+    num_classes,out = pred_single(log, img_path, out_path,skip_preprocessing=skip_preprocessing)
+    print("Done! Prediction saved in:", out)
+    handler1 = DataHandlerFactory.get(
+        out,
+        read_only=True,
+        eval="pred",
+    )
+    handler2 = DataHandlerFactory.get(
+        msk_path,
+        read_only=True,
+        eval="label",
+    )
     print("Metric computation with mask:", msk_path)
-    dice_score = versus_one(fct=dice, in_path=out_path, tg_path=msk_path, num_classes=num_classes)
+    dice_score = versus_one(fct=dice, input_img=handler1.load(handler1.images[0])[0], target_img=handler2.load(handler2.images[0])[0], num_classes=num_classes)
     print("Metric result:", dice_score)
 
 #---------------------------------------------------------------------------
@@ -125,16 +260,18 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser(description="Main training file.")
     parser.add_argument("-n", "--name", type=str, default="seg",
         help="Name of the tested method. Valid names: {}".format(valid_names.keys()))
-    parser.add_argument("-l", "--log", type=str, nargs='+',
+    parser.add_argument("-l", "--log", type=str, nargs='+',required=True,
         help="Path of the builder directory/directiories. You can pass several paths to make a prediction using several models.")
-    parser.add_argument("-i", "--dir_in", type=str,
-        help="Path to the input image directory")
-    parser.add_argument("-o", "--dir_out", type=str,
-        help="Path to the output prediction directory")
-    parser.add_argument("-a", "--dir_lab", type=str, default=None,
-        help="Path to the input image directory") 
+    parser.add_argument("-i", "--path_in","--dir_in",dest="path_in",type=str,required=True,
+        help="Path to the input image collection")
+    parser.add_argument("-o", "--path_out","--dir_out",dest="path_out", type=str,required=True,
+        help="Path to the output prediction collection")
+    parser.add_argument("-a", "--path_lab","--dir_lab",dest="path_lab", type=str, default=None,
+        help="Path to the input label collection") 
     parser.add_argument("-e", "--eval_only", default=False,  action='store_true', dest='eval_only',
         help="Do only the evaluation and skip the prediction (predictions must have been done already.)") 
+    parser.add_argument("--skip_preprocessing", default=False, action='store_true',dest="skip_preprocessing",
+        help="(default=False) Skip preprocessing, it assume the preprocessing has already be done and can crash otherwise")
     args = parser.parse_args()
 
     if isinstance(args.log,list) and len(args.log)==1:
@@ -146,10 +283,22 @@ if __name__=='__main__':
         valid_names[args.name].show(run=True)
     else:
         if args.name=="seg_eval":
-            valid_names[args.name](args.log, args.dir_in, args.dir_out, args.dir_lab, args.eval_only)
+            valid_names[args.name](args.log, 
+                                   args.path_in, 
+                                   args.path_out, 
+                                   args.path_lab, 
+                                   args.eval_only,
+                                   skip_preprocessing=args.skip_preprocessing)
         elif args.name=="seg_eval_single":
-            valid_names[args.name](args.log, args.dir_in, args.dir_out, args.dir_lab)
+            valid_names[args.name](args.log, 
+                                   args.path_in, 
+                                   args.path_out, 
+                                   args.path_lab,
+                                   skip_preprocessing=args.skip_preprocessing)
         else:
-            valid_names[args.name](args.log, args.dir_in, args.dir_out)
+            valid_names[args.name](args.log, 
+                                   args.path_in, 
+                                   args.path_out,
+                                   skip_preprocessing=args.skip_preprocessing)
 
 #---------------------------------------------------------------------------

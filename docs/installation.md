@@ -31,7 +31,7 @@ Will mostly depends on your dataset. At least 12GB but we recommend 16GB or high
 **GPU**
 
 A GPU is not necessary but it is recommended  as it is significantly slower without. The GPU must be a Nvidia GPU with CUDA 11 or 12 compatibility (other version have not been tested). 
-AMD with RocM or Apple with Metal are not implemented yet. 
+AMD with RocM is not implemented yet. Apple Silicon with metal has been implemented but however we couldn't test it, so if you encounter an issue please share it with us on [GitHub](https://github.com/GuillaumeMougeot/biom3d).
 At least 10GB of VRAM is advised (Predictions can be done with less but not training), smaller Graphic card might also work but some reconfiguration might be required (such as the patch size). 
 We tested the following graphic cards: T4, RTX 2080Ti, RTX 3090, P100, V100, A100 and Quadro T1000 (with patch size reduction).
 
@@ -214,6 +214,13 @@ pip install -e .
 
 *Optional*: If planning to edit the documentation, please use the following command:
 
-```
+```sh
 pip install -e .[docs]
 ```
+
+We also used pydocstyle for documentation linting so you can add 
+```sh
+pip install pydocstyle
+```
+
+ 

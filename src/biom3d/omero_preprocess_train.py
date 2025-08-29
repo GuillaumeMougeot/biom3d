@@ -1,12 +1,9 @@
-#---------------------------------------------------------------------------
-# Predictions with Omero
-# This script can download data from Omero, compute predictions,
-# and upload back into Omero.
-#---------------------------------------------------------------------------
-
+"""Group preprocessing, training and prediction with OMERO data."""
+#TODO rename this file and raise errors when needed
 import argparse
 import os
 import shutil
+from typing import Literal, Optional
 import zipfile
 from omero.cli import cli_login
 from biom3d import omero_downloader 
@@ -16,8 +13,89 @@ from biom3d import preprocess_train
 from biom3d import preprocess
 from biom3d import train 
 
-def run(obj_raw, obj_mask, num_classes, config_dir, base_config, ct_norm, desc, max_dim, num_epochs,  target , action, host=None, user=None, pwd=None, upload_id=None ,dir_out =None, omero_session_id=None):
+def run(
+    obj_raw: str,
+    obj_mask: Optional[str],
+    num_classes: int,
+    config_dir: str,
+    base_config: str,
+    ct_norm: bool,
+    desc: str,
+    max_dim: int,
+    num_epochs: int,
+    target: Literal["preprocess","preprocess_train","train","pred"],
+    action: str,
+    host: Optional[str] = None,
+    user: Optional[str] = None,
+    pwd: Optional[str] = None,
+    upload_id: Optional[int] = None,
+    dir_out: Optional[str] = None,
+    omero_session_id: Optional[str] = None
+) -> Optional[str]:
+    """
+    Execute the pipeline for preprocessing, training, or prediction using OMERO data.
 
+    Depending on the specified action (`preprocess`, `preprocess_train`, `train`, or `pred`), this function:
+    - Downloads raw and optionally mask datasets from OMERO (via API or CLI).
+    - Performs preprocessing and/or training.
+    - Downloads model configurations and runs inference.
+    - Optionally uploads resulting images/logs back to OMERO.
+    - Generates learning curve plots after training.
+
+    Parameters
+    ----------
+    obj_raw : str
+        Identifier of the raw OMERO object (e.g., "Dataset:123").
+    obj_mask : str, optional
+        Identifier of the corresponding mask object, if available.
+    num_classes : int
+        Number of segmentation classes for the training.
+    config_dir : str
+        Target folder for auto-configuration result.
+    base_config : str
+        Path to an existing configuration file which will be updated with the preprocessed values.
+    ct_norm : bool
+        Whether to apply CT normalization during preprocessing.
+    desc : str
+        Model name.
+    max_dim : int
+        Maximum dimension of a patch.
+    num_epochs : int
+        Number of epochs for model training.
+    target : str
+        Output directory for data to download into.
+    action : str literal
+        Action to perform. One of: `"preprocess"`, `"preprocess_train"`, `"train"`, `"pred"`.
+    host : str, optional
+        OMERO server host (for API-based downloads).
+    user : str, optional
+        OMERO username.
+    pwd : str, optional
+        OMERO password.
+    upload_id : int, optional
+        OMERO project ID where outputs should be uploaded.
+    dir_out : str, optional
+        Directory to store prediction outputs.
+    omero_session_id : str, optional
+        Session ID for authenticated OMERO access.
+
+    Returns
+    -------
+    str or None
+        Path to the output directory if applicable (e.g., after training), otherwise None.
+
+    Notes
+    -----
+    - If `upload_id` is provided, results are uploaded back to OMERO after training or preprocessing.
+    - Model logs are extracted and plotted to visualize learning curves.
+    - Model zip files and config attachments are managed using `download_attachment`.
+    - On Windows, the model upload at the end will fail due to lock preventing zipping.
+
+    Raises
+    ------
+    RuntimeError
+        If object type is unrecognized or missing required information.
+    """
     if action == "preprocess" or action=="preprocess_train" :
         print("Start dataset/project downloading...")
         if host is not None and omero_session_id is None:
@@ -44,8 +122,8 @@ def run(obj_raw, obj_mask, num_classes, config_dir, base_config, ct_norm, desc, 
     print("Start Training with Omero...")     
     if action == "preprocess_train" :
         preprocess_train.preprocess_train(
-            img_dir=dir_in,
-            msk_dir=dir_in_mask,
+            img_path=dir_in,
+            msk_path=dir_in_mask,
             num_classes=num_classes,
             config_dir=config_dir,
             base_config=base_config,
@@ -57,8 +135,8 @@ def run(obj_raw, obj_mask, num_classes, config_dir, base_config, ct_norm, desc, 
 
     elif action == "preprocess" :
         config_path = preprocess.auto_config_preprocess(
-            img_dir=dir_in,
-            msk_dir=dir_in_mask,
+            img_path=dir_in,
+            msk_path=dir_in_mask,
             num_classes=num_classes,
             config_dir=config_dir,
             base_config=base_config,
@@ -134,7 +212,7 @@ def run(obj_raw, obj_mask, num_classes, config_dir, base_config, ct_norm, desc, 
                     last_folder = directories[0]
                     image_folder = os.path.join(logs_path, last_folder, "image")
                     plot_learning_curve(os.path.join(logs_path, last_folder))
-                    omero_uploader.run(username=user, password=pwd, hostname=host, project=upload_id, path = image_folder ,is_pred=False, attachment=last_folder, session_id =omero_session_id)
+                    omero_uploader.run(username=user, password=pwd, host=host, project=upload_id, path = image_folder ,is_pred=False, attachment=last_folder, session_id =omero_session_id)
                     try :
                         os.remove(os.path.join(logs_path, last_folder+".zip"))
                         shutil.rmtree(os.path.join(logs_path, last_folder))
@@ -152,13 +230,31 @@ def run(obj_raw, obj_mask, num_classes, config_dir, base_config, ct_norm, desc, 
             image_folder = None 
             print("last folder: ",last_folder)
             print("image_folder : ",image_folder)
-            omero_uploader.run(username=user, password=pwd, hostname=host, project=upload_id, path = image_folder ,is_pred=False, attachment=last_folder, session_id =omero_session_id)          
+            omero_uploader.run(username=user, password=pwd, host=host, project=upload_id, path = image_folder ,is_pred=False, attachment=last_folder, session_id =omero_session_id)          
 
     else:
         print("[Error] Type of object unknown {}. It should be 'Dataset' or 'Project'".format(obj_raw))
 
 
-def load_csv(filename):
+def load_csv(filename: str) -> list[list[str]]:
+    """
+    Load a CSV file and return its content as a list of rows.
+
+    Parameters
+    ----------
+    filename : str
+        Path to the CSV file to load.
+
+    Returns
+    -------
+    list of list of str
+        Data extracted from the CSV file, where each row is a list of string values.
+
+    Notes
+    -----
+    - Assumes the file is comma-delimited.
+    - The file is read entirely into memory.
+    """
     from csv import reader
     # Open file in read mode
     file = open(filename,"r")
@@ -167,41 +263,76 @@ def load_csv(filename):
 
     # Converting into a list 
     data = list(lines)
+    file.close()
 
     return data
 
-def plot_learning_curve(last_folder):
-        import matplotlib.pyplot as plt
-        # CSV file path
-        print("this is it : ",last_folder)
-        csv_file = os.path.join(last_folder+"/log/log.csv")
-
-        # PLOT
-        data = load_csv(csv_file)
-        # Extract epoch and train_loss, val_loss values
-        epochs = [int(row[0]) for row in data[1:]]  # Skip the header row
-        train_losses = [float(row[1]) for row in data[1:]]  # Skip the header row
-        val_losses = [float(row[2]) for row in data[1:]]  # Skip the header row
-
-        plt.clf()  # Clear the current plot
-        plt.plot(epochs, train_losses ,label='Train loss')
-        plt.plot(epochs, val_losses , label ='Validation loss')
-        plt.xlabel('Epoch')
-        plt.ylabel('Loss')
-        plt.title('Learning Curves')
-        plt.grid(True)
-        plt.legend()
-        plt.pause(0.1)  # Pause for a short duration to allow for updating               
-        # save figure locally
-        plt.savefig(last_folder+'/image/Learning_curves_plot.png')  
-
-def unzip_file(zip_path, extract_to):
+def plot_learning_curve(last_folder: str) -> None:
     """
-    Unzips a zip file to a specified directory and returns the extraction directory including the name of the zip file.
-    
-    :param zip_path: Path to the zip file
-    :param extract_to: Directory to extract the files to
-    :return: The full path of the directory where the files were extracted
+    Plot training and validation loss curves from a CSV log file.
+
+    The CSV file is expected at `<last_folder>/log/log.csv` and must contain:
+    - Epoch numbers in the first column,
+    - Training loss in the second column,
+    - Validation loss in the third column.
+
+    Parameters
+    ----------
+    last_folder : str
+        Path to the folder containing the training logs.
+
+    Returns
+    -------
+    None
+
+    Notes
+    -----
+    - The resulting plot is saved as `<last_folder>/image/Learning_curves_plot.png`.
+    """
+    import matplotlib.pyplot as plt
+    # CSV file path
+    print("this is it : ",last_folder)
+    csv_file = os.path.join(last_folder+"/log/log.csv")
+
+    # PLOT
+    data = load_csv(csv_file)
+    # Extract epoch and train_loss, val_loss values
+    epochs = [int(row[0]) for row in data[1:]]  # Skip the header row
+    train_losses = [float(row[1]) for row in data[1:]]  # Skip the header row
+    val_losses = [float(row[2]) for row in data[1:]]  # Skip the header row
+
+    plt.clf()  # Clear the current plot
+    plt.plot(epochs, train_losses ,label='Train loss')
+    plt.plot(epochs, val_losses , label ='Validation loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.title('Learning Curves')
+    plt.grid(True)
+    plt.legend()
+    plt.pause(0.1)  # Pause for a short duration to allow for updating               
+    # save figure locally
+    plt.savefig(last_folder+'/image/Learning_curves_plot.png')  
+
+def unzip_file(zip_path: str, extract_to: str) -> str:
+    """
+    Extract a zip file to a specific directory and return the extraction path.
+
+    Parameters
+    ----------
+    zip_path : str
+        Path to the zip archive.
+    extract_to : str
+        Directory where contents should be extracted.
+
+    Returns
+    -------
+    str
+        Full path of the directory where the archive was extracted.
+
+    Notes
+    -----
+    - Creates a subdirectory named after the zip file (without extension) inside `extract_to`.
+    - The extracted directory is created if it doesn't exist.
     """
     # Get the base name of the zip file without extension
     zip_base_name = os.path.splitext(os.path.basename(zip_path))[0]

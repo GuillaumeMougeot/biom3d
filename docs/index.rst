@@ -28,6 +28,14 @@ This tool is addressed to three different profiles:
    tuto/docker.md
    tuto/config.md
    tuto/server.md
+   tuto/dataset.md
+
+.. toctree::
+   :maxdepth: 0
+   :caption: How it works ?
+
+   how_it_works/pre_processing
+   how_it_works/post_processing
 
 .. toctree::
    :maxdepth: 2

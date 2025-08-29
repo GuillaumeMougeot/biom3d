@@ -16,8 +16,8 @@ For Windows you can use [Docker Desktop](https://docs.docker.com/desktop/setup/i
 
 For Linux, the installation process depends on the distribution.
 
-## With Docker desktop
-*Not documented yet*
+## With Docker Desktop
+Unfortunatly, the images aren't usable with Docker Desktop as it doesn't allow to make a `run` with container parameters. However, it is a good mean to install Docker on your machine.
 
 ## With command lines
 ### Basic Docker commands
@@ -67,7 +67,7 @@ Container are instances of an image, you can run one of them with `docker run` :
   docker run docker_arguments image_name image_argument
 ```
 
-With som examples :
+With some examples :
 ```bash
   docker run --rm helloworld
   docker run biom3d pred -i foo -o bar
@@ -258,7 +258,36 @@ On Linux with :
   biom3d:v1.0.0-x86_64-torch2.7.1-cpu gui
 ```
 On Windows : 
-*Not documented yet*
+On Windows, it is harder. You will first need to install a X server (like VcXsrv for example). Start it.
+Then you will need to know your IP address. In a terminal :
+```batch
+ipconfig
+
+Ethernet adapter Ethernet:
+
+   Connection-specific DNS Suffix  . : corp.example.local
+   IPv4 Address. . . . . . . . . . . : 10.42.16.87
+   Subnet Mask . . . . . . . . . . . : 255.255.252.0
+   Default Gateway . . . . . . . . . : 10.42.16.1
+
+Ethernet adapter vEthernet (WSL):
+
+   Connection-specific DNS Suffix  . :
+   Link-local IPv6 Address . . . . . : fe80::215:5aff:fe7a:3d0e%57
+   IPv4 Address. . . . . . . . . . . : 172.29.112.1
+   Subnet Mask . . . . . . . . . . . : 255.255.240.0
+   Default Gateway . . . . . . . . . :
+```
+Don't take the WSL one but the one of your machine. 
+
+Then :
+```batch
+  docker run --rm \
+  -e DISPLAY=your_ip_address \
+  -v /home/me/dataset1:/workspace \
+  biom3d:v1.0.0-x86_64-torch2.7.1-cpu gui
+```
+
 
 
 #### GPU specificity
