@@ -1,6 +1,6 @@
 """Class to instantiate a DataHandler depending on the input and output type."""
 
-from os.path import isdir,splitext,exists
+from os.path import isdir,splitext,exists,dirname
 from os import lstat,getcwd,access,W_OK
 from typing import Optional
 from urllib.parse import urlparse
@@ -64,8 +64,8 @@ class DataHandlerFactory:
         
         def is_path_creatable(pathname: str) -> bool:
             # Check for writing authorisation
-            dirname = dirname(pathname) or getcwd()
-            return access(dirname, W_OK)
+            dir = dirname(pathname) or getcwd()
+            return access(dir, W_OK)
     
         if DataHandlerFactory._is_url(path):
             return False
