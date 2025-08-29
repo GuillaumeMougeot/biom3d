@@ -185,9 +185,9 @@ def resize_img_msk(img:np.ndarray,
     new_msk: numpy.ndarray, optional
         The resized mask, if `msk` is provided.
     """
-    new_img = resize_3d(img, output_shape, order=3)
+    new_img = resize(img, output_shape, order=3)
     if msk is not None:
-        new_msk = resize_3d(msk, output_shape, is_msk=True, order=1)
+        new_msk = resize(msk, output_shape, is_msk=True, order=1)
         return new_img, new_msk
     else: 
         return new_img
@@ -687,7 +687,7 @@ def seg_preprocessor(
         if do_msk:
             img, msk = resize_img_msk(img, msk=msk, output_shape=output_shape)
         else:
-            img = resize_3d(img, output_shape)
+            img = resize(img, output_shape)
 
     # Cast image type
     img = img.astype(np.float32)

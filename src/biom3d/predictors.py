@@ -574,7 +574,7 @@ def seg_predict_patch_2(
 
     # reshape the logit so it has the same size as the original image
     if conserve_size:
-        return resize_3d(logit, original_shape, order=3)
+        return resize(logit, original_shape, order=3)
 
     return logit
 
