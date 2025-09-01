@@ -1,6 +1,6 @@
 # Changelog
 
-## [v1.0.0] - Work in progress
+## [v0.1.0] - First BETA version of Biom3d
 This release merge several fork and add new functionality to Biom3d.
 
 **New funtionalities**
