@@ -671,10 +671,10 @@ def seg_preprocessor(
     if do_msk: assert msk.ndim == 4
 
     # Intensity Transformations
-    if len(clipping_bounds) == 2:
+    if clipping_bounds is not None and len(clipping_bounds) == 2:
         img = np.clip(img, clipping_bounds[0], clipping_bounds[1])
     
-    if intensity_moments:
+    if intensity_moments is not None and len(intensity_moments) > 0:
         mean, std = intensity_moments
         img = (img - mean) / (std + 1e-8) # Add epsilon for safety
     else:
