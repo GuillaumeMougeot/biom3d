@@ -24,17 +24,17 @@ class Dict(dict):
 # Dataset builder-parameters
 # EDIT THE FOLLOWING PARAMATERS WITH YOUR OWN DATASETS PARAMETERS
 
-# Folder where pre-processed images are stored
-IMG_DIR = None
+# Path to collection where pre-processed images are stored
+IMG_PATH = None
 
-# Folder where pre-processed masks are stored
-MSK_DIR = None
+# Path to collection where pre-processed masks are stored
+MSK_PATH = None
 
-# (Optional) Folder with the foreground locations
+# (Optional) Path to collection with the foreground locations
 # It is automatically set during preprocessing,
 # but can be left None. If so, foreground locations will be 
 # dynamically computed during training.
-FG_DIR = None
+FG_PATH = None
 
 # (Optional) path to the .csv file storing "filename,hold_out,fold", where:
 # "filename" is the image name,
@@ -147,9 +147,9 @@ FOLD = 0
 TRAIN_DATASET = Dict(
     fct="SegPatchFast",
     kwargs=Dict(
-        img_dir    = IMG_DIR,
-        msk_dir    = MSK_DIR, 
-        fg_dir     = FG_DIR,
+        img_path    = IMG_PATH,
+        msk_path    = MSK_PATH, 
+        fg_path     = FG_PATH,
         batch_size = BATCH_SIZE, 
         patch_size = PATCH_SIZE,
         nbof_steps = 250,
@@ -175,9 +175,9 @@ TRAIN_DATALOADER_KWARGS = Dict(
 VAL_DATASET = Dict(
     fct="SegPatchFast",
     kwargs = Dict(
-        img_dir    = IMG_DIR,
-        msk_dir    = MSK_DIR, 
-        fg_dir     = FG_DIR,
+        img_path    = IMG_PATH,
+        msk_path    = MSK_PATH, 
+        fg_path     = FG_PATH,
         batch_size = BATCH_SIZE, 
         patch_size = PATCH_SIZE,
         nbof_steps = 50,
@@ -264,6 +264,7 @@ PREPROCESSOR = Dict(
         intensity_moments=INTENSITY_MOMENTS,
         channel_axis=CHANNEL_AXIS,
         num_channels=NUM_CHANNELS,
+        is_2d=IS_2D,
     )
 )
 
@@ -280,6 +281,7 @@ POSTPROCESSOR = Dict(
         use_softmax=USE_SOFTMAX,
         keep_biggest_only=False,
         keep_big_only=False,
+        is_2d=IS_2D,
     ),
 )
 

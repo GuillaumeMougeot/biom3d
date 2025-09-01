@@ -5,7 +5,7 @@
 # - to use it in colaboration with a config file
 #---------------------------------------------------------------------------
 
-from biom3d.utils import Dict
+from biom3d.utils import AttrDict
 
 #---------------------------------------------------------------------------
 # dataset register
@@ -13,14 +13,15 @@ from biom3d.utils import Dict
 from biom3d.datasets.semseg_patch_fast import SemSeg3DPatchFast
 from biom3d.datasets.semseg_torchio import TorchioDataset
 
-datasets = Dict(
-    SegPatchFast    =Dict(fct=SemSeg3DPatchFast, kwargs=Dict()),
-    Torchio         =Dict(fct=TorchioDataset, kwargs=Dict()),
+datasets = AttrDict(
+    SegPatchFast    =AttrDict(fct=SemSeg3DPatchFast, kwargs=AttrDict()),
+    Torchio         =AttrDict(fct=TorchioDataset, kwargs=AttrDict()),
 )
 
 try:
+    # Batchgen use nnUnet batchgenerator that may not be installed (it is not a dependency), do pip install batchgenerators
     from biom3d.datasets.semseg_batchgen import MTBatchGenDataLoader
-    datasets.BatchGen = Dict(fct=MTBatchGenDataLoader, kwargs=Dict())
+    datasets.BatchGen = AttrDict(fct=MTBatchGenDataLoader, kwargs=AttrDict())
 except:
     pass
 
@@ -32,11 +33,11 @@ from biom3d.models.unet3d_vgg_deep import UNet
 from biom3d.models.encoder_efficientnet3d import EfficientNet3D
 from biom3d.models.unet3d_eff import EffUNet
 
-models = Dict(
-    VGG3D           =Dict(fct=VGGEncoder, kwargs=Dict(block=EncoderBlock, use_head=True)),
-    UNet3DVGGDeep   =Dict(fct=UNet, kwargs=Dict()),
-    Eff3D           =Dict(fct=EfficientNet3D.from_name, kwargs=Dict()),
-    EffUNet         =Dict(fct=EffUNet, kwargs=Dict()),
+models = AttrDict(
+    VGG3D           =AttrDict(fct=VGGEncoder, kwargs=AttrDict(block=EncoderBlock, use_head=True)),
+    UNet3DVGGDeep   =AttrDict(fct=UNet, kwargs=AttrDict()),
+    Eff3D           =AttrDict(fct=EfficientNet3D.from_name, kwargs=AttrDict()),
+    EffUNet         =AttrDict(fct=EffUNet, kwargs=AttrDict()),
 )
 
 #---------------------------------------------------------------------------
@@ -44,15 +45,15 @@ models = Dict(
 
 import biom3d.metrics as mt
 
-metrics = Dict(
-    Dice        =Dict(fct=mt.Dice, kwargs=Dict()),
-    DiceBCE     =Dict(fct=mt.DiceBCE, kwargs=Dict()),
-    DiceCEnnUNet=Dict(fct=mt.DC_and_CE_loss, kwargs=Dict(soft_dice_kwargs={'batch_dice': True, 'smooth': 1e-5, 'do_bg': False}, ce_kwargs={})),
-    IoU         =Dict(fct=mt.IoU, kwargs=Dict()),
-    MSE         =Dict(fct=mt.MSE, kwargs=Dict()),
-    CE          =Dict(fct=mt.CrossEntropy, kwargs=Dict()),
-    DeepMSE     =Dict(fct=mt.DeepMetric, kwargs=Dict(metric=mt.MSE)),
-    DeepDiceBCE =Dict(fct=mt.DeepMetric, kwargs=Dict(metric=mt.DiceBCE)),
+metrics = AttrDict(
+    Dice        =AttrDict(fct=mt.Dice, kwargs=AttrDict()),
+    DiceBCE     =AttrDict(fct=mt.DiceBCE, kwargs=AttrDict()),
+    DiceCEnnUNet=AttrDict(fct=mt.DC_and_CE_loss, kwargs=AttrDict(soft_dice_kwargs={'batch_dice': True, 'smooth': 1e-5, 'do_bg': False}, ce_kwargs={})),
+    IoU         =AttrDict(fct=mt.IoU, kwargs=AttrDict()),
+    MSE         =AttrDict(fct=mt.MSE, kwargs=AttrDict()),
+    CE          =AttrDict(fct=mt.CrossEntropy, kwargs=AttrDict()),
+    DeepMSE     =AttrDict(fct=mt.DeepMetric, kwargs=AttrDict(metric=mt.MSE)),
+    DeepDiceBCE =AttrDict(fct=mt.DeepMetric, kwargs=AttrDict(metric=mt.DiceBCE)),
 )
 
 #---------------------------------------------------------------------------
@@ -65,11 +66,11 @@ from biom3d.trainers import (
     seg_patch_train,
 )
 
-trainers = Dict(
-    SegTrain        =Dict(fct=seg_train, kwargs=Dict()),
-    SegVal          =Dict(fct=seg_validate, kwargs=Dict()),
-    SegPatchTrain   =Dict(fct=seg_patch_train, kwargs=Dict()),
-    SegPatchVal     =Dict(fct=seg_patch_validate, kwargs=Dict()),
+trainers = AttrDict(
+    SegTrain        =AttrDict(fct=seg_train, kwargs=AttrDict()),
+    SegVal          =AttrDict(fct=seg_validate, kwargs=AttrDict()),
+    SegPatchTrain   =AttrDict(fct=seg_patch_train, kwargs=AttrDict()),
+    SegPatchVal     =AttrDict(fct=seg_patch_validate, kwargs=AttrDict()),
 )
 
 #---------------------------------------------------------------------------
@@ -81,8 +82,8 @@ trainers = Dict(
 
 from biom3d.preprocess import seg_preprocessor
 
-preprocessors = Dict(
-    Seg = Dict(fct=seg_preprocessor, kwargs=Dict())
+preprocessors = AttrDict(
+    Seg = AttrDict(fct=seg_preprocessor, kwargs=AttrDict())
 )
 
 from biom3d.predictors import (
@@ -90,14 +91,14 @@ from biom3d.predictors import (
     seg_predict_patch_2,
 )
 
-predictors = Dict(
-    Seg = Dict(fct=seg_predict, kwargs=Dict()),
-    SegPatch = Dict(fct=seg_predict_patch_2, kwargs=Dict()),
+predictors = AttrDict(
+    Seg = AttrDict(fct=seg_predict, kwargs=AttrDict()),
+    SegPatch = AttrDict(fct=seg_predict_patch_2, kwargs=AttrDict()),
 )
 
 from biom3d.predictors import seg_postprocessing
 
-postprocessors = Dict(
-    Seg = Dict(fct=seg_postprocessing, kwargs=Dict())
+postprocessors = AttrDict(
+    Seg = AttrDict(fct=seg_postprocessing, kwargs=AttrDict())
 )
 

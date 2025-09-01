@@ -63,7 +63,7 @@ try:
 except ImportError as e:
     print("Couldn't import Biom3d modules," ,e)
 
-if REMOTE==False::
+if REMOTE==False:
     # the packages below are only needed for the local version of the GUI
     try:
         from biom3d.pred import pred
@@ -392,15 +392,15 @@ class TrainFolderSelection(ttk.LabelFrame):
         if REMOTE:
 
             self.label0 = ttk.Label(self, text="Send a new Dataset :", anchor="sw", background='white')
-            self.img_outdir = FileDialog(self, mode='folder', textEntry='')        
-            self.msk_outdir = FileDialog(self, mode='folder', textEntry="")
+            self.img_outpath = FileDialog(self, mode='folder', textEntry='')        
+            self.msk_outpath = FileDialog(self, mode='folder', textEntry="")
             self.send_data_label = ttk.Label(self, text="Define a unique name below to your Dataset :")
             self.send_data_name = StringVar(value="nucleus_0001")
             self.send_data_entry = ttk.Entry(self, textvariable=self.send_data_name)
             
         else:
-            self.img_outdir = FileDialog(self, mode='folder', textEntry="")
-            self.msk_outdir = FileDialog(self, mode='folder', textEntry="")            
+            self.img_outpath = FileDialog(self, mode='folder', textEntry="")
+            self.msk_outpath = FileDialog(self, mode='folder', textEntry="")            
         self.config_dir = FileDialog(self, mode='file', textEntry="")      
 
         # Position elements
@@ -408,17 +408,17 @@ class TrainFolderSelection(ttk.LabelFrame):
         self.label1.grid(column=0, row=2, sticky=W, pady=5)
         if REMOTE:
             self.label0.grid(column=0,row=0, sticky=W, pady=2)
-            self.img_outdir.grid(column=0, row=3, sticky=(W,E))
+            self.img_outpath.grid(column=0, row=3, sticky=(W,E))
             self.label2.grid(column=0,row=4, sticky=W, pady=2)
-            self.msk_outdir.grid(column=0,row=5, sticky=(W,E))
+            self.msk_outpath.grid(column=0,row=5, sticky=(W,E))
             self.send_data_label.grid(column=0, row=7, sticky=(W,E), pady=2)
             self.send_data_entry.grid(column=0,row=8, sticky=(W,E))
             self.send_data_button.grid(column=0, row=9, pady=5,ipady=4,)
             
         else:
-            self.img_outdir.grid(column=0, row=3, sticky=(W,E))
+            self.img_outpath.grid(column=0, row=3, sticky=(W,E))
             self.label2.grid(column=0,row=4, sticky=W, pady=7)
-            self.msk_outdir.grid(column=0,row=5, sticky=(W,E))
+            self.msk_outpath.grid(column=0,row=5, sticky=(W,E))
             
         # Configure columns
         self.columnconfigure(0, weight=1)
@@ -435,8 +435,8 @@ class TrainFolderSelection(ttk.LabelFrame):
         # copy folders 
         remote_dir_img = "{}/data/{}/img".format(MAIN_DIR,self.send_data_name.get())
         remote_dir_msk = "{}/data/{}/msk".format(MAIN_DIR,self.send_data_name.get())
-        ftp_put_folder(ftp, localpath=self.img_outdir.get(), remotepath=remote_dir_img)
-        ftp_put_folder(ftp, localpath=self.msk_outdir.get(), remotepath=remote_dir_msk)
+        ftp_put_folder(ftp, localpath=self.img_outpath.get(), remotepath=remote_dir_img)
+        ftp_put_folder(ftp, localpath=self.msk_outpath.get(), remotepath=remote_dir_msk)
         popupmsg("Data sent!")
      
 class ConfigFrame(ttk.LabelFrame):
@@ -476,8 +476,8 @@ class ConfigFrame(ttk.LabelFrame):
         # Load and auto-configure Buttons
         self.load_config_button = ttk.Button(self, text="Load config",style='train_button.TLabel',width =29,command=self.load_config )
         self.auto_config_button = ttk.Button(self, text="Auto-configure", style='train_button.TLabel',width =29,command=self.auto_config)
-        self.img_outdir = train_folder_selection.img_outdir
-        self.msk_outdir = train_folder_selection.msk_outdir
+        self.img_outpath = train_folder_selection.img_outpath
+        self.msk_outpath = train_folder_selection.msk_outpath
         self.config_dir = train_folder_selection.config_dir
 
         self.get_use_omero = get_use_omero 
@@ -607,9 +607,9 @@ class ConfigFrame(ttk.LabelFrame):
         """
         # Read the config file
         global config_path
-        global img_dir_train
-        global msk_dir_train
-        global fg_dir_train
+        global img_path_train
+        global msk_path_train
+        global fg_path_train
         config_path = self.config_dir.get()
         # Load configuration file
         self.train_parameters = adaptive_load_config(config_path)
@@ -619,9 +619,9 @@ class ConfigFrame(ttk.LabelFrame):
         patch= self.train_parameters.PATCH_SIZE
         pool = self.train_parameters.NUM_POOLS
         
-        img_dir_train = self.train_parameters.IMG_DIR
-        msk_dir_train = self.train_parameters.MSK_DIR
-        fg_dir_train = self.train_parameters.FG_DIR
+        img_path_train = self.train_parameters.IMG_PATH
+        msk_path_train = self.train_parameters.MSK_PATH
+        fg_path_train = self.train_parameters.FG_PATH
         
         print("Train Parameters :  ",batch,aug_patch,patch,pool,config_path)
         
@@ -651,9 +651,9 @@ class ConfigFrame(ttk.LabelFrame):
         """
         self.auto_config_finished.config(text="Auto-configuration, please wait...")
         global config_path 
-        global img_dir_train
-        global msk_dir_train
-        global fg_dir_train
+        global img_path_train
+        global msk_path_train
+        global fg_path_train
         if REMOTE:
             # get the last folder modified/created
             _,stdout,stderr=REMOTE.exec_command("ls -td {}/data/*/ | head -1".format(MAIN_DIR))
@@ -665,22 +665,22 @@ class ConfigFrame(ttk.LabelFrame):
             
             
             if selected_dataset == "Choose a dataset" :
-                raw_dir = last_dataset_modified+"img"
-                msk_dir = last_dataset_modified+"msk"
+                raw_path = last_dataset_modified+"img"
+                msk_path = last_dataset_modified+"msk"
             else :
-                raw_dir = "data/{}/img".format(selected_dataset)
-                msk_dir = "data/{}/msk".format(selected_dataset)
-            print(" Raw dir: ",raw_dir)
-            print(" Mask dir: ",msk_dir)
+                raw_path = "data/{}/img".format(selected_dataset)
+                msk_path = "data/{}/msk".format(selected_dataset)
+            print(" Raw dir: ",raw_path)
+            print(" Mask dir: ",msk_path)
                  
             # preprocessing
-            _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {};  python -m biom3d.preprocess --img_dir {} --msk_dir {} --num_classes {} --desc {} --remote".format(VENV,MAIN_DIR,raw_dir,msk_dir,self.classes.get(),self.builder_name_entry.get()))  
+            _,stdout,stderr=REMOTE.exec_command("source {}/bin/activate; cd {};  python -m biom3d.preprocess --img_path {} --msk_path {} --num_classes {} --desc {} --remote".format(VENV,MAIN_DIR,raw_path,msk_path,self.classes.get(),self.builder_name_entry.get()))  
             auto_config_results = stdout.readlines()
             auto_config_results = [e.replace('\n','') for e in auto_config_results]
          
-            img_dir_train = "data/{}/img_out".format(selected_dataset)
-            msk_dir_train = "data/{}/msk_out".format(selected_dataset)
-            fg_dir_train = "data/{}/fg_out".format(selected_dataset)
+            img_path_train = "data/{}/img_out".format(selected_dataset)
+            msk_path_train = "data/{}/msk_out".format(selected_dataset)
+            fg_path_train = "data/{}/fg_out".format(selected_dataset)
             # error management
             if len(auto_config_results) not in (10,15):
                print("[Error] Auto-config error:", auto_config_results)
@@ -716,17 +716,17 @@ class ConfigFrame(ttk.LabelFrame):
                 raw_dataset = "Dataset:"+self.omero_dataset.id_entry.get()
                 mask_dataset = "Dataset:"+self.omero_dataset.msk_id_entry.get()
                 print("Using OMERO ! ")
-                datasets, img_dir = download_object(hostname=self.omero.hostname.get(), username=self.omero.username.get(), password=self.omero.password.get(), target_dir = "data/to_train/", obj=raw_dataset )
-                datasets_mask, msk_dir = download_object(hostname=self.omero.hostname.get(), username=self.omero.username.get(), password=self.omero.password.get(), target_dir = "data/to_train/", obj=mask_dataset )
-                img_dir = os.path.join(img_dir, datasets[0].name)
-                msk_dir = os.path.join(msk_dir, datasets_mask[0].name)
+                datasets, img_path = download_object(hostname=self.omero.hostname.get(), username=self.omero.username.get(), password=self.omero.password.get(), target_dir = "data/to_train/", obj=raw_dataset )
+                datasets_mask, msk_path = download_object(hostname=self.omero.hostname.get(), username=self.omero.username.get(), password=self.omero.password.get(), target_dir = "data/to_train/", obj=mask_dataset )
+                img_path = os.path.join(img_path, datasets[0].name)
+                msk_path = os.path.join(msk_path, datasets_mask[0].name)
 
             else :
-                img_dir=self.img_outdir.get()
-                msk_dir=self.msk_outdir.get()
+                img_path=self.img_outpath.get()
+                msk_path=self.msk_outpath.get()
 
-            config_path=auto_config_preprocess(img_dir=img_dir,
-            msk_dir=msk_dir,
+            config_path=auto_config_preprocess(img_path=img_path,
+            msk_path=msk_path,
             desc=self.builder_name_entry.get(),
             num_classes=self.num_classes.get(),
             remove_bg=False, use_tif=False,
@@ -743,9 +743,9 @@ class ConfigFrame(ttk.LabelFrame):
             patch= self.train_parameters.PATCH_SIZE
             pool = self.train_parameters.NUM_POOLS
             
-            img_dir_train = self.train_parameters.IMG_DIR
-            msk_dir_train = self.train_parameters.MSK_DIR
-            fg_dir_train = self.train_parameters.FG_DIR
+            img_path_train = self.train_parameters.IMG_PATH
+            msk_path_train = self.train_parameters.MSK_PATH
+            fg_path_train = self.train_parameters.FG_PATH
          
             print("Train Parameters :  ",batch,aug_patch,patch,pool,config_path)
         
@@ -904,9 +904,9 @@ class TrainTab(ttk.Frame):
                 
                 # Folder selection
                 self.folder_selection.label1.grid(column=0,row=2, sticky=W, pady=7)
-                self.folder_selection.img_outdir.grid(column=0, row=3, sticky=(W,E))
+                self.folder_selection.img_outpath.grid(column=0, row=3, sticky=(W,E))
                 self.folder_selection.label2.grid(column=0,row=4, sticky=W, pady=7)
-                self.folder_selection.msk_outdir.grid(column=0,row=5, sticky=(W,E)) 
+                self.folder_selection.msk_outpath.grid(column=0,row=5, sticky=(W,E)) 
             
                 
                 # Configuration selection
@@ -974,9 +974,9 @@ class TrainTab(ttk.Frame):
         self.config_selection.classes.grid_remove()
         self.config_selection.auto_config_button.grid_remove()
         self.folder_selection.label1.grid_remove()
-        self.folder_selection.img_outdir.grid_remove()
+        self.folder_selection.img_outpath.grid_remove()
         self.folder_selection.label2.grid_remove()
-        self.folder_selection.msk_outdir.grid_remove()
+        self.folder_selection.msk_outpath.grid_remove()
         # Remove train button
         self.train_button.grid_remove()
         self.use_omero_preprocessing_button.grid_remove()
@@ -1003,12 +1003,11 @@ class TrainTab(ttk.Frame):
             self.config_selection.classes.grid_remove() 
             self.config_selection.auto_config_button.grid_remove()
             self.folder_selection.label1.grid_remove()
-            self.folder_selection.img_outdir.grid_remove()
+            self.folder_selection.img_outpath.grid_remove()
             self.folder_selection.label2.grid_remove()
-            self.folder_selection.msk_outdir.grid_remove()
+            self.folder_selection.msk_outpath.grid_remove()
             self.FineTuning.grid_remove()  
             self.fine_tune_button.grid_remove()
-
     def display_three(self):
         self.use_omero_preprocessing_button.grid(column=0,row=1,sticky=(N,E), ipady=2)
         self.folder_selection.grid(column=0, row=2, sticky=(N,W,E), pady=3)
@@ -1017,9 +1016,9 @@ class TrainTab(ttk.Frame):
         self.fine_tune_button.grid(column=0, row=5, padx=15, ipady=4, pady= 2, sticky=(N))   
         # Folder selection
         self.folder_selection.label1.grid(column=0,row=2, sticky=W, pady=7)
-        self.folder_selection.img_outdir.grid(column=0, row=3, sticky=(W,E))
+        self.folder_selection.img_outpath.grid(column=0, row=3, sticky=(W,E))
         self.folder_selection.label2.grid(column=0,row=4, sticky=W, pady=7)
-        self.folder_selection.msk_outdir.grid(column=0,row=5, sticky=(W,E)) 
+        self.folder_selection.msk_outpath.grid(column=0,row=5, sticky=(W,E)) 
         # Configuration selection
         self.config_selection.builder_name_label.grid(column=0, row=1, sticky=(W,E), ipady=4,pady=3)
         self.config_selection.builder_name_entry.grid(column=0, row=2,ipadx=213,ipady=4,pady=3,sticky=(W,E))
@@ -1123,15 +1122,15 @@ class TrainTab(ttk.Frame):
        
         # set the configuration
         
-        cfg.IMG_DIR = img_dir_train
+        cfg.IMG_PATH = img_path_train
 
-        cfg = nested_dict_change_value(cfg, 'img_dir', cfg.IMG_DIR)
+        cfg = nested_dict_change_value(cfg, 'img_path', cfg.IMG_PATH)
 
-        cfg.MSK_DIR = msk_dir_train
-        cfg = nested_dict_change_value(cfg, 'msk_dir', cfg.MSK_DIR)
+        cfg.MSK_PATH = msk_path_train
+        cfg = nested_dict_change_value(cfg, 'msk_path', cfg.MSK_PATH)
         
-        cfg.FG_DIR = fg_dir_train
-        cfg = nested_dict_change_value(cfg, 'fg_dir', cfg.FG_DIR)
+        cfg.FG_PATH = fg_path_train
+        cfg = nested_dict_change_value(cfg, 'fg_path', cfg.FG_PATH)
 
         cfg.DESC = self.config_selection.builder_name.get()
         
@@ -1158,9 +1157,9 @@ class TrainTab(ttk.Frame):
         cfg = nested_dict_change_value(cfg, 'num_pools', cfg.NUM_POOLS)
         # test if operating system is windows to change paths
         if platform=='win32':
-                if cfg.IMG_DIR != None : cfg.IMG_DIR = cfg.IMG_DIR.replace('\\','\\\\')
-                if cfg.MSK_DIR != None : cfg.MSK_DIR = cfg.MSK_DIR.replace('\\','\\\\')
-                if cfg.FG_DIR != None : cfg.FG_DIR = cfg.FG_DIR.replace('\\','\\\\')
+                if cfg.IMG_PATH != None : cfg.IMG_PATH = cfg.IMG_PATH.replace('\\','\\\\')
+                if cfg.MSK_PATH != None : cfg.MSK_PATH = cfg.MSK_PATH.replace('\\','\\\\')
+                if cfg.FG_PATH != None : cfg.FG_PATH = cfg.FG_PATH.replace('\\','\\\\')
                 if cfg.CSV_DIR  != None : cfg.CSV_DIR = cfg.CSV_DIR.replace('\\','\\\\')    
                 
         if REMOTE:
@@ -1168,9 +1167,9 @@ class TrainTab(ttk.Frame):
     
             new_config_path = save_python_config(config_dir=tempdir,
                                                  base_config=saved_config,
-            IMG_DIR=cfg.IMG_DIR,
-            MSK_DIR=cfg.MSK_DIR,
-            FG_DIR=cfg.FG_DIR,
+            IMG_PATH=cfg.IMG_PATH,
+            MSK_PATH=cfg.MSK_PATH,
+            FG_PATH=cfg.FG_PATH,
             NUM_CLASSES=cfg.NUM_CLASSES,
             BATCH_SIZE=cfg.BATCH_SIZE,
             AUG_PATCH_SIZE=cfg.AUG_PATCH_SIZE,
@@ -1220,8 +1219,8 @@ class TrainTab(ttk.Frame):
             new_config_path = save_python_config(
             config_dir=local_config_dir,
             base_config=config_path,
-            IMG_DIR=cfg.IMG_DIR,
-            MSK_DIR=cfg.MSK_DIR,
+            IMG_PATH=cfg.IMG_PATH,
+            MSK_PATH=cfg.MSK_PATH,
             NUM_CLASSES=self.config_selection.num_classes.get(),
             BATCH_SIZE=cfg.BATCH_SIZE,
             AUG_PATCH_SIZE=cfg.AUG_PATCH_SIZE,
@@ -1233,7 +1232,7 @@ class TrainTab(ttk.Frame):
             if platform=="win32" and "\\\\" not in new_config_path:
                 new_config_path = new_config_path.replace("\\", "\\\\")
         
-            if not torch.cuda.is_available():
+            if not torch.cuda.is_available() and not torch.backends.mps.is_available():
                popupmsg("  No GPU detected, the training might take a longer time ")
             if self.fine_tune_state.get():
                 # run the fine tuning    
@@ -1241,6 +1240,7 @@ class TrainTab(ttk.Frame):
                 train(config=new_config_path,
                     path=self.FineTuning.log_folder.get())
             else :
+                print("AAAAAAAAAA",new_config_path)
                 # run the training           
                 train(config=new_config_path)
                 if self.use_omero_preprocessing_state.get() :
@@ -1256,7 +1256,9 @@ class TrainTab(ttk.Frame):
                             last_folder = directories[0]
                             image_folder = os.path.join(logs_path, last_folder, "image")
 
-                    biom3d.omero_uploader.run(username=self.omero_connection.username_entry.get(), password=self.omero_connection.password_entry.get(), hostname=self.omero_connection.hostname_entry.get() ,
+                    biom3d.omero_uploader.run(username=self.omero_connection.username_entry.get(), 
+                        password=self.omero_connection.password_entry.get(), 
+                        host=self.omero_connection.hostname_entry.get() ,
                         project=int(self.omero_dataset.id_entry.get()),
                         path=image_folder,
                         attachment=last_folder,
@@ -1738,16 +1740,15 @@ class PredictTab(ttk.Frame):
         self.keep_big_only_state = IntVar(value=0)
         self.keep_biggest_only_button = ttk.Checkbutton(self, text="Keep the biggest object only ? ", variable=self.keep_biggest_only_state)        
         self.keep_big_only_button = ttk.Checkbutton(self, text="Keep big objects only ? ", variable=self.keep_big_only_state)        
-        
+
         if not REMOTE: self.output_dir = OutputDirectory(self, text="Output directory", padding=[10,10,10,10])
         self.button = ttk.Button(self, width=29,style="train_button.TLabel", text="Start", command=self.predict)
         if REMOTE: self.download_prediction = DownloadPrediction(self, text="Download predictions to local", padding=[10,10,10,10])
 
 
-        self.use_omero.grid(column=0,row=0,sticky=(W,E), pady=6)
+        self.use_omero.grid(column=0,row=0,sticky=(W), pady=6)
         self.input_dir.grid(column=0,row=1,sticky=(W,E), pady=6)
         self.model_selection.grid(column=0,row=3,sticky=(W,E), pady=6)
-        
         if not REMOTE: 
             self.output_dir.grid(column=0,row=5,sticky=(W,E), pady=6)
             self.send_to_omero.grid(column=0,row=4,sticky=(W,E), pady=6)
@@ -1870,20 +1871,20 @@ class PredictTab(ttk.Frame):
                     target=target,
                     log=self.model_selection.logs_dir.get(), 
                     dir_out=self.output_dir.data_dir.get(),
+                    host=self.omero_connection.hostname.get(),
                     user=self.omero_connection.username.get(),
                     pwd=self.omero_connection.password.get(),
-                    host=self.omero_connection.hostname.get(),
                     upload_id=int(self.omero_dataset.project_id.get()),
                     attachment=attachment_file,
                 )
         
         else: # if not use Omero
             if REMOTE:
-                _, stdout, stderr = REMOTE.exec_command("source {}/bin/activate; cd {}; python -m biom3d.pred --log {} --dir_in {} --dir_out {}".format(VENV,
-                    MAIN_DIR,
+                _, stdout, stderr = REMOTE.exec_command("cd {}; source {}/bin/activate;  python -m biom3d.pred --log {} --path_in {} --path_out {} ".format(MAIN_DIR,
+                    VENV,
                     'logs/'+self.model_selection.logs_dir.get(), 
                     'data/to_pred/'+self.input_dir.data_dir.get(),
-                    'data/pred/'+self.input_dir.data_dir.get(), # the default prediction output folder
+                    'data/pred/'+self.input_dir.data_dir.get(),
                     ))
                 while True: 
                     line = stdout.readline()
@@ -1907,16 +1908,19 @@ class PredictTab(ttk.Frame):
                 self.prediction_messages.grid(column=0, row=6, columnspan=2, sticky=(W,E))
                 self.prediction_messages.config(text="Prediction is running ...!")
                 # Run prediction
+
                 p = pred(
-                    log=self.model_selection.logs_dir.get(),
-                    dir_in=self.input_dir.data_dir.get(),
-                    dir_out=target)
+                    self.model_selection.logs_dir.get(),
+                    self.input_dir.data_dir.get(),
+                    target,
+                    )
+
                 self.prediction_messages.config(text="Prediction is done !")
                 if self.send_to_omero_state.get():
                     # Upload results to OMERO
                     biom3d.omero_uploader.run(username=self.send_to_omero_connection.username.get(),
                     password=self.send_to_omero_connection.password.get(),
-                    hostname=self.send_to_omero_connection.hostname.get(),
+                    host=self.send_to_omero_connection.hostname.get(),
                     project=int(self.send_to_omero_connection.upload_project_entry.get()),
                     dataset_name=self.send_to_omero_connection.dataset_name_entry.get(),
                     attachment=attachment_file,
@@ -2026,8 +2030,8 @@ class EvalTab(ttk.Frame):
         self.eval_messages.config(text="Evaluation is running ...!")
         # Run prediction
         _, mean = eval(
-            dir_lab=self.lab_dir.data_dir.get(), 
-            dir_out=self.pred_dir.data_dir.get(), 
+            path_lab=self.lab_dir.data_dir.get(), 
+            path_out=self.pred_dir.data_dir.get(), 
             num_classes=self.num_classes.get(),
             )
         self.eval_messages.config(text="Evaluation is done! Mean Dice score: {}".format(mean))

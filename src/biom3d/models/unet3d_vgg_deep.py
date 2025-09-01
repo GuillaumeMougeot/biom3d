@@ -1,7 +1,8 @@
+"""Biom3d adaptation of nnUnet base model."""
 
+from typing import Optional
 import torch
 from torch import nn
-import numpy as np
 
 from biom3d.models.encoder_vgg import EncoderBlock, VGGEncoder
 from biom3d.models.decoder_vgg_deep import VGGDecoder
@@ -18,56 +19,46 @@ class UNet(nn.Module):
     and reconstruction, respectively. The model supports dynamic adjustment of pooling layers and class numbers,
     along with optional deep decoder usage and weight initialization from pre-trained checkpoints.
     
-    Parameters
-    ----------
-    num_pools : list of int
-        A list of integers defining the number of pooling layers for each dimension of the input. Default is [5,5,5].
-    num_classes : int
-        The number of classes for segmentation. Default is 1.
-    factor : int
-        The scaling factor for the number of channels in VGG blocks. Default is 32.
-    encoder_ckpt : str, optional
-        Path to a checkpoint file from which to load encoder weights.
-    model_ckpt : str, optional
-        Path to a checkpoint file from which to load the entire model's weights.
-    use_deep : bool
-        Flag to indicate whether to use a deep decoder. Default is True.
-    in_planes : int
-        The number of input channels. Default is 1.
-    flip_strides : bool
-        Flag to flip strides to match encoder and decoder dimensions. Useful for ensuring dimensionality alignment.
-    
-    Attributes
-    ----------
-    encoder : VGGEncoder
-        The encoder part of the UNet, responsible for downscaling and feature extraction.
-    decoder : VGGDecoder
-        The decoder part of the UNet, responsible for upscaling and constructing the segmentation map.
-    
-    Methods
-    -------
-    freeze_encoder(freeze=True)
-        Freezes or unfreezes the encoder's weights.
-    unfreeze_encoder()
-        Convenience method to unfreeze the encoder's weights.
-    load(model_ckpt)
-        Loads the model's weights from a specified checkpoint.
-    forward(x)
-        Defines the computation performed at every call. Applies the encoder and decoder on the input.
-        
+    :ivar VGGEncoder encoder: The encoder part of the UNet, responsible for downscaling and feature extraction.
+    :ivar VGGDecoder decoder: The decoder part of the UNet, responsible for upscaling and constructing the segmentation map.
     """
+
     def __init__(
         self, 
-        num_pools=[5,5,5], 
-        num_classes=1, 
-        factor=32,
-        encoder_ckpt = None,
-        model_ckpt = None,
-        use_deep=True,
-        in_planes = 1,
-        flip_strides = False,
-        roll_strides = True, #used for models trained before commit f2ac9ee (August 2023)
+        num_pools:list[int]=[5,5,5], 
+        num_classes:int=1, 
+        factor:int=32,
+        encoder_ckpt:Optional[str] = None,
+        model_ckpt:Optional[str] = None,
+        use_deep:bool=True,
+        in_planes:int = 1,
+        flip_strides:bool = False,
+        roll_strides:bool = True, #used for models trained before commit f2ac9ee (August 2023)
         ):
+        """
+        Unet initialization.
+        
+        Parameters
+        ----------
+        num_pools : list of int, default=[5,5,5]
+            A list of integers defining the number of pooling layers for each dimension of the input.
+        num_classes : int, default=1
+            The number of classes for segmentation.
+        factor : int, default=32
+            The scaling factor for the number of channels in VGG blocks.
+        encoder_ckpt : str, optional
+            Path to a checkpoint file from which to load encoder weights.
+        model_ckpt : str, optional
+            Path to a checkpoint file from which to load the entire model's weights.
+        use_deep : bool, default=True
+            Flag to indicate whether to use a deep decoder.
+        in_planes : int, default=1
+            The number of input channels.
+        flip_strides : bool, default=False
+            Flag to flip strides to match encoder and decoder dimensions. Useful for ensuring dimensionality alignment.
+        roll_strides : bool, default=True
+            Whether to roll strides when computing pooling (used for backward compatibility for models trained before commit f2ac9ee (August 2023)).
+        """
         super(UNet, self).__init__()
         self.encoder = VGGEncoder(
             EncoderBlock,
@@ -93,6 +84,8 @@ class UNet(nn.Module):
             print("Load encoder weights from", encoder_ckpt)
             if torch.cuda.is_available():
                 self.encoder.cuda()
+            elif torch.backends.mps.is_available():
+                self.encoder.to('mps')
             ckpt = torch.load(encoder_ckpt)
             if 'model' in ckpt.keys():
                 # remove `module.` prefix
@@ -114,14 +107,18 @@ class UNet(nn.Module):
         if model_ckpt is not None:
             self.load(model_ckpt)
 
-    def freeze_encoder(self, freeze=True):
+    def freeze_encoder(self, freeze:bool=True)->None:
         """
-        Freezes or unfreezes the encoder's weights based on the input flag.
+        Freeze or unfreeze the encoder's weights based on the input flag.
         
         Parameters
         ----------
         freeze : bool, optional
             If True, the encoder's weights are frozen, otherwise they are unfrozen. Default is True.
+
+        Returns
+        -------
+        None
         """
         if freeze:
             print("Freezing encoder weights...")
@@ -130,24 +127,32 @@ class UNet(nn.Module):
         for l in self.encoder.parameters(): 
             l.requires_grad = not freeze
     
-    def unfreeze_encoder(self):
-        """
-        Unfreezes the encoder's weights. Convenience method calling `freeze_encoder` with `False`.
-        """
+    def unfreeze_encoder(self)->None:
+        """Unfreeze the encoder's weights. Convenience method calling `freeze_encoder` with `False`."""
         self.freeze_encoder(False)
 
-    def load(self, model_ckpt):
-        """Load the model from checkpoint.
+    def load(self, model_ckpt:str)->None:
+        """
+        Load the model from checkpoint.
+
         The checkpoint dictionary must have a 'model' key with the saved model for value.
+
         Parameters
         ----------
         model_ckpt : str
             The path to the checkpoint file containing the model's weights.
+
+        Returns
+        -------
+        None
         """
         print("Load model weights from", model_ckpt)
         if torch.cuda.is_available():
             self.cuda()
             device = torch.device('cuda')
+        elif torch.backends.mps.is_available():
+            self.to('mps')
+            device = torch.device('mps')
         else:
             self.cpu()
             device = torch.device('cpu')
@@ -156,9 +161,9 @@ class UNet(nn.Module):
             del ckpt['model']['encoder.last_layer.weight']
         print(self.load_state_dict(ckpt['model'], strict=False))
 
-    def forward(self, x): 
+    def forward(self, x:torch.Tensor)->torch.Tensor: 
         """
-        Defines the forward pass of the UNet model.
+        Define the forward pass of the UNet model.
         
         Parameters
         ----------

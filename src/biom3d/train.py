@@ -1,18 +1,38 @@
-#---------------------------------------------------------------------------
-# Main code: the run the dataset and the model
-#---------------------------------------------------------------------------
+"""Main code interface for training."""
 
 import argparse
 import os
-import numpy as np
 from biom3d.builder import Builder
-from biom3d.utils import abs_listdir, versus_one, dice, load_python_config
+from biom3d.utils import load_python_config
+from biom3d.eval import eval
 
-
+from typing import Any
+from biom3d.utils import AttrDict
 #---------------------------------------------------------------------------
 # utils
+def train(config:str|dict[str,Any]|AttrDict|None=None, 
+          path:str|list[str]|None=None,
+          )->Builder: 
+    """
+    Interface function to do a training.
 
-def train(config=None, path=None): 
+    Parameters
+    ----------
+    config : str, dict or biom3d.utils.AttrDict, optional
+            Path to a Python configuration file (in either .py or .yaml format) or dictionary of a configuration file. Please refer to biom3d.config_default.py to see the default configuration file format.
+    path : str, list of str, optional
+        Path to a builder folder which contains the model folder, the model configuration and the training logs.
+        If path is a list of strings, then it is considered that it is intended to run multi-model predictions. Training is not compatible with this mode.
+
+    Raises
+    ------
+    same as Builder.__init__
+
+    Returns
+    -------
+    builder: biom3d.builder.Builder
+        Builder used for the training.
+    """
     builder = Builder(config=config, path=path)
     builder.run_training()
     print("Training done!")
@@ -20,20 +40,52 @@ def train(config=None, path=None):
 
 #---------------------------------------------------------------------------
 # main unet segmentation
-
 def main_seg_pred_eval(
-    config_path=None,
-    path=None,
-    dir_in=None,
-    dir_out=None,
-    dir_lab=None,
-    freeze_encoder=False,
+    config_path:str|None=None,
+    path:str|None=None,
+    path_in:str|None=None,
+    path_out:str|None=None,
+    path_lab:str|None=None,
+    freeze_encoder:bool=False,
     ):
     """
-    do 3 tasks:
+    Interface function to do a training., then prediction and evaluation.
+
+    Do 3 tasks:
+
     - train the model
-    - compute predictions on the test set (dir_in) and store the results in dir_out
-    - evaluate the prediction stored in dir_out and print the result
+    - compute predictions on the test set (path_in) and store the results in path_out
+    - evaluate the prediction stored in path_out and print the result
+
+    Parameters
+    ----------
+    config_path : str, optional
+            Path to a Python configuration file (in either .py or .yaml format).
+    path : str , optional
+        Path to a builder folder which contains the model folder, the model configuration and the training logs.
+    path_in: str, optional
+        Path to raw image collection used for prediction.
+    path_out: str, optional
+        Path to prediction output.
+    path_lab:str, optional
+        Path to mask collection corresponding to the raws, for evaluation.
+    freeze_encoder:bool, default=False
+        Whether to freeze the encoder during training (useful for transfer learning).
+
+    Raises
+    ------
+    same as Builder.__init__
+
+    Returns
+    -------
+    None
+
+    Notes
+    -----
+    - If `path_in` or `path_out` is `None`, then this function is equivalent to `train`
+    - If `path_lab` is `None`, then evaluation will not be done.
+    - Altough all parameter can be written as `None`, it would not work if `config_path` and `path` are both `None`.
+    - Evaluation result is only printed in terminal.
     """
     # train
     print("Start training")
@@ -42,65 +94,78 @@ def main_seg_pred_eval(
         builder_train.model.freeze_encoder()
     builder_train.run_training()
 
-    train_base_dir=builder_train.base_dir
+    train_base_dir = builder_train.base_dir
     del builder_train
-    print("Training done!")
 
     # pred
-    if dir_in is not None and dir_out is not None:
+    if path_in is not None and path_out is not None:
         print("Start inference")
         builder_pred = Builder(
             config=None,
             path=train_base_dir,
             training=False)
 
-        dir_out = os.path.join(dir_out,os.path.split(train_base_dir)[-1]) # name the prediction folder with the model folder name
-        builder_pred.run_prediction_folder(dir_in=dir_in, dir_out=dir_out, return_logit=False)
+        out = builder_pred.run_prediction_folder(path_in=path_in, path_out=path_out, return_logit=False)
         print("Inference done!")
 
-
-        if dir_lab is not None:
+        if path_lab is not None:
             # eval
             print("Start evaluation")
-            paths_lab = [dir_lab, dir_out]
-            list_abs = [sorted(abs_listdir(p)) for p in paths_lab]
-            assert sum([len(t) for t in list_abs])%len(list_abs)==0, "[Error] Not the same number of labels and predictions! {}".format([len(t) for t in list_abs])
-
-            results = []
-            for idx in range(len(list_abs[0])):
-                print("Metric computation for:", list_abs[1][idx])
-                results += [versus_one(
-                    fct=dice, 
-                    in_path=list_abs[1][idx], 
-                    tg_path=list_abs[0][idx], 
-                    num_classes=(builder_pred.config.NUM_CLASSES+1), 
-                    single_class=None)]
-                print("Metric result:", results[-1])
-            print("Evaluation done! Average result:", np.mean(results))
-        
+            eval(path_lab,out,builder_pred.config.NUM_CLASSES+1)        
 
 
 #---------------------------------------------------------------------------
 # self-supervised training
-
-
 def main_pretrain_seg_pred_eval(
-    pretrain_config=None,
-    train_config=None,
-    log=None, # TODO
-    path_encoder=None,
-    freeze_encoder=False,
-    model_encoder=False, # if it is a model encoder (UNet) or just an encoder
-    dir_in=None,
-    dir_out=None,
-    dir_lab=None,
-    ):
+    pretrain_config:str|dict[str,Any]|AttrDict|None=None,
+    train_config:str|None=None,
+    log:str|None=None, # TODO
+    path_encoder:str|None=None,
+    freeze_encoder:bool=False,
+    model_encoder:bool=False, # if it is a model encoder (UNet) or just an encoder
+    path_in:str|None=None,
+    path_out:str|None=None,
+    path_lab:str|None=None,
+    )->None:
     """
-    do 4 tasks:
-    - pretrain the model/encoder
-    - train the model
-    - compute predictions on the test set (dir_in) and store the results in dir_out
-    - evaluate the prediction stored in dir_out and print the result
+    Run a full pipeline including pretraining, training, inference, and evaluation.
+
+    This function is designed to execute the four main stages of a segmentation workflow:
+    1. Pretrain a model or encoder using a pretraining configuration.
+    2. Train a segmentation model using a training configuration. Optionally initialize with a pretrained encoder.
+    3. Generate predictions on a test set (from `path_in`) and save the predicted segmentations to `path_out`.
+    4. If ground truth labels are available at `path_lab`, compute evaluation metrics on the predictions.
+
+    Parameters
+    ----------
+    pretrain_config : str, dict or biom3d.utils.AttrDict, optional
+        Path to the configuration file or dictionary for pretraining the encoder or model.
+    train_config : str
+        Path to the training configuration file (python or yaml).
+    log : str, optional
+        Existing model directory.
+    path_encoder : str, optional
+        Path to the pretrained encoder  to be used in training.
+    freeze_encoder : bool, default=False
+        Whether to freeze the encoder during training (useful for transfer learning).
+    model_encoder : bool, default=False
+        If True, `path_encoder` points to a full model checkpoint. If False, it is an encoder checkpoint only.
+    path_in : str, optional
+        Path to collection containing images for inference (test set).
+    path_out : str, optional
+        Path to collection to store the predicted segmentation masks.
+    path_lab : str, optional
+        Path to collection containing the ground truth masks for evaluation after inference.
+
+    Returns
+    -------
+    None
+
+    Notes
+    -----
+    - If `path_in` or `path_out` is `None`, then this function is equivalent to `train`
+    - If `path_lab` is `None`, then evaluation will not be done.
+    - Evaluation result is only printed in terminal.
     """
     # pretraining
     print("Start pretraining")
@@ -131,37 +196,21 @@ def main_pretrain_seg_pred_eval(
     print("Training done!")
 
     # pred
-    if dir_in is not None and dir_out is not None:
+    if path_in is not None and path_out is not None:
         print("Start inference")
         builder_pred = Builder(
             config=cfg,
             path=train_base_dir, 
             training=False)
 
-        dir_out = os.path.join(dir_out,os.path.split(train_base_dir)[-1]) # name the prediction folder with the model folder name
-        builder_pred.run_prediction_folder(dir_in=dir_in, dir_out=dir_out, return_logit=False)
+        out = builder_pred.run_prediction_folder(path_in=path_in, path_out=path_out, return_logit=False)
         print("Inference done!")
 
 
-        if dir_lab is not None:
+        if path_lab is not None:
             # eval
             print("Start evaluation")
-            paths_lab = [dir_lab, dir_out]
-            list_abs = [sorted(abs_listdir(p)) for p in paths_lab]
-            assert sum([len(t) for t in list_abs])%len(list_abs)==0, "[Error] Not the same number of labels and predictions! {}".format([len(t) for t in list_abs])
-
-            results = []
-            for idx in range(len(list_abs[0])):
-                print("Metric computation for:", list_abs[1][idx])
-                results += [versus_one(
-                    fct=dice, 
-                    in_path=list_abs[1][idx], 
-                    tg_path=list_abs[0][idx], 
-                    num_classes=cfg.NUM_CLASSES if cfg.USE_SOFTMAX else (cfg.NUM_CLASSES+1), 
-                    single_class=None)]
-                print("Metric result:", results[-1])
-            print("Evaluation done! Average result:", np.mean(results))
-            # send(messages=["Evaluation done of model {}! Average result: {}".format(dir_out, np.mean(results))])
+            eval(path_lab,out,builder_pred.config.NUM_CLASSES+1) 
 
 #---------------------------------------------------------------------------
 
@@ -202,12 +251,12 @@ if __name__=='__main__':
         help="Whether the encoder is a model encoder or a simple encoder.") 
     parser.add_argument("-fr", "--freeze_encoder", default=False,  action='store_true', dest='freeze_encoder',
         help="Whether to freeze or not the encoder.") 
-    parser.add_argument("-i", "--dir_in", type=str, default=None,
-        help="Path to the input image directory")
-    parser.add_argument("-o", "--dir_out", type=str, default=None,
-        help="Path to the output prediction directory")  
-    parser.add_argument("-a", "--dir_lab", type=str, default=None,
-        help="Path to the label image directory")  
+    parser.add_argument("-i", "--path_in","--dir_in",dest="path_in", type=str, default=None,
+        help="Path to the input image collection")
+    parser.add_argument("-o", "--path_out","--dir_out",dest="path_out", type=str, default=None,
+        help="Path to the output prediction collection")  
+    parser.add_argument("-a", "--path_lab","--dir_lab",dest="path_lab", type=str, default=None,
+        help="Path to the label image collection")  
     args = parser.parse_args()
 
     # run the method
@@ -215,9 +264,9 @@ if __name__=='__main__':
         valid_names[args.name](
             config_path=args.config,
             path=args.log,
-            dir_in=args.dir_in,
-            dir_out=args.dir_out,
-            dir_lab=args.dir_lab,
+            path_in=args.path_in,
+            path_out=args.path_out,
+            path_lab=args.path_lab,
             freeze_encoder=args.freeze_encoder,
             )
     elif args.name=='pretrain_seg_pred_eval':
@@ -225,12 +274,12 @@ if __name__=='__main__':
             pretrain_config=args.pretrain_config,
             train_config=args.config,
             log=args.log,
-            dir_in=args.dir_in,
+            path_in=args.path_in,
             path_encoder=args.path_encoder,
             model_encoder=args.model_encoder,
             freeze_encoder=args.freeze_encoder,
-            dir_out=args.dir_out,
-            dir_lab=args.dir_lab,
+            path_out=args.path_out,
+            path_lab=args.path_lab,
             )
     else:
         train(config=args.config, path=args.log)

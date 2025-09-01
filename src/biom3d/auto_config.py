@@ -1,24 +1,26 @@
-#---------------------------------------------------------------------------
-# Auto-configuration 
-# This script can be used to compute and display:
-# - the batch size
-# - the patch size
-# - the augmentation patch size
-# - the number of poolings in the 3D U-Net
-#---------------------------------------------------------------------------
+"""
+Auto-configuration.
 
+This script can be used to compute and display:
+- the batch size
+- the patch size
+- the augmentation patch size
+- the number of poolings in the 3D U-Net
+"""
+
+from typing import Optional
 import numpy as np
 import itertools
 import argparse
 
-from biom3d.utils import adaptive_imread, abs_listdir, save_python_config
+from biom3d.utils import DataHandlerFactory, save_python_config
 
 # ----------------------------------------------------------------------------
 # Median computation
 
-def compute_median(path, return_spacing=False):
-    """Compute the median shape of a folder of images. If `return_spacing` is True, 
-    then also return the median spacing.
+def compute_median(path:str, return_spacing:bool=False)->np.ndarray | tuple[np.ndarray,np.ndarray]:
+    """
+    Compute the median shape of a folder of images. If `return_spacing` is True, then also return the median spacing.
 
     Parameters
     ----------
@@ -27,21 +29,34 @@ def compute_median(path, return_spacing=False):
     return_spacing: bool
         Whether to return the mean image spacing. Works only for Nifti format.
 
+    Raises
+    ------
+    AssertionError
+        If no image is found at `path`, or size couldn't be retrieved.
+    AssertionError
+        If images has inconsistents dimensions
+
     Returns
     -------
-    numpy.ndarray
+    median: numpy.ndarray
         Median shape of the images in the folder. 
+    spacing: numpy.ndarray
+        Median spacing of the images in the folder. 
     """
-    path_imgs = abs_listdir(path)
-    sizes = []
-    if return_spacing: spacings = []
-    num_dims = None
-    for i in range(len(path_imgs)):
+    handler = DataHandlerFactory.get(
+        path,
+        read_only=True,
+        output=None,
+    )
 
-        img,metadata = adaptive_imread(path_imgs[i])
+    sizes = []
+    num_dims=None
+    if return_spacing: spacings = []
+    for img_path,_,_ in handler:
+        img,metadata = handler.load(img_path)
         spacing = None if 'spacing' not in metadata.keys() else metadata['spacing']
 
-        assert len(img.shape)>0, f"[Error] Wrong image {path_imgs[i]}."
+        assert len(img.shape)>0, f"[Error] Wrong image {img_path}."
         img_shape = img.shape 
         # Check if the number of dimension is consistent across the dataset
         if num_dims is None: num_dims = len(img_shape)
@@ -52,12 +67,12 @@ def compute_median(path, return_spacing=False):
             img_shape = (1,) + img_shape
         sizes += [list(img_shape)]
         if return_spacing and (spacing is not None): spacings+=[spacing]
+    handler.close()
     assert len(sizes)>0, "[Error] List of sizes for median computation is empty. It is probably due to an empty image folder."
     num_dims = [len(s) for s in sizes]
     assert min(num_dims)==max(num_dims), f"Inconsistent number of dimensions in images: {num_dims}"
     sizes = np.array(sizes)
     median = np.median(sizes, axis=0).astype(int)
-    
     if return_spacing: 
         if len(spacings)==0: 
             print("Warning: `return_spacing` was set to True but no spacing was found in the image metadata, will return an empty `median_spacing` array.")
@@ -68,20 +83,38 @@ def compute_median(path, return_spacing=False):
 
     return median 
 
-def data_fingerprint(img_dir, msk_dir=None, num_samples=10000,seed=42):
-    """Compute the data fingerprint. 
+def data_fingerprint(img_path:str, 
+                     msk_path:Optional[str]=None, 
+                     num_samples:int=10000,
+                     seed:int=42,
+                     )->tuple[np.ndarray,np.ndarray,float,float,float,float]:
+    """
+    Compute the data fingerprint.
+
+    The fingerprint consist of:
+    - Median size of the images.
+    - Median spacing of the images.
+    - Mean value of the images' voxels (or pixels).
+    - Standard deviation of the images' voxels (or pixels).
+    - Percentil 0.5% of the images' voxels (or pixels) intensity.
+    - Percentil 99.5% of the images' voxels (or pixels) intensity.
+    
 
     Parameters 
     ----------
-    img_dir : str
-        Path to the directory of images.
-    msk_dir : str, default=None
-        (Optional) Path to the corresponding directory of masks. If provided the function will compute the mean, the standard deviation, the 0.5% percentile and the 99.5% percentile of the intensity values of the images located inside the masks. If not provide, the function returns zeros for each of these values.
+    img_path : str
+        Path to the images collection.
+    msk_path : str, optional
+        (Optional) Path to the corresponding collection of masks. If provided the function will compute the mean, the standard deviation, the 0.5% percentile and the 99.5% percentile of the intensity values of the images located inside the masks. If not provide, the function returns zeros for each of these values.
     num_samples : int, default=10000
         We compute the intensity characteristic on only a sample of the candidate voxels.
     seed : int, default=42
-        (Optional) Random generator seed, is used if msk_dir isn't None
+        (Optional) Random generator seed, is used if msk_path isn't None.
 
+    Raises
+    ------
+    AssertionError | ValueError
+        If inconsistent number of dimension across dataset.
     
     Returns
     -------
@@ -98,19 +131,23 @@ def data_fingerprint(img_dir, msk_dir=None, num_samples=10000,seed=42):
     perc_995 : float
         99.5% percentile of the intensities.
     """ 
-    path_imgs = abs_listdir(img_dir)
-    if msk_dir is not None:
-        path_msks = abs_listdir(msk_dir)
+    handler = DataHandlerFactory.get(
+        img_path,
+        read_only=True,
+        output=None,
+        msk_path = msk_path,
+    )
     
     sizes = []
     spacings = []
     samples = []
 
-    assert len(path_imgs) > 0, f"[Error] Empty folder: {img_dir}"
-    num_dims = None
+        
+    for img_path,msk_path,_ in handler:
+        img,metadata = handler.load(img_path)
 
-    for i in range(len(path_imgs)):
-        img,metadata = adaptive_imread(path_imgs[i])
+        num_dims = None
+
         spacing = None if 'spacing' not in metadata.keys() else metadata['spacing']
 
         # store the size
@@ -125,31 +162,36 @@ def data_fingerprint(img_dir, msk_dir=None, num_samples=10000,seed=42):
         sizes += [list(img_shape)]
 
         # store the spacing
-        if spacing is not None or spacing!=[]: 
+        if spacing is not None and spacing!=[]: 
             spacings+=[spacing]
 
-        if msk_dir is not None:
+        if msk_path is not None:
             # read msk
-            msk,_ = adaptive_imread(path_msks[i])
+            msk,_ = handler.load(msk_path)
             
             # extract only useful voxels
             img = img[msk > 0]
-    
+
             # to get a global sample of all the images, 
             # we use random sampling on the image voxels inside the mask
             rng = np.random.default_rng(seed)
+
             if len(img) > 0:
                 samples.append(rng.choice(img, num_samples, replace=True) if len(img)>0 else [])
+    handler.close()
 
     # median computation
     try:
         median_size = np.median(np.array(sizes), axis=0).astype(int)
     except ValueError:
-        raise ValueError( "Images don't have the same number of dimensions" )
-    if len(spacings)>0:
-        median_spacing = np.median(np.array(spacings), axis=0)
-    else:
-        median_spacing = 0
+        raise ValueError( "Images don't have the same number of dimensions" ) # Already checked in the loop ?
+    
+    for i in range(len(spacings)):
+        if spacings[i] is None : spacings[i] = []
+
+
+    median_spacing = np.median(np.array(spacings), axis=0) if len(spacings) > 0 else 0
+
     
     if not samples: 
         return median_size, median_spacing, 0, 0, 0, 0
@@ -165,8 +207,14 @@ def data_fingerprint(img_dir, msk_dir=None, num_samples=10000,seed=42):
 # ----------------------------------------------------------------------------
 # Patch pool batch computation
 
-def find_patch_pool_batch(dims, max_dims=(128,128,128), max_pool=5, epsilon=1e-3):
-    """Given the median image size, compute the patch size, the number of pooling and the batch size.
+def find_patch_pool_batch(dims:tuple[int]|list[int], 
+                          max_dims:tuple[int]=(128,128,128), 
+                          max_pool:int=5, 
+                          epsilon:float=1e-3,
+                          )->tuple[np.ndarray,np.ndarray,np.ndarray]:
+    """
+    Given the median image size, compute the patch size, the number of pooling and the batch size.
+    
     The generated patch size is repecting the input dimension proportions.
     The product of the patch dimensions is lower than the product of the `max_dims` dimensions.
 
@@ -180,6 +228,15 @@ def find_patch_pool_batch(dims, max_dims=(128,128,128), max_pool=5, epsilon=1e-3
         Maximum pooling size.
     epsilon: float, default=1e-3
         Used to reduce the input dimensions if they are too big. Input dimensions will be divided by (1+epsilon) an sufficient number times so they resulting dimensions respect the max_dims limit.
+
+    Raises
+    ------
+    AssertionError
+        If dims not in 3D or 4D.
+    AssertionError
+        If a dimension is negative.
+    AssertionError
+        If max_pool has at least 1 element that is less than 2 times bigger than an element of max_dims
 
     Returns
     -------
@@ -284,8 +341,10 @@ def find_patch_pool_batch(dims, max_dims=(128,128,128), max_pool=5, epsilon=1e-3
     
     return patch, pool, batch
 
-def get_aug_patch(patch_size):
-    """Return augmentation patch size.
+def get_aug_patch(patch_size:tuple[int]|list[int]|np.ndarray)->np.ndarray:
+    """
+    Return augmentation patch size.
+    
     The current solution is to use the diagonal of the rectagular cuboid of the patch size, for isotripic images and, for anisotropic images, the diagonal of the rectangle spaned by the non-anisotropic dimensions. 
 
     Parameters
@@ -303,51 +362,106 @@ def get_aug_patch(patch_size):
 
     if np.any(dummy_2d>3): # then use dummy_2d
         axis = np.argmin(dummy_2d)
-        diag = np.sqrt(np.array(list(s**2 if i!=axis else 0 for i,s in enumerate(ps))).sum())
+        diag = np.sqrt(np.array([s**2 if i!=axis else 0 for i,s in enumerate(ps)]).sum())
         diag = np.round(diag).astype(int)
-        aug_patch = list(int(diag) for _ in range(len(patch_size)))
+        aug_patch = [int(diag) for _ in range(len(patch_size))]
         aug_patch[axis] = int(patch_size[axis])
     else:
         diag = np.round(np.sqrt((ps**2).sum())).astype(int)
-        aug_patch = list(int(diag) for _ in range(len(patch_size)))
+        aug_patch = [int(diag) for _ in range(len(patch_size))]
     return aug_patch
         
 
 # ----------------------------------------------------------------------------
 # Display 
 
-def parameters_return(patch, pool, batch, config_path):
+def parameters_return(patch:np.ndarray, 
+                      pool:np.ndarray, 
+                      batch:np.ndarray, 
+                      config_path:str,
+                      median_spacing:Optional[np.ndarray]=None,
+                      )->None:
     """
-    Displays the provided parameters.
+    Display the provided parameters.
+    
+    Parameters
+    ----------
+    patch: numpy.ndarray
+        Patch size.
+    pool: numpy.ndarray
+        Pool size.
+    batch: numpy.ndarray
+        batch size.
+    config_path: str
+        Path to configuration file
+    median_spacing: numpy.ndarray, optional
+        Median spacing over the dataset.
+
+    Returns
+    -------
+    None
     """
     print(batch)
     print(patch)
     print(get_aug_patch(patch))
     print(pool)
+    print(median_spacing)
     print(config_path)
 
-def display_info(patch, pool, batch):
-    """Print in terminal the patch size, the number of pooling and the batch size.
+def display_info(patch:np.ndarray, pool:np.ndarray, batch:np.ndarray)->None:
+    """
+    Print in terminal the patch size, the number of pooling, augmented patch size and the batch size.
+
+    The output follow the config file syntaxe and can copied into.
+
+    Parameters
+    ----------
+    patch: numpy.ndarray
+        Patch size.
+    pool: numpy.ndarray
+        Pool size.
+    batch: numpy.ndarray
+        batch size.
+
+    Returns
+    -------
+    None
     """
     print("*"*20,"YOU CAN COPY AND PASTE THE FOLLOWING LINES INSIDE THE CONFIG FILE", "*"*20)
     print("BATCH_SIZE =", batch)
     print("PATCH_SIZE =", list(patch))
     aug_patch = get_aug_patch(patch)
-    print("AUG_PATCH_SIZE =",list(aug_patch))
+    print("AUG_PATCH_SIZE =",list(aug_patch))  
     print("NUM_POOLS =", list(pool))
 
-def auto_config(img_dir=None, median=None, max_dims=(128,128,128), max_batch=16, min_batch=2):
-    """Given an image folder, return the batch size, the patch size and the number of pooling.
-    Provide either an image directory or a median shape. If a median shape is provided it will not be recomputed and the auto-configuration will be much faster.
+def auto_config(img_path:Optional[str]=None,
+                median:Optional[list[int]|tuple[int]]=None,
+                max_dims:tuple[int]=(128,128,128), 
+                max_batch:int=16, 
+                min_batch:int=2,
+                )->tuple[np.ndarray,np.ndarray,np.ndarray,np.ndarray]:
+    """
+    Given an image collection, return the batch size, the patch size and the number of pooling.
+
+    Provide either an image collection path or a median shape. If a median shape is provided it will not be recomputed and the auto-configuration will be much faster.
 
     Parameters
     ----------
-    img_dir : str
-        Image folder path.
-    median : list or tuple
-        Median size of the images in the image directory.
+    img_path : str, optional
+        Image collection path. If not provided, must give a median shape.
+    median : list or tuple, optional
+        Median size of the images in the image collection. If not provided, must give an image path.
     max_dims: tuple, default=(128,128,128)
         Maximum patch size. The product of `max_dims` is used to determine the maximum patch size
+    max_batch: int, default=16
+        Maximum batch size. Clamp computed batch size if needed.
+    min_batch: int, default=16
+        Minimum batch size. Clamp computed batch size if needed.
+
+    Raises
+    ------
+    AssertionError
+        If img_path and median are both None.
 
     Returns
     -------
@@ -360,8 +474,8 @@ def auto_config(img_dir=None, median=None, max_dims=(128,128,128), max_batch=16,
     pool: numpy.ndarray
         Number of pooling.
     """
-    assert not(img_dir is None and median is None), "[Error] Please provide either an image directory or a median shape."
-    if median is None: median = compute_median(path=img_dir) 
+    assert not(img_path is None and median is None), "[Error] Please provide either an image collection path or a median shape."
+    if median is None: median = compute_median(path=img_path) 
     patch, pool, batch = find_patch_pool_batch(dims=median, max_dims=max_dims) 
     aug_patch = get_aug_patch(patch)
     if batch > max_batch: batch = max_batch
@@ -374,8 +488,8 @@ def auto_config(img_dir=None, median=None, max_dims=(128,128,128), max_batch=16,
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description="Auto-configuration of the hyper-parameter for training.")
-    parser.add_argument("--img_dir", type=str,
-        help="Path of the images directory")
+    parser.add_argument("--img_path", type=str,
+        help="Path of the images collection")
     parser.add_argument("--max_dim", type=int, default=128,
         help="Maximum size of one dimension of the patch (default: 128)")  
     parser.add_argument("--spacing", default=False,  action='store_true', dest='spacing',
@@ -392,7 +506,7 @@ if __name__=='__main__':
         help="Use this argument when using remote autoconfig only.")
     args = parser.parse_args()
 
-    median = compute_median(path=args.img_dir, return_spacing=args.spacing)
+    median = compute_median(path=args.img_path, return_spacing=args.spacing)
     
     if args.spacing: 
         median_spacing = median[1]
@@ -415,11 +529,11 @@ if __name__=='__main__':
             MEDIAN_SPACING=median_spacing,
         )
     if args.remote:
-        parameters_return(patch, pool, batch, config_path, median_spacing)   
+        parameters_return(patch, pool, batch, config_path, median_spacing)  
     else:
         display_info(patch, pool, batch)
 
     if args.spacing:print("MEDIAN_SPACING =",list(median_spacing))
     if args.median:print("MEDIAN =", list(median))
 
-# ----------------------------------------------------------------------------
+#----------------------------------------------------------------------------
