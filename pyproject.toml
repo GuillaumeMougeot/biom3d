@@ -52,6 +52,8 @@ docs = [
     'docutils>=0.17.1',
     'sphinx-copybutton',
     'sphinx_design',
+    'sphinx_automodapi',
+    'pytorch_sphinx_theme',
 ]
 gui = [
     "omero-py",

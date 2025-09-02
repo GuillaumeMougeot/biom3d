@@ -15,6 +15,18 @@ project = "Biom3d"
 copyright = "2022, Guillaume Mougeot"
 author = "Guillaume Mougeot"
 
+# -- Project mock block ---------------------------------------------------
+
+import sys
+from unittest.mock import MagicMock
+
+MOCK_MODULES = [
+    "torch", "torchvision", "SimpleITK", "torchio",
+    "h5py", "numba", "pandas", "scipy", "skimage"
+]
+for mod in MOCK_MODULES:
+    sys.modules[mod] = MagicMock()
+
 # -- General configuration ---------------------------------------------------
 
 extensions = [
