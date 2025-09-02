@@ -9,25 +9,25 @@
 
 # Mock modules for heavy imports
 
-import sys
-from unittest.mock import MagicMock
+# import sys
+# from unittest.mock import MagicMock
 
-# List all heavy/non-essential dependencies that are not installed on RTD
-MOCK_MODULES = [
-    "torch",
-    "torchvision",
-    "SimpleITK",
-    "torchio",
-    "h5py",
-    "numba",
-    "batchgenerators",
-    "scipy",
-    "scikit-image",
-    "pandas"
-]
+# # List all heavy/non-essential dependencies that are not installed on RTD
+# MOCK_MODULES = [
+#     "torch",
+#     "torchvision",
+#     "SimpleITK",
+#     "torchio",
+#     "h5py",
+#     "numba",
+#     "batchgenerators",
+#     "scipy",
+#     "scikit-image",
+#     "pandas"
+# ]
 
-for mod in MOCK_MODULES:
-    sys.modules[mod] = MagicMock()
+# for mod in MOCK_MODULES:
+#     sys.modules[mod] = MagicMock()
 
 # -- Project information -----------------------------------------------------
 
@@ -55,6 +55,21 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_design",
 ]
+
+# Mock heavy modules
+autodoc_mock_imports = [
+    "torch",
+    "torchvision",
+    "SimpleITK",
+    "torchio",
+    "h5py",
+    "numba",
+    "batchgenerators",
+    "scipy",
+    "skimage",
+    "pandas",
+]
+
 # templates_path = ["_templates"]
 
 # The master toctree document.
