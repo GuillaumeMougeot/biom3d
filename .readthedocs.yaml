@@ -20,6 +20,11 @@ build:
 # specify dependencies
 python:
    install:
-      - requirements: docs/requirements.txt
-#       - method: pip
-#         path: .
+      # - requirements: docs/requirements.txt
+      - method: pip
+        path: .
+        extra_requirements:
+        - docs
+        # this is where we can tell pip not to install deps
+        # (RTD will run `pip install --no-deps -e .[docs]`)
+        no_deps: true
