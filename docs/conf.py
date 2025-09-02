@@ -7,6 +7,28 @@
 # source links
 # sys.path.append(os.path.abspath("./kitchen-sink/demo_py"))
 
+# Mock modules for heavy imports
+
+import sys
+from unittest.mock import MagicMock
+
+# List all heavy/non-essential dependencies that are not installed on RTD
+MOCK_MODULES = [
+    "torch",
+    "torchvision",
+    "SimpleITK",
+    "torchio",
+    "h5py",
+    "numba",
+    "batchgenerators",
+    "scipy",
+    "scikit-image",
+    "pandas"
+]
+
+for mod in MOCK_MODULES:
+    sys.modules[mod] = MagicMock()
+
 # -- Project information -----------------------------------------------------
 
 # import pytorch_sphinx_theme
