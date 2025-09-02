@@ -68,6 +68,8 @@ autodoc_mock_imports = [
     "scipy",
     "skimage",
     "pandas",
+    "omero",
+    "ezomero",
 ]
 
 # templates_path = ["_templates"]

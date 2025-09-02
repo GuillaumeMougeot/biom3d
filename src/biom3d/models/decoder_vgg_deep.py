@@ -242,7 +242,7 @@ class VGGDecoder(nn.Module):
             layers.append(block(planes, planes, stride=1))
         return nn.Sequential(*layers)
 
-    def forward(self, x:list[torch.Tensor])->torch.Tensor|list[torch.Tensor]: 
+    def forward(self, x:list[torch.Tensor]): 
         """
         Forward pass through the decoder.
 
