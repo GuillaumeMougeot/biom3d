@@ -54,12 +54,12 @@
 #  --dir_out data/nucleus/official/test/preds\
 #  --dir_lab data/nucleus/official/test/msk
 
-python -m biom3d.pred\
- --name seg_eval\
- --log logs/20240719-232122-exp21_supervised_baseline_pancreas_small_fold0\
- --dir_in data/pancreas/imagesTs_small\
- --dir_out data/pancreas/preds\
- --dir_lab data/pancreas/labelsTs_small
+# python -m biom3d.pred\
+#  --name seg_eval\
+#  --log logs/20240719-232122-exp21_supervised_baseline_pancreas_small_fold0\
+#  --dir_in data/pancreas/imagesTs_small\
+#  --dir_out data/pancreas/preds\
+#  --dir_lab data/pancreas/labelsTs_small
 
 # nucleus
 # python -m biom3d.pred\
@@ -137,3 +137,10 @@ python -m biom3d.pred\
 #     --log logs/20240218-072550-reims_fold0\
 #     --dir_in data/reims/big_stack/img/1024.tif\
 #     --dir_out data/reims/big_stack/preds/1024.tif
+
+python -m biom3d.pred\
+    --name seg_eval\
+    --log logs/20250902-165509-unet_lung_fold0\
+    --dir_in data/msd/Task06_Lung/imagesTr_test\
+    --dir_out data/msd/Task06_Lung/preds\
+    --dir_lab data/msd/Task06_Lung/labelsTr_test
