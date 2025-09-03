@@ -39,7 +39,7 @@
 
 python -m biom3d.train\
     --name seg_pred_eval\
-    --config configs/20250715-140155-unet_lung.py\
+    --config configs/20250715-140155-swinunetr_lung.py\
     --dir_in data/msd/Task06_Lung/imagesTr_test\
     --dir_out data/msd/Task06_Lung/preds\
     --dir_lab data/msd/Task06_Lung/labelsTr_test

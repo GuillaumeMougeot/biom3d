@@ -37,7 +37,9 @@ dependencies = [
     "paramiko",
     "netcat",
     "tifffile",
-    "h5py"
+    "h5py",
+    "monai",
+    "einops",
 ]
 keywords=['deep learning', 'image segmentation', 'medical image analysis',
             'medical image segmentation', 'biological image segmentation', 'bio-imaging']

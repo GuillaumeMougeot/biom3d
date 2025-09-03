@@ -32,12 +32,14 @@ from biom3d.models.encoder_vgg import VGGEncoder, EncoderBlock
 from biom3d.models.unet3d_vgg_deep import UNet
 from biom3d.models.encoder_efficientnet3d import EfficientNet3D
 from biom3d.models.unet3d_eff import EffUNet
+from monai.networks import nets
 
 models = AttrDict(
     VGG3D           =AttrDict(fct=VGGEncoder, kwargs=AttrDict(block=EncoderBlock, use_head=True)),
     UNet3DVGGDeep   =AttrDict(fct=UNet, kwargs=AttrDict()),
     Eff3D           =AttrDict(fct=EfficientNet3D.from_name, kwargs=AttrDict()),
     EffUNet         =AttrDict(fct=EffUNet, kwargs=AttrDict()),
+    SwinUNETR       =AttrDict(fct=nets.SwinUNETR, kwargs=AttrDict()),
 )
 
 #---------------------------------------------------------------------------
