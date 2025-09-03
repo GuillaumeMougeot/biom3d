@@ -11,7 +11,7 @@ import numpy as np
 from skimage.io import imread
 from tqdm import tqdm
 
-from biom3d.utils import keep_biggest_volume_centered, adaptive_imread, keep_big_volumes, resize
+from biom3d.utils import keep_biggest_volume_centered, adaptive_imread, keep_big_volumes, resize_3d
 
 #---------------------------------------------------------------------------
 # model predictor for segmentation
@@ -574,7 +574,7 @@ def seg_predict_patch_2(
 
     # reshape the logit so it has the same size as the original image
     if conserve_size:
-        return resize(logit, original_shape, order=3)
+        return resize_3d(logit, original_shape, order=3)
 
     return logit
 
@@ -638,7 +638,7 @@ def seg_postprocessing(
             if type(logit)==torch.Tensor:
                 logit = logit.numpy()
             assert type(logit)==np.ndarray, "[Error] Logit must be numpy.ndarray but found {}.".format(type(logit))
-            logit = resize(logit, original_shape, order=3)
+            logit = resize_3d(logit, original_shape, order=3)
         print("Returning logit...")
         print("Post-processing done!")
         return logit
@@ -658,9 +658,9 @@ def seg_postprocessing(
     # resampling
     if original_shape is not None:
         if use_softmax or force_softmax:
-            out = resize(np.expand_dims(out,0), original_shape, order=1, is_msk=True).squeeze()
+            out = resize_3d(np.expand_dims(out,0), original_shape, order=1, is_msk=True).squeeze()
         else: 
-            out = resize(out, original_shape, order=1, is_msk=True)
+            out = resize_3d(out, original_shape, order=1, is_msk=True)
     
     if keep_big_only and keep_biggest_only:
         print("[Warning] Incompatible options 'keep_big_only' and 'keep_biggest_only' have both been set to True. Please deactivate one! We consider here only 'keep_biggest_only'.")
