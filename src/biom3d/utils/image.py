@@ -147,7 +147,7 @@ def resize_segmentation(segmentation: np.ndarray,
             reshaped[reshaped_multihot >= 0.5] = c
         return reshaped
 
-def resize(img:np.ndarray, 
+def resize_3d(img:np.ndarray, 
               output_shape:tuple[int]|list[int]|np.ndarray[int], 
               order:int=3, 
               is_msk:bool=False, 

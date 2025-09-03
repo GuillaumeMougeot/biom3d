@@ -18,7 +18,7 @@ import argparse
 import pandas as pd
 
 from biom3d.auto_config import auto_config, data_fingerprint
-from biom3d.utils import one_hot_fast, resize, save_python_config,DataHandlerFactory
+from biom3d.utils import one_hot_fast, resize_3d, save_python_config,DataHandlerFactory
 
 #---------------------------------------------------------------------------
 # Define the CSV file for KFold split
@@ -185,9 +185,9 @@ def resize_img_msk(img:np.ndarray,
     new_msk: numpy.ndarray, optional
         The resized mask, if `msk` is provided.
     """
-    new_img = resize(img, output_shape, order=3)
+    new_img = resize_3d(img, output_shape, order=3)
     if msk is not None:
-        new_msk = resize(msk, output_shape, is_msk=True, order=1)
+        new_msk = resize_3d(msk, output_shape, is_msk=True, order=1)
         return new_img, new_msk
     else: 
         return new_img
@@ -414,9 +414,9 @@ def correct_mask(
             # Heuristic 1: Right number of classes, but wrong values (e.g., [10, 20, 30] for num_classes=3)
             if len(uni) == num_classes:
                 print(f"[WARNING] Remapping labels: {uni} -> {expected_labels}")
-                mapper = np.zeros(uni.max() + 1, dtype=np.intp)
-                mapper[uni] = expected_labels
-                processed_mask = mapper[processed_mask]
+                uni, inv = np.unique(processed_mask, return_inverse=True)
+                expected_labels = np.arange(num_classes, dtype=np.int64)
+                processed_mask = expected_labels[inv].reshape(processed_mask.shape)
 
             # Heuristic 2: Binary case with wrong labels (e.g., [-1, 10, 255])
             elif num_classes == 2:
@@ -692,7 +692,7 @@ def seg_preprocessor(
         if do_msk:
             img, msk = resize_img_msk(img, msk=msk, output_shape=output_shape)
         else:
-            img = resize(img, output_shape)
+            img = resize_3d(img, output_shape)
 
     # Cast image type
     img = img.astype(np.float32)
