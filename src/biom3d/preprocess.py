@@ -414,9 +414,9 @@ def correct_mask(
             # Heuristic 1: Right number of classes, but wrong values (e.g., [10, 20, 30] for num_classes=3)
             if len(uni) == num_classes:
                 print(f"[WARNING] Remapping labels: {uni} -> {expected_labels}")
-                mapper = np.zeros(uni.max() + 1, dtype=np.intp)
-                mapper[uni] = expected_labels
-                processed_mask = mapper[processed_mask]
+                uni, inv = np.unique(processed_mask, return_inverse=True)
+                expected_labels = np.arange(num_classes, dtype=np.int64)
+                processed_mask = expected_labels[inv].reshape(processed_mask.shape)
 
             # Heuristic 2: Binary case with wrong labels (e.g., [-1, 10, 255])
             elif num_classes == 2:
