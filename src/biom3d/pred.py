@@ -15,6 +15,7 @@ And interface predictions functions made for CLI:
 
 """
 
+import os
 import argparse
 import pathlib
 from typing import Optional
