@@ -590,7 +590,7 @@ class SemSeg3DPatchFast(Dataset):
             fg_path = fg_path,
             img_inner_paths_list = self.fnames,
             msk_inner_paths_list = self.fnames,
-            fg_inner_paths_list = self.fnames,
+            fg_inner_paths_list = [f[:f.find('.')]+'.pkl' for f in self.fnames],
         )
 
         # print train and validation image names
