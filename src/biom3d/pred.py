@@ -191,9 +191,9 @@ def pred_seg_eval(log:pathlib.Path|str|list[str]=pathlib.Path.home(),
 
     if path_lab is not None:
         if isinstance(builder_pred.config,list):
-            num_classes = builder_pred.config[0].NUM_CLASSES+1
+            num_classes = builder_pred.config[0].NUM_CLASSES
         else:
-            num_classes = builder_pred.config.NUM_CLASSES+1
+            num_classes = builder_pred.config.NUM_CLASSES
         # eval
         eval(path_lab,path_out,num_classes=num_classes)
 

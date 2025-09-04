@@ -210,7 +210,7 @@ def main_pretrain_seg_pred_eval(
         if path_lab is not None:
             # eval
             print("Start evaluation")
-            eval(path_lab,out,builder_pred.config.NUM_CLASSES+1) 
+            eval(path_lab,out,builder_pred.config.NUM_CLASSES) 
 
 #---------------------------------------------------------------------------
 
