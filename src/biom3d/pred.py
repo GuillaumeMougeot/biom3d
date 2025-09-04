@@ -15,6 +15,7 @@ And interface predictions functions made for CLI:
 
 """
 
+import os
 import argparse
 import pathlib
 from typing import Optional
@@ -89,6 +90,8 @@ def pred(log:str|list[str],
     if not isinstance(log,list): log=str(log)
     path_in=str(path_in)
     path_out=str(path_out)
+
+    path_out = os.path.join(path_out,os.path.split(log[0] if isinstance(log,list) else log)[-1]) # name the prediction folder with the last model folder name
 
     builder = Builder(config=None,path=log, training=False)
     path_out = builder.run_prediction_folder(path_in=path_in, path_out=path_out, return_logit=False,skip_preprocessing=skip_preprocessing)
@@ -178,9 +181,11 @@ def pred_seg_eval(log:pathlib.Path|str|list[str]=pathlib.Path.home(),
         config=None,
         path=log, 
         training=False)
-    out = path_out
+
+    path_out = os.path.join(path_out,os.path.split(log[0] if isinstance(log,list) else log)[-1]) # name the prediction folder with the last model folder name
+
     if not eval_only:
-        out = builder_pred.run_prediction_folder(path_in=path_in, path_out=path_out, return_logit=False,skip_preprocessing=skip_preprocessing) # run the predictions
+        path_out = builder_pred.run_prediction_folder(path_in=path_in, path_out=path_out, return_logit=False,skip_preprocessing=skip_preprocessing) # run the predictions
     print("Inference done!")
 
 
@@ -190,7 +195,7 @@ def pred_seg_eval(log:pathlib.Path|str|list[str]=pathlib.Path.home(),
         else:
             num_classes = builder_pred.config.NUM_CLASSES+1
         # eval
-        eval(path_lab,out,num_classes=num_classes)
+        eval(path_lab,path_out,num_classes=num_classes)
 
 def pred_seg_eval_single(log:str|list[str], 
                          img_path:str, 

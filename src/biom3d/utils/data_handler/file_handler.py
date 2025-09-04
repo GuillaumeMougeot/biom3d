@@ -153,18 +153,14 @@ class FileHandler(DataHandler):
             if fname.is_absolute(): relative=fname
             elif name_str.startswith('\\'): relative = Path(name_str.lstrip("\\"))
             elif name_str.startswith('/') : relative = Path(name_str.lstrip("/"))
-
-        # If the image has no extension (comming from another handler), default it to tif
-        if not relative.is_file():
-            relative = relative.with_suffix(".tif")
         
         if out_type==OutputType.IMG:
-            if hasattr(self,'_use_tif'): #In preprocess
-                relative = relative.with_suffix(".tif") if self._use_tif else relative.with_suffix(".npy")
+            if hasattr(self,'_use_tif') and self._use_tif: #In preprocess
+                relative = relative.with_suffix(".tif")
             ImageManager.adaptive_imsave(str(self.img_outpath / relative),img)
         elif out_type==OutputType.MSK or out_type==OutputType.PRED:
-            if hasattr(self,'_use_tif'): #In preprocess
-                relative = relative.with_suffix(".tif") if self._use_tif else relative.with_suffix(".npy")
+            if hasattr(self,'_use_tif') and self._use_tif : #In preprocess
+                relative = relative.with_suffix(".tif")
             ImageManager.adaptive_imsave(str(self.msk_outpath / relative),img)
         elif out_type==OutputType.FG:
             relative = relative.with_suffix(".pkl")
