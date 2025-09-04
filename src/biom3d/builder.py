@@ -982,7 +982,7 @@ class Builder:
             output=path_out,
             read_only=False,
             msk_outpath = path_out,
-            model_name = self.config[-1].DESC if isinstance(self.config,list) else self.config.DESC,
+            # model_name = self.config[-1].DESC if isinstance(self.config,list) else self.config.DESC,
         ) as handler:
             for i,_,_ in handler:
                 print("running prediction for image: ", i)
