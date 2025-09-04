@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.1.1] - Patching errors from first version and added SwinUNETR
+
+This patch adds SwinUNETR to the register and fixes some issues caused by the new DataHandler class.
+
 ## [v0.1.0] - First BETA version of Biom3d
 This release merge several fork and add new functionality to Biom3d.
 
