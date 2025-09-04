@@ -1272,9 +1272,9 @@ class BatchGenDataLoader(SlimDataLoaderBase):
             img_path = img_path,
             msk_path = msk_path,
             fg_path = fg_path,
-            img_inner_path_list = self.fnames,
-            msk_inner_path_list = self.fnames,
-            fg_inner_path_list = self.fnames,
+            img_inner_paths_list = self.fnames,
+            msk_inner_paths_list = self.fnames,
+            fg_inner_paths_list = self.fnames,
         )
 
         # print train and validation image names

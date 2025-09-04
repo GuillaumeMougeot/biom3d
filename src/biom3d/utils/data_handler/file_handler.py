@@ -130,7 +130,14 @@ class FileHandler(DataHandler):
                      msk_inner_paths_list:Optional[list]=None,      
                      fg_inner_paths_list:Optional[list]=None,      
                      **kwargs,):
-        self._input_parse(img_path,msk_path,fg_path,img_inner_paths_list,msk_inner_paths_list,fg_inner_paths_list,**kwargs)
+        self._input_parse(
+            img_path=img_path,
+            msk_path=msk_path,
+            fg_path=fg_path,
+            img_inner_paths_list=img_inner_paths_list,
+            msk_inner_paths_list=msk_inner_paths_list,
+            fg_inner_paths_list=fg_inner_paths_list,
+            **kwargs)
 
     def load(self,fname:str)->tuple[np.ndarray,dict]:
         if isdir(fname) : raise ValueError(f"Expected an image, found a directory '{fname}'")

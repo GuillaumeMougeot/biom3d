@@ -588,14 +588,18 @@ class SemSeg3DPatchFast(Dataset):
             img_path = img_path,
             msk_path = msk_path,
             fg_path = fg_path,
-            img_inner_path_list = self.fnames,
-            msk_inner_path_list = self.fnames,
-            fg_inner_path_list = self.fnames,
+            img_inner_paths_list = self.fnames,
+            msk_inner_paths_list = self.fnames,
+            fg_inner_paths_list = self.fnames,
         )
 
         # print train and validation image names
         print("{} images: {}".format("Training" if self.train else "Validation", self.fnames))
         
+        if not self.train: 
+            print(self.handler.images, self.fnames)
+            exit()
+
         if self.load_data:
             print("Loading the whole dataset into computer memory...")
             def load_data():
