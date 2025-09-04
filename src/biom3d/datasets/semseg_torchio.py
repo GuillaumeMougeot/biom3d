@@ -545,9 +545,9 @@ class TorchioDataset(SubjectsDataset):
             img_path = img_path,
             msk_path = msk_path,
             fg_path = fg_path,
-            img_inner_path_list = self.fnames,
-            msk_inner_path_list = self.fnames,
-            fg_inner_path_list = self.fnames,
+            img_inner_paths_list = self.fnames,
+            msk_inner_paths_list = self.fnames,
+            fg_inner_paths_list = self.fnames,
         )
 
         if len(self.fnames)==1: self.load_data=True # we force dataloading for single images.
