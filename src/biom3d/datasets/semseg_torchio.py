@@ -547,7 +547,7 @@ class TorchioDataset(SubjectsDataset):
             fg_path = fg_path,
             img_inner_paths_list = self.fnames,
             msk_inner_paths_list = self.fnames,
-            fg_inner_paths_list = self.fnames,
+            fg_inner_paths_list = [f[:f.find('.')]+'.pkl' for f in self.fnames],
         )
 
         if len(self.fnames)==1: self.load_data=True # we force dataloading for single images.
