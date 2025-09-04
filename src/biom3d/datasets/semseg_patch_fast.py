@@ -595,10 +595,6 @@ class SemSeg3DPatchFast(Dataset):
 
         # print train and validation image names
         print("{} images: {}".format("Training" if self.train else "Validation", self.fnames))
-        
-        if not self.train: 
-            print(self.handler.images, self.fnames)
-            exit()
 
         if self.load_data:
             print("Loading the whole dataset into computer memory...")
