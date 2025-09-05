@@ -2,7 +2,7 @@
   <img src="https://github.com/GuillaumeMougeot/biom3d/blob/main/images/logo_biom3d_crop.png" width="200" title="biom3d" alt="biom3d" vspace = "0">
 
   [📘Documentation](https://biom3d.readthedocs.io/) | 
-  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SafarbatiSami/biom3d/blob/main/docs/biom3d_colab.ipynb)
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/GuillaumeMougeot/biom3d/blob/master/docs/biom3d_colab.ipynb)
 </div>
 <img src="https://github.com/GuillaumeMougeot/biom3d/blob/main/images/nucleus_segmentation.png" width="200" title="nucleus" alt="nucleus" align="right" vspace = "0">
 
