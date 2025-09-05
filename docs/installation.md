@@ -107,7 +107,7 @@ pip install torch
 
 * Install OMERO (optionnal)
 ```bash
-conda install -c ome omero-py
+conda install -c conda-forge zeroc-ice omero-py
 # It is important to use --no-deps here to avoid breaking other dependencies
 pip install --no-deps ezomero
 ```
