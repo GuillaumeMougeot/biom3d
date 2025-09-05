@@ -179,7 +179,7 @@ def run(
             os.makedirs(target, exist_ok=True)
 
         attachment_file, _ = os.path.splitext(os.path.basename(log_folder))
-
+        upload_id = int(obj_raw.split(":")[1])
         omero_pred.run(
             obj=obj_raw,
             log=log_folder, 
@@ -187,7 +187,7 @@ def run(
             host = host,
             session_id=omero_session_id, 
             attachment=attachment_file, 
-            upload_id=1, 
+            upload_id=upload_id, 
             target=target)
 
         try :

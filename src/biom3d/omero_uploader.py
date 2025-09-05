@@ -409,15 +409,20 @@ def run(
         conn = BlitzGateway(username=username, passwd=password, host=host, port=4064)
         conn.connect()
 
-    if project and not is_pred :
+    if project:
         # Get the dataset by ID
         dataset = conn.getObject("Dataset", project)
-        dataset_name = dataset.getName()+"_trained"
+
+        if not is_pred:
+            dataset_name = dataset.getName() + "_trained"
+
         parent_project = dataset.listParents()
         if parent_project:
             project = parent_project[0].getId()
         else:
+            print("No project found, Dataset will be orphaned")
             project = None
+
 
     if path is not None :
         # create a new Omero Dataset
