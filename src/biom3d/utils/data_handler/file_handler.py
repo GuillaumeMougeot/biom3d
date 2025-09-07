@@ -31,7 +31,7 @@ class FileHandler(DataHandler):
         if img_path=='': raise ValueError("[Error] img_path must not be empty.")
         if not isdir(img_path) : raise ValueError(f"[Error] '{img_path}' is not a existing directory.")
         if msk_path != None and not isdir(msk_path) : raise ValueError(f"[Error] '{msk_path}' is not a existing directory.")
-        if fg_path != None and not isdir(msk_path) : raise ValueError(f"[Error] '{fg_path}' is not a existing directory.")
+        if fg_path != None and not isdir(fg_path) : raise ValueError(f"[Error] '{fg_path}' is not a existing directory.")
 
         def create_path(folder_path:str,fname:list):
             listdir = []
@@ -112,6 +112,12 @@ class FileHandler(DataHandler):
 
         if platform=='win32' and self.msk_outpath is not None: self.msk_outpath = self.msk_outpath.replace('\\','\\\\')
 
+    @staticmethod
+    def extract_inner_path(path_list):
+        out_path_list = []
+        for p in path_list:
+            out_path_list.append(basename(p))
+        return out_path_list
 
     def insert_prefix_to_name(self,fname:str,prefix:str):
         name = basename(fname)[0]

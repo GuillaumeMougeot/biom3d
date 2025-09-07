@@ -1067,7 +1067,7 @@ class Preprocessing:
                 self.handler.save(m,fg,"fg")
 
         # create csv file
-        filenames = self.handler.images
+        filenames = self.handler.extract_inner_path(self.handler.images)
         if not image_was_split:
             generate_kfold_csv(filenames, self.csv_path, kfold=self.num_kfolds)
 

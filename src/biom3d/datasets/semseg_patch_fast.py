@@ -610,7 +610,7 @@ class SemSeg3DPatchFast(Dataset):
 
                     # load foreground 
                     if fg_path is not None:
-                        fg_data += [self.handler.load(m)[0]]
+                        fg_data += [self.handler.load(f)[0]]
                 return imgs_data, msks_data, fg_data
 
             self.imgs_data, self.msks_data, self.fg_data = load_data()
