@@ -31,10 +31,12 @@ We target two main types of users:
 * Community users, who are interested in using the basic functionalities of Biom3d: GUI or CLI, predictions with ready-to-use models or default training.
 * Deep-learning developers, who are interested in more advanced features: changing default configuration, writing of new Biom3d modules, Biom3d core editing etc.
 
-**[21/11/2023] NEWS!** Biom3d tutorials are now available online:
+Biom3d tutorials are now available online:
 
 * [I2K Workshop tutorial (in english)](https://www.youtube.com/watch?v=cRUb9g66P18&ab_channel=I2KConference)
 * [RTMFM tutorial (in french)](https://www.youtube.com/live/fJopxW5vOhc?si=qdpJcaEy0Bd2GDec)
+
+And a DEMO dataset can be downloaded [here](https://github.com/GuillaumeMougeot/biom3d/releases/tag/v0.1.1).
 
 ## 🔨 Installation
 
@@ -63,6 +65,10 @@ python -m biom3d.preprocess_train\
  --num_classes 13\
  --ct_norm
 ```
+
+## DEMO Dataset
+
+A DEMO dataset of 3D can be downloaded [here](https://github.com/GuillaumeMougeot/biom3d/releases/tag/v0.1.1). This dataset can be helpful to interact with the Google Colab interface for the first time.
 
 ## ⚠ Disclaimer
 
