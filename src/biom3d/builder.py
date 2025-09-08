@@ -385,9 +385,19 @@ class Builder:
             
             old_config = utils.load_yaml_config(os.path.join(path,"log","config.yaml"))
             self.config.MODEL = old_config.MODEL
-            self.config.PATCH_SIZE = old_config.PATCH_SIZE
-            self.config.AUG_PATCH_SIZE = old_config.AUG_PATCH_SIZE
-            self.config.NUM_POOLS = old_config.NUM_POOLS
+            if 'TRAIN_DATASET' in self.config.keys():
+                self.config.TRAIN_DATASET = old_config.TRAIN_DATASET
+            if 'TRAIN_DATALOADER' in self.config.keys():
+                self.config.TRAIN_DATALOADER = old_config.TRAIN_DATALOADER
+            elif 'TRAIN_DATALOADER_KWARGS' in self.config.keys():
+                self.config.TRAIN_DATALOADER_KWARGS = old_config.TRAIN_DATALOADER_KWARGS
+
+            if 'VAL_DATASET' in self.config.keys():
+                self.config.VAL_DATASET = old_config.VAL_DATASET
+            if 'VAL_DATALOADER' in self.config.keys():
+                self.config.VAL_DATALOADER = old_config.VAL_DATALOADER
+            elif 'VAL_DATALOADER_KWARGS' in self.config.keys():
+                self.config.VAL_DATALOADER_KWARGS = old_config.VAL_DATALOADER_KWARGS
 
             # build the training folder
             self.build_train()
