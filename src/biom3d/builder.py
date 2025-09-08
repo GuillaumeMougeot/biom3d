@@ -386,6 +386,10 @@ class Builder:
             # build the training folder
             self.build_train()
 
+            # rebuild model froæ the old config
+            self.config.MODEL = utils.adaptive_load_config(config).MODEL
+            self.build_model(training=False) # training is False not avoid reloading losses and optimizers
+
             # load the model weights
             model_dir = os.path.join(path, 'model')
             model_name = utils.load_yaml_config(os.path.join(path,"log","config.yaml")).DESC+'.pth'

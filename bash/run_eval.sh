@@ -12,7 +12,7 @@
 #  --num_classes 2
 
 python -m biom3d.eval\
- --dir_pred data/msd/Task06_Lung/preds/unet_lung\
+ --dir_pred data/msd/Task06_Lung/preds/swinunetr\
  --dir_lab data/msd/Task06_Lung/labelsTr_test\
  --num_classes 1
 
