@@ -117,6 +117,7 @@ def pred_multiple(log:str|list[str],
     --------
     Same as pred()
     """
+    path_out = os.path.join(path_out,os.path.split(log[0] if isinstance(log,list) else log)[-1]) # name the prediction folder with the last model folder name
     return pred(log,path_in,path_out,skip_preprocessing=skip_preprocessing)
 
 #---------------------------------------------------------------------------
@@ -144,6 +145,7 @@ def pred_seg(log:pathlib.Path|str|list[str]=pathlib.Path.home(),
     -------
     None
     """
+    path_out = os.path.join(path_out,os.path.split(log[0] if isinstance(log,list) else log)[-1]) # name the prediction folder with the last model folder name
     pred(log, path_in, path_out,skip_preprocessing=skip_preprocessing)
 
 # TODO remove eval only, we have a module for that
