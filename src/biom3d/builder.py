@@ -384,20 +384,27 @@ class Builder:
             print("Fine-tuning mode! The path to a builder folder and a configuration file have been input.")
             
             old_config = utils.load_yaml_config(os.path.join(path,"log","config.yaml"))
-            self.config.MODEL = old_config.MODEL
-            if 'TRAIN_DATASET' in self.config.keys():
-                self.config.TRAIN_DATASET = old_config.TRAIN_DATASET
-            if 'TRAIN_DATALOADER' in self.config.keys():
-                self.config.TRAIN_DATALOADER = old_config.TRAIN_DATALOADER
-            elif 'TRAIN_DATALOADER_KWARGS' in self.config.keys():
-                self.config.TRAIN_DATALOADER_KWARGS = old_config.TRAIN_DATALOADER_KWARGS
+            to_replace = {
+                'PATCH_SIZE':old_config.PATCH_SIZE,
+                'AUG_PATCH_SIZE':old_config.AUG_PATCH_SIZE,
+                'NUM_POOL':old_config.NUM_POOL,
+                'BATCH_SIZE':old_config.BATCH_SIZE
+            }
+            for k,v in to_replace.items():
+                self.config = utils.nested_dict_change_value_case_insensitive(self.config, k, v)
+            # if 'TRAIN_DATASET' in self.config.keys():
+            #     self.config.TRAIN_DATASET = old_config.TRAIN_DATASET
+            # if 'TRAIN_DATALOADER' in self.config.keys():
+            #     self.config.TRAIN_DATALOADER = old_config.TRAIN_DATALOADER
+            # elif 'TRAIN_DATALOADER_KWARGS' in self.config.keys():
+            #     self.config.TRAIN_DATALOADER_KWARGS = old_config.TRAIN_DATALOADER_KWARGS
 
-            if 'VAL_DATASET' in self.config.keys():
-                self.config.VAL_DATASET = old_config.VAL_DATASET
-            if 'VAL_DATALOADER' in self.config.keys():
-                self.config.VAL_DATALOADER = old_config.VAL_DATALOADER
-            elif 'VAL_DATALOADER_KWARGS' in self.config.keys():
-                self.config.VAL_DATALOADER_KWARGS = old_config.VAL_DATALOADER_KWARGS
+            # if 'VAL_DATASET' in self.config.keys():
+            #     self.config.VAL_DATASET = old_config.VAL_DATASET
+            # if 'VAL_DATALOADER' in self.config.keys():
+            #     self.config.VAL_DATALOADER = old_config.VAL_DATALOADER
+            # elif 'VAL_DATALOADER_KWARGS' in self.config.keys():
+            #     self.config.VAL_DATALOADER_KWARGS = old_config.VAL_DATALOADER_KWARGS
 
             # build the training folder
             self.build_train()

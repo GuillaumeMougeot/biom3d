@@ -139,6 +139,38 @@ def nested_dict_change_value(dic:MutableMapping[str,Any], key:str, value:Any)->M
             save[key] = value
     return dic
 
+def nested_dict_change_value_case_insensitive(dic: MutableMapping[str, Any], key: str, value: Any) -> MutableMapping[str, Any]:
+    """
+    Change all values with a given key (case-insensitive) from a nested dictionary.
+
+    Parameters
+    ----------
+    dic: dict[str, Any]
+        The dictionary we want to alter.
+    key: str
+        The key we want to modify the value.
+    value: Any
+        The new value.
+
+    Returns
+    -------
+    dic: dict[str, Any]
+        Modified dictionary, this is not a copy of dict.
+    """
+    key_lower = key.lower()  # normalize target key
+
+    for pairs in nested_dict_pairs_iterator(dic):
+        # find actual key in this path that matches case-insensitively
+        match_key = next((k for k in pairs if isinstance(k, str) and k.lower() == key_lower), None)
+        if match_key is not None:
+            save = dic[pairs[0]]
+            i = 1
+            while i < len(pairs) and not (isinstance(pairs[i], str) and pairs[i].lower() == key_lower):
+                save = save[pairs[i]]
+                i += 1
+            save[match_key] = value  # update using original casing
+    return dic
+
 def replace_line_single(line:str, key:str, value:str)->str:
     r"""
     Replace a key, value association in a given line.
