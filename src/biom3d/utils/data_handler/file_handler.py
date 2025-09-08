@@ -91,8 +91,8 @@ class FileHandler(DataHandler):
             makedirs(self.img_outpath, exist_ok=True)
         if msk_path is not None and not exists(self.msk_outpath):
             makedirs(self.msk_outpath, exist_ok=True)
-            if msk_path is not None and not exists(self.fg_outpath):
-                makedirs(self.fg_outpath, exist_ok=True)
+        if msk_path is not None and not exists(self.fg_outpath):
+            makedirs(self.fg_outpath, exist_ok=True)
 
         if platform=='win32':
             if self.img_outpath is not None: self.img_outpath = self.img_outpath.replace('\\','\\\\')
