@@ -387,12 +387,13 @@ class Builder:
             self.build_train()
 
             # rebuild model froæ the old config
-            self.config.MODEL = utils.adaptive_load_config(config).MODEL
+            old_config = utils.load_yaml_config(os.path.join(path,"log","config.yaml"))
+            self.config.MODEL = old_config.MODEL
             self.build_model(training=False) # training is False not avoid reloading losses and optimizers
 
             # load the model weights
             model_dir = os.path.join(path, 'model')
-            model_name = utils.load_yaml_config(os.path.join(path,"log","config.yaml")).DESC+'.pth'
+            model_name = old_config.DESC+'.pth'
             ckpt_path = os.path.join(model_dir, model_name)
             ckpt = torch.load(ckpt_path)
             print("Loading model from", ckpt_path)
