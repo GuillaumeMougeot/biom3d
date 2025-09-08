@@ -163,12 +163,16 @@ def nested_dict_change_value_case_insensitive(dic: MutableMapping[str, Any], key
         # find actual key in this path that matches case-insensitively
         match_key = next((k for k in pairs if isinstance(k, str) and k.lower() == key_lower), None)
         if match_key is not None:
-            save = dic[pairs[0]]
-            i = 1
-            while i < len(pairs) and not (isinstance(pairs[i], str) and pairs[i].lower() == key_lower):
-                save = save[pairs[i]]
-                i += 1
-            save[match_key] = value  # update using original casing
+            try:
+                save = dic[pairs[0]]
+                i = 1
+                while i < len(pairs) and not (isinstance(pairs[i], str) and pairs[i].lower() == key_lower):
+                    save = save[pairs[i]]
+                    i += 1
+                save[match_key] = value  # update using original casing
+            except (KeyError, TypeError):
+                # If traversal fails, just skip silently
+                continue
     return dic
 
 def replace_line_single(line:str, key:str, value:str)->str:

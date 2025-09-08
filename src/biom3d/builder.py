@@ -387,7 +387,7 @@ class Builder:
             to_replace = {
                 'PATCH_SIZE':old_config.PATCH_SIZE,
                 'AUG_PATCH_SIZE':old_config.AUG_PATCH_SIZE,
-                'NUM_POOL':old_config.NUM_POOL,
+                'NUM_POOLS':old_config.NUM_POOLS,
                 'BATCH_SIZE':old_config.BATCH_SIZE
             }
             for k,v in to_replace.items():
