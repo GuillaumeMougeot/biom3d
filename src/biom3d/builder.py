@@ -383,13 +383,14 @@ class Builder:
         if path is not None and config is not None:
             print("Fine-tuning mode! The path to a builder folder and a configuration file have been input.")
             
-            # build the training folder
-            self.build_train()
-
-            # rebuild model froæ the old config
             old_config = utils.load_yaml_config(os.path.join(path,"log","config.yaml"))
             self.config.MODEL = old_config.MODEL
-            self.build_model(training=False) # training is False not avoid reloading losses and optimizers
+            self.config.PATCH_SIZE = old_config.PATCH_SIZE
+            self.config.AUG_PATCH_SIZE = old_config.AUG_PATCH_SIZE
+            self.config.NUM_POOLS = old_config.NUM_POOLS
+
+            # build the training folder
+            self.build_train()
 
             # load the model weights
             model_dir = os.path.join(path, 'model')
