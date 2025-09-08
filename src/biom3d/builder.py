@@ -392,19 +392,6 @@ class Builder:
             }
             for k,v in to_replace.items():
                 self.config = utils.nested_dict_change_value_case_insensitive(self.config, k, v)
-            # if 'TRAIN_DATASET' in self.config.keys():
-            #     self.config.TRAIN_DATASET = old_config.TRAIN_DATASET
-            # if 'TRAIN_DATALOADER' in self.config.keys():
-            #     self.config.TRAIN_DATALOADER = old_config.TRAIN_DATALOADER
-            # elif 'TRAIN_DATALOADER_KWARGS' in self.config.keys():
-            #     self.config.TRAIN_DATALOADER_KWARGS = old_config.TRAIN_DATALOADER_KWARGS
-
-            # if 'VAL_DATASET' in self.config.keys():
-            #     self.config.VAL_DATASET = old_config.VAL_DATASET
-            # if 'VAL_DATALOADER' in self.config.keys():
-            #     self.config.VAL_DATALOADER = old_config.VAL_DATALOADER
-            # elif 'VAL_DATALOADER_KWARGS' in self.config.keys():
-            #     self.config.VAL_DATALOADER_KWARGS = old_config.VAL_DATALOADER_KWARGS
 
             # build the training folder
             self.build_train()
