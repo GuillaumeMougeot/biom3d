@@ -140,7 +140,7 @@
 
 python -m biom3d.pred\
     --name seg_eval\
-    --log logs/20250902-165509-unet_lung_fold0\
+    --log logs/20250908-105724-unet_lung_fold0\
     --dir_in data/msd/Task06_Lung/imagesTr_test\
     --dir_out data/msd/Task06_Lung/preds\
     --dir_lab data/msd/Task06_Lung/labelsTr_test
