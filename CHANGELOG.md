@@ -1,5 +1,12 @@
 # Changelog
 
+## [v0.1.2] - Patching errors from previous version
+
+- median_spacing was set to np.array(0) which raised an error during preprocessing.
+- Dice score computation was incorrect for images with a C dimension.
+- the patch size first dimension could be 2 instead of 1 for 2D images.
+- the flip augmentation was causing an error for 2D images.
+
 ## [v0.1.1] - Patching errors from first version and added SwinUNETR
 
 This patch adds SwinUNETR to the register and fixes some issues caused by the new DataHandler class.
