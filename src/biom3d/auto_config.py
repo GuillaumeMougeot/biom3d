@@ -331,6 +331,10 @@ def find_patch_pool_batch(dims:tuple[int]|list[int],
               np.any((patch < ori_dim)*crt_patch):
             patch = patch + pool_pow*crt_patch
 
+    # bug fix: if one of the original dims was 1, then it must stay 1. 
+    # yet, in the previous bits of code can mistakenly increase the size of the patch 
+    patch[ori_dim == 1] = 1
+
     # update pool size 
     pool = np.floor(np.log2(patch/min_fmaps)).astype(int)
     pool = np.clip(pool, 0, max_pool)
