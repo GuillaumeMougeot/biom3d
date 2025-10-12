@@ -687,7 +687,12 @@ def seg_preprocessor(
         # img = (img - img.min())/(img.max()-img.min()) * 2 - 1
 
     # Resample the image and mask if needed
-    if len(median_spacing)>0 and spacing is not None and len(spacing)>0:
+    if (median_spacing is not None and
+        isinstance(median_spacing, (list, tuple, np.ndarray)) and
+        np.asarray(median_spacing).size > 0 and
+        spacing is not None and
+        isinstance(spacing, (list, tuple, np.ndarray)) and
+        np.asarray(spacing).size > 0):
         output_shape = get_resample_shape(img.shape, spacing, median_spacing)
         if do_msk:
             img, msk = resize_img_msk(img, msk=msk, output_shape=output_shape)

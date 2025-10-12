@@ -660,7 +660,7 @@ class SemSeg3DPatchFast(Dataset):
 
                 # spatial augmentations
                 tio.RandomAnisotropy(p=0.1, axes=anisotropy_axes, downsampling=(1,1.5)),
-                tio.RandomFlip(p=1, axes=(0,1,2)),
+                tio.RandomFlip(p=1, axes=(0,1,2) if self.patch_size[0]!=1 else (1,2)),
                 tio.RandomBiasField(p=0.15, coefficients=0.2),
                 tio.RandomBlur(p=0.2, std=(0.5,1)),
                 tio.RandomNoise(p=0.2, std=(0,0.1)),
