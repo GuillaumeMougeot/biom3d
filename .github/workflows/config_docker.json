@@ -11,40 +11,10 @@
     },
     {
       "architecture": "x86_64",
-      "torch_version": "2.3.1",
-      "cuda_version": "11.8",
-      "cudnn_version": "8",
-      "base_image": "pytorch/pytorch:2.3.1-cuda11.8-cudnn8-runtime",
-      "python_version": "3.11",
-      "omero_version": "5.21.0",
-      "tested":1
-    },
-    {
-      "architecture": "x86_64",
-      "torch_version": "2.7.1",
-      "cuda_version": "11.8",
-      "cudnn_version": "9",
-      "base_image": "pytorch/pytorch:2.7.1-cuda11.8-cudnn9-runtime",
-      "python_version": "3.11",
-      "omero_version": "5.21.0",
-      "tested":1
-    },
-    {
-      "architecture": "x86_64",
       "torch_version": "2.7.1",
       "cuda_version": "12.8",
       "cudnn_version": "9",
       "base_image": "pytorch/pytorch:2.7.1-cuda12.8-cudnn9-runtime",
-      "python_version": "3.11",
-      "omero_version": "5.21.0",
-      "tested":1
-    },
-    {
-      "architecture": "x86_64",
-      "torch_version": "2.3.1",
-      "cuda_version": "12.1",
-      "cudnn_version": "8",
-      "base_image": "pytorch/pytorch:2.3.1-cuda12.1-cudnn8-runtime",
       "python_version": "3.11",
       "omero_version": "5.21.0",
       "tested":1
