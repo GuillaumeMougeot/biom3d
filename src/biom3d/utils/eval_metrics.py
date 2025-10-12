@@ -63,6 +63,7 @@ def versus_one(fct:Callable,
                target_img:np.ndarray, 
                num_classes:int, 
                single_class:Optional[int]=None,
+               is_sigmoid_output:bool=False,
                )->float|None:
     """
     Compare input and target images using a given metric function.
@@ -87,6 +88,10 @@ def versus_one(fct:Callable,
         Number of classes expected in input and target images.
     single_class : int or None, optional
         Index of class to compare individually. If None, compares all classes.
+    is_sigmoid_output : bool, optional
+        Whether the first dimension is a label dimension (CZYX), typically output of sigmoid layer.
+        For instance a 3D image could have the following dimensions: (2, 64, 111, 110)
+        Otherwise, dimensions are supposed to be ZYX.
 
     Returns
     -------
@@ -99,14 +104,16 @@ def versus_one(fct:Callable,
     Copy the images so no side effect.
     """
     img1 = input_img.copy()
-    if len(img1.shape)==3:
+    img1 = img1.squeeze() 
+    if not is_sigmoid_output:
         img1 = one_hot_fast(img1.astype(np.uint8), num_classes)[1:,...]
     if single_class is not None:
         img1 = img1[single_class,...]
     img1 = (img1 > 0).astype(int)
     
     img2 = target_img.copy()
-    if len(img2.shape)==3:
+    img2 = img2.squeeze() 
+    if not is_sigmoid_output:
         img2 = one_hot_fast(img2.astype(np.uint8), num_classes)[1:,...]
     if single_class is not None:
         img2 = img2[single_class,...]
