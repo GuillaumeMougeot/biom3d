@@ -50,11 +50,11 @@ pip install torch biom3d
 
 ## ✋ Usage
 
-**For Graphical User Interface users, please check our documentation here:** [**GUI**](https://biom3d.readthedocs.io/en/latest/quick_run_gui.html)
+**For Graphical User Interface users, please check our documentation here:** [**GUI**](https://biom3d.readthedocs.io/en/latest/tuto/gui.html)
 
-**For Command Line Interface users, please check our documentation here:** [**CLI**](https://biom3d.readthedocs.io/en/latest/tuto_cli.html)
+**For Command Line Interface users, please check our documentation here:** [**CLI**](https://biom3d.readthedocs.io/en/latest/tuto/cli.html)
 
-**For Deep Learning developers, the tutorials are currently being cooked stayed tuned! You can check the partial API documentation already:** [**API**](https://biom3d.readthedocs.io/en/latest/builder.html)
+**For Deep Learning developers, the tutorials are currently being cooked stayed tuned! You can check the partial API documentation already:** [**API**](https://biom3d.readthedocs.io/en/latest/api/api.html)
 
 TL;DR: here is a single line of code to run biom3d on the [BTCV challenge](https://www.synapse.org/#!Synapse:syn3193805/wiki/217785) and reach the same performance as nnU-Net (no cross-validation yet): 
 
