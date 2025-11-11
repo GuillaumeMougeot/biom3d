@@ -1,5 +1,5 @@
 Testing
 =======
 
-.. automodule:: biom3d.utils.tests
+.. automodule:: biom3d.utils.eval_metrics
     :members:

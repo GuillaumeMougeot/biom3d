@@ -47,6 +47,33 @@ Imported Image ID: 301018
 ```
 each time an image is uploaded, you can keep track of uploading with that. However there are cases where nothing is shown in terminal and it is still uploaded. If you are not using the GUI (and can't see the button feedback), we recommand checking in real time the destination folder in OMERO.
 
+## Installer not detecting CUDA card
+We encountered some cases where the installer doesn't detect the CUDA drivers on first launch, hence not updating its torch version to use CUDA. We are currently investingating this. Here is how to manually update the torch verion of the installer:
+1. You need to know which CUDA version your GPU is compatible for that use the command `nvidia-smi`:
+```text
+> nvidia-smi
+Thu Jul 17 11:43:05 2025
++-----------------------------------------------------------------------------+
+| NVIDIA-SMI 457.51       Driver Version: 457.51       CUDA Version: 11.1     |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name            TCC/WDDM | Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|                               |                      |               MIG M. |
+|===============================+======================+======================|
+|   0  GeForce GTX 106... WDDM  | 00000000:01:00.0  On |                  N/A |
+| 43%   39C    P2    22W / 120W |   1054MiB /  6144MiB |      3%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+```
+2. Then you need to know with which version of torch the installer was created:
+    1. Navigate to the installer folder.
+    2. In the address bar, write `cmd` and press enter, it will open a terminal.
+    3. Paste this command `bin\python.exe -c "import torch; print(torch.__version__)"` and enter, it will give something like `2.9.0+cpu`
+    4. Keep the terminal open
+3. Navigate to the PyTorch website, the last version of pytorch can be found [here](https://pytorch.org/get-started/locally/) in PyTorch Build "Stable", if the installer use an older version go [here](https://pytorch.org/get-started/previous-versions/). 
+4. Select the version correspondig to your OS and CUDA version
+5. In the previously open terminal write `bin\python.exe -m <Paste the command found on the website>`, you can remove the torchvision and torchaudio part that are not used in Biom3d. The update will take some time, once it is finished you can close the terminal.
+
 ## NaN loss
 
 Can be caused by:

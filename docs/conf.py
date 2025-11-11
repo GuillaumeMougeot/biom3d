@@ -224,6 +224,8 @@ html_theme_options = {
 copybutton_prompt_text = r'>>> |\.\.\. '
 copybutton_prompt_is_regexp = True
 
+autodoc_mock_imports = ["torch", "omero_version","batchgenerators","omero","ezomero"]
+
 # Code to ignore named-tuple in automodule because they're ugly and we put a cleaner autofunction:: namedtuple after
 def is_namedtuple_class(obj):
     """Check if an object is a namedtuple class."""
