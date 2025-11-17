@@ -1421,8 +1421,8 @@ class OmeroDataset(ttk.LabelFrame):
         self.label_id.grid(column=0, row=0, sticky=(W,E))
         self.id_entry.grid(column=1,row=0,sticky=(W,E))
         
-        self.project_label_id.grid(column=0, row=1, sticky=(W,E))
-        self.project_id_entry.grid(column=1,row=1,sticky=(W,E))
+        #self.project_label_id.grid(column=0, row=1, sticky=(W,E))
+        #self.project_id_entry.grid(column=1,row=1,sticky=(W,E))
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=5)
         self.rowconfigure(0, weight=1)
@@ -1874,7 +1874,8 @@ class PredictTab(ttk.Frame):
                     host=self.omero_connection.hostname.get(),
                     user=self.omero_connection.username.get(),
                     pwd=self.omero_connection.password.get(),
-                    upload_id=int(self.omero_dataset.project_id.get()),
+                    #upload_id=int(self.omero_dataset.project_id.get()),
+                    upload_id=int(self.omero_dataset.id.get()),
                     attachment=attachment_file,
                 )
         

@@ -108,7 +108,7 @@ def eval(path_lab: str,
         print("Metric result:", res)
         results += [res]
         
-    print("Evaluation done! Average result:", np.mean(results))
+    print("Evaluation done! Average {} result:".format(fct.__name__ ), np.mean(results))
     return results, np.mean(results)
 
 
