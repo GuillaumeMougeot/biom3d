@@ -21,7 +21,7 @@ Or in python
 import numpy as np
 import argparse
 
-from biom3d.utils import versus_one, dice, iou,DataHandlerFactory
+from biom3d.utils import versus_one, dice, iou, DataHandlerFactory, MONAIMetricFactory
 
 from typing import Callable
 
@@ -124,11 +124,22 @@ if __name__=='__main__':
     parser.add_argument("-l", "--path_lab","--dir_lab",dest="path_lab", type=str, default=None,
         help="Path to the label collection")  
     parser.add_argument("-f", "--function",dest="function", type=str, default='dice',
-        help=f"(default=dice) Function used for evaluation. Supported : {', '.join(supported_function.keys())}")  
+        help=f"(default=dice) Function used for evaluation. "
+             f"Supported : {', '.join(supported_function.keys())} "
+             f"or one of MONAI metrics classes found in https://monai-dev.readthedocs.io/en/latest/metrics.html"
+             )  
     parser.add_argument("--num_classes", type=int, default=1,
         help="(default=1) Number of classes (types of objects) in the dataset. The background is not included.")
     args = parser.parse_args()
     if args.function not in supported_function:
-        print("Function '{}' not supported. Supported functions :'{}'".format(args.function,supported_function.keys()))
-        exit(1)
-    eval(args.path_lab, args.path_pred, args.num_classes,supported_function[args.function])
+        try:
+            eval(args.path_lab, args.path_pred, args.num_classes,MONAIMetricFactory(args.function))
+        except Exception as e:
+            print(
+                f"Function '{args.function}' not supported. "
+                f"Supported functions :'{supported_function.keys()}' "
+                f"or one of MONAI metrics classes found in https://monai-dev.readthedocs.io/en/latest/metrics.html")
+            print(f"Error during eval: {e}")
+            exit(1)
+    else:
+        eval(args.path_lab, args.path_pred, args.num_classes,supported_function[args.function])

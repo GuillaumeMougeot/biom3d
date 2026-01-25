@@ -11,10 +11,10 @@
 #  --dir_lab data/msd/Task07_Pancreas/labelsTr_test\
 #  --num_classes 2
 
-python -m biom3d.eval\
- --dir_pred data/msd/Task06_Lung/preds/swinunetr\
- --dir_lab data/msd/Task06_Lung/labelsTr_test\
- --num_classes 1
+# python -m biom3d.eval\
+#  --dir_pred data/msd/Task06_Lung/preds/swinunetr\
+#  --dir_lab data/msd/Task06_Lung/labelsTr_test\
+#  --num_classes 1
 
 # python -m biom3d.eval\
 #  --dir_pred data/msd/Task07_Pancreas/preds/20230523-105736-unet_default\
@@ -26,7 +26,8 @@ python -m biom3d.eval\
 #  --dir_lab data/nucleus/official/test/msk\
 #  --num_classes 1
 
-# python -m biom3d.eval\
-#  --dir_pred data/mito/test/pred/20230203-091249-unet_mito\
-#  --dir_lab data/mito/test/msk\
-#  --num_classes 1
+python -m biom3d.eval\
+ --dir_pred data/mito/test/pred/20230203-091249-unet_mito\
+ --dir_lab data/mito/test/msk\
+ --num_classes 1\
+ --function HausdorffDistanceMetric

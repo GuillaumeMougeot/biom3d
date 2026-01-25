@@ -58,6 +58,46 @@ def dice(inputs:np.ndarray,
     dice = (2.*inter + smooth)/(inputs.sum(axis=axis) + targets.sum(axis=axis) + smooth)  
     return dice.mean()
 
+class MONAIMetricFactory:
+    """MONAI metric factory.
+
+    Example usage:
+
+    metric=MONAIMetricFactory("HausdorffDistanceMetric", include_background=True)
+    metric(inputs, targets)
+    """
+    def __init__(self, metric_name, **metric_kwargs):
+        try:
+            import monai.metrics as metrics
+        except ImportError as e:
+            raise ImportError(
+                "Monai is needed to use MONAI metric factory."
+                "Install it with: pip install momai"
+            ) from e
+        
+        try:
+            metric_class = getattr(metrics, metric_name)
+        except Exception as e:
+            raise Exception(f"No metric named {metric_name} in MONAI.") from e
+        
+        if len(metric_kwargs)==0:
+            try:
+                self.metric = metric_class(include_background=True)
+                print(f"Including background in {metric_name} definition.")
+            except Exception:
+                self.metric = metric_class()
+        else:
+            self.metric = metric_class(**metric_kwargs)
+
+    def __call__(self, inputs, targets):
+        import torch
+        out = self.metric([torch.from_numpy(inputs)], [torch.from_numpy(targets)])
+        out = np.max(out.numpy())
+        if np.isinf(out):
+            print("Error! Infinite distance.")
+            return None
+        return out    
+
 def versus_one(fct:Callable, 
                input_img:np.ndarray, 
                target_img:np.ndarray, 

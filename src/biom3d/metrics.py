@@ -380,17 +380,6 @@ class MSE(Metric):
 
     :ivar str name: Name of the metric (for logging or display).
     """
-
-    def __init__(self, name: Optional[str] = None):
-        """
-        Initialize the MSE metric.
-
-        Parameters
-        ----------
-        name : str, optional
-            Name of the metric, for display or logging purposes.
-        """
-
     def forward(self, inputs: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
         """
         Compute the mean squared error between predictions and targets.
