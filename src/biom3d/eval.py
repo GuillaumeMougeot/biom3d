@@ -20,8 +20,9 @@ Or in python
 
 import numpy as np
 import argparse
+from functools import partial
 
-from biom3d.utils import versus_one, dice, iou, DataHandlerFactory, MONAIMetricFactory
+from biom3d.utils import versus_one, dice, iou, DataHandlerFactory, MONAIMetricFactory, absolute_volume_difference
 
 from typing import Callable
 
@@ -80,6 +81,8 @@ def eval(path_lab: str,
         List of metric results per image.
     mean: float
         Average of results
+    mean_class: Optional, list
+        Average per class
     """
     print("Start evaluation")
     handler1 = DataHandlerFactory.get(
@@ -96,6 +99,7 @@ def eval(path_lab: str,
     assert len(handler1) == len(handler2), f"[Error] Not the same number of labels and predictions! '{len(handler1)}' for '{len(handler2)}'"
 
     results = []
+    is_multi_class = False
     for (img1,_,_,),(img2,_,_) in zip(handler1,handler2):
         print("Metric computation for:", img1,img2)
         res = versus_one(
@@ -105,11 +109,17 @@ def eval(path_lab: str,
             num_classes=num_classes+1, 
             single_class=None)
 
+        if isinstance(res, (list, np.ndarray)) and len(res) > 1: is_multi_class = True
+
         print("Metric result:", res)
         results += [res]
-        
-    print("Evaluation done! Average {} result:".format(fct.__name__ ), np.mean(results))
-    return results, np.mean(results)
+    
+    if is_multi_class:
+        print(f"Evaluation done! Per class-results: {np.mean(results, axis=0)}, Average result: {np.mean(results)}")
+        return results, np.mean(results), np.mean(results, axis=0)
+    else:
+        print("Evaluation done! Average result:", np.mean(results))
+        return results, np.mean(results)
 
 
 if __name__=='__main__':
@@ -117,6 +127,9 @@ if __name__=='__main__':
         "dice":dice,
         "equals":np.equal,
         "iou":iou,
+        "avd": absolute_volume_difference,
+        "rve": partial(absolute_volume_difference, relative=True)
+
     }
     parser = argparse.ArgumentParser(description="Prediction evaluation.")
     parser.add_argument("-p", "--path_pred","--dir_pred",dest="path_pred", type=str, default=None,
