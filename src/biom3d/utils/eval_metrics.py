@@ -58,45 +58,80 @@ def dice(inputs:np.ndarray,
     dice = (2.*inter + smooth)/(inputs.sum(axis=axis) + targets.sum(axis=axis) + smooth)  
     return dice.mean()
 
+def absolute_volume_difference(pred, gt, voxel_volume=1.0, relative=False):
+    vol_pred = pred.sum(axis=(-3,-2,-1)) * voxel_volume
+    vol_gt   = gt.sum(axis=(-3,-2,-1)) * voxel_volume
+    diff = np.abs(vol_pred - vol_gt)
+    if relative:
+        return diff / (vol_gt + 1e-8)
+    else:
+        return diff
+    
+def expected_calibration_error(probs, labels, n_bins=15):
+    confidences = probs.max(axis=1)
+    predictions = probs.argmax(axis=1)
+    accuracies = (predictions == labels)
+
+    bins = np.linspace(0,1,n_bins+1)
+    ece = 0
+    for i in range(n_bins):
+        mask = (confidences > bins[i]) & (confidences <= bins[i+1])
+        if mask.sum() > 0:
+            acc = accuracies[mask].mean()
+            conf = confidences[mask].mean()
+            ece += mask.mean() * abs(acc - conf)
+    return ece
+
 class MONAIMetricFactory:
-    """MONAI metric factory.
-
-    Example usage:
-
-    metric=MONAIMetricFactory("HausdorffDistanceMetric", include_background=True)
-    metric(inputs, targets)
     """
-    def __init__(self, metric_name, **metric_kwargs):
-        try:
-            import monai.metrics as metrics
-        except ImportError as e:
-            raise ImportError(
-                "Monai is needed to use MONAI metric factory."
-                "Install it with: pip install momai"
-            ) from e
-        
-        try:
-            metric_class = getattr(metrics, metric_name)
-        except Exception as e:
-            raise Exception(f"No metric named {metric_name} in MONAI.") from e
-        
-        if len(metric_kwargs)==0:
-            try:
-                self.metric = metric_class(include_background=True)
-                print(f"Including background in {metric_name} definition.")
-            except Exception:
-                self.metric = metric_class()
-        else:
-            self.metric = metric_class(**metric_kwargs)
+    MONAI metric wrapper that mimics simple NumPy metric behavior.
+    Designed for batch size = 1 and evaluation only.
+    """
+
+    def __init__(self, metric_name, average_classes=False, **metric_kwargs):
+        import monai.metrics as metrics
+
+        if not hasattr(metrics, metric_name):
+            raise ValueError(f"{metric_name} not found in monai.metrics")
+
+        metric_class = getattr(metrics, metric_name)
+
+        # Force non-reduced behavior
+        metric_kwargs.setdefault("reduction", "none")
+        metric_kwargs.setdefault("get_not_nans", False)
+        metric_kwargs.setdefault("include_background", False)
+        if metric_name == "HausdorffDistanceMetric":
+            metric_kwargs.setdefault("percentile", 95)
+
+        self.metric = metric_class(**metric_kwargs)
+        self.average_classes = average_classes
 
     def __call__(self, inputs, targets):
         import torch
-        out = self.metric([torch.from_numpy(inputs)], [torch.from_numpy(targets)])
-        out = np.max(out.numpy())
-        if np.isinf(out):
-            print("Error! Infinite distance.")
-            return None
-        return out    
+
+        # Convert to tensor
+        inputs = torch.as_tensor(inputs)
+        targets = torch.as_tensor(targets)
+
+        # Ensure (B,C,...) shape
+        if inputs.ndim == 3:
+            inputs = inputs.unsqueeze(0).unsqueeze(0)
+            targets = targets.unsqueeze(0).unsqueeze(0)
+        elif inputs.ndim == 4:
+            inputs = inputs.unsqueeze(0)
+            targets = targets.unsqueeze(0)
+
+        self.metric.reset()
+        self.metric(y_pred=inputs, y=targets)
+        out = self.metric.aggregate()
+        self.metric.reset()
+
+        out = out.detach().cpu().squeeze(0)  # remove batch dim
+
+        if self.average_classes:
+            return out.mean().item()
+        else:
+            return out.numpy()
 
 def versus_one(fct:Callable, 
                input_img:np.ndarray, 
